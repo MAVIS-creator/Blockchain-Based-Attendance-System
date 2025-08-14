@@ -108,9 +108,9 @@ secure_logs/attendance_chain.json → blockchain-secured log history
 ```
 
 📝 License
-This project is licensed under the MIT LICENSE – see the <a href="https://github.com/MAVIS-creator/Attendance_/blob/main/LICENSE">LICENSE</a> file for details.
+- This project is licensed under the MIT LICENSE – see the <a href="https://github.com/MAVIS-creator/Attendance_/blob/main/LICENSE">LICENSE</a> file for details.
 
 👤 Author
-Mavis – Gamer, Web Developer, Security Enthusiast
+- Mavis – Gamer, Web Developer, Security Enthusiast
 📧 Email: mavisenquires@gmail.com
 🐙 GitHub: MAVIS-creator
