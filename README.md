@@ -87,7 +87,7 @@
 4. Start Apache from the control panel.
 5. Access in your browser: 
 ```bash 
-http://localhost/Attendance
+http://localhost/Attendance_
 ```
 
 ### 2️⃣ Using PHP Built-in Server
