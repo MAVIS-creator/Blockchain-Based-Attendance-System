@@ -8,50 +8,45 @@ A secure, IP-fenced, blockchain-verified attendance management system that **doe
 
 ### 👤 Client/User
 - Check-in / Check-out attendance  
-  ![Check-in](https://ibb.co/CDw9Wn9)
-  ![Check-out](https://ibb.co/23RsvLcx)
+  ![Check-in](https://i.ibb.co/qMgy1gdx/image.png)
+  ![Check-out](https://i.ibb.co/GSpVM9y/image.png)
 - Create support tickets  
-  ![Support Tickets](https://ibb.co/TNrzpWj)
+  ![Support Tickets](https://i.ibb.co/sdDxfVFt/image.png)
 - View announcements  
-  ![View Announcements](https://ibb.co/nMtG68SQ)
+  ![View Announcements](https://i.ibb.co/mCG6hkPd/image.png)
 
 ### 🛠 Admin
 - Enable/Disable check-in and check-out modes  
-  ![Enable/Disable Modes](https://ibb.co/TM5wnmgX)
+  ![Enable/Disable Modes](https://i.ibb.co/QFyLBDjJ/image.png)
 - View all logs (valid & failed attempts)  
-  ![View Logs](https://ibb.co/7x11JF2L)
-  ![Failed Logs](https://ibb.co/mr5MWWqR)
+  ![View Logs](https://i.ibb.co/Y736XQp5/image.png)
+  ![Failed Logs](https://i.ibb.co/krTrJps/image.png)
 - Create, edit, and delete courses  
-  ![Manage Courses](https://ibb.co/jPRY0zrG)
+  ![Manage Courses](https://i.ibb.co/zVRspk8v/image.png)
 - Set active courses for attendance  
-  ![Set Active Courses](https://ibb.co/qMFVnkgP)
+  ![Set Active Courses](https://i.ibb.co/608T0SJ2/image.png)
 - Make manual attendance entries  
-  ![Manual Attendance](https://ibb.co/9kmTGnWs)
+  ![Manual Attendance](https://i.ibb.co/Ldnq0jcP/image.png)
 - Unlink fingerprints from users  
   ![Unlink Fingerprints](https://ibb.co/WpBmCGvc)
+- View Support Tickets
+  ![View Support Tickets](https://i.ibb.co/XrQGzR5R/image.png)
 - Post announcements  
-  ![Post Announcements](https://ibb.co/wZc7B3g7)
+  ![Post Announcements](https://i.ibb.co/VpP4FyKf/image.png)
 - Blockchain verification of logs  
-  ![Blockchain Verification](images/blockchain-verification.png)
+  ![Blockchain Verification](https://i.ibb.co/jkPWhBKY/image.png)
 
 ---
 
 ## 🔒 Security Highlights
 The system is secured with:
-- **Input sanitization** (`filter_var` & trimming on all POST data)  
-  ![Input Sanitization](images/input-sanitization.png)
+- **Input sanitization** (`filter_var` & trimming on all POST data) 
 - **IP logging** and **device fingerprinting** to prevent spoofing  
-  ![IP and Device Fingerprinting](images/ip-device-fingerprinting.png)
 - **Duplicate prevention** (same matric or IP cannot perform the same action twice per day)  
-  ![Duplicate Prevention](images/duplicate-prevention.png)
 - **Checkout restriction** — cannot checkout without a prior check-in  
-  ![Checkout Restriction](images/checkout-restriction.png)
 - **Invalid attempts log** for all failed check-ins/outs  
-  ![Invalid Attempts Log](images/invalid-attempts.png)
 - **Blockchain log chaining** to make tampering detectable  
-  ![Blockchain Log Chaining](images/blockchain-chaining.png)
 - **Optional Polygon integration** for decentralized hash storage  
-  ![Polygon Integration](images/polygon-integration.png)
 
 ---
 
@@ -73,7 +68,6 @@ http://localhost/your-folder-name
 ### 2️⃣ Using PHP Built-in Server
 1. Open a terminal in the project folder.
 2. Run:
-```bash
 php -S localhost:8000
 Visit:
 
