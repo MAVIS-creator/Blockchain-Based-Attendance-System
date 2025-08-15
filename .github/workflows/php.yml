@@ -17,7 +17,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        submodules: true # enables pulling git submodules too
+        submodules: false # DO NOT pull submodules — vendor is managed by Composer
 
     - name: Set up PHP
       uses: shivammathur/setup-php@v2
@@ -43,7 +43,3 @@ jobs:
 
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress --no-interaction
-
-    # Uncomment this if you have tests
-    # - name: Run test suite
-    #   run: composer run-script test

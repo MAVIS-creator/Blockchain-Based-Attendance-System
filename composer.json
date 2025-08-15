@@ -1,4 +1,7 @@
 {
+    "name": "mavis-creator/attendance",
+    "description": "A simple blockchain attendance system",
+    "license": "MIT",
     "require": {
         "web3p/web3.php": "^0.3.2"
     }
