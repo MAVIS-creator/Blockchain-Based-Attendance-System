@@ -112,5 +112,7 @@ secure_logs/attendance_chain.json → blockchain-secured log history
 
 👤 Author
 - Mavis – Gamer, Web Developer, Security Enthusiast
-📧 Email: mavisenquires@gmail.com
-🐙 GitHub: MAVIS-creator
+- 📧 Email: mavisenquires@gmail.com
+- 🐙 GitHub: [MAVIS-creator](https://github.com/MAVIS-creator)
+💻  Co Author
+[SamexHighshow](https://github.com/isholasamuel062@gmail.com)
