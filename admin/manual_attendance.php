@@ -55,30 +55,136 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$isValidReason) {
             $errorMessage = "Your reason did not contain any valid keywords. Attendance not marked.";
         } else {
-            // Use shared MAC helper
+            // Use shared MAC helper and also apply the same enforcement as submit.php when settings are configured
             require_once __DIR__ . '/includes/get_mac.php';
             $ipAddr = $_SERVER['REMOTE_ADDR'];
             $macAddr = get_mac_from_ip($ipAddr);
-            // ✅ Format log line
-            // Standardized log format:
-            // name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
-            $logLine = sprintf(
-                "%s | %s | %s | %s | %s | %s | %s | %s | %s | %s\n",
-                strtoupper($name),
-                $matric,
-                $action,
-                'MANUAL',
-                $ipAddr,
-                $macAddr,
-                date('Y-m-d H:i:s'),
-                $_SERVER['HTTP_USER_AGENT'] ?? 'Web Ticket Panel',
-                $activeCourse,
-                $reason
-            );
+            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+            $fingerprint = 'MANUAL_' . strtoupper($matric);
 
-            file_put_contents($logFile, $logLine, FILE_APPEND | LOCK_EX);
+            // Load settings (try JSON then decrypt)
+            $settingsPath = __DIR__ . '/settings.json';
+            $settings = [];
+            if (file_exists($settingsPath)) {
+                $raw = file_get_contents($settingsPath);
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) $settings = $decoded;
+                else if (strpos($raw, 'ENC:') === 0) {
+                  $keyFile = __DIR__ . '/.settings_key';
+                  if (file_exists($keyFile)) {
+                    $key = trim(file_get_contents($keyFile));
+                    $blob = base64_decode(substr($raw,4));
+                    $iv = substr($blob,0,16);
+                    $ct = substr($blob,16);
+                    $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+                    $decoded2 = json_decode($plain, true);
+                    if (is_array($decoded2)) $settings = $decoded2;
+                  }
+                }
+            }
 
-            $success = true;
+            // helper for CIDR match (IPv4)
+            $ip_in_cidr = function($ip, $cidr) {
+                if (strpos($cidr, '/') === false) return $ip === $cidr;
+                list($net, $mask) = explode('/', $cidr, 2);
+                if (!filter_var($net, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) return false;
+                $ip_long = ip2long($ip);
+                $net_long = ip2long($net);
+                $mask = (int)$mask;
+                $mask_long = -1 << (32 - $mask);
+                return ($ip_long & $mask_long) === ($net_long & $mask_long);
+            };
+
+            // IP whitelist enforcement
+            if (!empty($settings['ip_whitelist']) && is_array($settings['ip_whitelist'])) {
+                $ok = false;
+                foreach ($settings['ip_whitelist'] as $w) {
+                    $w = trim($w);
+                    if ($w === '') continue;
+                    if ($ip_in_cidr($ipAddr, $w)) { $ok = true; break; }
+                }
+                if (!$ok) { $errorMessage = 'Your IP is not allowed to submit manual attendance.'; }
+            }
+
+            // Geo-fence
+            if (empty($errorMessage) && !empty($settings['geo_fence']) && is_array($settings['geo_fence'])) {
+                $gf = $settings['geo_fence'];
+                $gfLat = isset($gf['lat']) ? floatval($gf['lat']) : null;
+                $gfLng = isset($gf['lng']) ? floatval($gf['lng']) : null;
+                $gfRadius = isset($gf['radius_m']) ? intval($gf['radius_m']) : 0;
+                if ($gfLat !== null && $gfLng !== null && $gfRadius > 0) {
+                    // manual does not have client coords; we cannot verify location reliably
+                    // so block when geo_fence is configured to avoid bypass
+                    $errorMessage = 'Manual attendance not allowed while geo-fencing is enabled.';
+                }
+            }
+
+            // Device and UA enforcement (cooldown, ua lock, one-device)
+            if (empty($errorMessage)) {
+                $deviceId = ($macAddr && $macAddr !== 'UNKNOWN') ? $macAddr : hash('sha256', $userAgent);
+                $today = date('Y-m-d');
+                $now = time();
+                $encryptLogs = !empty($settings['encrypt_logs']);
+
+                // device cooldown
+                if (!empty($settings['device_cooldown_seconds'])) {
+                    $cdFile = __DIR__ . '/logs/device_cooldowns_' . $today . '.json';
+                    $cdData = [];
+                    if (file_exists($cdFile)) {
+                        $raw = file_get_contents($cdFile);
+                        if ($encryptLogs && strpos($raw,'ENC:')===0) {
+                            $kfile = __DIR__ . '/.settings_key'; if (file_exists($kfile)) { $key = trim(file_get_contents($kfile)); $blob = base64_decode(substr($raw,4)); $iv = substr($blob,0,16); $ct = substr($blob,16); $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv); $cdData = json_decode($plain,true) ?: []; }
+                        } else { $cdData = json_decode($raw,true) ?: []; }
+                    }
+                    $k = $fingerprint . '|' . $deviceId;
+                    $last = isset($cdData[$k]) ? intval($cdData[$k]) : 0;
+                    $cool = intval($settings['device_cooldown_seconds']);
+                    if ($last > 0 && ($now - $last) < $cool) {
+                        $errorMessage = 'Please wait before making another attendance from this device.';
+                    } else { $cdData[$k] = $now; $payload = json_encode($cdData, JSON_PRETTY_PRINT); if ($encryptLogs && isset($key)) { $iv = random_bytes(16); $ct = openssl_encrypt($payload,'AES-256-CBC',base64_decode($key),OPENSSL_RAW_DATA,$iv); file_put_contents($cdFile,'ENC:'.base64_encode($iv.$ct),LOCK_EX); } else { file_put_contents($cdFile,$payload,LOCK_EX); } }
+                }
+                // ua lock
+                if (empty($errorMessage) && !empty($settings['user_agent_lock'])) {
+                    $uaFile = __DIR__ . '/logs/fp_useragent_' . $today . '.json';
+                    $uaData = [];
+                    if (file_exists($uaFile)) { $raw = file_get_contents($uaFile); if ($encryptLogs && strpos($raw,'ENC:')===0) { $kfile=__DIR__.'/ .settings_key'; if (file_exists($kfile)) { $key=trim(file_get_contents($kfile)); $blob=base64_decode(substr($raw,4)); $iv=substr($blob,0,16); $ct=substr($blob,16); $plain=openssl_decrypt($ct,'AES-256-CBC',base64_decode($key),OPENSSL_RAW_DATA,$iv); $uaData=json_decode($plain,true)?:[]; }} else { $uaData = json_decode($raw,true)?:[]; } }
+                    $h = hash('sha256',$userAgent);
+                    if (isset($uaData[$fingerprint]) && $uaData[$fingerprint] !== $h) { $errorMessage = 'Device change detected; manual attendance blocked.'; }
+                    else { $uaData[$fingerprint] = $h; $payload = json_encode($uaData, JSON_PRETTY_PRINT); if ($encryptLogs && isset($key)) { $iv=random_bytes(16); $ct=openssl_encrypt($payload,'AES-256-CBC',base64_decode($key),OPENSSL_RAW_DATA,$iv); file_put_contents($uaFile,'ENC:'.base64_encode($iv.$ct),LOCK_EX); } else { file_put_contents($uaFile,$payload,LOCK_EX); } }
+                }
+                // enforce one device per fingerprint
+                if (empty($errorMessage) && !empty($settings['enforce_one_device_per_day'])) {
+                    $mapFile = __DIR__ . '/logs/fp_devices_' . $today . '.json';
+                    $mapData = [];
+                    if (file_exists($mapFile)) { $raw=file_get_contents($mapFile); if ($encryptLogs && strpos($raw,'ENC:')===0) { $kfile=__DIR__.'/.settings_key'; if (file_exists($kfile)) { $key=trim(file_get_contents($kfile)); $blob=base64_decode(substr($raw,4)); $iv=substr($blob,0,16); $ct=substr($blob,16); $plain=openssl_decrypt($ct,'AES-256-CBC',base64_decode($key),OPENSSL_RAW_DATA,$iv); $mapData=json_decode($plain,true)?:[]; }} else { $mapData=json_decode($raw,true)?:[]; } }
+                    $list = isset($mapData[$fingerprint]) ? (array)$mapData[$fingerprint] : [];
+                    if (count($list) > 0 && !in_array($deviceId,$list)) { $errorMessage = 'This fingerprint has already been used with a different device today.'; }
+                    else { if (!in_array($deviceId,$list)) $list[]=$deviceId; $mapData[$fingerprint]=$list; $payload=json_encode($mapData,JSON_PRETTY_PRINT); if ($encryptLogs && isset($key)) { $iv=random_bytes(16); $ct=openssl_encrypt($payload,'AES-256-CBC',base64_decode($key),OPENSSL_RAW_DATA,$iv); file_put_contents($mapFile,'ENC:'.base64_encode($iv.$ct),LOCK_EX); } else { file_put_contents($mapFile,$payload,LOCK_EX); } }
+                }
+            }
+
+            if (empty($errorMessage)) {
+                // ✅ Format log line
+                // Standardized log format:
+                // name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
+                $logLine = sprintf(
+                    "%s | %s | %s | %s | %s | %s | %s | %s | %s | %s\n",
+                    strtoupper($name),
+                    $matric,
+                    $action,
+                    'MANUAL',
+                    $ipAddr,
+                    $macAddr,
+                    date('Y-m-d H:i:s'),
+                    $_SERVER['HTTP_USER_AGENT'] ?? 'Web Ticket Panel',
+                    $activeCourse,
+                    $reason
+                );
+
+                file_put_contents($logFile, $logLine, FILE_APPEND | LOCK_EX);
+
+                $success = true;
+            }
         }
     }
 }
