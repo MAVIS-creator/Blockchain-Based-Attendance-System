@@ -189,7 +189,7 @@ if (file_exists($announcementFile)) {
     <button id="submitBtn" class="btn btn-primary" type="submit" disabled>Submit Attendance</button>
     <p style="display: inline-block; margin: 10px 0 0; font-size: 14px; color: var(--muted);">
       Need help? 
-      <a href="support.php" style="margin-left:8px; padding:8px 14px; border-radius:8px; text-decoration:none;" class="btn btn-accent">💬 Support</a>
+      <a href="support.php" style="margin-left:8px; padding:8px 14px; border-radius:8px; text-decoration:none;" class="btn btn-accent"><i class='bx bx-message'></i> Support</a>
     </p>
   </form>
 </div>
