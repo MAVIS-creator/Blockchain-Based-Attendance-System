@@ -16,10 +16,13 @@
       ?>
       <div style="display:flex;align-items:center;gap:10px;">
          <img src="../asset/lautech_logo.png" alt="logo" style="height:40px;width:auto;background:#fff;padding:6px;border-radius:6px;">
-          <?= $adminAvatar ? '<img src="'.htmlspecialchars($adminAvatar).'" alt="avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">' : $initials ?>
-        </div>
-        <div style="font-weight:600;color:#333;"><?= $adminName ?></div>
+         <?php if ($adminAvatar): ?>
+           <img class="admin-avatar" src="<?= htmlspecialchars($adminAvatar) ?>" alt="avatar">
+         <?php else: ?>
+           <span class="admin-initials"><?= $initials ?></span>
+         <?php endif; ?>
       </div>
+      <div style="font-weight:600;color:#333;"><?= $adminName ?></div>
     <?php else: ?>
       <a href="login.php" style="color:#333;text-decoration:none;font-weight:600;">Login</a>
     <?php endif; ?>
