@@ -172,8 +172,7 @@ $now = time();
 if (!empty($settings['device_cooldown_seconds']) && intval($settings['device_cooldown_seconds']) > 0) {
     $cool = intval($settings['device_cooldown_seconds']);
     $cdFile = __DIR__ . '/admin/logs/device_cooldowns_' . $today . '.json';
-    $cdData = file_exists($cdFile) ? json_decode(file_get_contents($cdFile), true) : [];
-    if (!is_array($cdData)) $cdData = [];
+    $cdData = read_store($cdFile, !empty($settings['encrypt_logs']));
     $key = $fingerprint . '|' . $deviceId;
     $last = isset($cdData[$key]) ? intval($cdData[$key]) : 0;
     if ($last > 0 && ($now - $last) < $cool) {
@@ -182,7 +181,7 @@ if (!empty($settings['device_cooldown_seconds']) && intval($settings['device_coo
     }
     // update
     $cdData[$key] = $now;
-    file_put_contents($cdFile, json_encode($cdData, JSON_PRETTY_PRINT), LOCK_EX);
+    write_store($cdFile, $cdData, !empty($settings['encrypt_logs']));
 }
 
 // -----------------------
@@ -190,14 +189,13 @@ if (!empty($settings['device_cooldown_seconds']) && intval($settings['device_coo
 // -----------------------
 if (!empty($settings['user_agent_lock'])) {
     $uaFile = __DIR__ . '/admin/logs/fp_useragent_' . $today . '.json';
-    $uaData = file_exists($uaFile) ? json_decode(file_get_contents($uaFile), true) : [];
-    if (!is_array($uaData)) $uaData = [];
+    $uaData = read_store($uaFile, !empty($settings['encrypt_logs']));
     $uaHash = hash('sha256', $userAgent);
     if (isset($uaData[$fingerprint]) && $uaData[$fingerprint] !== $uaHash) {
         fail('UA_MISMATCH','Device change detected for this fingerprint; attendance blocked.');
     }
     $uaData[$fingerprint] = $uaHash;
-    file_put_contents($uaFile, json_encode($uaData, JSON_PRETTY_PRINT), LOCK_EX);
+    write_store($uaFile, $uaData, !empty($settings['encrypt_logs']));
 }
 
 // -----------------------
@@ -205,15 +203,14 @@ if (!empty($settings['user_agent_lock'])) {
 // -----------------------
 if (!empty($settings['enforce_one_device_per_day'])) {
     $mapFile = __DIR__ . '/admin/logs/fp_devices_' . $today . '.json';
-    $mapData = file_exists($mapFile) ? json_decode(file_get_contents($mapFile), true) : [];
-    if (!is_array($mapData)) $mapData = [];
+    $mapData = read_store($mapFile, !empty($settings['encrypt_logs']));
     $devList = isset($mapData[$fingerprint]) ? (array)$mapData[$fingerprint] : [];
     if (count($devList) > 0 && !in_array($deviceId, $devList)) {
         fail('DEVICE_MISMATCH','This fingerprint has already been used with a different device today.');
     }
     if (!in_array($deviceId, $devList)) $devList[] = $deviceId;
     $mapData[$fingerprint] = $devList;
-    file_put_contents($mapFile, json_encode($mapData, JSON_PRETTY_PRINT), LOCK_EX);
+    write_store($mapFile, $mapData, !empty($settings['encrypt_logs']));
 }
 
 // Load existing fingerprints
