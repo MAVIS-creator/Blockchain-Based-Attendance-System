@@ -55,7 +55,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Support Ticket</title>
-  <link rel="stylesheet" href="/admin/boxicons.min.css">
+  <link rel="stylesheet" href="./admin/boxicons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     :root{ --accent-red:#ef4444; --accent-yellow:#facc15; --accent-dark:#111827; --muted:#6b7280 }
