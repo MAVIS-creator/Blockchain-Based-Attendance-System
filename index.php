@@ -155,6 +155,7 @@ if (file_exists($announcementFile)) {
       }
     }
   </style>
+  <link rel="stylesheet" href="admin/boxicons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
@@ -165,7 +166,7 @@ if (file_exists($announcementFile)) {
 
 <div class="container">
   <div class="brand">
-    <img src="asset/logo-lautech.svg" alt="LAUTECH" style="background:#fff;padding:6px;border-radius:8px;box-shadow:0 6px 20px rgba(16,24,40,0.06);">
+    <img src="asset/lautech_logo.png" alt="LAUTECH" style="background:#fff;padding:6px;border-radius:8px;">
     <h2>Student Attendance — <?= htmlspecialchars($activeCourse) ?></h2>
   </div>
   <form class="form" id="attendanceForm">
