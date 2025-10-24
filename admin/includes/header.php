@@ -1,7 +1,7 @@
 <?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
 <header class="page-header" style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#fff;border-bottom:1px solid #eee;">
   <div style="display:flex;align-items:center;gap:12px;">
-    <img src="../asset/logo-lautech.svg" alt="logo" style="height:40px;width:auto;background:#fff;padding:6px;border-radius:6px;box-shadow:0 6px 18px rgba(16,24,40,0.06)">
+    <img src="../asset/lautech_.png" alt="logo" style="height:40px;width:auto;background:#fff;padding:6px;border-radius:6px;box-shadow:0 6px 18px rgba(16,24,40,0.06)">
     <h1 style="margin:0;font-size:1.2rem;color:#333;">Attendance Admin Panel</h1>
   </div>
 
