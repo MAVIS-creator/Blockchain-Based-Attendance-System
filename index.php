@@ -102,7 +102,9 @@ if (file_exists($announcementFile)) {
     .brand {
       display:flex;align-items:center;gap:12px;margin-bottom:18px;
     }
-    .brand img{ height:44px; width:44px; border-radius:8px; object-fit:cover }
+  .brand img{ height:44px; width:44px; border-radius:8px; object-fit:cover }
+  /* global link style for client pages */
+  a { text-decoration: none; color: inherit }
     .brand h2{ margin:0; font-size:1.05rem; color:var(--accent-dark); }
 
     .form h2 { color:var(--muted); text-align:center; margin-bottom:14px; font-size:1.1rem }
