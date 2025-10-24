@@ -59,42 +59,11 @@ $currentStatus = file_exists($statusFile)
     ? json_decode(file_get_contents($statusFile), true)
     : ["checkin" => false, "checkout" => false];
 
-// Admin accounts management file
+// Admin files location (accounts/settings managed on separate pages)
 $accountsFile = __DIR__ . '/accounts.json';
-if (!file_exists($accountsFile)) {
-  // leave default creation to login.php first-run
-  file_put_contents($accountsFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-}
-
-// Settings file for admin preferences
+if (!file_exists($accountsFile)) file_put_contents($accountsFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 $settingsFile = __DIR__ . '/settings.json';
-if (!file_exists($settingsFile)) {
-  file_put_contents($settingsFile, json_encode(['prefer_mac' => true], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-}
-
-// Handle admin account creation and settings toggle
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  // create admin
-  if (isset($_POST['new_admin_username'], $_POST['new_admin_password'], $_POST['new_admin_name'])) {
-    $accounts = json_decode(file_get_contents($accountsFile), true) ?: [];
-    $u = trim($_POST['new_admin_username']);
-    $p = $_POST['new_admin_password'];
-    $n = trim($_POST['new_admin_name']);
-    if ($u !== '' && $p !== '') {
-      $accounts[$u] = ['password' => password_hash($p, PASSWORD_DEFAULT), 'name' => $n ?: $u, 'avatar' => null];
-      file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-      $message = "Admin account '$u' created.";
-    }
-  }
-
-  // settings toggle
-  if (isset($_POST['prefer_mac'])) {
-    $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
-    $settings['prefer_mac'] = ($_POST['prefer_mac'] === '1');
-    file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-    $message = "Settings updated.";
-  }
-}
+if (!file_exists($settingsFile)) file_put_contents($settingsFile, json_encode(['prefer_mac' => true, 'max_admins' => 5], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
 // Load main log entries
 $entries = file_exists($logFile) ? file($logFile) : [];

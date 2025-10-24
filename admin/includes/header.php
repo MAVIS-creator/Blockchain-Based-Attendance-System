@@ -24,3 +24,38 @@
     <?php endif; ?>
   </div>
 </header>
+<script>
+  (function(){
+    var currentPage = '<?= htmlspecialchars($page ?? '') ?>';
+    var lastKnown = {};
+    function safeFetch(url){ return fetch(url, {cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('Network'); return r.json(); }); }
+    function checkUpdates(){
+      safeFetch('_last_updates.php').then(function(data){
+        if (!lastKnown.accounts) { lastKnown = data; return; }
+        var changed = false;
+        ['accounts','settings','chain'].forEach(function(k){
+          if ((data[k]||0) !== (lastKnown[k]||0)) {
+            lastKnown[k] = data[k];
+            changed = true;
+            if (currentPage === k) refreshCurrent();
+          }
+        });
+        // global refresh if something changed and not on same page
+        if (changed && currentPage === '') {
+          location.reload();
+        }
+      }).catch(function(){ /* ignore network errors silently */ });
+    }
+    function refreshCurrent(){
+      var container = document.querySelector('.content-wrapper');
+      if (!container) return;
+      fetch((currentPage || 'dashboard') + '.php', {cache:'no-store'})
+        .then(function(r){ if(!r.ok) throw new Error('Network'); return r.text(); })
+        .then(function(html){ container.innerHTML = html; console.info('Refreshed '+currentPage); })
+        .catch(function(){ /* ignore */ });
+    }
+    // initial load
+    checkUpdates();
+    setInterval(checkUpdates, 5000);
+  })();
+</script>

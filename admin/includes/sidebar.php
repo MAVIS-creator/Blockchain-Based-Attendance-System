@@ -35,6 +35,9 @@ if (file_exists($ticketsFile)) {
       </li>
       <li><a href="index.php?page=announcement" class="<?= $page == 'announcement' ? 'active' : '' ?>"><i class='bx bx-broadcast'></i> Announcement</a></li>
       <li><a href="index.php?page=unlink_fingerprint" class="<?= $page == 'unlink_fingerprint' ? 'active' : '' ?>"><i class='bx bx-unlink'></i> Unlink Fingerprint</a></li>
+  <li><a href="index.php?page=accounts" class="<?= $page == 'accounts' ? 'active' : '' ?>"><i class='bx bx-user-circle'></i> Accounts</a></li>
+  <li><a href="index.php?page=settings" class="<?= $page == 'settings' ? 'active' : '' ?>"><i class='bx bx-cog'></i> Settings</a></li>
+  <li><a href="index.php?page=chain" class="<?= $page == 'chain' ? 'active' : '' ?>"><i class='bx bx-shield'></i> Chain</a></li>
       <li><a href="logout.php"><i class='bx bx-log-out'></i> Logout</a></li>
     </ul>
   </nav>

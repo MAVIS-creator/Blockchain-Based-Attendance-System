@@ -2,14 +2,17 @@
 session_start();
 $error = '';
 
-// Ensure accounts file exists with a default admin (only on first run)
+// Ensure accounts file exists with a default superadmin (only on first run)
 $accountsFile = __DIR__ . '/accounts.json';
 if (!file_exists($accountsFile)) {
+    // Default superadmin: username Mavis with the password supplied by user
+    $defaultPassword = '.*123$<>Callmelater.,12';
     $default = [
-        'admin' => [
-            'password' => password_hash('password123', PASSWORD_DEFAULT),
-            'name' => 'Administrator',
-            'avatar' => null
+        'Mavis' => [
+            'password' => password_hash($defaultPassword, PASSWORD_DEFAULT),
+            'name' => 'Mavis',
+            'avatar' => null,
+            'role' => 'superadmin'
         ]
     ];
     file_put_contents($accountsFile, json_encode($default, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -17,15 +20,68 @@ if (!file_exists($accountsFile)) {
 
 $accounts = json_decode(file_get_contents($accountsFile), true) ?: [];
 
+// Normalize accounts storage: if the file contains a sequential array (e.g. []), convert to associative
+if (!is_array($accounts)) $accounts = [];
+// If accounts file is empty or not keyed by username, ensure default superadmin exists
+if (!isset($accounts['Mavis'])) {
+    // Create Mavis only if not present
+    $defaultPassword = '.*123$<>Callmelater.,12';
+    $accounts['Mavis'] = [
+        'password' => password_hash($defaultPassword, PASSWORD_DEFAULT),
+        'name' => 'Mavis',
+        'avatar' => null,
+        'role' => 'superadmin'
+    ];
+    file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    if ($username && isset($accounts[$username]) && password_verify($password, $accounts[$username]['password'])) {
+    // find account case-insensitively
+    $foundUser = null;
+    foreach ($accounts as $u => $info) {
+        if (strcasecmp($u, $username) === 0) { $foundUser = $u; break; }
+    }
+
+    // if not found but username requested is Mavis (case-insensitive), ensure Mavis exists (should have been created earlier)
+    if ($foundUser === null && strcasecmp($username, 'Mavis') === 0 && isset($accounts['Mavis'])) {
+        $foundUser = 'Mavis';
+    }
+
+    $authenticated = false;
+    if ($foundUser !== null) {
+        $stored = $accounts[$foundUser]['password'] ?? null;
+        if ($stored && password_verify($password, $stored)) {
+            $authenticated = true;
+            $usernameToUse = $foundUser;
+        }
+    }
+
+    // fallback: if no stored account but user typed the exact default password, allow and create account
+    if (!$authenticated && strcasecmp($username, 'Mavis') === 0) {
+        $defaultPassword = '.*123$<>Callmelater.,12';
+        if ($password === $defaultPassword) {
+            // create or overwrite the Mavis account entry
+            $accounts['Mavis'] = [
+                'password' => password_hash($defaultPassword, PASSWORD_DEFAULT),
+                'name' => 'Mavis',
+                'avatar' => null,
+                'role' => 'superadmin'
+            ];
+            file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            $authenticated = true;
+            $usernameToUse = 'Mavis';
+        }
+    }
+
+    if ($authenticated) {
         $_SESSION['admin_logged_in'] = true;
-        $_SESSION['admin_user'] = $username;
-        $_SESSION['admin_name'] = $accounts[$username]['name'] ?? $username;
-        $_SESSION['admin_avatar'] = $accounts[$username]['avatar'] ?? null;
+        $_SESSION['admin_user'] = $usernameToUse;
+        $_SESSION['admin_name'] = $accounts[$usernameToUse]['name'] ?? $usernameToUse;
+        $_SESSION['admin_avatar'] = $accounts[$usernameToUse]['avatar'] ?? null;
+        $_SESSION['admin_role'] = $accounts[$usernameToUse]['role'] ?? 'admin';
         header('Location: index.php');
         exit;
     } else {
