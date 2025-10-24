@@ -31,16 +31,24 @@ if (file_exists($announcementFile)) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Student Attendance</title>
   <style>
+    :root{
+      --accent-red: #ef4444;
+      --accent-yellow: #facc15;
+      --accent-dark: #111827;
+      --card-bg: #ffffff;
+      --muted: #6b7280;
+    }
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: url(./asset/6071871_3139256.jpg) no-repeat center center/cover;
+      background: #ffffff;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-direction: column;
       position: relative;
+      color: var(--accent-dark);
     }
 
     .announcement-bar {
@@ -48,11 +56,10 @@ if (file_exists($announcementFile)) {
       top: 0;
       left: 0;
       width: 100vw;
-      background: #007bff;
-      color: white;
+      background: linear-gradient(90deg,var(--accent-yellow),var(--accent-red));
+      color: #111;
       padding: 0.75rem 0;
       font-weight: bold;
-      border-radius: 0 0 8px 8px;
       z-index: 2000;
       overflow: hidden;
       display: none;
@@ -69,25 +76,19 @@ if (file_exists($announcementFile)) {
       100% { transform: translateX(-100%); }
     }
 
-    .overlay {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: rgba(5, 15, 35, 0.7);
-      z-index: 0;
-    }
+    .overlay { display:none; }
 
     .container {
       z-index: 1;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(15px);
-      border-radius: 18px;
-      padding: 35px;
-      box-shadow: 0 8px 35px rgba(0, 255, 255, 0.15);
-      width: 90%;
-      max-width: 400px;
-      margin-top: 60px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 8px 30px rgba(16,24,40,0.08);
+      width: 95%;
+      max-width: 460px;
+      margin-top: 40px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border: 1px solid rgba(16,24,40,0.04);
     }
 
     .container:hover {
@@ -95,80 +96,41 @@ if (file_exists($announcementFile)) {
       box-shadow: 0 12px 50px rgba(0, 255, 255, 0.25);
     }
 
-    .form h2 {
-      color: #00eaff;
-      text-align: center;
-      margin-bottom: 25px;
-      font-size: 1.4rem;
+    .brand {
+      display:flex;align-items:center;gap:12px;margin-bottom:18px;
     }
+    .brand img{ height:44px; width:44px; border-radius:8px; object-fit:cover }
+    .brand h2{ margin:0; font-size:1.05rem; color:var(--accent-dark); }
+
+    .form h2 { color:var(--muted); text-align:center; margin-bottom:14px; font-size:1.1rem }
 
     .input-group {
       margin-bottom: 20px;
     }
 
-    .input-group label {
-      color: #9ecff7;
-      display: block;
-      margin-bottom: 5px;
-      font-size: 0.9rem;
-    }
+    .input-group label { color: var(--muted); display:block; margin-bottom:6px; font-size:0.9rem }
 
     .input-group input {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #00eaff;
-      background: transparent;
-      color: #fff;
-      border-radius: 8px;
-      transition: all 0.3s ease;
+      width: 100%; padding:12px; border:1px solid #e6e9ef; background: #fff; color: var(--accent-dark); border-radius:8px; transition: all 0.15s ease;
     }
 
-    .input-group input:focus {
-      outline: none;
-      box-shadow: 0 0 12px #00eaff;
-      border-color: #00ffff;
-    }
+    .input-group input:focus { outline:none; box-shadow: 0 6px 20px rgba(16,24,40,0.06); border-color: rgba(16,24,40,0.06); }
 
-    button {
-      width: 100%;
-      padding: 12px;
-      background-color: #00eaff;
-      border: none;
-      color: #001a33;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-    }
+    .btn { width:100%; padding:12px; border:none; color:#fff; font-weight:700; border-radius:8px; cursor:pointer; font-size:1rem; transition: all 0.15s ease; }
+    .btn-primary { background: linear-gradient(90deg,var(--accent-red),#d97706); }
+    .btn-accent { background: linear-gradient(90deg,var(--accent-yellow),#f59e0b); color:#111 }
+    .btn:hover { transform: translateY(-2px); }
 
     button:hover {
       background-color: #00c5cc;
       transform: translateY(-2px);
     }
 
-    .popup {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #fff;
-      color: #222;
-      padding: 20px 30px;
-      border-radius: 10px;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-      z-index: 1000;
-      display: none;
-      text-align: center;
-    }
-
-    .popup.success {
-      border: 2px solid #00c5cc;
-    }
-
-    .popup.error {
-      border: 2px solid #ff4d4f;
-    }
+    /* SweetAlert2 customizations */
+    .swal2-popup { border-radius:12px; }
+    .swal2-header { color:var(--accent-dark) }
+    .swal2-title { color:var(--accent-dark); font-weight:700 }
+    .swal2-confirm { background: linear-gradient(90deg,var(--accent-red),var(--accent-yellow)) !important; color:#111 !important }
 
     @media (max-width: 480px) {
       .container {
@@ -188,6 +150,7 @@ if (file_exists($announcementFile)) {
       }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -195,10 +158,13 @@ if (file_exists($announcementFile)) {
   <div id="scrollingText" class="scrolling-text"><?= htmlspecialchars($announcement['message']) ?></div>
 </div>
 
-<div class="overlay"></div>
 <div class="container">
+  <div class="brand">
+    <img src="https://www.clipartmax.com/png/middle/258-2587546_%5Bgood-news%5D-lautech-resumes-on-15th-of-september-and-ladoke-akintola-university.png" alt="LAUTECH">
+    <h2>Student Attendance — <?= htmlspecialchars($activeCourse) ?></h2>
+  </div>
   <form class="form" id="attendanceForm">
-    <h2>Student Attendance (<?= ucfirst($activeMode) ?>)</h2>
+    <h2>Attendance (<?= ucfirst($activeMode) ?>)</h2>
 
     <div class="input-group">
       <label for="name">Name</label>
@@ -214,37 +180,19 @@ if (file_exists($announcementFile)) {
     <input type="hidden" name="action" value="<?= $activeMode ?>">
     <input type="hidden" name="course" value="<?= htmlspecialchars($activeCourse) ?>">
 
-    <button id="submitBtn" type="submit" disabled>Submit</button>
-    <p style="display: inline-block; margin: 0; font-size: 16px; color: #fff;">
-      Have any issue? Complain to the admin
-      <a href="support.php"
-        style="
-          display: inline-block;
-          margin-left: 12px;
-          padding: 10px 20px;
-          background: linear-gradient(135deg, #00eaff, #00c5cc);
-          color: #000;
-          font-weight: bold;
-          border-radius: 8px;
-          text-decoration: none;
-          box-shadow: 0 4px 12px rgba(0, 234, 255, 0.3);
-          transition: background 0.3s, transform 0.2s;
-        "
-        onmouseover="this.style.background='linear-gradient(135deg, #00c5cc, #00a9b0)'; this.style.transform='translateY(-2px)';"
-        onmouseout="this.style.background='linear-gradient(135deg, #00eaff, #00c5cc)'; this.style.transform='translateY(0)';">
-        💬 Submit a Support Ticket
-      </a>
+    <button id="submitBtn" class="btn btn-primary" type="submit" disabled>Submit Attendance</button>
+    <p style="display: inline-block; margin: 10px 0 0; font-size: 14px; color: var(--muted);">
+      Need help? 
+      <a href="support.php" style="margin-left:8px; padding:8px 14px; border-radius:8px; text-decoration:none;" class="btn btn-accent">💬 Support</a>
     </p>
   </form>
 </div>
 
-<div id="popup" class="popup"></div>
 
 <script src="./js/fp.min.js"></script>
 <script>
 const submitBtn = document.getElementById('submitBtn');
 const fingerprintInput = document.getElementById('fingerprint');
-const popup = document.getElementById('popup');
 const announcementBar = document.getElementById('announcementBar');
 const scrollingText = document.getElementById('scrollingText');
 
@@ -284,7 +232,7 @@ FingerprintJS.load().then(fp => {
     submitBtn.disabled = false;
   }).catch(err => {
     console.error('Fingerprint error:', err);
-    alert("Fingerprint could not be generated.");
+    Swal.fire({ icon: 'error', title: 'Fingerprint Error', text: 'Fingerprint could not be generated. Please try again.', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') });
   });
 });
 
@@ -295,9 +243,13 @@ document.getElementById('attendanceForm').addEventListener('submit', function(e)
       method: 'POST',
       body: formData
     })
-    .then(res => res.text())
-    .then(text => {
-      showPopup(text, true);
+    .then(res => res.json())
+    .then(json => {
+      if (!json || !json.ok) {
+        Swal.fire({ icon: 'error', title: 'Submission Failed', text: (json && json.message) || 'Submission failed', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') });
+        return;
+      }
+      Swal.fire({ icon: 'success', title: 'Success', text: json.message, timer: 2200, showConfirmButton: false, background: '#fff' });
       this.reset();
       submitBtn.disabled = true;
 
@@ -318,18 +270,11 @@ document.getElementById('attendanceForm').addEventListener('submit', function(e)
     })
     .catch(err => {
       console.error(err);
-      showPopup("Error occurred. Please try again.", false);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Error occurred. Please try again.', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') });
     });
 });
 
-function showPopup(message, success) {
-  popup.textContent = message;
-  popup.className = 'popup ' + (success ? 'success' : 'error');
-  popup.style.display = 'block';
-  setTimeout(() => {
-    popup.style.display = 'none';
-  }, 5000);
-}
+// popup removed: using SweetAlert2 for user messages
 
 // Inactivity fencing
 function startInactivityTimer() {
@@ -342,8 +287,7 @@ function startInactivityTimer() {
       method: 'POST',
       body: new URLSearchParams({ reason: 'Tab inactive too long' })
     }).finally(() => {
-      alert("You were away too long! Attendance closed to ensure fairness.");
-      window.location.href = 'closed.php';
+      Swal.fire({ icon: 'warning', title: 'Away Too Long', text: 'You were away too long! Attendance closed to ensure fairness.', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') }).then(function(){ window.location.href = 'closed.php'; });
     });
   }, 5000);
 }
@@ -384,8 +328,7 @@ function checkStatus() {
     .then(res => res.json())
     .then(data => {
       if (!data.checkin && !data.checkout) {
-        alert("Attendance has now closed!");
-        location.reload();
+        Swal.fire({ icon:'info', title: 'Attendance Closed', text: 'Attendance has now closed!', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') }).then(function(){ location.reload(); });
       }
     })
     .catch(err => {

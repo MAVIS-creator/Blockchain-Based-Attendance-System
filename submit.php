@@ -22,17 +22,23 @@ $today = date("Y-m-d");
 // ✅ Check attendance status
 $statusFile = "status.json";
 if (!file_exists($statusFile)) {
-    die("Attendance status file not found.");   
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'message' => 'Attendance status file not found.']);
+    exit;
 }
 
 $statusJson = file_get_contents($statusFile);
 $status = json_decode($statusJson, true);
 if (!is_array($status) || json_last_error() !== JSON_ERROR_NONE) {
-    die("Error reading status file.");
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'message' => 'Error reading status file.']);
+    exit;
 }
 
 if (!isset($status[$action]) || !$status[$action]) {
-    die("The $action mode is not currently enabled.");
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'message' => "The $action mode is not currently enabled."]);
+    exit;
 }
 
 // Load existing fingerprints
@@ -47,7 +53,9 @@ $hashedFingerprint = hash('sha256', $fingerprint);
 // If fingerprint is already linked to this matric, check
 if (isset($fingerprintsData[$matric])) {
     if ($fingerprintsData[$matric] !== $hashedFingerprint) {
-        die("❌ Fingerprint does not match this Matric Number.");
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'message' => 'Fingerprint does not match this Matric Number.']);
+        exit;
     }
 } else {
     // Link it automatically since it’s not yet saved
@@ -83,7 +91,9 @@ foreach ($lines as $line) {
         list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
     }
     if ($logMatric === $matric && $logAction === $action) {
-        die("This Matric Number has already submitted $action today.");
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'message' => "This Matric Number has already submitted $action today."]);
+    exit;
     }
 
     // Consult admin setting for preference: prefer_mac true = check MAC first, else check IP first
@@ -112,7 +122,9 @@ foreach ($lines as $line) {
     }
 
     if ($sameDevice) {
-        die("This device has already submitted $action today.");
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'message' => "This device has already submitted $action today."]);
+    exit;
     }
 }
 
@@ -134,7 +146,9 @@ if ($action === "checkout") {
         // Standardized failed log format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
         $failedLogEntry = "$name | $matric | failed | $fingerprint | $ip | $mac | $today " . date("H:i:s") . " | $userAgent | $course | NO_CHECKIN\n";
         file_put_contents($failedLog, $failedLogEntry, FILE_APPEND | LOCK_EX);
-        die("❌ You cannot check out without checking in first.");
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'message' => 'You cannot check out without checking in first.']);
+        exit;
     }
 }
 // ✅ Save to .log file (include MAC when available)
@@ -179,6 +193,7 @@ try {
     error_log('Polygon error: ' . $e->getMessage());
 }
 
-echo "✅ Your $action was recorded successfully!";
+header('Content-Type: application/json');
+echo json_encode(['ok' => true, 'message' => "Your $action was recorded successfully!"]);
 
 ?>

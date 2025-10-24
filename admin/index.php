@@ -1,5 +1,7 @@
 <?php
 session_start();
+// Enable output buffering so included page views can send headers (redirects) after POST handling
+if (function_exists('ob_start')) ob_start();
 if (!isset($_SESSION['admin_logged_in'])) {
   header('Location: login.php');
   exit;
@@ -58,5 +60,6 @@ function toggleSidebar() {
   document.cookie = "sidebar_collapsed=" + (sidebar.classList.contains('collapsed') ? 'true' : 'false');
 }
 </script>
+<?php if (function_exists('ob_end_flush')) { @ob_end_flush(); } ?>
 </body>
 </html>

@@ -55,18 +55,10 @@ if (isset($_COOKIE['attendanceBlocked'])) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Support Ticket</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: url(./asset/6071871_3139256.jpg) no-repeat center center/cover;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      flex-direction: column;
-    }
+    :root{ --accent-red:#ef4444; --accent-yellow:#facc15; --accent-dark:#111827; --muted:#6b7280 }
+    body { margin:0; font-family:'Segoe UI',sans-serif; background:#f3f4f6; height:100vh; display:flex; align-items:center; justify-content:center; }
     .announcement-bar {
       position: fixed;
       top: 0;
@@ -103,74 +95,32 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       background: rgba(5, 15, 35, 0.75);
       z-index: 0;
     }
-    .container {
-      z-index: 1;
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      border-radius: 15px;
-      padding: 40px;
-      box-shadow: 0 0 25px rgba(0, 255, 255, 0.2);
-      max-width: 400px;
-      width: 100%;
-      animation: fadeIn 1.2s ease;
-      margin-top: 60px; /* offset for announcement bar */
-    }
+    .container { z-index:1; background:#fff; border-radius:12px; padding:28px; box-shadow:0 10px 30px rgba(16,24,40,0.08); max-width:480px; width:92%; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-20px); }
       to { opacity: 1; transform: translateY(0); }
     }
     h2 { color: #00eaff; text-align: center; margin-bottom: 25px; }
+    h2 { color:var(--accent-dark); text-align:center; margin-bottom:12px }
     .input-group { margin-bottom: 20px; }
     .input-group label { color: #ccc; display: block; margin-bottom: 5px; }
-    .input-group input, .input-group textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #00eaff;
-      background: transparent;
-      color: #fff;
-      border-radius: 8px;
-      transition: 0.3s;
-    }
+    .input-group input, .input-group textarea { width:100%; padding:10px; border:1px solid #e6e9ef; background:#fff; color:#111; border-radius:8px }
     .input-group textarea { resize: vertical; min-height: 80px; }
     .input-group input:focus, .input-group textarea:focus {
       outline: none;
       box-shadow: 0 0 10px #00eaff;
     }
     button {
-      width: 100%;
-      padding: 12px;
-      background-color: #00eaff;
-      border: none;
-      color: #000;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    button:hover { background-color: #00c5cc; }
+    .btn { width:100%; padding:12px; border-radius:8px; border:none; font-weight:700; cursor:pointer }
+    .btn-primary{ background: linear-gradient(90deg,var(--accent-red),#d97706); color:#fff }
+    .btn-accent{ background: linear-gradient(90deg,var(--accent-yellow),#f59e0b); color:#111 }
     .success-message {
-      background: #d4edda;
-      color: #155724;
-      padding: 14px;
-      margin-top: 18px;
-      border: 1px solid #c3e6cb;
-      border-radius: 6px;
-      text-align: center;
-    }
+    .success-message { background:#f0fdf4; color:#065f46; padding:12px; margin-top:12px; border-radius:6px; text-align:center }
     .back-link {
-      display: block;
-      text-align: center;
-      margin-top: 20px;
-      color: #00eaff;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .back-link:hover { text-decoration: underline; }
-    .disabled-link {
-      pointer-events: none;
-      opacity: 0.5;
-      text-decoration: none;
-    }
+    .back-link { display:block; text-align:center; margin-top:14px; color:var(--accent-red); text-decoration:none; font-weight:700 }
+    .disabled-link { pointer-events:none; opacity:0.5 }
+    .logo{ height:46px; width:46px; border-radius:8px; margin:0 auto 8px; display:block }
+  
   </style>
 </head>
 <body>
@@ -186,15 +136,17 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 
   <div class="overlay"></div>
   <div class="container">
+    <img class="logo" src="https://www.clipartmax.com/png/middle/258-2587546_%5Bgood-news%5D-lautech-resumes-on-15th-of-september-and-ladoke-akintola-university.png" alt="logo">
     <h2>🎫 Submit Support Ticket</h2>
 
     <?php if ($success): ?>
       <div class="success-message">
         ✅ Your ticket has been submitted successfully!
       </div>
+      <script>Swal.fire({ icon:'success', title: 'Ticket Submitted', text: 'Your support ticket was submitted successfully.', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') });</script>
     <?php endif; ?>
 
-    <form method="post">
+  <form method="post">
       <div class="input-group">
         <label for="name">Name</label>
         <input type="text" id="name" name="name" placeholder="Your Name" required />
@@ -209,7 +161,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       </div>
       <!-- Hidden fingerprint input -->
       <input type="hidden" id="fingerprint" name="fingerprint" value="">
-      <button type="submit">Submit Ticket</button>
+      <button type="submit" class="btn btn-primary">Submit Ticket</button>
     </form>
 
     <a class="back-link <?= $blocked ? 'disabled-link' : '' ?>" href="<?= $blocked ? '#' : 'index.php' ?>">⬅️ Back to Attendance</a>
