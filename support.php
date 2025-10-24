@@ -119,7 +119,9 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     .back-link {
     .back-link { display:block; text-align:center; margin-top:14px; color:var(--accent-red); text-decoration:none; font-weight:700 }
     .disabled-link { pointer-events:none; opacity:0.5 }
-    .logo{ height:46px; width:46px; border-radius:8px; margin:0 auto 8px; display:block }
+  .logo{ height:120px; width:auto; max-width:240px; border-radius:8px; margin:0 auto 12px; display:block; background:transparent; }
+  /* remove default link underlines and make anchors button-like where used */
+  a { text-decoration: none; color: inherit }
   
   </style>
 </head>
@@ -137,7 +139,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
   <div class="overlay"></div>
   <div class="container">
     <img class="logo" src="https://www.clipartmax.com/png/middle/258-2587546_%5Bgood-news%5D-lautech-resumes-on-15th-of-september-and-ladoke-akintola-university.png" alt="logo">
-    <h2>🎫 Submit Support Ticket</h2>
+  <h2>🎫 Submit Support Ticket</h2>
 
     <?php if ($success): ?>
       <div class="success-message">
@@ -148,15 +150,15 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 
   <form method="post">
       <div class="input-group">
-        <label for="name">Name</label>
+        <label for="name">📛 Name</label>
         <input type="text" id="name" name="name" placeholder="Your Name" required />
       </div>
       <div class="input-group">
-        <label for="matric">Matric Number</label>
+        <label for="matric">🔢 Matric Number</label>
         <input type="text" id="matric" name="matric" placeholder="e.g., 2023000000" required />
       </div>
       <div class="input-group">
-        <label for="message">Message</label>
+        <label for="message">💬 Message</label>
         <textarea id="message" name="message" placeholder="Write your issue or question..." required></textarea>
       </div>
       <!-- Hidden fingerprint input -->
