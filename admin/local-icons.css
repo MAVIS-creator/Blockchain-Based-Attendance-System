@@ -1,0 +1,30 @@
+/* local-icons.css - simple fallback for icon fonts when CDN is unavailable
+   This provides basic visual placeholders for .bx (Boxicons) and .fa (FontAwesome)
+   It intentionally uses simple shapes/text so the UI remains usable offline.
+*/
+
+.bx, .fa {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  text-align: center;
+  font-style: normal;
+  font-weight: normal;
+}
+
+/* fallback square glyph */
+.bx::before, .fa::before {
+  content: "\25A1"; /* white square */
+  display: inline-block;
+  line-height: 1em;
+  font-size: 0.9em;
+  color: currentColor;
+}
+
+/* small helper for common sizes */
+.icon-sm::before { font-size:0.8em }
+.icon-lg::before { font-size:1.25em }
+
+/* where icons used as buttons ensure background visible */
+.btn .bx::before, .btn .fa::before { color: #fff }

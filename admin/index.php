@@ -32,6 +32,8 @@ $view = $routes[$page] ?? 'dashboard.php';
   <title>Admin Panel</title>
   <link rel="stylesheet" href="style.css">
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <!-- Local fallback for icons if CDN unavailable -->
+  <link rel="stylesheet" href="local-icons.css">
 </head>
 <body>
 
