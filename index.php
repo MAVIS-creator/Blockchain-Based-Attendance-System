@@ -2,7 +2,7 @@
 $status = json_decode(file_get_contents("status.json"), true);
 $activeMode = $status["checkin"] ? "checkin" : ($status["checkout"] ? "checkout" : "");
 if (!$activeMode) {
-  header('Location: closed.php');
+  header('Location: attendance_closed.php');
   exit;
 }
 
