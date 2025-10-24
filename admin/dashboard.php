@@ -19,15 +19,22 @@ foreach (glob($logDir . '/*.log') as $file) {
         $dailyCounts[$date] = count($lines);
 
         foreach ($lines as $line) {
-            $parts = explode('|', $line);
+            $parts = array_map('trim', explode('|', $line));
             if (isset($parts[1])) {
                 $matric = trim($parts[1]);
                 $uniqueStudents[$matric] = true;
             }
-            if (isset($parts[7])) {
-                $course = trim($parts[7]);
-                $courseCounts[$course] = ($courseCounts[$course] ?? 0) + 1;
+
+            // detect course index depending on whether MAC field exists
+            $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
+            if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
+                // new format: course likely at index 8
+                $course = isset($parts[8]) ? trim($parts[8]) : 'General';
+            } else {
+                // old format: course likely at index 7
+                $course = isset($parts[7]) ? trim($parts[7]) : 'General';
             }
+            $courseCounts[$course] = ($courseCounts[$course] ?? 0) + 1;
         }
 
         if ($fileDate >= $twoDaysAgo) {
@@ -422,13 +429,18 @@ if (file_exists($activeFile)) {
         <h3><i class='bx bx-time'></i> Recent Activity (Last 2 Days)</h3>
         <ul class="log-list">
             <?php if (!empty($recentLogs)): ?>
-                <?php foreach ($recentLogs as $log): ?>
-                    <?php
-                    $parts = array_map('trim', explode('|', $log));
-                    $name = isset($parts[0]) ? strtoupper($parts[0]) : 'Unknown';
-                    $matric = isset($parts[1]) ? $parts[1] : 'N/A';
-                    $course = isset($parts[7]) ? $parts[7] : 'General';
-                    ?>
+                    <?php foreach ($recentLogs as $log): ?>
+                        <?php
+                        $parts = array_map('trim', explode('|', $log));
+                        $name = isset($parts[0]) ? strtoupper($parts[0]) : 'Unknown';
+                        $matric = isset($parts[1]) ? $parts[1] : 'N/A';
+                        $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
+                        if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
+                            $course = isset($parts[8]) ? $parts[8] : 'General';
+                        } else {
+                            $course = isset($parts[7]) ? $parts[7] : 'General';
+                        }
+                        ?>
                     <li>
                         <div class="log-main">
                             <span class="log-name"><?= htmlspecialchars($name) ?></span>

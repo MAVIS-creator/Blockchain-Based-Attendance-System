@@ -59,6 +59,43 @@ $currentStatus = file_exists($statusFile)
     ? json_decode(file_get_contents($statusFile), true)
     : ["checkin" => false, "checkout" => false];
 
+// Admin accounts management file
+$accountsFile = __DIR__ . '/accounts.json';
+if (!file_exists($accountsFile)) {
+  // leave default creation to login.php first-run
+  file_put_contents($accountsFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+}
+
+// Settings file for admin preferences
+$settingsFile = __DIR__ . '/settings.json';
+if (!file_exists($settingsFile)) {
+  file_put_contents($settingsFile, json_encode(['prefer_mac' => true], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+}
+
+// Handle admin account creation and settings toggle
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  // create admin
+  if (isset($_POST['new_admin_username'], $_POST['new_admin_password'], $_POST['new_admin_name'])) {
+    $accounts = json_decode(file_get_contents($accountsFile), true) ?: [];
+    $u = trim($_POST['new_admin_username']);
+    $p = $_POST['new_admin_password'];
+    $n = trim($_POST['new_admin_name']);
+    if ($u !== '' && $p !== '') {
+      $accounts[$u] = ['password' => password_hash($p, PASSWORD_DEFAULT), 'name' => $n ?: $u, 'avatar' => null];
+      file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+      $message = "Admin account '$u' created.";
+    }
+  }
+
+  // settings toggle
+  if (isset($_POST['prefer_mac'])) {
+    $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
+    $settings['prefer_mac'] = ($_POST['prefer_mac'] === '1');
+    file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    $message = "Settings updated.";
+  }
+}
+
 // Load main log entries
 $entries = file_exists($logFile) ? file($logFile) : [];
 $combined = [];
@@ -67,23 +104,45 @@ $activeTab = $_GET['tab'] ?? 'main';
 $showFailed = $activeTab === 'failed';
 
 foreach ($entries as $line) {
-    $parts = array_map('trim', explode('|', $line));
-    if (count($parts) >= 7) {
-        [$name, $matric, $action, $finger, $ip, $timestamp, $device] = $parts;
-        if (!isset($combined[$finger])) {
-            $combined[$finger] = [
-                'name' => $name,
-                'matric' => $matric,
-                'finger' => $finger,
-                'ip' => $ip,
-                'device' => $device,
-                'checkin' => '',
-                'checkout' => ''
-            ];
-        }
-        if (strtolower($action) === 'checkin') $combined[$finger]['checkin'] = $timestamp;
-        if (strtolower($action) === 'checkout') $combined[$finger]['checkout'] = $timestamp;
-    }
+  $parts = array_map('trim', explode('|', $line));
+  if (count($parts) < 5) continue;
+
+  $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
+
+  if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
+    // New format: name | matric | action | fingerprint | ip | mac | timestamp | device | course | reason
+    $name = $parts[0];
+    $matric = $parts[1];
+    $action = $parts[2];
+    $finger = $parts[3];
+    $ip = $parts[4];
+    $timestamp = $parts[6] ?? '';
+    $device = $parts[7] ?? '';
+  } else {
+    // Old format: name | matric | action | fingerprint | ip | timestamp | device | course
+    $name = $parts[0] ?? '';
+    $matric = $parts[1] ?? '';
+    $action = $parts[2] ?? '';
+    $finger = $parts[3] ?? '';
+    $ip = $parts[4] ?? '';
+    $timestamp = $parts[5] ?? '';
+    $device = $parts[6] ?? '';
+  }
+
+  if (!isset($combined[$finger])) {
+    $combined[$finger] = [
+      'name' => $name,
+      'matric' => $matric,
+      'finger' => $finger,
+      'ip' => $ip,
+      'device' => $device,
+      'checkin' => '',
+      'checkout' => ''
+    ];
+  }
+  if (strtolower($action) === 'checkin') $combined[$finger]['checkin'] = $timestamp;
+  if (strtolower($action) === 'checkout') $combined[$finger]['checkout'] = $timestamp;
+    
 }
 
 $courses = file_exists($courseFile) ? json_decode(file_get_contents($courseFile), true) : ['General'];
@@ -383,6 +442,39 @@ if (empty($courses)) $courses = ['General'];
         Logout
     </button>
   </form>
+
+  <!-- Admin accounts & preferences panel -->
+  <div style="max-width:900px;margin:20px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.06);">
+    <h3>Admin Accounts</h3>
+    <?php
+      $accounts = json_decode(file_get_contents($accountsFile), true) ?: [];
+    ?>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;background:#fff;">
+      <thead><tr><th style="text-align:left;padding:8px">Username</th><th style="text-align:left;padding:8px">Name</th></tr></thead>
+      <tbody>
+        <?php foreach ($accounts as $u => $info): ?>
+          <tr><td style="padding:8px;"><?=htmlspecialchars($u)?></td><td style="padding:8px;"><?=htmlspecialchars($info['name'] ?? '')?></td></tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+
+    <form method="POST" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input name="new_admin_username" placeholder="username" style="padding:8px;" required>
+      <input name="new_admin_name" placeholder="full name" style="padding:8px;">
+      <input name="new_admin_password" type="password" placeholder="password" style="padding:8px;" required>
+      <button type="submit" style="padding:8px;background:#10b981;color:#fff;border:none;border-radius:6px;">Create Admin</button>
+    </form>
+
+    <hr style="margin:16px 0;">
+
+    <h3>Preferences</h3>
+    <?php $settings = json_decode(file_get_contents($settingsFile), true) ?: ['prefer_mac'=>true]; ?>
+    <form method="POST">
+      <label style="display:flex;align-items:center;gap:10px;"><input type="radio" name="prefer_mac" value="1" <?=($settings['prefer_mac'] ?? true) ? 'checked' : ''?>> Prefer MAC (if available)</label>
+      <label style="display:flex;align-items:center;gap:10px;"><input type="radio" name="prefer_mac" value="0" <?=!($settings['prefer_mac'] ?? true) ? 'checked' : ''?>> Prefer IP</label>
+      <div style="margin-top:8px;"><button type="submit" style="padding:8px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Save Preferences</button></div>
+    </form>
+  </div>
 
   <script>
     const searchInput = document.getElementById('searchInput');

@@ -55,36 +55,62 @@ if (file_exists($logFile)) {
 }
 
 $output = fopen('php://output', 'w');
-fputcsv($output, ['Name', 'Matric', 'Check-In Time', 'Check-Out Time', 'Fingerprint', 'IP', 'Device', 'Course', 'Integrity']);
+fputcsv($output, ['Name', 'Matric', 'Check-In Time', 'Check-Out Time', 'Fingerprint', 'IP', 'MAC', 'Device', 'Course', 'Integrity']);
 
 $combined = [];
 
 // Combine check-in/out into one row
 foreach ($lines as $line) {
     $parts = array_map('trim', explode('|', $line));
-    if (count($parts) >= 8) {
-        [$name, $matric, $action, $fingerprint, $ip, $timestamp, $device, $course] = $parts;
-        $key = $name . '|' . $matric;
+    if (count($parts) < 5) continue;
 
-        if (!isset($combined[$key])) {
-            $combined[$key] = [
-                'name' => $name,
-                'matric' => $matric,
-                'checkin' => '',
-                'checkout' => '',
-                'fingerprint' => $fingerprint,
-                'ip' => $ip,
-                'device' => $device,
-                'course' => $course,
-            ];
-        }
+    $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
 
-        if (strtolower($action) === 'checkin') {
-            $combined[$key]['checkin'] = $timestamp;
-        }
-        if (strtolower($action) === 'checkout') {
-            $combined[$key]['checkout'] = $timestamp;
-        }
+    if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
+        // New format: name | matric | action | fingerprint | ip | mac | timestamp | device | course | reason
+        $name = $parts[0];
+        $matric = $parts[1];
+        $action = $parts[2];
+        $fingerprint = $parts[3];
+        $ip = $parts[4];
+        $mac = $parts[5];
+        $timestamp = $parts[6] ?? '';
+        $device = $parts[7] ?? '';
+        $course = $parts[8] ?? '';
+    } else {
+        // Old format: name | matric | action | fingerprint | ip | timestamp | device | course | reason
+        $name = $parts[0] ?? '';
+        $matric = $parts[1] ?? '';
+        $action = $parts[2] ?? '';
+        $fingerprint = $parts[3] ?? '';
+        $ip = $parts[4] ?? '';
+        $mac = 'UNKNOWN';
+        $timestamp = $parts[5] ?? '';
+        $device = $parts[6] ?? '';
+        $course = $parts[7] ?? '';
+    }
+
+    $key = $name . '|' . $matric;
+
+    if (!isset($combined[$key])) {
+        $combined[$key] = [
+            'name' => $name,
+            'matric' => $matric,
+            'checkin' => '',
+            'checkout' => '',
+            'fingerprint' => $fingerprint,
+            'ip' => $ip,
+            'mac' => $mac,
+            'device' => $device,
+            'course' => $course,
+        ];
+    }
+
+    if (strtolower($action) === 'checkin') {
+        $combined[$key]['checkin'] = $timestamp;
+    }
+    if (strtolower($action) === 'checkout') {
+        $combined[$key]['checkout'] = $timestamp;
     }
 }
 

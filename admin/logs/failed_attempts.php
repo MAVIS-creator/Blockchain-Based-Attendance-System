@@ -32,25 +32,46 @@ foreach ($logFiles as $filePath) {
     $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
         $parts = array_map('trim', explode('|', $line));
-        if (count($parts) >= 7) {
-            $courseVal = trim($parts[6]);
+        if (count($parts) < 5) continue;
 
-            $entry = [
-                'name' => $parts[0],
-                'matric' => $parts[1],
-                'ip' => $parts[2],
-                'fingerprint' => $parts[3],
-                'timestamp' => $parts[4],
-                'device' => $parts[5],
-                'course' => $courseVal,
-            ];
+        $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
 
-            $matchesCourse = ($selectedCourse === 'All' || $courseVal === $selectedCourse);
-            $matchesSearch = ($search === '' || stripos($entry['name'], $search) !== false || stripos($entry['matric'], $search) !== false);
+        // Handle new standardized failed log format (with mac)
+        if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
+            // name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
+            $nameVal = $parts[0];
+            $matricVal = $parts[1];
+            $finger = $parts[3] ?? '';
+            $ipVal = $parts[4] ?? '';
+            $timestampVal = $parts[6] ?? '';
+            $deviceVal = $parts[7] ?? '';
+            $courseVal = $parts[8] ?? '';
+        } else {
+            // Old format: name | matric | ip | fingerprint | timestamp | device | course
+            $nameVal = $parts[0] ?? '';
+            $matricVal = $parts[1] ?? '';
+            $ipVal = $parts[2] ?? '';
+            $finger = $parts[3] ?? '';
+            $timestampVal = $parts[4] ?? '';
+            $deviceVal = $parts[5] ?? '';
+            $courseVal = $parts[6] ?? '';
+        }
 
-            if ($matchesCourse && $matchesSearch) {
-                $logs[] = $entry;
-            }
+        $entry = [
+            'name' => $nameVal,
+            'matric' => $matricVal,
+            'ip' => $ipVal,
+            'fingerprint' => $finger,
+            'timestamp' => $timestampVal,
+            'device' => $deviceVal,
+            'course' => $courseVal,
+        ];
+
+        $matchesCourse = ($selectedCourse === 'All' || $courseVal === $selectedCourse);
+        $matchesSearch = ($search === '' || stripos($entry['name'], $search) !== false || stripos($entry['matric'], $search) !== false);
+
+        if ($matchesCourse && $matchesSearch) {
+            $logs[] = $entry;
         }
     }
 }
@@ -63,29 +84,52 @@ if (file_exists($mainLogFile)) {
     $lines = file($mainLogFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
         $parts = array_map('trim', explode('|', $line));
-        if (count($parts) >= 8) {
-            [$name, $matric, $action, $finger, $ip, $timestamp, $device, $course] = $parts;
-            $course = trim($course);
+        if (count($parts) < 5) continue;
 
-            if ($selectedCourse !== 'All' && $course !== $selectedCourse) continue;
+        $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
 
-            if (!isset($checkMap[$matric])) {
-                $checkMap[$matric] = [
-                    'name' => $name,
-                    'matric' => $matric,
-                    'checkin' => '',
-                    'checkout' => '',
-                    'ip' => $ip,
-                    'fingerprint' => $finger,
-                    'timestamp' => $timestamp,
-                    'device' => $device,
-                    'course' => $course,
-                ];
-            }
-
-            if (strtolower($action) === 'checkin') $checkMap[$matric]['checkin'] = $timestamp;
-            if (strtolower($action) === 'checkout') $checkMap[$matric]['checkout'] = $timestamp;
+        if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
+            // New: name | matric | action | fingerprint | ip | mac | timestamp | device | course | reason
+            $name = $parts[0];
+            $matric = $parts[1];
+            $action = $parts[2];
+            $finger = $parts[3];
+            $ip = $parts[4];
+            $timestamp = $parts[6] ?? '';
+            $device = $parts[7] ?? '';
+            $course = $parts[8] ?? '';
+        } else {
+            // Old: name | matric | action | fingerprint | ip | timestamp | device | course
+            $name = $parts[0] ?? '';
+            $matric = $parts[1] ?? '';
+            $action = $parts[2] ?? '';
+            $finger = $parts[3] ?? '';
+            $ip = $parts[4] ?? '';
+            $timestamp = $parts[5] ?? '';
+            $device = $parts[6] ?? '';
+            $course = $parts[7] ?? '';
         }
+
+        $course = trim($course);
+
+        if ($selectedCourse !== 'All' && $course !== $selectedCourse) continue;
+
+        if (!isset($checkMap[$matric])) {
+            $checkMap[$matric] = [
+                'name' => $name,
+                'matric' => $matric,
+                'checkin' => '',
+                'checkout' => '',
+                'ip' => $ip,
+                'fingerprint' => $finger,
+                'timestamp' => $timestamp,
+                'device' => $device,
+                'course' => $course,
+            ];
+        }
+
+        if (strtolower($action) === 'checkin') $checkMap[$matric]['checkin'] = $timestamp;
+        if (strtolower($action) === 'checkout') $checkMap[$matric]['checkout'] = $timestamp;
     }
 
     foreach ($checkMap as $entry) {

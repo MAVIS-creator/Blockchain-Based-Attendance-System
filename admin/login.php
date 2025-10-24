@@ -2,13 +2,30 @@
 session_start();
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+// Ensure accounts file exists with a default admin (only on first run)
+$accountsFile = __DIR__ . '/accounts.json';
+if (!file_exists($accountsFile)) {
+    $default = [
+        'admin' => [
+            'password' => password_hash('password123', PASSWORD_DEFAULT),
+            'name' => 'Administrator',
+            'avatar' => null
+        ]
+    ];
+    file_put_contents($accountsFile, json_encode($default, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+}
 
-    // CHANGE THIS IN PRODUCTION
-    if ($username === 'admin' && $password === 'password123') {
+$accounts = json_decode(file_get_contents($accountsFile), true) ?: [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if ($username && isset($accounts[$username]) && password_verify($password, $accounts[$username]['password'])) {
         $_SESSION['admin_logged_in'] = true;
+        $_SESSION['admin_user'] = $username;
+        $_SESSION['admin_name'] = $accounts[$username]['name'] ?? $username;
+        $_SESSION['admin_avatar'] = $accounts[$username]['avatar'] ?? null;
         header('Location: index.php');
         exit;
     } else {

@@ -47,7 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
     $timestamp = date('Y-m-d H:i:s');
     $logFile = __DIR__ . "/logs/{$today}.log";
 
-    $line = "{$name} | {$matric} | {$action} | MANUAL | ::1 | {$timestamp} | Web Ticket Panel | {$activeCourse} | {$reason}\n";
+  // Standardized log format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
+  $line = "{$name} | {$matric} | {$action} | MANUAL | ::1 | UNKNOWN | {$timestamp} | Web Ticket Panel | {$activeCourse} | {$reason}\n";
 
     file_put_contents($logFile, $line, FILE_APPEND);
     header("Location: index.php?page=support_tickets");

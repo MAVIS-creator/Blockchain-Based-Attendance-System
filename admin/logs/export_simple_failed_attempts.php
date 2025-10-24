@@ -27,15 +27,24 @@ foreach ($logFiles as $filePath) {
     $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
         $parts = array_map('trim', explode('|', $line));
-        if (count($parts) >= 7) {
-            $courseVal = trim($parts[6]);
+        if (count($parts) < 4) continue;
+
+        $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
+        if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
+            // new failed format: name|matric|action|fingerprint|ip|mac|timestamp|device|course|reason
+            $courseVal = $parts[8] ?? '';
             $name = $parts[0];
             $matric = $parts[1];
+        } else {
+            // old format: name|matric|ip|fingerprint|timestamp|device|course
+            $courseVal = $parts[6] ?? '';
+            $name = $parts[0] ?? '';
+            $matric = $parts[1] ?? '';
+        }
 
-            if (($course === 'All' || $courseVal === $course) &&
-                ($search === '' || stripos($name, $search) !== false || stripos($matric, $search) !== false)) {
-                $logs[$matric] = ['name' => $name, 'matric' => $matric];
-            }
+        if (($course === 'All' || $courseVal === $course) &&
+            ($search === '' || stripos($name, $search) !== false || stripos($matric, $search) !== false)) {
+            $logs[$matric] = ['name' => $name, 'matric' => $matric];
         }
     }
 }
@@ -48,18 +57,33 @@ if (file_exists($mainLogFile)) {
     $lines = file($mainLogFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
         $parts = array_map('trim', explode('|', $line));
-        if (count($parts) >= 8) {
-            [$name, $matric, $action, $finger, $ip, $timestamp, $device, $courseVal] = $parts;
+        if (count($parts) < 5) continue;
 
-            if ($course !== 'All' && $courseVal !== $course) continue;
-
-            if (!isset($checkMap[$matric])) {
-                $checkMap[$matric] = ['name' => $name, 'matric' => $matric, 'checkin' => '', 'checkout' => ''];
-            }
-
-            if (strtolower($action) === 'checkin') $checkMap[$matric]['checkin'] = $timestamp;
-            if (strtolower($action) === 'checkout') $checkMap[$matric]['checkout'] = $timestamp;
+        $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
+        if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
+            // new format
+            $name = $parts[0];
+            $matric = $parts[1];
+            $action = $parts[2];
+            $timestamp = $parts[6] ?? '';
+            $courseVal = $parts[8] ?? '';
+        } else {
+            // old format
+            $name = $parts[0] ?? '';
+            $matric = $parts[1] ?? '';
+            $action = $parts[2] ?? '';
+            $timestamp = $parts[5] ?? '';
+            $courseVal = $parts[7] ?? '';
         }
+
+        if ($course !== 'All' && $courseVal !== $course) continue;
+
+        if (!isset($checkMap[$matric])) {
+            $checkMap[$matric] = ['name' => $name, 'matric' => $matric, 'checkin' => '', 'checkout' => ''];
+        }
+
+        if (strtolower($action) === 'checkin') $checkMap[$matric]['checkin'] = $timestamp;
+        if (strtolower($action) === 'checkout') $checkMap[$matric]['checkout'] = $timestamp;
     }
 
     foreach ($checkMap as $entry) {

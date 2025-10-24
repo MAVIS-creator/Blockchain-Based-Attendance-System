@@ -67,23 +67,45 @@ $activeTab = $_GET['tab'] ?? 'main';
 $showFailed = $activeTab === 'failed';
 
 foreach ($entries as $line) {
-    $parts = array_map('trim', explode('|', $line));
-    if (count($parts) >= 7) {
-        [$name, $matric, $action, $finger, $ip, $timestamp, $device] = $parts;
-        if (!isset($combined[$finger])) {
-            $combined[$finger] = [
-                'name' => $name,
-                'matric' => $matric,
-                'finger' => $finger,
-                'ip' => $ip,
-                'device' => $device,
-                'checkin' => '',
-                'checkout' => ''
-            ];
-        }
-        if (strtolower($action) === 'checkin') $combined[$finger]['checkin'] = $timestamp;
-        if (strtolower($action) === 'checkout') $combined[$finger]['checkout'] = $timestamp;
-    }
+  $parts = array_map('trim', explode('|', $line));
+  if (count($parts) < 5) continue;
+
+  $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
+
+  if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
+    // New format: name | matric | action | fingerprint | ip | mac | timestamp | device | course | reason
+    $name = $parts[0];
+    $matric = $parts[1];
+    $action = $parts[2];
+    $finger = $parts[3];
+    $ip = $parts[4];
+    $timestamp = $parts[6] ?? '';
+    $device = $parts[7] ?? '';
+  } else {
+    // Old format: name | matric | action | fingerprint | ip | timestamp | device | course
+    $name = $parts[0] ?? '';
+    $matric = $parts[1] ?? '';
+    $action = $parts[2] ?? '';
+    $finger = $parts[3] ?? '';
+    $ip = $parts[4] ?? '';
+    $timestamp = $parts[5] ?? '';
+    $device = $parts[6] ?? '';
+  }
+
+  if (!isset($combined[$finger])) {
+    $combined[$finger] = [
+      'name' => $name,
+      'matric' => $matric,
+      'finger' => $finger,
+      'ip' => $ip,
+      'device' => $device,
+      'checkin' => '',
+      'checkout' => ''
+    ];
+  }
+  if (strtolower($action) === 'checkin') $combined[$finger]['checkin'] = $timestamp;
+  if (strtolower($action) === 'checkout') $combined[$finger]['checkout'] = $timestamp;
+    
 }
 
 $courses = file_exists($courseFile) ? json_decode(file_get_contents($courseFile), true) : ['General'];

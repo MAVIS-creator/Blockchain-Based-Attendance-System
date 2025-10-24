@@ -55,14 +55,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$isValidReason) {
             $errorMessage = "Your reason did not contain any valid keywords. Attendance not marked.";
         } else {
+            // Use shared MAC helper
+            require_once __DIR__ . '/includes/get_mac.php';
+            $ipAddr = $_SERVER['REMOTE_ADDR'];
+            $macAddr = get_mac_from_ip($ipAddr);
             // ✅ Format log line
+            // Standardized log format:
+            // name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
             $logLine = sprintf(
-                "%s | %s | %s | MANUAL | %s | %s | Web Ticket Panel | %s | %s\n",
+                "%s | %s | %s | %s | %s | %s | %s | %s | %s | %s\n",
                 strtoupper($name),
                 $matric,
                 $action,
-                $_SERVER['REMOTE_ADDR'],
+                'MANUAL',
+                $ipAddr,
+                $macAddr,
                 date('Y-m-d H:i:s'),
+                $_SERVER['HTTP_USER_AGENT'] ?? 'Web Ticket Panel',
                 $activeCourse,
                 $reason
             );

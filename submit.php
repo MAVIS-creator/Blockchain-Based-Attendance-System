@@ -12,6 +12,11 @@ $course = isset($_POST['course']) ? filter_var($_POST['course'], FILTER_SANITIZE
 
 $ip = $_SERVER['REMOTE_ADDR'];
 $userAgent = $_SERVER['HTTP_USER_AGENT'];
+
+// Include shared MAC helper
+require_once __DIR__ . '/admin/includes/get_mac.php';
+
+$mac = get_mac_from_ip($ip);
 $today = date("Y-m-d");
 
 // ✅ Check attendance status
@@ -65,15 +70,48 @@ $lines = file_exists($logFile) ? file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKI
 // 🔐 Check for duplicate actions
 foreach ($lines as $line) {
     $fields = array_map('trim', explode('|', $line));
+    // Support old logs (without MAC) and new logs (with MAC).
     if (count($fields) < 7) continue;
 
-    list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logTimestamp, $logUserAgent) = $fields;
-
+    // Possible formats:
+    // Old: Name | Matric | Action | Fingerprint | IP | Timestamp | UserAgent
+    // New: Name | Matric | Action | Fingerprint | IP | MAC | Timestamp | UserAgent
+    if (count($fields) === 7) {
+        list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logTimestamp, $logUserAgent) = $fields;
+        $logMac = 'UNKNOWN';
+    } else {
+        list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
+    }
     if ($logMatric === $matric && $logAction === $action) {
         die("This Matric Number has already submitted $action today.");
     }
 
-    if ($logIp === $ip && $logAction === $action && $ip !== '127.0.0.1') {
+    // Consult admin setting for preference: prefer_mac true = check MAC first, else check IP first
+    $settingsFile = __DIR__ . '/admin/settings.json';
+    $preferMac = true;
+    if (file_exists($settingsFile)) {
+        $s = json_decode(file_get_contents($settingsFile), true);
+        if (isset($s['prefer_mac'])) $preferMac = (bool)$s['prefer_mac'];
+    }
+
+    $sameDevice = false;
+    if ($preferMac) {
+        if (isset($logMac) && $logMac !== 'UNKNOWN' && $mac !== 'UNKNOWN' && $logMac === $mac && $logAction === $action) {
+            $sameDevice = true;
+        }
+        if (!$sameDevice && $logIp === $ip && $logAction === $action && $ip !== '127.0.0.1') {
+            $sameDevice = true;
+        }
+    } else {
+        if ($logIp === $ip && $logAction === $action && $ip !== '127.0.0.1') {
+            $sameDevice = true;
+        }
+        if (!$sameDevice && isset($logMac) && $logMac !== 'UNKNOWN' && $mac !== 'UNKNOWN' && $logMac === $mac && $logAction === $action) {
+            $sameDevice = true;
+        }
+    }
+
+    if ($sameDevice) {
         die("This device has already submitted $action today.");
     }
 }
@@ -93,14 +131,14 @@ if ($action === "checkout") {
     }
 
     if (!$hasCheckedIn) {
-        $failedLogEntry = "$name | $matric | $ip | $fingerprint | $today " . date("H:i:s") . " | $userAgent | $course\n";
+        // Standardized failed log format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
+        $failedLogEntry = "$name | $matric | failed | $fingerprint | $ip | $mac | $today " . date("H:i:s") . " | $userAgent | $course | NO_CHECKIN\n";
         file_put_contents($failedLog, $failedLogEntry, FILE_APPEND | LOCK_EX);
         die("❌ You cannot check out without checking in first.");
     }
 }
-
-// ✅ Save to .log file
-$logEntry = "$name | $matric | $action | $fingerprint | $ip | " . date("Y-m-d H:i:s") . " | $userAgent | $course\n";
+// ✅ Save to .log file (include MAC when available)
+$logEntry = "$name | $matric | $action | $fingerprint | $ip | $mac | " . date("Y-m-d H:i:s") . " | $userAgent | $course | -\n";
 file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
 
 // ✅ Save as blockchain block (JSON)

@@ -12,8 +12,8 @@ header('Content-Disposition: attachment; filename="attendance.csv"');
 // Open output stream
 $output = fopen('php://output', 'w');
 
-// Write CSV column headers
-fputcsv($output, ['Name', 'Matric Number', 'Action', 'Fingerprint ID', 'IP Address', 'Timestamp', 'Device Info']);
+// Write CSV column headers (include MAC and Course/Reason when present)
+fputcsv($output, ['Name', 'Matric Number', 'Action', 'Fingerprint ID', 'IP Address', 'MAC', 'Timestamp', 'Device Info', 'Course', 'Reason']);
 
 // Read the log file and convert each entry to a CSV row
 $lines = file($logFile);

@@ -28,8 +28,8 @@ header('Content-Disposition: attachment; filename="failed_attempts_' . $selected
 // Open output buffer
 $output = fopen('php://output', 'w');
 
-// Write CSV headers
-fputcsv($output, ['Name', 'Matric Number', 'IP Address', 'Timestamp', 'Device Info', 'Course']);
+// Write CSV headers (include MAC and fingerprint)
+fputcsv($output, ['Name', 'Matric Number', 'Action', 'Fingerprint', 'IP Address', 'MAC', 'Timestamp', 'Device Info', 'Course', 'Reason']);
 
 // Read and parse log file
 $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);

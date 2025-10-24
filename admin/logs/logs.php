@@ -28,21 +28,47 @@ $logFile = $logDir . "/{$selectedDate}.log";
 if (file_exists($logFile)) {
     $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
-        $parts = array_map('trim', explode('|', $line));
-        if (count($parts) < 8) continue; // Ignore clearly broken lines
+      $parts = array_map('trim', explode('|', $line));
+      if (count($parts) < 6) continue; // Ignore clearly broken lines
 
-        // Always define safe defaults
+      // Detect whether a MAC field exists by checking parts count and MAC-like pattern
+      $mac = 'UNKNOWN';
+      $device = '';
+      $timestamp = '';
+      $course = 'General';
+      $reason = '-';
+
+      $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
+
+      if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
+        // New format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent/device | course | reason
         $entry = [
-            'name'        => $parts[0] ?? '',
-            'matric'      => $parts[1] ?? '',
-            'action'      => $parts[2] ?? '',
-            'fingerprint' => $parts[3] ?? '',
-            'ip'          => $parts[4] ?? '',
-            'timestamp'   => $parts[5] ?? '',
-            'device'      => $parts[6] ?? '',
-            'course'      => $parts[7] ?? 'General',
-            'reason'      => $parts[8] ?? '-'
+          'name'        => $parts[0] ?? '',
+          'matric'      => $parts[1] ?? '',
+          'action'      => $parts[2] ?? '',
+          'fingerprint' => $parts[3] ?? '',
+          'ip'          => $parts[4] ?? '',
+          'mac'         => $parts[5] ?? 'UNKNOWN',
+          'timestamp'   => $parts[6] ?? '',
+          'device'      => $parts[7] ?? '',
+          'course'      => $parts[8] ?? 'General',
+          'reason'      => $parts[9] ?? '-'
         ];
+      } else {
+        // Old format: name | matric | action | fingerprint | ip | timestamp | device | course | reason
+        $entry = [
+          'name'        => $parts[0] ?? '',
+          'matric'      => $parts[1] ?? '',
+          'action'      => $parts[2] ?? '',
+          'fingerprint' => $parts[3] ?? '',
+          'ip'          => $parts[4] ?? '',
+          'mac'         => 'UNKNOWN',
+          'timestamp'   => $parts[5] ?? '',
+          'device'      => $parts[6] ?? '',
+          'course'      => $parts[7] ?? 'General',
+          'reason'      => $parts[8] ?? '-'
+        ];
+      }
 
         if ($searchName !== '' && stripos($entry['name'], $searchName) === false) continue;
         if ($entry['course'] !== $selectedCourse) continue;
