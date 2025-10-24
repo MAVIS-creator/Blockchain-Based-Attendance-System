@@ -21,7 +21,7 @@ session_start();
 </head>
 <body>
   <div class="card">
-    <img class="logo" src="https://www.clipartmax.com/png/middle/258-2587546_%5Bgood-news%5D-lautech-resumes-on-15th-of-september-and-ladoke-akintola-university.png" alt="logo">
+  <img class="logo" src="asset/logo-lautech.svg" alt="logo" style="background:#fff;padding:8px;border-radius:8px;box-shadow:0 8px 30px rgba(16,24,40,0.06)">
     <h1>Attendance Closed</h1>
     <p>Your session was interrupted (inactivity or navigated away). Attendance for today is now closed to ensure fairness.</p>
     <div class="actions">
