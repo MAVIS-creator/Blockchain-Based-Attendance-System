@@ -6,6 +6,7 @@ session_start();
 <head>
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="admin/boxicons.min.css">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <title>Attendance Closed</title>
   <style>
     :root{ --accent-red:#ef4444; --accent-yellow:#facc15; --accent-dark:#111827; }
