@@ -165,7 +165,7 @@ if (file_exists($announcementFile)) {
 
 <div class="container">
   <div class="brand">
-    <img src="https://www.clipartmax.com/png/middle/258-2587546_%5Bgood-news%5D-lautech-resumes-on-15th-of-september-and-ladoke-akintola-university.png" alt="LAUTECH">
+    <img src="asset/logo-lautech.svg" alt="LAUTECH" style="background:#fff;padding:6px;border-radius:8px;box-shadow:0 6px 20px rgba(16,24,40,0.06);">
     <h2>Student Attendance — <?= htmlspecialchars($activeCourse) ?></h2>
   </div>
   <form class="form" id="attendanceForm">
