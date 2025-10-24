@@ -72,6 +72,47 @@ function fail($code, $message) {
     exit;
 }
 
+// Helper: read/write store with optional encryption using settings key
+function read_store($file, $encrypt=false) {
+    if (!file_exists($file)) return [];
+    $raw = file_get_contents($file);
+    if (!$encrypt) {
+        $d = json_decode($raw, true);
+        return is_array($d) ? $d : [];
+    }
+    // decrypt
+    if (strpos($raw, 'ENC:') !== 0) return [];
+    $keyFile = __DIR__ . '/admin/.settings_key';
+    if (!file_exists($keyFile)) return [];
+    $key = trim(file_get_contents($keyFile));
+    $blob = base64_decode(substr($raw,4));
+    $iv = substr($blob,0,16);
+    $ct = substr($blob,16);
+    $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+    $d = json_decode($plain, true);
+    return is_array($d) ? $d : [];
+}
+
+function write_store($file, $data, $encrypt=false) {
+    $payload = json_encode($data, JSON_PRETTY_PRINT);
+    if (!$encrypt) {
+        file_put_contents($file, $payload, LOCK_EX);
+        return;
+    }
+    $keyFile = __DIR__ . '/admin/.settings_key';
+    if (!file_exists($keyFile)) {
+        // try to create key
+        $k = base64_encode(random_bytes(32));
+        @file_put_contents($keyFile, $k);
+        @chmod($keyFile, 0600);
+    }
+    $key = trim(file_get_contents($keyFile));
+    $iv = random_bytes(16);
+    $ct = openssl_encrypt($payload, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+    $blob = base64_encode($iv . $ct);
+    file_put_contents($file, 'ENC:' . $blob, LOCK_EX);
+}
+
 // -----------------------
 // IP whitelist
 // -----------------------
