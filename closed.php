@@ -21,12 +21,12 @@ session_start();
 </head>
 <body>
   <div class="card">
-  <img class="logo" src="asset/logo-lautech.svg" alt="logo" style="background:#fff;padding:8px;border-radius:8px;box-shadow:0 8px 30px rgba(16,24,40,0.06)">
+  <img class="logo" src="asset/lautech_logo.png" alt="logo" style="background:#fff;padding:8px;border-radius:8px;">
     <h1>Attendance Closed</h1>
     <p>Your session was interrupted (inactivity or navigated away). Attendance for today is now closed to ensure fairness.</p>
     <div class="actions">
-      <a class="btn btn-accent" href="index.php">Return to Home</a>
-      <a class="btn btn-primary" href="support.php">💬 Contact Support</a>
+      <a class="btn btn-accent" href="index.php"><i class='bx bx-home'></i> Return to Home</a>
+      <a class="btn btn-primary" href="support.php"><i class='bx bx-message'></i> Contact Support</a>
     </div>
   </div>
 </body>
