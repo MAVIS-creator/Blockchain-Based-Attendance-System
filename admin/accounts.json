@@ -4,5 +4,11 @@
         "name": "Mavis",
         "avatar": null,
         "role": "superadmin"
+    },
+    "Lexus": {
+        "password": "$2y$10$AEpvymTGkSjcWykK4mZgFeH99AAncuzEqUMubnQNVNYkwR41uQp8y",
+        "name": "Elish",
+        "avatar": null,
+        "role": "admin"
     }
 }

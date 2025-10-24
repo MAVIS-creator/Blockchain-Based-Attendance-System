@@ -1,1 +1,14 @@
-[]
+[
+    {
+        "user": "Mavis",
+        "name": "Mavis",
+        "time": "2025-10-24T03:21:29+02:00",
+        "message": "Hey"
+    },
+    {
+        "user": "Lexus",
+        "name": "Elish",
+        "time": "2025-10-24T03:23:29+02:00",
+        "message": "What's popping naw"
+    }
+]

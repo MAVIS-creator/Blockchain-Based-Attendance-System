@@ -25,6 +25,20 @@
   </div>
 </header>
 <script>
+  // detect whether icon fonts loaded; if not, enable fallback CSS
+  (function(){
+    try{
+      var span = document.createElement('span'); span.className='fa'; span.style.display='none'; document.body.appendChild(span);
+      var ff = window.getComputedStyle(span).getPropertyValue('font-family') || '';
+      document.body.removeChild(span);
+      ff = ff.toLowerCase();
+      if (ff.indexOf('fontawesome') === -1 && ff.indexOf('boxicons') === -1) {
+        document.body.classList.add('icons-fallback');
+      }
+    }catch(e){ document.body.classList.add('icons-fallback'); }
+  })();
+</script>
+<script>
   (function(){
     var currentPage = '<?= htmlspecialchars($page ?? '') ?>';
     var lastKnown = {};
@@ -79,50 +93,146 @@
       w.scrollTop = w.scrollHeight;
     }
     function fetchChat(){
-      fetch('chat_fetch.php', {cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('Network'); return r.json(); }).then(function(data){ if (data.error) return; renderChat(data); }).catch(function(){});
+      return fetch('chat_fetch.php', {cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('Network'); return r.json(); }).then(function(data){ if (data.error) return []; return data; }).catch(function(){ return []; });
     }
     function postChat(msg){
-      fetch('chat_post.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg})}).then(function(r){ if(!r.ok) throw new Error('Network'); return r.json(); }).then(function(d){ if (d.ok) fetchChat(); }).catch(function(){ alert('Failed to send'); });
+      return fetch('chat_post.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg})}).then(function(r){ if(!r.ok) throw new Error('Network'); return r.json(); }).catch(function(){ return {ok:false}; });
     }
     function escapeHtml(s){ return String(s).replace(/[&<>\"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    // expose to global scope so other scripts can call
+    window.fetchChat = fetchChat;
+    window.postChat = postChat;
+    window.escapeHtml = escapeHtml;
     // initial load
     checkUpdates();
     setInterval(checkUpdates, 5000);
 
-    // chat polling every 2s
-    setInterval(fetchChat, 2000);
+    // chat polling handled by the chat UI which will call window.fetchChat
   })();
 </script>
-<!-- Floating admin chat box -->
-<style>
-  #admin-chat { position:fixed; right:18px; bottom:18px; width:300px; max-height:420px; z-index:9999; }
-  #admin-chat .chat-panel { background:#fff;border:1px solid #e6e6e6;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.08);overflow:hidden;display:flex;flex-direction:column; }
-  #admin-chat .chat-header { padding:8px 10px;background:linear-gradient(90deg,#6366f1,#3b82f6);color:#fff;font-weight:700; }
-  #admin-chat-window { padding:8px; overflow:auto; flex:1; background:#fbfbfd; max-height:260px; }
-  #admin-chat input[type=text]{ border:1px solid #e6e6e6;padding:8px;border-radius:6px;width:100%; }
-  #admin-chat .chat-footer { padding:8px; display:flex; gap:8px; align-items:center; }
-  .chat-msg { margin-bottom:10px; font-size:0.9rem; }
-  .chat-msg .muted { color:#6b7280; font-size:0.8rem; margin-left:6px; }
-</style>
+<!-- Chat UI: replaced with user-provided style and behavior -->
 <?php if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in']===true): ?>
-<div id="admin-chat">
-  <div class="chat-panel">
-    <div class="chat-header">Admin Chat</div>
-    <div id="admin-chat-window"></div>
-    <div class="chat-footer">
-      <input id="admin-chat-input" type="text" placeholder="Type a message...">
-      <button id="admin-chat-send" style="padding:6px 8px;background:#10b981;color:#fff;border:none;border-radius:6px;">Send</button>
+<style>
+  /* Chat button */
+  .chat_button{ position:fixed; right:24px; bottom:24px; height:64px; width:64px; border-radius:50%; background:#fff; border:none; box-shadow:0 6px 20px rgba(0,0,0,0.12); cursor:pointer; display:flex;align-items:center;justify-content:center; z-index:10001; }
+  .chat_button i { color: #3b82f6; font-size:22px; }
+  .chat_button:hover { transform:translateY(-3px); }
+
+  /* Chat box */
+  #chatbar.chat_box { position:fixed; right:24px; bottom:100px; width:360px; max-height:520px; background:#fff; border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,0.12); overflow:hidden; z-index:10000; display:none; flex-direction:column; }
+  .chat_box_header { padding:14px 16px; background:linear-gradient(90deg,#6366f1,#3b82f6); color:#fff; font-weight:700; letter-spacing:1px; }
+  .chat_box_body { padding:12px; max-height:360px; overflow:auto; background: #f8fafc; }
+  .chat_box_body .msg { clear:both; margin:8px 0; max-width:80%; padding:10px 12px; border-radius:14px; font-size:0.95rem; }
+  .chat_box_body .msg.self { background: linear-gradient(90deg,#10b981,#059669); color:#fff; float:right; }
+  .chat_box_body .msg.other { background:#eef2ff; color:#0f172a; float:left; }
+  .chat_box_footer { padding:10px; display:flex; gap:8px; align-items:center; border-top:1px solid #eef2ff; background:#fff; }
+  .chat_box_footer input { flex:1; padding:10px 12px; border-radius:10px; border:1px solid #e6eef9; }
+  .chat_box_footer button { background:#3b82f6; color:#fff; border:none; padding:9px 12px; border-radius:8px; cursor:pointer; }
+
+  /* small screens */
+  @media (max-width:480px){ #chatbar.chat_box{ right:12px; left:12px; bottom:90px; width:auto; } }
+</style>
+
+<!-- Chat button and box HTML -->
+<div id="chatPage" class="chat_page">
+  <button id="chatToggle" class="chat_button" aria-label="Open chat">
+    <i id="chatOpen" class="bx bx-message-rounded"></i>
+    <span id="chatBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border-radius:999px;padding:2px 6px;font-size:0.75rem;">0</span>
+  </button>
+
+  <div id="chatbar" class="chat_box animated fadeInUp">
+    <div class="chat_box_header">MESSAGES</div>
+    <div id="chatBody" class="chat_box_body"></div>
+    <div class="chat_box_footer">
+      <input type="text" id="MsgInput" placeholder="Enter Message">
+      <button id="MsgSend" aria-label="Send message"><i class="bx bx-send"></i></button>
     </div>
   </div>
 </div>
+
 <script>
   (function(){
-    var input = document.getElementById('admin-chat-input');
-    var send = document.getElementById('admin-chat-send');
-    send.addEventListener('click', function(){ var v = input.value.trim(); if(!v) return; postChat(v); input.value=''; });
-    input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); send.click(); } });
-    // initial fetch
-    fetchChat();
+  var isOpen = false;
+  var toggle = document.getElementById('chatToggle');
+    var chatbar = document.getElementById('chatbar');
+    var icon = document.getElementById('chatOpen');
+    var msgInput = document.getElementById('MsgInput');
+    var msgSend = document.getElementById('MsgSend');
+    var chatBody = document.getElementById('chatBody');
+  var badge = document.getElementById('chatBadge');
+  var currentUser = <?= json_encode($_SESSION['admin_user'] ?? '') ?>;
+  var currentRole = <?= json_encode($_SESSION['admin_role'] ?? 'admin') ?>;
+
+    function openChatBox(){
+      if(!isOpen){ chatbar.style.display='flex'; isOpen = true; icon.classList.remove('fa-comments'); icon.classList.add('fa-times'); fetchAndRender(); startPolling(); }
+      else { chatbar.style.display='none'; isOpen = false; icon.classList.add('fa-comments'); icon.classList.remove('fa-times'); stopPolling(); }
+    }
+
+    toggle.addEventListener('click', openChatBox);
+
+    function renderMessages(messages){
+      if(!chatBody) return;
+      chatBody.innerHTML = '';
+      messages.forEach(function(m){
+        var div = document.createElement('div');
+        var cls = (m.user === '<?= addslashes($_SESSION['admin_user'] ?? '') ?>') ? 'msg self' : 'msg other';
+        div.className = cls;
+        var d = new Date(m.time);
+        var rel = d.toLocaleTimeString();
+        var iso = d.toISOString();
+        var title = d.toString();
+        // message container with timestamp title and optional delete for superadmin
+        var content = '<strong>'+escapeHtml(m.name)+'</strong> <span title="'+escapeHtml(title)+'" style="font-size:0.75rem;color:#475569;margin-left:8px;">'+escapeHtml(rel)+'</span>';
+        content += '<div style="margin-top:6px;">'+escapeHtml(m.message)+'</div>';
+        if (currentRole === 'superadmin') {
+          content += '<div style="margin-top:6px;text-align:right;"><button data-time="'+escapeHtml(m.time)+'" class="delete-msg" style="background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:0.85rem;">Delete</button></div>';
+        }
+        div.innerHTML = content;
+        chatBody.appendChild(div);
+      });
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    var lastCount = 0;
+    function fetchAndRender(){
+      window.fetchChat().then(function(messages){
+        messages = messages || [];
+        // update unread badge if closed
+        if (!isOpen) {
+          if (messages.length > lastCount) {
+            var diff = messages.length - lastCount;
+            badge.style.display = 'inline-block';
+            badge.textContent = diff;
+          }
+        } else {
+          badge.style.display = 'none';
+          lastCount = messages.length;
+        }
+        renderMessages(messages);
+        // attach delete handlers
+        if (currentRole === 'superadmin') {
+          Array.from(document.getElementsByClassName('delete-msg')).forEach(function(btn){
+            btn.addEventListener('click', function(){ var t = this.getAttribute('data-time'); if (!t) return; if (!confirm('Delete this message?')) return; fetch('chat_delete.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({time: t})}).then(function(r){ return r.json(); }).then(function(r){ if (r && r.ok) fetchAndRender(); else alert('Delete failed'); }).catch(function(){ alert('Delete failed'); }); });
+          });
+        }
+      });
+    }
+
+    // send message
+    function send(){ var v = msgInput.value.trim(); if(!v) return; msgInput.value=''; window.postChat(v).then(function(res){ if(res && res.ok){ fetchAndRender(); } }); }
+
+    msgSend.addEventListener('click', send);
+    msgInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); send(); } });
+
+  // poll for new messages every 2s when open; also refresh when file changes via header's checkUpdates
+  var pollTimer = null;
+  function startPolling(){ if(pollTimer) return; pollTimer = setInterval(fetchAndRender, 2000); }
+  function stopPolling(){ if(!pollTimer) return; clearInterval(pollTimer); pollTimer = null; }
+
+    // expose functions for other scripts
+    window.openChatBox = openChatBox;
+    window.sendChatMessage = send;
+
   })();
 </script>
 <?php endif; ?>

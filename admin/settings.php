@@ -21,6 +21,12 @@ $settings = json_decode(file_get_contents($settingsFile), true) ?: ['prefer_mac'
 // determine current user role
 $currentRole = $_SESSION['admin_role'] ?? 'admin';
 
+// Restrict entire settings page to superadmin only
+if ($currentRole !== 'superadmin') {
+  echo '<div style="padding:20px;"><h2>Access denied</h2><p>You do not have permission to view this page.</p></div>';
+  return;
+}
+
 // CSRF token
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
 $csrf = $_SESSION['csrf_token'];

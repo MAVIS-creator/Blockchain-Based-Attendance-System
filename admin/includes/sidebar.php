@@ -36,7 +36,9 @@ if (file_exists($ticketsFile)) {
       <li><a href="index.php?page=announcement" class="<?= $page == 'announcement' ? 'active' : '' ?>"><i class='bx bx-broadcast'></i> Announcement</a></li>
       <li><a href="index.php?page=unlink_fingerprint" class="<?= $page == 'unlink_fingerprint' ? 'active' : '' ?>"><i class='bx bx-unlink'></i> Unlink Fingerprint</a></li>
   <li><a href="index.php?page=accounts" class="<?= $page == 'accounts' ? 'active' : '' ?>"><i class='bx bx-user-circle'></i> Accounts</a></li>
-  <li><a href="index.php?page=settings" class="<?= $page == 'settings' ? 'active' : '' ?>"><i class='bx bx-cog'></i> Settings</a></li>
+  <?php if (isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'superadmin'): ?>
+    <li><a href="index.php?page=settings" class="<?= $page == 'settings' ? 'active' : '' ?>"><i class='bx bx-cog'></i> Settings</a></li>
+  <?php endif; ?>
   <li><a href="index.php?page=chain" class="<?= $page == 'chain' ? 'active' : '' ?>"><i class='bx bx-shield'></i> Chain</a></li>
       <li><a href="logout.php"><i class='bx bx-log-out'></i> Logout</a></li>
     </ul>
