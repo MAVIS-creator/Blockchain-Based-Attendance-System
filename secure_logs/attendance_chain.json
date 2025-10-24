@@ -1337,5 +1337,17 @@
         "timestamp": "2025-07-14 14:20:51",
         "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Mobile/15E148 Safari/604.1",
         "hash": "1e0ec22a51865f0abc313412cab7dee6eef56765f505ebd83edb479fc6067b82"
+    },
+    {
+        "timestamp": "2025-10-24 03:22:48",
+        "name": "Akintunde Dolapo",
+        "matric": "2023011345",
+        "action": "checkin",
+        "fingerprint": "6da9c4106372bb8fd08d401623df6b09_cb8a97aa-1801-4ee1-a004-786fda356618",
+        "ip": "::1",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 AVG/140.0.0.0",
+        "course": "Group 14",
+        "prevHash": "1e0ec22a51865f0abc313412cab7dee6eef56765f505ebd83edb479fc6067b82",
+        "hash": "55c41ae8eb6c846fdb13d3eb2e56a3c676ff2acec52e0ee5183e9f90b9595c7f"
     }
 ]
