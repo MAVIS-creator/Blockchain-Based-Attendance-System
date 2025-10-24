@@ -1,6 +1,7 @@
 <?php
-$statusFile = __DIR__ . '/../status.json';
-$status = file_exists($statusFile) ? json_decode(file_get_contents($statusFile), true) : ['checkin' => false, 'checkout' => false, 'end_time' => null];
+ $statusFile = __DIR__ . '/../status.json';
+ // load status
+ $status = file_exists($statusFile) ? json_decode(file_get_contents($statusFile), true) : ['checkin' => false, 'checkout' => false, 'end_time' => null];
 if (!isset($status['end_time'])) {
     $status['end_time'] = null;
 }
@@ -8,16 +9,66 @@ if (!isset($status['end_time'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $duration = isset($_POST['duration']) && is_numeric($_POST['duration']) ? (int)$_POST['duration'] * 60 : 600; // default 10 minutes
 
+    // try to load admin settings to enforce check windows
+    $settingsPath = __DIR__ . '/settings.json';
+    $settings = [];
+    if (file_exists($settingsPath)) {
+        $raw = file_get_contents($settingsPath);
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) $settings = $decoded;
+        else {
+          // try decrypt if starts with ENC:
+          if (strpos($raw, 'ENC:') === 0) {
+            $keyFile = __DIR__ . '/.settings_key';
+            if (file_exists($keyFile)) {
+              $key = trim(file_get_contents($keyFile));
+              // same decrypt logic as settings.php
+              $blob = base64_decode(substr($raw,4));
+              $iv = substr($blob,0,16);
+              $ct = substr($blob,16);
+              $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+              $decoded = json_decode($plain, true);
+              if (is_array($decoded)) $settings = $decoded;
+            }
+          }
+        }
+    }
+
+    $errorMessage = null;
+
+    // helper: check time window
+    $nowHM = date('H:i');
+    $withinCheckinWindow = true;
+    if (!empty($settings['checkin_time_start']) && !empty($settings['checkin_time_end'])) {
+      $start = $settings['checkin_time_start'];
+      $end = $settings['checkin_time_end'];
+      if ($start <= $end) {
+        $withinCheckinWindow = ($nowHM >= $start && $nowHM <= $end);
+      } else {
+        // overnight window
+        $withinCheckinWindow = ($nowHM >= $start || $nowHM <= $end);
+      }
+    }
+
     if (isset($_POST['enable_checkin'])) {
-        $status = ['checkin' => true, 'checkout' => false, 'end_time' => time() + $duration];
+        if (!$withinCheckinWindow) {
+          $errorMessage = 'Cannot enable Check-In: current time is outside the configured check-in window.';
+        } else {
+          $status = ['checkin' => true, 'checkout' => false, 'end_time' => time() + $duration];
+        }
     } elseif (isset($_POST['enable_checkout'])) {
+        // allow enabling checkout regardless of checkin window (but you could add separate window logic here)
         $status = ['checkin' => false, 'checkout' => true, 'end_time' => time() + $duration];
     } elseif (isset($_POST['disable'])) {
         $status = ['checkin' => false, 'checkout' => false, 'end_time' => null];
     }
-    file_put_contents($statusFile, json_encode($status, JSON_PRETTY_PRINT));
-    header("Location: index.php?page=status");
-    exit;
+
+    if (empty($errorMessage)) {
+      file_put_contents($statusFile, json_encode($status, JSON_PRETTY_PRINT));
+      header("Location: index.php?page=status");
+      exit;
+    }
+    // if there was an error, fall through and render it below
 }
 ?>
 <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
