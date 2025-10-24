@@ -248,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php if ($message): ?><div style="background:#dff0d8;padding:10px;border-radius:6px;margin-bottom:12px;color:#2d6a2d;"><?=htmlspecialchars($message)?></div><?php endif; ?>
   <?php if ($errors): ?><div style="background:#ffe6e6;padding:10px;border-radius:6px;margin-bottom:12px;color:#8a1f1f;"><ul><?php foreach($errors as $e) echo '<li>'.htmlspecialchars($e).'</li>'; ?></ul></div><?php endif; ?>
 
-  <form method="POST" style="max-width:700px;">
+  <form method="POST" style="max-width:900px;">
     <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
     <div style="margin-bottom:12px;">
       <label style="display:block;font-weight:600;margin-bottom:6px;">Device matching preference</label>
@@ -272,6 +272,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="enforce_one_device_per_day" value="1" <?=($settings['enforce_one_device_per_day'] ?? false) ? 'checked' : ''?>> Enforce one device per student per day</label>
     </fieldset>
 
-    <div><button type="submit" style="padding:8px 12px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Save Settings</button></div>
+    <div style="display:flex;gap:12px;align-items:center;margin-top:12px;">
+      <div style="flex:1">
+        <button type="submit" name="save_settings" style="padding:8px 12px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Save Settings</button>
+      </div>
+      <div style="flex:1">
+        <label style="font-weight:600;display:block;margin-bottom:6px;">Re-authenticate (enter password for critical changes)</label>
+        <input type="password" name="reauth_password" placeholder="Your password" style="padding:8px;width:100%;">
+      </div>
+    </div>
   </form>
+
+  <hr style="margin:18px 0;">
+
+  <h3>Templates</h3>
+  <form method="POST" style="display:flex;gap:8px;align-items:center;max-width:700px;">
+    <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
+    <input type="text" name="template_name" placeholder="Template name" style="padding:8px;">
+    <button type="submit" name="save_template" style="padding:8px;background:#10b981;color:#fff;border:none;border-radius:6px;">Save Template</button>
+    <select name="apply_template_name" style="padding:8px;">
+      <option value="">-- Apply template --</option>
+      <?php $tpls = json_decode(file_get_contents($templatesFile), true) ?: []; foreach ($tpls as $tn => $tv): ?>
+        <option value="<?=htmlspecialchars($tn)?>"><?=htmlspecialchars($tn)?></option>
+      <?php endforeach; ?>
+    </select>
+    <button type="submit" name="apply_template" style="padding:8px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Apply</button>
+  </form>
+
+  <hr style="margin:18px 0;">
+
+  <h3>Advanced Controls & Utilities</h3>
+  <form method="POST" style="max-width:900px;display:flex;flex-direction:column;gap:12px;">
+    <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
+    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
+      <legend style="font-weight:600;padding:0 6px;">Network & Security</legend>
+      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="encrypted_settings" value="1" <?=($settings['encrypted_settings'] ?? false) ? 'checked' : ''?>> Store settings encrypted on disk</label>
+      <label style="display:block;margin-bottom:8px;">IP whitelist (one per line or comma separated)</label>
+      <textarea name="ip_whitelist" style="width:100%;padding:8px;min-height:80px;"><?=htmlspecialchars(implode("\n", $settings['ip_whitelist'] ?? []))?></textarea>
+    </fieldset>
+
+    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
+      <legend style="font-weight:600;padding:0 6px;">Device & Anti-spam</legend>
+      <label style="display:block;margin-bottom:8px;">Device cooldown (seconds): <input type="number" name="device_cooldown_seconds" value="<?=htmlspecialchars($settings['device_cooldown_seconds'] ?? 0)?>" style="width:120px;margin-left:8px;padding:6px;"></label>
+      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="user_agent_lock" value="1" <?=($settings['user_agent_lock'] ?? false) ? 'checked' : ''?>> Lock attendance to the first user-agent seen (detect device switching)</label>
+    </fieldset>
+
+    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
+      <legend style="font-weight:600;padding:0 6px;">Geo-fencing</legend>
+      <div style="display:flex;gap:8px;align-items:center;"><input type="text" name="geo_lat" placeholder="Latitude" value="<?=htmlspecialchars($settings['geo_fence']['lat'] ?? '')?>" style="padding:8px;width:160px;"><input type="text" name="geo_lng" placeholder="Longitude" value="<?=htmlspecialchars($settings['geo_fence']['lng'] ?? '')?>" style="padding:8px;width:160px;"><input type="number" name="geo_radius_m" placeholder="Radius (m)" value="<?=htmlspecialchars($settings['geo_fence']['radius_m'] ?? 0)?>" style="padding:8px;width:120px;"></div>
+    </fieldset>
+
+    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
+      <legend style="font-weight:600;padding:0 6px;">Backups & retention</legend>
+      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="auto_backup" value="1" <?=($settings['auto_backup'] ?? true) ? 'checked' : ''?>> Keep automatic backups on each save</label>
+      <label style="display:block;margin-bottom:8px;">Backup retention (number of backups to keep) <input type="number" name="backup_retention" value="<?=htmlspecialchars($settings['backup_retention'] ?? 10)?>" style="width:120px;margin-left:8px;padding:6px;"></label>
+    </fieldset>
+
+    <div style="display:flex;gap:12px;align-items:center;">
+      <button type="submit" name="save_settings" style="padding:8px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Save Advanced</button>
+      <div style="flex:1;color:#6b7280;font-size:0.95rem;">Use these controls to protect and manage system-wide behavior. Note: enabling encryption will store settings encrypted on disk (a key file will be created).</div>
+    </div>
+  </form>
+
+  <hr style="margin:18px 0;">
+
+  <h3>System overview</h3>
+  <div style="max-width:900px;background:#fff;padding:12px;border-radius:8px;">
+    <?php
+      $acct = json_decode(file_get_contents(__DIR__ . '/accounts.json'), true) ?: [];
+      $adminCount = count($acct);
+      $status = @json_decode(file_get_contents(__DIR__ . '/../status.json'), true) ?: [];
+      $lastAudit = file_exists(__DIR__ . '/settings_audit.log') ? array_slice(array_map('trim', file(__DIR__ . '/settings_audit.log')), -10) : [];
+      $backups = glob(__DIR__ . '/backups/settings_*.json');
+      usort($backups, function($a,$b){ return filemtime($b) - filemtime($a); });
+    ?>
+    <p><strong>Admins:</strong> <?= $adminCount ?></p>
+    <p><strong>Check-in enabled:</strong> <?= (!empty($status['checkin']) && $status['checkin']) ? 'Yes' : 'No' ?> &nbsp; <strong>Check-out enabled:</strong> <?= (!empty($status['checkout']) && $status['checkout']) ? 'Yes' : 'No' ?></p>
+    <p><strong>Active countdown ends at:</strong> <?= htmlspecialchars($status['end_time'] ?? 'N/A') ?></p>
+    <p><strong>Last backups:</strong></p>
+    <ul><?php foreach(array_slice($backups,0,5) as $b){ echo '<li>'.basename($b).' - '.date('c', filemtime($b)).'</li>'; } if(empty($backups)) echo '<li>No backups yet</li>'; ?></ul>
+    <p><strong>Recent settings audit entries:</strong></p>
+    <pre style="max-height:220px;overflow:auto;background:#f3f4f6;padding:8px;"><?php foreach($lastAudit as $la){ echo htmlspecialchars($la)."\n"; } ?></pre>
+  </div>
 </div>
