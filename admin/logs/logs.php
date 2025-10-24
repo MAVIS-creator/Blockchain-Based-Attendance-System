@@ -9,11 +9,17 @@ $courses = file_exists($courseFile) ? json_decode(file_get_contents($courseFile)
 if (empty($courses)) $courses = ['General'];
 
 $selectedDate = $_GET['logDate'] ?? date('Y-m-d');
-$selectedCourse = $_GET['course'] ?? (
-    file_exists($activeCourseFile)
-        ? trim(file_get_contents($activeCourseFile)) ?: 'General'
-        : 'General'
-);
+$selectedCourse = null;
+if (isset($_GET['course']) && trim($_GET['course']) !== '') {
+  $selectedCourse = $_GET['course'];
+} else {
+  if (file_exists($activeCourseFile)) {
+    $tmp = trim(file_get_contents($activeCourseFile));
+    $selectedCourse = $tmp !== '' ? $tmp : 'General';
+  } else {
+    $selectedCourse = 'General';
+  }
+}
 $searchName = trim($_GET['search'] ?? '');
 
 $page = max(1, intval($_GET['page'] ?? 1));
