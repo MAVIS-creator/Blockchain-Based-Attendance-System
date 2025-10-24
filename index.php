@@ -1,7 +1,10 @@
 <?php
 $status = json_decode(file_get_contents("status.json"), true);
 $activeMode = $status["checkin"] ? "checkin" : ($status["checkout"] ? "checkout" : "");
-if (!$activeMode) die("Attendance is currently closed.");
+if (!$activeMode) {
+  header('Location: closed.php');
+  exit;
+}
 
 // Read active course
 $activeCourse = "General";
