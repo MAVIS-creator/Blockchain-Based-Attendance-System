@@ -137,7 +137,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 
   <div class="overlay"></div>
   <div class="container">
-  <img class="logo" src="asset/logo-lautech.svg" alt="logo" style="background:#fff;padding:8px;border-radius:8px;box-shadow:0 8px 30px rgba(16,24,40,0.06)">
+  <img class="logo" src="asset/lautech_logo.png" alt="logo" style="background:#fff;padding:8px;border-radius:8px;">
   <h2><i class='bx bx-ticket'></i> Submit Support Ticket</h2>
 
     <?php if ($success): ?>
@@ -165,7 +165,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       <button type="submit" class="btn btn-primary">Submit Ticket</button>
     </form>
 
-    <a class="back-link <?= $blocked ? 'disabled-link' : '' ?>" href="<?= $blocked ? '#' : 'index.php' ?>">⬅️ Back to Attendance</a>
+    <a class="back-link <?= $blocked ? 'disabled-link' : '' ?>" href="<?= $blocked ? '#' : 'index.php' ?>"><i class='bx bx-chevron-left'></i> Back to Attendance</a>
   </div>
 
   <!-- Add fingerprint script -->
