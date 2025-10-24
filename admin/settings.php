@@ -6,7 +6,82 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 $settingsFile = __DIR__ . '/settings.json';
-if (!file_exists($settingsFile)) file_put_contents($settingsFile, json_encode([
+$keyFile = __DIR__ . '/.settings_key';
+$backupDir = __DIR__ . '/backups';
+if (!is_dir($backupDir)) @mkdir($backupDir, 0700, true);
+
+// helper: generate/return encryption key
+function get_settings_key($keyFile){
+  if (file_exists($keyFile)) return trim(file_get_contents($keyFile));
+  $k = base64_encode(random_bytes(32));
+  @file_put_contents($keyFile, $k);
+  @chmod($keyFile, 0600);
+  return $k;
+}
+
+// encryption helpers (AES-256-CBC)
+function encrypt_payload($plaintext, $key){
+  $keyRaw = base64_decode($key);
+  $iv = random_bytes(16);
+  $ct = openssl_encrypt($plaintext, 'AES-256-CBC', $keyRaw, OPENSSL_RAW_DATA, $iv);
+  return 'ENC:' . base64_encode($iv . $ct);
+}
+function decrypt_payload($payload, $key){
+  if (strpos($payload, 'ENC:') !== 0) return $payload;
+  $blob = base64_decode(substr($payload,4));
+  $iv = substr($blob,0,16);
+  $ct = substr($blob,16);
+  $keyRaw = base64_decode($key);
+  return openssl_decrypt($ct, 'AES-256-CBC', $keyRaw, OPENSSL_RAW_DATA, $iv);
+}
+
+// load settings (with optional decryption)
+function load_settings($settingsFile, $keyFile){
+  if (!file_exists($settingsFile)) return null;
+  $raw = file_get_contents($settingsFile);
+  // try parse as JSON first
+  $decoded = json_decode($raw, true);
+  if (is_array($decoded)) return $decoded;
+  // otherwise try decrypt
+  $key = get_settings_key($keyFile);
+  $plain = @decrypt_payload($raw, $key);
+  $decoded = json_decode($plain, true);
+  return is_array($decoded) ? $decoded : null;
+}
+
+// save settings with optional encryption flag
+function save_settings($settingsFile, $keyFile, $settings, $encrypt=false){
+  $payload = json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+  // create backup
+  $backupDir = dirname($settingsFile) . '/backups';
+  if (!is_dir($backupDir)) @mkdir($backupDir, 0700, true);
+  $timestamp = date('Y-m-d_His');
+  @file_put_contents($backupDir . "/settings_{$timestamp}.json", $payload);
+  if ($encrypt) {
+    $key = get_settings_key($keyFile);
+    $payload = encrypt_payload($payload, $key);
+  }
+  file_put_contents($settingsFile, $payload, LOCK_EX);
+}
+
+// audit
+function audit_settings_change($adminUser, $changes){
+  $log = __DIR__ . '/settings_audit.log';
+  $entry = [
+    'time' => date('c'),
+    'user' => $adminUser,
+    'changes' => $changes
+  ];
+  file_put_contents($log, json_encode($entry, JSON_UNESCAPED_SLASHES) . "\n", FILE_APPEND | LOCK_EX);
+}
+
+// templates file
+$templatesFile = __DIR__ . '/settings_templates.json';
+if (!file_exists($templatesFile)) file_put_contents($templatesFile, json_encode(new stdClass(), JSON_PRETTY_PRINT));
+
+// default settings
+if (!file_exists($settingsFile)) {
+  $default = [
     'prefer_mac' => true,
     'max_admins' => 5,
     'require_fingerprint_match' => false,
@@ -14,9 +89,20 @@ if (!file_exists($settingsFile)) file_put_contents($settingsFile, json_encode([
     'reason_keywords' => '',
     'checkin_time_start' => '',
     'checkin_time_end' => '',
-    'enforce_one_device_per_day' => false
-], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-$settings = json_decode(file_get_contents($settingsFile), true) ?: ['prefer_mac'=>true,'max_admins'=>5];
+    'enforce_one_device_per_day' => false,
+    // new keys
+    'ip_whitelist' => [],
+    'encrypted_settings' => false,
+    'device_cooldown_seconds' => 0,
+    'geo_fence' => ['lat'=>null,'lng'=>null,'radius_m'=>0],
+    'user_agent_lock' => false,
+    'auto_backup' => true,
+    'backup_retention' => 10
+  ];
+  save_settings($settingsFile, $keyFile, $default, false);
+}
+
+$settings = load_settings($settingsFile, $keyFile) ?: ['prefer_mac'=>true,'max_admins'=>5];
 
 // determine current user role
 $currentRole = $_SESSION['admin_role'] ?? 'admin';
