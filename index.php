@@ -245,40 +245,62 @@ FingerprintJS.load().then(fp => {
 
 document.getElementById('attendanceForm').addEventListener('submit', function(e) {
   e.preventDefault();
+  const form = this;
   const formData = new FormData(this);
-  fetch('submit.php', {
-      method: 'POST',
-      body: formData
-    })
-    .then(res => res.json())
-    .then(json => {
-      if (!json || !json.ok) {
-        Swal.fire({ icon: 'error', title: 'Submission Failed', text: (json && json.message) || 'Submission failed', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') });
-        return;
-      }
-      Swal.fire({ icon: 'success', title: 'Success', text: json.message, timer: 2200, showConfirmButton: false, background: '#fff' });
-      this.reset();
-      submitBtn.disabled = true;
 
-      fencingActive = false;
-      clearTimeout(inactivityTimer);
-
-      FingerprintJS.load().then(fp => {
-        fp.get().then(result => {
-          let token = localStorage.getItem('attendance_token');
-          if (!token) {
-            token = crypto.randomUUID();
-            localStorage.setItem('attendance_token', token);
-          }
-          fingerprintInput.value = result.visitorId + "_" + token;
-          submitBtn.disabled = false;
-        });
-      });
-    })
-    .catch(err => {
-      console.error(err);
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Error occurred. Please try again.', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') });
+  // Try to get geolocation (will be sent if available). Timeout after 5s.
+  function getLocation(timeout = 5000) {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+      let settled = false;
+      const timer = setTimeout(() => { if (!settled) { settled = true; resolve(null); } }, timeout);
+      navigator.geolocation.getCurrentPosition(function(pos){
+        if (settled) return; settled = true; clearTimeout(timer);
+        resolve({lat: pos.coords.latitude, lng: pos.coords.longitude});
+      }, function(){ if (settled) return; settled = true; clearTimeout(timer); resolve(null); }, {maximumAge:60000,timeout:timeout});
     });
+  }
+
+  getLocation(5000).then(loc => {
+    if (loc) {
+      formData.append('lat', loc.lat);
+      formData.append('lng', loc.lng);
+    }
+
+    fetch('submit.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(json => {
+        if (!json || !json.ok) {
+          Swal.fire({ icon: 'error', title: 'Submission Failed', text: (json && json.message) || 'Submission failed', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') });
+          return;
+        }
+        Swal.fire({ icon: 'success', title: 'Success', text: json.message, timer: 2200, showConfirmButton: false, background: '#fff' });
+        form.reset();
+        submitBtn.disabled = true;
+
+        fencingActive = false;
+        clearTimeout(inactivityTimer);
+
+        FingerprintJS.load().then(fp => {
+          fp.get().then(result => {
+            let token = localStorage.getItem('attendance_token');
+            if (!token) {
+              token = crypto.randomUUID();
+              localStorage.setItem('attendance_token', token);
+            }
+            fingerprintInput.value = result.visitorId + "_" + token;
+            submitBtn.disabled = false;
+          });
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Error occurred. Please try again.', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') });
+      });
+  });
 });
 
 // popup removed: using SweetAlert2 for user messages
