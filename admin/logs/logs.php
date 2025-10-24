@@ -20,7 +20,9 @@ if (isset($_GET['course']) && trim($_GET['course']) !== '') {
     $selectedCourse = 'General';
   }
 }
+
 $searchName = trim($_GET['search'] ?? '');
+$filterType = $_GET['filterType'] ?? 'both';
 
 $page = max(1, intval($_GET['page'] ?? 1));
 $perPage = 15;
@@ -31,23 +33,17 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
 
 $entries = [];
 $logFile = $logDir . "/{$selectedDate}.log";
+
 if (file_exists($logFile)) {
   $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
   foreach ($lines as $line) {
     $parts = array_map('trim', explode('|', $line));
-    if (count($parts) < 6) continue; // Ignore clearly broken lines
-
-    // Detect whether a MAC field exists by checking parts count and MAC-like pattern
-    $mac = 'UNKNOWN';
-    $device = '';
-    $timestamp = '';
-    $course = 'General';
-    $reason = '-';
+    if (count($parts) < 6) continue;
 
     $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
 
     if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
-      // New format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent/device | course | reason
+      // New format (with MAC)
       $entry = [
         'name'        => $parts[0] ?? '',
         'matric'      => $parts[1] ?? '',
@@ -61,7 +57,7 @@ if (file_exists($logFile)) {
         'reason'      => $parts[9] ?? '-'
       ];
     } else {
-      // Old format: name | matric | action | fingerprint | ip | timestamp | device | course | reason
+      // Old format (no MAC)
       $entry = [
         'name'        => $parts[0] ?? '',
         'matric'      => $parts[1] ?? '',
@@ -76,13 +72,25 @@ if (file_exists($logFile)) {
       ];
     }
 
-    if ($searchName !== '' && stripos($entry['name'], $searchName) === false) continue;
+    // 🔍 Filter by name, IP, MAC, and course
+    if (
+      $searchName !== '' &&
+      stripos($entry['name'], $searchName) === false &&
+      stripos($entry['ip'], $searchName) === false &&
+      stripos($entry['mac'], $searchName) === false
+    ) continue;
+
     if ($entry['course'] !== $selectedCourse) continue;
+
+    // 💡 Apply MAC/IP filter type
+    if ($filterType === 'ip' && ($entry['ip'] === '' || $entry['ip'] === 'UNKNOWN')) continue;
+    if ($filterType === 'mac' && ($entry['mac'] === '' || $entry['mac'] === 'UNKNOWN')) continue;
 
     $entries[] = $entry;
   }
 }
 
+// Combine check-ins and check-outs
 $combined = [];
 foreach ($entries as $entry) {
   $key = $entry['name'] . '|' . $entry['matric'];
@@ -94,10 +102,12 @@ foreach ($entries as $entry) {
       'check_out'  => '',
       'fingerprint' => $entry['fingerprint'],
       'ip'         => $entry['ip'],
+      'mac'        => $entry['mac'],
       'device'     => $entry['device'],
       'reason'     => $entry['reason']
     ];
   }
+
   $action = strtolower($entry['action']);
   if (in_array($action, ['checkin', 'in']) && $combined[$key]['check_in'] === '') {
     $combined[$key]['check_in'] = $entry['timestamp'];
@@ -106,13 +116,15 @@ foreach ($entries as $entry) {
     $combined[$key]['check_out'] = $entry['timestamp'];
   }
 }
+
+// Show only users who have both check-in and check-out
 $combined = array_filter($combined, fn($e) => $e['check_in'] && $e['check_out']);
 $total = count($combined);
 $totalPages = ceil($total / $perPage);
 $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
 ?>
 
-<!-- 👇 Your frontend table and styling code below stays the same! -->
+<!-- 👇 Frontend -->
 <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 <style>
   :root {
@@ -290,6 +302,16 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
     backdrop-filter: blur(10px);
     transform: scale(1.05);
   }
+
+  .logs-table th:nth-child(7),
+  .logs-table td:nth-child(7) {
+    color: #1e40af;
+    font-weight: 600;
+  }
+
+  .logs-controls select#filterType {
+    border: 1px solid var(--accent-color);
+  }
 </style>
 
 <button class="palette-toggle"><i class='bx bx-palette'></i></button>
@@ -312,8 +334,15 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
       <?php endforeach; ?>
     </select>
 
+    <label for="filterType">Filter by:</label>
+    <select id="filterType" name="filterType" onchange="this.form.submit()">
+      <option value="both" <?= $filterType === 'both' ? 'selected' : '' ?>>IP & MAC</option>
+      <option value="ip" <?= $filterType === 'ip' ? 'selected' : '' ?>>IP Only</option>
+      <option value="mac" <?= $filterType === 'mac' ? 'selected' : '' ?>>MAC Only</option>
+    </select>
+
     <label for="search">Search:</label>
-    <input type="text" id="search" name="search" placeholder="Search name..." value="<?= htmlspecialchars($searchName) ?>">
+    <input type="text" id="search" name="search" placeholder="Search name, IP, or MAC..." value="<?= htmlspecialchars($searchName) ?>">
 
     <button type="submit"><i class='bx bx-search-alt-2'></i> Filter</button>
     <a href="../admin/logs/export.php?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>" class="btn"><i class='bx bx-download'></i> Export CSV</a>
@@ -331,6 +360,7 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
             <th>Check-Out</th>
             <th>Fingerprint</th>
             <th>IP</th>
+            <th>MAC</th>
             <th>Device</th>
             <th>Reason</th>
           </tr>
@@ -344,6 +374,7 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
               <td><?= htmlspecialchars($row['check_out']) ?></td>
               <td><?= htmlspecialchars($row['fingerprint']) ?></td>
               <td><?= htmlspecialchars($row['ip']) ?></td>
+              <td><?= htmlspecialchars($row['mac']) ?></td>
               <td><?= htmlspecialchars($row['device']) ?></td>
               <td><?= htmlspecialchars($row['reason'] ?? '-') ?></td>
             </tr>
@@ -354,7 +385,7 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
 
     <div class="pagination">
       <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-        <a href="?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>&page=<?= $i ?>" class="<?= $i === $page ? 'active' : '' ?>">
+        <a href="?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>&filterType=<?= urlencode($filterType) ?>&page=<?= $i ?>" class="<?= $i === $page ? 'active' : '' ?>">
           <?= $i ?>
         </a>
       <?php endfor; ?>
