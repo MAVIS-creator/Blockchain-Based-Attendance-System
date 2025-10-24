@@ -123,7 +123,23 @@ if (!empty($settings['ip_whitelist']) && is_array($settings['ip_whitelist'])) {
     foreach ($whitelist as $w) {
         $w = trim($w);
         if ($w === '') continue;
-        if ($w === $ip) { $allowed = true; break; }
+        // support CIDR ranges as well
+        if (strpos($w, '/') !== false) {
+            // CIDR match
+            list($net, $mask) = explode('/', $w, 2);
+            if (filter_var($net, FILTER_VALIDATE_IP) && is_numeric($mask)) {
+                $mask = (int)$mask;
+                // only IPv4 supported for now
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && filter_var($net, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    $ip_long = ip2long($ip);
+                    $net_long = ip2long($net);
+                    $mask_long = -1 << (32 - $mask);
+                    if (($ip_long & $mask_long) === ($net_long & $mask_long)) { $allowed = true; break; }
+                }
+            }
+        } else {
+            if ($w === $ip) { $allowed = true; break; }
+        }
     }
     if (!$allowed) {
         fail('IP_BLOCK','Your IP is not allowed to submit attendance.');
