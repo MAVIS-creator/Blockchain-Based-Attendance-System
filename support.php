@@ -55,6 +55,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Support Ticket</title>
+  <link rel="stylesheet" href="admin/boxicons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     :root{ --accent-red:#ef4444; --accent-yellow:#facc15; --accent-dark:#111827; --muted:#6b7280 }
@@ -136,8 +137,8 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 
   <div class="overlay"></div>
   <div class="container">
-    <img class="logo" src="https://www.clipartmax.com/png/middle/258-2587546_%5Bgood-news%5D-lautech-resumes-on-15th-of-september-and-ladoke-akintola-university.png" alt="logo">
-  <h2>🎫 Submit Support Ticket</h2>
+  <img class="logo" src="asset/logo-lautech.svg" alt="logo" style="background:#fff;padding:8px;border-radius:8px;box-shadow:0 8px 30px rgba(16,24,40,0.06)">
+  <h2><i class='bx bx-ticket'></i> Submit Support Ticket</h2>
 
     <?php if ($success): ?>
       <div class="success-message">
@@ -148,15 +149,15 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 
   <form method="post">
       <div class="input-group">
-        <label for="name">📛 Name</label>
+        <label for="name"><i class='bx bx-user'></i> Name</label>
         <input type="text" id="name" name="name" placeholder="Your Name" required />
       </div>
       <div class="input-group">
-        <label for="matric">🔢 Matric Number</label>
+        <label for="matric"><i class='bx bx-id-card'></i> Matric Number</label>
         <input type="text" id="matric" name="matric" placeholder="e.g., 2023000000" required />
       </div>
       <div class="input-group">
-        <label for="message">💬 Message</label>
+        <label for="message"><i class='bx bx-message'></i> Message</label>
         <textarea id="message" name="message" placeholder="Write your issue or question..." required></textarea>
       </div>
       <!-- Hidden fingerprint input -->
