@@ -23,7 +23,6 @@
     <?php else: ?>
       <a href="login.php" style="color:#333;text-decoration:none;font-weight:600;">Login</a>
     <?php endif; ?>
-  </div>
 </header>
 <script>
   // detect whether icon fonts loaded; if not, enable fallback CSS
