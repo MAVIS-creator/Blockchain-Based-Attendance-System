@@ -1349,5 +1349,17 @@
         "course": "Group 14",
         "prevHash": "1e0ec22a51865f0abc313412cab7dee6eef56765f505ebd83edb479fc6067b82",
         "hash": "55c41ae8eb6c846fdb13d3eb2e56a3c676ff2acec52e0ee5183e9f90b9595c7f"
+    },
+    {
+        "timestamp": "2025-10-24 03:23:32",
+        "name": "Akintunde Dolapo",
+        "matric": "2023011345",
+        "action": "checkout",
+        "fingerprint": "6da9c4106372bb8fd08d401623df6b09_cb8a97aa-1801-4ee1-a004-786fda356618",
+        "ip": "::1",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 AVG/140.0.0.0",
+        "course": "Group 14",
+        "prevHash": "55c41ae8eb6c846fdb13d3eb2e56a3c676ff2acec52e0ee5183e9f90b9595c7f",
+        "hash": "04dad3610e42778960936a9801558518efd7ffa03ce0f2234d25209044212a3f"
     }
 ]
