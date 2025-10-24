@@ -40,10 +40,9 @@ if (file_exists($logFile)) {
     $parts = array_map('trim', explode('|', $line));
     if (count($parts) < 6) continue;
 
-    $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
-
-    if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
-      // New format (with MAC)
+    // If there are 9 or more parts we assume the new format (including MAC at index 5)
+    if (count($parts) >= 9) {
+      // New format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent/device | course | reason
       $entry = [
         'name'        => $parts[0] ?? '',
         'matric'      => $parts[1] ?? '',
@@ -57,7 +56,7 @@ if (file_exists($logFile)) {
         'reason'      => $parts[9] ?? '-'
       ];
     } else {
-      // Old format (no MAC)
+      // Old format fallback
       $entry = [
         'name'        => $parts[0] ?? '',
         'matric'      => $parts[1] ?? '',
