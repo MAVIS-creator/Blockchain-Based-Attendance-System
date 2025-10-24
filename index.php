@@ -156,6 +156,7 @@ if (file_exists($announcementFile)) {
     }
   </style>
   <link rel="stylesheet" href="admin/boxicons.min.css">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
