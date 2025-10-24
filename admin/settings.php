@@ -97,7 +97,8 @@ if (!file_exists($settingsFile)) {
     'geo_fence' => ['lat'=>null,'lng'=>null,'radius_m'=>0],
     'user_agent_lock' => false,
     'auto_backup' => true,
-    'backup_retention' => 10
+    'backup_retention' => 10,
+    'encrypt_logs' => false
   ];
   save_settings($settingsFile, $keyFile, $default, false);
 }
@@ -213,8 +214,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $settings['device_cooldown_seconds'] = $deviceCooldown;
         $settings['geo_fence'] = ['lat'=>$geoLat,'lng'=>$geoLng,'radius_m'=>$geoRadius];
         $settings['user_agent_lock'] = $userAgentLock;
-        $settings['auto_backup'] = $autoBackup;
-        $settings['backup_retention'] = $backupRetention;
+  $settings['auto_backup'] = $autoBackup;
+  $settings['backup_retention'] = $backupRetention;
+  $settings['encrypt_logs'] = isset($_POST['encrypt_logs']) && $_POST['encrypt_logs'] === '1';
 
         // save (respect encryption flag)
         save_settings($settingsFile, $keyFile, $settings, $settings['encrypted_settings'] ?? false);
@@ -307,6 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
       <legend style="font-weight:600;padding:0 6px;">Network & Security</legend>
       <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="encrypted_settings" value="1" <?=($settings['encrypted_settings'] ?? false) ? 'checked' : ''?>> Store settings encrypted on disk</label>
+      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="encrypt_logs" value="1" <?=($settings['encrypt_logs'] ?? false) ? 'checked' : ''?>> Encrypt per-day enforcement/log stores</label>
       <label style="display:block;margin-bottom:8px;">IP whitelist (one per line or comma separated)</label>
       <textarea name="ip_whitelist" style="width:100%;padding:8px;min-height:80px;"><?=htmlspecialchars(implode("\n", $settings['ip_whitelist'] ?? []))?></textarea>
     </fieldset>
