@@ -156,6 +156,29 @@ a {
   transform: scale(1.2);
 }
 
+/* ================= Admin avatar / initials ================= */
+.admin-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: inline-block;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.admin-initials {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg,#6366f1,#3b82f6);
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
 /* ================= Sidebar Overlay ================= */
 .sidebar-overlay {
   display: none;
