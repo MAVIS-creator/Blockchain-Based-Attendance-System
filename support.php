@@ -110,14 +110,12 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       outline: none;
       box-shadow: 0 0 10px #00eaff;
     }
-    button {
-    .btn { width:100%; padding:12px; border-radius:8px; border:none; font-weight:700; cursor:pointer }
-    .btn-primary{ background: linear-gradient(90deg,var(--accent-red),#d97706); color:#fff }
-    .btn-accent{ background: linear-gradient(90deg,var(--accent-yellow),#f59e0b); color:#111 }
-    .success-message {
-    .success-message { background:#f0fdf4; color:#065f46; padding:12px; margin-top:12px; border-radius:6px; text-align:center }
-    .back-link {
-    .back-link { display:block; text-align:center; margin-top:14px; color:var(--accent-red); text-decoration:none; font-weight:700 }
+    button { width:100%; padding:12px; border-radius:8px; border:none; font-weight:700; cursor:pointer; }
+    .btn { width:100%; padding:12px; border-radius:8px; border:none; font-weight:700; cursor:pointer; }
+    .btn-primary { background: linear-gradient(90deg,var(--accent-red),#d97706); color:#fff; }
+    .btn-accent { background: linear-gradient(90deg,var(--accent-yellow),#f59e0b); color:#111; }
+    .success-message { background:#f0fdf4; color:#065f46; padding:12px; margin-top:12px; border-radius:6px; text-align:center; }
+    .back-link { display:block; text-align:center; margin-top:14px; color:var(--accent-red); text-decoration:none; font-weight:700; }
     .disabled-link { pointer-events:none; opacity:0.5 }
   .logo{ height:120px; width:auto; max-width:240px; border-radius:8px; margin:0 auto 12px; display:block; background:transparent; }
   /* remove default link underlines and make anchors button-like where used */
