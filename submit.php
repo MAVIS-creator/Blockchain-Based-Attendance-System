@@ -41,6 +41,140 @@ if (!isset($status[$action]) || !$status[$action]) {
     exit;
 }
 
+// -----------------------
+// Load admin settings (try JSON, else decrypt ENC:)
+// -----------------------
+$settingsPath = __DIR__ . '/admin/settings.json';
+$settings = [];
+if (file_exists($settingsPath)) {
+    $raw = file_get_contents($settingsPath);
+    $decoded = json_decode($raw, true);
+    if (is_array($decoded)) {
+        $settings = $decoded;
+    } else if (strpos($raw, 'ENC:') === 0) {
+        $keyFile = __DIR__ . '/admin/.settings_key';
+        if (file_exists($keyFile)) {
+            $key = trim(file_get_contents($keyFile));
+            $blob = base64_decode(substr($raw,4));
+            $iv = substr($blob,0,16);
+            $ct = substr($blob,16);
+            $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+            $decoded2 = json_decode($plain, true);
+            if (is_array($decoded2)) $settings = $decoded2;
+        }
+    }
+}
+
+// Helper: respond JSON and exit
+function fail($code, $message) {
+    header('Content-Type: application/json');
+    echo json_encode(['ok'=>false,'code'=>$code,'message'=>$message]);
+    exit;
+}
+
+// -----------------------
+// IP whitelist
+// -----------------------
+if (!empty($settings['ip_whitelist']) && is_array($settings['ip_whitelist'])) {
+    $whitelist = $settings['ip_whitelist'];
+    // normalize
+    $allowed = false;
+    foreach ($whitelist as $w) {
+        $w = trim($w);
+        if ($w === '') continue;
+        if ($w === $ip) { $allowed = true; break; }
+    }
+    if (!$allowed) {
+        fail('IP_BLOCK','Your IP is not allowed to submit attendance.');
+    }
+}
+
+// -----------------------
+// Geo-fence enforcement (if configured)
+// -----------------------
+if (!empty($settings['geo_fence']) && is_array($settings['geo_fence'])) {
+    $gf = $settings['geo_fence'];
+    $gfLat = isset($gf['lat']) ? floatval($gf['lat']) : null;
+    $gfLng = isset($gf['lng']) ? floatval($gf['lng']) : null;
+    $gfRadius = isset($gf['radius_m']) ? intval($gf['radius_m']) : 0;
+    if ($gfLat !== null && $gfLng !== null && $gfRadius > 0) {
+        // require client to send lat/lng
+        $postLat = isset($_POST['lat']) ? floatval($_POST['lat']) : null;
+        $postLng = isset($_POST['lng']) ? floatval($_POST['lng']) : null;
+        if ($postLat === null || $postLng === null) {
+            fail('GEOFENCE_MISSING','Location required for attendance at this time.');
+        }
+        // haversine
+        $earthRadius = 6371000; // meters
+        $dLat = deg2rad($postLat - $gfLat);
+        $dLon = deg2rad($postLng - $gfLng);
+        $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($gfLat)) * cos(deg2rad($postLat)) * sin($dLon/2) * sin($dLon/2);
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        $dist = $earthRadius * $c;
+        if ($dist > $gfRadius) {
+            fail('GEOFENCE_OUTSIDE','You are outside the allowed attendance area.');
+        }
+    }
+}
+
+// -----------------------
+// Device identifier (prefer MAC)
+// -----------------------
+$deviceId = 'NOID';
+if (!empty($mac) && $mac !== 'UNKNOWN') $deviceId = $mac;
+else $deviceId = hash('sha256', $userAgent);
+
+// -----------------------
+// Device cooldown
+// -----------------------
+$now = time();
+if (!empty($settings['device_cooldown_seconds']) && intval($settings['device_cooldown_seconds']) > 0) {
+    $cool = intval($settings['device_cooldown_seconds']);
+    $cdFile = __DIR__ . '/admin/logs/device_cooldowns_' . $today . '.json';
+    $cdData = file_exists($cdFile) ? json_decode(file_get_contents($cdFile), true) : [];
+    if (!is_array($cdData)) $cdData = [];
+    $key = $fingerprint . '|' . $deviceId;
+    $last = isset($cdData[$key]) ? intval($cdData[$key]) : 0;
+    if ($last > 0 && ($now - $last) < $cool) {
+        $wait = $cool - ($now - $last);
+        fail('COOLDOWN','Please wait ' . $wait . ' seconds before checking in again from this device.');
+    }
+    // update
+    $cdData[$key] = $now;
+    file_put_contents($cdFile, json_encode($cdData, JSON_PRETTY_PRINT), LOCK_EX);
+}
+
+// -----------------------
+// User-agent lock
+// -----------------------
+if (!empty($settings['user_agent_lock'])) {
+    $uaFile = __DIR__ . '/admin/logs/fp_useragent_' . $today . '.json';
+    $uaData = file_exists($uaFile) ? json_decode(file_get_contents($uaFile), true) : [];
+    if (!is_array($uaData)) $uaData = [];
+    $uaHash = hash('sha256', $userAgent);
+    if (isset($uaData[$fingerprint]) && $uaData[$fingerprint] !== $uaHash) {
+        fail('UA_MISMATCH','Device change detected for this fingerprint; attendance blocked.');
+    }
+    $uaData[$fingerprint] = $uaHash;
+    file_put_contents($uaFile, json_encode($uaData, JSON_PRETTY_PRINT), LOCK_EX);
+}
+
+// -----------------------
+// Enforce one device per fingerprint per day
+// -----------------------
+if (!empty($settings['enforce_one_device_per_day'])) {
+    $mapFile = __DIR__ . '/admin/logs/fp_devices_' . $today . '.json';
+    $mapData = file_exists($mapFile) ? json_decode(file_get_contents($mapFile), true) : [];
+    if (!is_array($mapData)) $mapData = [];
+    $devList = isset($mapData[$fingerprint]) ? (array)$mapData[$fingerprint] : [];
+    if (count($devList) > 0 && !in_array($deviceId, $devList)) {
+        fail('DEVICE_MISMATCH','This fingerprint has already been used with a different device today.');
+    }
+    if (!in_array($deviceId, $devList)) $devList[] = $deviceId;
+    $mapData[$fingerprint] = $devList;
+    file_put_contents($mapFile, json_encode($mapData, JSON_PRETTY_PRINT), LOCK_EX);
+}
+
 // Load existing fingerprints
 $fingerprintFile = __DIR__ . '/admin/fingerprints.json';
 $fingerprintsData = file_exists($fingerprintFile) ? json_decode(file_get_contents($fingerprintFile), true) : [];
