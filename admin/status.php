@@ -223,6 +223,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="status-card">
   <h2>System Status Control</h2>
 
+  <?php if (!empty($errorMessage)): ?>
+    <div style="background:#ffe6e6;padding:10px;border-radius:6px;margin-bottom:12px;color:#8a1f1f;"><?=htmlspecialchars($errorMessage)?></div>
+  <?php endif; ?>
+
   <div class="status-row">
     <span><i class='bx bx-log-in-circle'></i> Check-In:</span>
     <?php if ($status['checkin']): ?>
