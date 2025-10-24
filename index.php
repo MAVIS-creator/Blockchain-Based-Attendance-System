@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.removeItem('attendanceBlocked');
       localStorage.removeItem('blockedTimestamp');
     } else {
-      window.location.href = 'attendance_closed.php';
+      window.location.href = 'closed.php';
     }
   }
 });
