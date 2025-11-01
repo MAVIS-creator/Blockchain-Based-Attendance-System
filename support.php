@@ -65,7 +65,17 @@ if (isset($_COOKIE['attendanceBlocked'])) {
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     :root{ --accent-red:#ef4444; --accent-yellow:#facc15; --accent-dark:#111827; --muted:#6b7280 }
-    body { margin:0; font-family:'Segoe UI',sans-serif; background:#f3f4f6; height:100vh; display:flex; align-items:center; justify-content:center; }
+    body { 
+      margin:0; 
+      font-family:'Segoe UI',sans-serif; 
+      background:#f3f4f6; 
+      min-height:100vh; 
+      display:flex; 
+      align-items:center; 
+      justify-content:center; 
+      padding: 20px;
+      box-sizing: border-box;
+    }
     .announcement-bar {
       position: fixed;
       top: 0;
@@ -102,7 +112,60 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       background: rgba(5, 15, 35, 0.75);
       z-index: 0;
     }
-    .container { z-index:1; background:#fff; border-radius:12px; padding:28px; box-shadow:0 10px 30px rgba(16,24,40,0.08); max-width:480px; width:92%; }
+    .container { 
+      z-index:1; 
+      background:#fff; 
+      border-radius:12px; 
+      padding:28px; 
+      box-shadow:0 10px 30px rgba(16,24,40,0.08); 
+      max-width:480px; 
+      width:100%; 
+      margin: 10px;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 20px;
+      }
+
+      .logo {
+        height: 80px;
+      }
+
+      h2 {
+        font-size: 1.2rem;
+      }
+
+      .input-group label {
+        font-size: 0.9rem;
+      }
+
+      .input-group input,
+      .input-group textarea {
+        padding: 8px;
+        font-size: 0.95rem;
+      }
+
+      .btn {
+        padding: 10px;
+        font-size: 0.95rem;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .container {
+        padding: 15px;
+      }
+
+      .logo {
+        height: 60px;
+      }
+
+      .back-link {
+        font-size: 0.9rem;
+      }
+    }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-20px); }
       to { opacity: 1; transform: translateY(0); }

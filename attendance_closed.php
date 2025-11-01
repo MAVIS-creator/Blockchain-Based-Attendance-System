@@ -16,15 +16,56 @@
   <title>Attendance Closed</title>
   <style>
     :root{ --accent-red:#ef4444; --accent-yellow:#facc15; --accent-dark:#111827 }
-    body{ margin:0; font-family:'Segoe UI',sans-serif; background:#f8fafc; color:var(--accent-dark); display:flex; align-items:center; justify-content:center; height:100vh }
-    .card{ background:#fff; padding:28px; border-radius:12px; box-shadow:0 12px 40px rgba(16,24,40,0.08); max-width:720px; width:92%; text-align:center }
+    body{ margin:0; font-family:'Segoe UI',sans-serif; background:#f8fafc; color:var(--accent-dark); display:flex; align-items:center; justify-content:center; min-height:100vh; padding: 20px; box-sizing: border-box; }
+    .card{ background:#fff; padding:28px; border-radius:12px; box-shadow:0 12px 40px rgba(16,24,40,0.08); max-width:720px; width:100%; text-align:center; margin: 10px; box-sizing: border-box; }
     .logo{ height:64px; width:64px; object-fit:cover; border-radius:10px; margin-bottom:12px }
     h1{ margin:0 0 8px; font-size:1.6rem }
-    p{ color:#374151 }
-    .actions{ margin-top:18px; display:flex; gap:12px; justify-content:center }
-    .btn{ padding:10px 18px; border-radius:8px; font-weight:700; border:none; cursor:pointer }
+    p{ color:#374151; line-height: 1.5; }
+    .actions{ margin-top:18px; display:flex; gap:12px; justify-content:center; flex-wrap: wrap; }
+    .btn{ padding:10px 18px; border-radius:8px; font-weight:700; border:none; cursor:pointer; width: auto; min-width: 140px; }
     .btn-primary{ background: linear-gradient(90deg,var(--accent-red),#d97706); color:#fff }
     .btn-accent{ background: linear-gradient(90deg,var(--accent-yellow),#f59e0b); color:#111 }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 20px;
+        margin: 10px;
+      }
+      
+      h1 {
+        font-size: 1.3rem;
+      }
+
+      p {
+        font-size: 0.95rem;
+      }
+
+      .logo {
+        height: 48px;
+        width: 48px;
+      }
+
+      .btn {
+        min-width: 120px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .card {
+        padding: 15px;
+      }
+
+      .actions {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
