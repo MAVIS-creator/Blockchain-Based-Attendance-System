@@ -33,6 +33,11 @@ if (file_exists($announcementFile)) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Student Attendance</title>
+  <link rel="icon" type="image/x-icon" href="asset/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="asset/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="asset/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="asset/favicon-16x16.png">
+  <link rel="manifest" href="asset/site.webmanifest">
   <style>
     :root{
       --accent-red: #ef4444;
@@ -137,21 +142,54 @@ if (file_exists($announcementFile)) {
     .swal2-title { color:var(--accent-dark); font-weight:700 }
     .swal2-confirm { background: linear-gradient(90deg,var(--accent-red),var(--accent-yellow)) !important; color:#111 !important }
 
+    /* Responsive Styles */
     @media (max-width: 480px) {
       .container {
-        padding: 25px;
+        padding: 20px;
+        margin: 15px;
+        width: calc(100% - 30px);
       }
 
       .form h2 {
         font-size: 1.1rem;
       }
 
-      .input-group label {
-        font-size: 0.8rem;
+      .brand {
+        flex-direction: column;
+        text-align: center;
       }
 
-      button {
-        font-size: 0.9rem;
+      .brand img {
+        margin: 0 auto 10px;
+      }
+
+      .brand h2 {
+        font-size: 1rem;
+      }
+
+      .input-group label {
+        font-size: 0.85rem;
+      }
+
+      .input-group input {
+        padding: 10px;
+        font-size: 0.95rem;
+      }
+
+      .btn {
+        padding: 12px;
+        font-size: 0.95rem;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .container {
+        padding: 15px;
+      }
+
+      .brand img {
+        height: 36px;
+        width: 36px;
       }
     }
   </style>
