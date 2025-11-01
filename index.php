@@ -316,7 +316,7 @@ function startInactivityTimer() {
       method: 'POST',
       body: new URLSearchParams({ reason: 'Tab inactive too long' })
     }).finally(() => {
-  Swal.fire({ icon: 'warning', title: 'Away Too Long', text: 'You were away too long! Attendance closed to ensure fairness.', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') }).then(function(){ window.location.href = 'attendance_closed.php'; });
+  Swal.fire({ icon: 'warning', title: 'Away Too Long', text: 'You were away too long! Attendance closed to ensure fairness.', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') }).then(function(){ window.location.href = 'closed.php'; });
     });
   }, 5000);
 }

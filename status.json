@@ -1,5 +1,5 @@
 {
     "checkin": false,
-    "checkout": true,
-    "end_time": 1761273202
+    "checkout": false,
+    "end_time": null
 }
