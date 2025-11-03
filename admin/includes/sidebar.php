@@ -21,6 +21,8 @@ if (file_exists($ticketsFile)) {
       <li><a href="index.php?page=dashboard" class="<?= $page == 'dashboard' ? 'active' : '' ?>"><i class='bx bxs-dashboard'></i> Dashboard</a></li>
       <li><a href="index.php?page=status" class="<?= $page == 'status' ? 'active' : '' ?>"><i class='bx bx-toggle-left'></i> Status</a></li>
       <li><a href="index.php?page=logs" class="<?= $page == 'logs' ? 'active' : '' ?>"><i class='bx bx-list-ul'></i> Logs</a></li>
+  <li><a href="index.php?page=clear_logs_ui" class="<?= $page == 'clear_logs_ui' ? 'active' : '' ?>"><i class='bx bx-trash'></i> Clear / Backup Logs</a></li>
+  <li><a href="index.php?page=clear_tokens_ui" class="<?= $page == 'clear_tokens_ui' ? 'active' : '' ?>"><i class='bx bx-key'></i> Clear Attendance Tokens</a></li>
       <li><a href="index.php?page=failed_attempts" class="<?= $page == 'failed_attempts' ? 'active' : '' ?>"><i class='bx bx-error'></i> Failed Logs</a></li>
       <li><a href="index.php?page=add_course" class="<?= $page == 'add_course' ? 'active' : '' ?>"><i class='bx bx-plus-circle'></i> Add Course</a></li>
       <li><a href="index.php?page=set_active" class="<?= $page == 'set_active' ? 'active' : '' ?>"><i class='bx bx-check-circle'></i> Set Active Course</a></li>

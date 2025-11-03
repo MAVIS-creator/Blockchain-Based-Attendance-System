@@ -260,6 +260,14 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.href = 'closed.php';
     }
   }
+  // check revoked tokens list and clear local tokens if revoked
+  (function(){
+    try{
+      var stored = localStorage.getItem('attendance_token');
+      if (!stored) return;
+      fetch('admin/revoked_tokens.php', {cache:'no-cache'}).then(function(r){ if(!r.ok) return null; return r.json(); }).then(function(data){ if (!data || !data.revoked) return; var tokens = data.revoked.tokens||[]; if (tokens.indexOf(stored) !== -1) { localStorage.removeItem('attendance_token'); localStorage.removeItem('attendanceBlocked'); console.info('Local attendance token revoked and cleared'); } }).catch(function(){ /* ignore */ });
+    }catch(e){ }
+  })();
 });
 
 // Load fingerprint

@@ -59,5 +59,13 @@ if ($scope === 'chain' || $scope === 'all') {
   }
 }
 
+// fingerprints.json handling
+if ($scope === 'fingerprints' || $scope === 'all') {
+  $fpFile = dirname(__DIR__) . '/admin/fingerprints.json';
+  if (file_exists($fpFile)) {
+    if (safe_unlink($fpFile)) $result['deleted'][] = $fpFile; else $result['errors'][] = $fpFile;
+  }
+}
+
 header('Content-Type: application/json');
 echo json_encode(['ok'=>true,'result'=>$result]);
