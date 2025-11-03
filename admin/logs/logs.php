@@ -346,6 +346,20 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
     <button type="submit"><i class='bx bx-search-alt-2'></i> Filter</button>
     <a href="../admin/logs/export.php?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>" class="btn"><i class='bx bx-download'></i> Export CSV</a>
     <a href="../admin/logs/export_simple.php?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>" class="btn"><i class='bx bx-download'></i> Export Simple</a>
+    
+    <!-- Admin quick actions: clear logs and clear device-block -->
+    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+      <button type="button" id="clearLogsBtn" class="btn" style="background:linear-gradient(135deg,#ef4444,#d97706);">Clear Logs</button>
+    </div>
+  </form>
+
+  <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input id="clearFingerprint" placeholder="Fingerprint or token" style="padding:8px;border-radius:8px;border:1px solid #d1d5db;">
+      <input id="clearMatric" placeholder="Matric (optional)" style="padding:8px;border-radius:8px;border:1px solid #d1d5db;">
+      <button id="clearDeviceBtn" class="btn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);">Clear Device</button>
+    </div>
+  </div>
   </form>
 
   <?php if (count($pagedEntries)): ?>
@@ -408,5 +422,25 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
       current = parseInt(saved);
       document.documentElement.style.setProperty('--accent-color', palettes[current]);
     }
+  });
+
+  // Clear logs button
+  document.getElementById('clearLogsBtn')?.addEventListener('click', function(){
+    if (!confirm('Are you sure you want to delete logs and backups? This action cannot be undone.')) return;
+    fetch('../clear_logs.php', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: 'scope=all' })
+      .then(r=>r.json()).then(j=>{ if (j && j.ok) { alert('Logs cleared.'); location.reload(); } else alert('Failed: '+JSON.stringify(j)); })
+      .catch(e=>alert('Error clearing logs'));
+  });
+
+  // Clear device button
+  document.getElementById('clearDeviceBtn')?.addEventListener('click', function(){
+    var fp = document.getElementById('clearFingerprint').value.trim();
+    var mt = document.getElementById('clearMatric').value.trim();
+    if (!fp && !mt) { alert('Enter a fingerprint or matric to clear'); return; }
+    if (!confirm('Clear device entries for this fingerprint/matric?')) return;
+    var body = new URLSearchParams(); if (fp) body.append('fingerprint', fp); if (mt) body.append('matric', mt);
+    fetch('../clear_device.php', { method: 'POST', body: body })
+      .then(r=>r.json()).then(j=>{ if (j && j.ok) { alert('Device cleared: '+JSON.stringify(j.result)); } else alert('Failed: '+JSON.stringify(j)); })
+      .catch(e=>alert('Error clearing device'));
   });
 </script>
