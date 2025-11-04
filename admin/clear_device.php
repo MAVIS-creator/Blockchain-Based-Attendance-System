@@ -69,5 +69,19 @@ if (file_exists($cdFile)) {
   if ($changed) { write_json($cdFile, $cd); $responses['cleared'][] = $cdFile; }
 }
 
+// Audit: record who cleared and what
+$auditDir = __DIR__ . '/logs';
+if (!is_dir($auditDir)) @mkdir($auditDir, 0755, true);
+$auditFile = $auditDir . '/audit.log';
+$adminUser = $_SESSION['admin_user'] ?? 'unknown';
+$remoteIp = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+if (!empty($responses['cleared'])) {
+    $timeStr = date('Y-m-d H:i:s');
+    foreach ($responses['cleared'] as $f) {
+        $line = "$timeStr | clear_device | $adminUser | file:$f | key:" . ($fingerprint ?: $matric) . " | from:$remoteIp" . PHP_EOL;
+        file_put_contents($auditFile, $line, FILE_APPEND | LOCK_EX);
+    }
+}
+
 header('Content-Type: application/json');
 echo json_encode(['ok'=>true,'result'=>$responses]);

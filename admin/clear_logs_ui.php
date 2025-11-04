@@ -33,7 +33,10 @@ if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; 
       <h3>Restore</h3>
       <p class="small muted">Upload a previously created backup ZIP to restore logs/fingerprints/chain.</p>
       <form id="restoreForm" enctype="multipart/form-data">
-        <input type="file" name="backup" accept=".zip" required>
+        <label class="file-upload" style="display:inline-block;cursor:pointer;background:#f3f4f6;border:1px dashed #d1d5db;padding:10px 14px;border-radius:8px;">
+          <input type="file" name="backup" accept=".zip" required style="display:none">
+          <span id="fileLabel">Choose a ZIP file…</span>
+        </label>
         <div style="margin-top:8px"><button class="btn btn-primary">Upload & Restore</button></div>
       </form>
       <div id="restoreResult" style="margin-top:10px"></div>
@@ -78,6 +81,15 @@ document.getElementById('restoreForm').addEventListener('submit', function(e){
     else document.getElementById('restoreResult').textContent = 'Restore failed: '+JSON.stringify(j);
   }).catch(err=> document.getElementById('restoreResult').textContent='Error');
 });
+
+// file picker label update
+var fileInput = document.querySelector('#restoreForm input[type=file]');
+if (fileInput) {
+  fileInput.addEventListener('change', function(){
+    var f = this.files && this.files[0];
+    document.getElementById('fileLabel').textContent = f ? (f.name + ' (' + Math.round(f.size/1024) + 'KB)') : 'Choose a ZIP file…';
+  });
+}
 
 function showConfirm(title, body, okCb){
   document.getElementById('confirmTitle').textContent = title;

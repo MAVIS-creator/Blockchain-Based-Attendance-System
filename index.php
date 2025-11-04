@@ -260,12 +260,49 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.href = 'closed.php';
     }
   }
-  // check revoked tokens list and clear local tokens if revoked
+  // Poll revoked tokens list and clear local token immediately when revoked
   (function(){
     try{
       var stored = localStorage.getItem('attendance_token');
       if (!stored) return;
-      fetch('admin/revoked_tokens.php', {cache:'no-cache'}).then(function(r){ if(!r.ok) return null; return r.json(); }).then(function(data){ if (!data || !data.revoked) return; var tokens = data.revoked.tokens||[]; if (tokens.indexOf(stored) !== -1) { localStorage.removeItem('attendance_token'); localStorage.removeItem('attendanceBlocked'); console.info('Local attendance token revoked and cleared'); } }).catch(function(){ /* ignore */ });
+      // Try SSE first
+      if (typeof(EventSource) !== 'undefined') {
+        try {
+          var src = new EventSource('admin/revoke_sse.php');
+          src.addEventListener('revoked', function(e){
+            try{
+              var payload = JSON.parse(e.data);
+              if (payload && payload.revoked && payload.revoked.tokens && payload.revoked.tokens[stored]) {
+                localStorage.removeItem('attendance_token');
+                localStorage.removeItem('attendanceBlocked');
+                try{ Swal.fire({ icon: 'info', title: 'Token Revoked', text: 'Your attendance token was revoked by an administrator. The page will reload.' , confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') }).then(function(){ location.reload(); }); }catch(e){ location.reload(); }
+                src.close();
+              }
+            }catch(ignore){}
+          });
+        } catch(e) {
+          // fallback to polling below
+        }
+      }
+
+      // Poll fallback (in case SSE not available or fails)
+      var attempts = 0;
+      var maxAttempts = 120; // stop after ~10 minutes
+      var poll = setInterval(function(){
+        attempts++;
+        fetch('admin/revoked_tokens.php', {cache:'no-store'}).then(function(r){ if(!r.ok) return null; return r.json(); }).then(function(data){
+          if (!data || !data.revoked) return;
+          var tokensObj = data.revoked.tokens||{};
+          if (tokensObj[stored] || (Array.isArray(tokensObj) && tokensObj.indexOf(stored)!==-1)) {
+            localStorage.removeItem('attendance_token');
+            localStorage.removeItem('attendanceBlocked');
+            console.info('Local attendance token revoked and cleared');
+            try{ Swal.fire({ icon: 'info', title: 'Token Revoked', text: 'Your attendance token was revoked by an administrator. The page will reload.' , confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') }).then(function(){ location.reload(); }); }catch(e){ location.reload(); }
+            clearInterval(poll);
+          }
+        }).catch(function(){ /* ignore */ });
+        if (attempts >= maxAttempts) clearInterval(poll);
+      }, 5000);
     }catch(e){ }
   })();
 });
@@ -358,9 +395,12 @@ function startInactivityTimer() {
     localStorage.setItem('attendanceBlocked', today);
     localStorage.setItem('blockedTimestamp', Date.now().toString());
 
+    // include client token and fingerprint when logging inactivity so admins can revoke/clear device-side tokens
+    var tokenToSend = localStorage.getItem('attendance_token') || '';
+    var fpValue = document.getElementById('fingerprint') ? document.getElementById('fingerprint').value : '';
     fetch('log_inactivity.php', {
       method: 'POST',
-      body: new URLSearchParams({ reason: 'Tab inactive too long' })
+      body: new URLSearchParams({ reason: 'Tab inactive too long', token: tokenToSend, fingerprint: fpValue })
     }).finally(() => {
   Swal.fire({ icon: 'warning', title: 'Away Too Long', text: 'You were away too long! Attendance closed to ensure fairness.', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') }).then(function(){ window.location.href = 'closed.php'; });
     });
