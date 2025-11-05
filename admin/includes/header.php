@@ -27,6 +27,25 @@
       <a href="login.php" style="color:#333;text-decoration:none;font-weight:600;">Login</a>
     <?php endif; ?>
 </header>
+<?php
+  // compute admin root path to include local admin assets reliably
+  $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
+  $posAdmin = strpos($scriptPath, '/admin');
+  $adminRoot = ($posAdmin !== false) ? substr($scriptPath, 0, $posAdmin + 6) : '/admin';
+?>
+<!-- SweetAlert2 (CDN) and local theme -->
+<link rel="stylesheet" href="<?= htmlspecialchars($adminRoot) ?>/swal-theme.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  // Lightweight helpers so pages can replace native alert/confirm easily
+  window.adminAlert = function(title, text, icon){
+    icon = icon || 'info';
+    return Swal.fire({ title: title || '', text: text || '', icon: icon, confirmButtonText: 'OK' });
+  };
+  window.adminConfirm = function(title, text){
+    return Swal.fire({ title: title || 'Confirm', text: text || '', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes', cancelButtonText: 'Cancel' }).then(function(res){ return !!res.isConfirmed; });
+  };
+</script>
 <script>
   // detect whether icon fonts loaded; if not, enable fallback CSS
   (function(){
@@ -215,7 +234,18 @@
         // attach delete handlers
         if (currentRole === 'superadmin') {
           Array.from(document.getElementsByClassName('delete-msg')).forEach(function(btn){
-            btn.addEventListener('click', function(){ var t = this.getAttribute('data-time'); if (!t) return; if (!confirm('Delete this message?')) return; fetch('chat_delete.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({time: t})}).then(function(r){ return r.json(); }).then(function(r){ if (r && r.ok) fetchAndRender(); else alert('Delete failed'); }).catch(function(){ alert('Delete failed'); }); });
+            btn.addEventListener('click', function(){
+              var t = this.getAttribute('data-time');
+              if (!t) return;
+              // use the SweetAlert2-based helper
+              window.adminConfirm('Delete message', 'Delete this message?').then(function(ok){
+                if (!ok) return;
+                fetch('chat_delete.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({time: t})})
+                  .then(function(r){ return r.json(); })
+                  .then(function(r){ if (r && r.ok) fetchAndRender(); else window.adminAlert('Delete failed', JSON.stringify(r), 'error'); })
+                  .catch(function(){ window.adminAlert('Delete failed', 'Network or server error', 'error'); });
+              });
+            });
           });
         }
       });
