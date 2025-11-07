@@ -129,7 +129,9 @@
       return fetch('chat_fetch.php', {cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('Network'); return r.json(); }).then(function(data){ if (data.error) return []; return data; }).catch(function(){ return []; });
     }
     function postChat(msg){
-      return fetch('chat_post.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg})}).then(function(r){ if(!r.ok) throw new Error('Network'); return r.json(); }).catch(function(){ return {ok:false}; });
+      var payload = { message: msg };
+      if (window.ADMIN_CSRF_TOKEN) payload.csrf_token = window.ADMIN_CSRF_TOKEN;
+      return fetch('chat_post.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)}).then(function(r){ if(!r.ok) throw new Error('Network'); return r.json(); }).catch(function(){ return {ok:false}; });
     }
     function escapeHtml(s){ return String(s).replace(/[&<>\"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
     // expose to global scope so other scripts can call
