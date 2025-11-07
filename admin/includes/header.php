@@ -29,16 +29,16 @@
          </button>
 
          <div id="avatarMenu" class="avatar-menu" style="display:none;position:absolute;right:0;top:56px;background:#fff;border-radius:12px;box-shadow:0 12px 30px rgba(2,6,23,0.12);overflow:hidden;z-index:10002;">
-           <a href="profile_settings.php">
+          <a href="index.php?page=profile_settings">
              <i class="bx bx-user"></i>
              Profile Settings
            </a>
            <?php if ($isSuperAdmin): ?>
-           <a href="accounts.php">
+          <a href="index.php?page=accounts">
              <i class="bx bx-group"></i>
              Manage Accounts
            </a>
-           <a href="settings.php">
+          <a href="index.php?page=settings">
              <i class="bx bx-cog"></i>
              System Settings
            </a>
@@ -51,7 +51,7 @@
          </div>
       </div>
     <?php else: ?>
-      <a href="login.php" style="color:#333;text-decoration:none;font-weight:600;">Login</a>
+  <a href="login.php" style="color:#333;text-decoration:none;font-weight:600;">Login</a>
     <?php endif; ?>
   </div>
 </header>
