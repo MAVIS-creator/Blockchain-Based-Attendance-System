@@ -648,3 +648,32 @@ details.sidebar-group ul li a:hover {
 details.sidebar-group ul li a:hover::before {
     opacity: 1;
 }
+
+/* Sidebar spacing and badge styles */
+.sidebar-nav ul {
+    padding: 12px;
+}
+
+.sidebar-nav ul li {
+    margin-bottom: 4px;
+}
+
+.sidebar-nav ul li:last-child {
+    margin-bottom: 0;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.badge-danger {
+    background: #dc2626;
+    color: #fff;
+}
