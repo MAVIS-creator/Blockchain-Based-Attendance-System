@@ -77,25 +77,64 @@
 <script>
   (function(){
     var timeoutMs = 60 * 1000; // 1 minute
-    var timer = setTimeout(function(){
+    var warningMs = 45 * 1000; // show banner at 45s
+    var timer = null;
+    var warningTimer = null;
+
+    function showWarning(){
+      try{
+        if (document.getElementById('admin-loading-warning')) return;
+        var el = document.createElement('div');
+        el.id = 'admin-loading-warning';
+        el.className = 'loading-warning';
+        el.innerHTML = '<div class="loading-warning-inner"><strong>Still loading…</strong> The page is taking longer than expected. If this continues, you will be redirected.</div>';
+        document.body.appendChild(el);
+      }catch(e){}
+    }
+
+    function doRedirect(){
       try{
         var from = encodeURIComponent(window.location.pathname + window.location.search || '');
-        // Redirect to admin/timeout.php (relative path works for admin pages)
         window.location.replace('timeout.php' + (from ? ('?from=' + from) : ''));
-      }catch(e){
-        window.location.replace('timeout.php');
-      }
-    }, timeoutMs);
+      }catch(e){ window.location.replace('timeout.php'); }
+    }
 
-    function clearTimer(){ if (timer){ clearTimeout(timer); timer = null; } }
+    function startTimers(){
+      clearTimers();
+      warningTimer = setTimeout(showWarning, warningMs);
+      timer = setTimeout(doRedirect, timeoutMs);
+    }
 
-    // When page fully loads, cancel the timeout
-    window.addEventListener('load', clearTimer, {passive:true});
-    // If user navigates away before load completes, cancel the timer to avoid spurious redirects
-    window.addEventListener('beforeunload', clearTimer, {passive:true});
+    function clearTimers(){ if (timer){ clearTimeout(timer); timer = null; } if (warningTimer){ clearTimeout(warningTimer); warningTimer = null; } var w = document.getElementById('admin-loading-warning'); if (w) w.parentNode.removeChild(w); }
+
+    // start as early as possible
+    startTimers();
+
+    // When page fully loads, cancel the timeout and warning
+    window.addEventListener('load', clearTimers, {passive:true});
+    // If user navigates away before load completes, cancel the timers to avoid spurious redirects
+    window.addEventListener('beforeunload', clearTimers, {passive:true});
 
     // Expose cancel function for pages that perform heavy dynamic loads and want to cancel the timeout
-    window.__cancelPageLoadTimeout = clearTimer;
+    window.__cancelPageLoadTimeout = clearTimers;
+
+    // avatar dropdown toggle
+    document.addEventListener('click', function(e){
+      var toggle = document.getElementById('avatarToggle');
+      var menu = document.getElementById('avatarMenu');
+      if (!toggle || !menu) return;
+      if (toggle.contains(e.target)){
+        var shown = menu.style.display === 'block';
+        menu.style.display = shown ? 'none' : 'block';
+        toggle.setAttribute('aria-expanded', (!shown).toString());
+        return;
+      }
+      if (!menu.contains(e.target)){
+        menu.style.display = 'none';
+        toggle.setAttribute('aria-expanded','false');
+      }
+    });
+
   })();
 </script>
 <script>
