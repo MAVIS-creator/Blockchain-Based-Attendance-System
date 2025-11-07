@@ -252,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php if ($errors): ?><div style="background:#ffe6e6;padding:10px;border-radius:6px;margin-bottom:12px;color:#8a1f1f;"><ul><?php foreach($errors as $e) echo '<li>'.htmlspecialchars($e).'</li>'; ?></ul></div><?php endif; ?>
 
   <form method="POST" style="max-width:900px;">
-    <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
+    <?php csrf_field(); ?>
     <div style="margin-bottom:12px;">
       <label style="display:block;font-weight:600;margin-bottom:6px;">Device matching preference</label>
       <label style="display:block;margin-bottom:6px;"><input type="radio" name="prefer_mac" value="1" <?=($settings['prefer_mac'] ?? true) ? 'checked' : ''?>> Prefer MAC (if available)</label>
@@ -290,7 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <h3>Templates</h3>
   <form method="POST" style="display:flex;gap:8px;align-items:center;max-width:700px;">
-    <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
+    <?php csrf_field(); ?>
     <input type="text" name="template_name" placeholder="Template name" style="padding:8px;">
     <button type="submit" name="save_template" style="padding:8px;background:#10b981;color:#fff;border:none;border-radius:6px;">Save Template</button>
     <select name="apply_template_name" style="padding:8px;">
@@ -306,7 +306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <h3>Advanced Controls & Utilities</h3>
   <form method="POST" style="max-width:900px;display:flex;flex-direction:column;gap:12px;">
-    <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
+    <?php csrf_field(); ?>
     <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
       <legend style="font-weight:600;padding:0 6px;">Network & Security</legend>
       <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="encrypted_settings" value="1" <?=($settings['encrypted_settings'] ?? false) ? 'checked' : ''?>> Store settings encrypted on disk</label>
