@@ -114,19 +114,20 @@ if ($currentRole !== 'superadmin') {
   return;
 }
 
-// CSRF token
-if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
-$csrf = $_SESSION['csrf_token'];
+// CSRF helper
+require_once __DIR__ . '/includes/csrf.php';
+// ensure a token exists for pages that read it
+csrf_token();
 
 // handle POST actions: save settings, templates, apply template
 $message = '';
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $token = $_POST['csrf_token'] ?? '';
-    if (!hash_equals($_SESSION['csrf_token'], $token)) {
-        $errors[] = 'Invalid CSRF token.';
-    }
+  // validate CSRF centrally
+  if (!csrf_check_request()) {
+    $errors[] = 'Invalid CSRF token.';
+  }
 
     // load accounts for re-auth
     $accounts = @json_decode(file_get_contents(__DIR__ . '/accounts.json'), true) ?: [];
