@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="profile-section">
             <h2>Change Display Name</h2>
             <form method="POST" class="settings-form">
-                <?= csrf_token_tag() ?>
+                <?= function_exists('csrf_input_field') ? csrf_input_field() : '' ?>
                 <div class="form-group">
                     <label for="new_name">New Display Name</label>
                     <input type="text" id="new_name" name="new_name" class="form-control" 
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="profile-section">
             <h2>Change Password</h2>
             <form method="POST" class="settings-form">
-                <?= csrf_token_tag() ?>
+                <?= function_exists('csrf_input_field') ? csrf_input_field() : '' ?>
                 <div class="form-group">
                     <label for="current_password">Current Password</label>
                     <input type="password" id="current_password" name="current_password" class="form-control" required>
@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="profile-section">
             <h2>Change Profile Picture</h2>
             <form method="POST" enctype="multipart/form-data" class="settings-form">
-                <?= csrf_token_tag() ?>
+                <?= function_exists('csrf_input_field') ? csrf_input_field() : '' ?>
                 <div class="form-group">
                     <label for="profile_picture">New Profile Picture</label>
                     <input type="file" id="profile_picture" name="profile_picture" class="form-control" accept="image/*" required>
