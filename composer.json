@@ -4,6 +4,7 @@
     "license": "MIT",
     "require": {
         "web3p/web3.php": "^0.3.2",
-        "phpmailer/phpmailer": "^7.0"
+        "phpmailer/phpmailer": "^7.0",
+        "dompdf/dompdf": "*"
     }
 }
