@@ -9,6 +9,11 @@ if (($_SESSION['admin_role'] ?? 'admin') !== 'superadmin') {
     echo json_encode(['error'=>'forbidden']); exit;
 }
 
+// CSRF protection
+$csrfPath = __DIR__ . '/includes/csrf.php';
+if (file_exists($csrfPath)) require_once $csrfPath;
+if (function_exists('csrf_check_request') && !csrf_check_request()) { echo json_encode(['error'=>'csrf_failed']); exit; }
+
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $time = $data['time'] ?? null;
 if (!$time) { echo json_encode(['error'=>'missing_time']); exit; }

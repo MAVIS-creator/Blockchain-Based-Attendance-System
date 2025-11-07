@@ -1,4 +1,6 @@
 {
     "prefer_mac": true,
-    "max_admins": 5
+    "max_admins": 5,
+    "audit_retention_days": 90,
+    "blocked_tokens_retention_days": 30
 }

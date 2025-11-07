@@ -184,8 +184,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php foreach ($courses as $course): ?>
                 <div class="course-tag">
                     <?= htmlspecialchars($course) ?>
-                    <form method="post" onsubmit="return confirm('Are you sure you want to remove this course?');">
+                    <form method="post" class="remove-course-form">
                         <input type="hidden" name="remove_course" value="<?= htmlspecialchars($course) ?>">
+                        <?php
+                        // include CSRF hidden field when available
+                        $csrfPath = __DIR__ . '/../includes/csrf.php';
+                        if (file_exists($csrfPath)) { require_once $csrfPath; echo csrf_input_field(); }
+                        ?>
                         <button type="submit" class="remove-btn" title="Remove Course">&times;</button>
                     </form>
                 </div>
@@ -210,6 +215,13 @@ document.addEventListener('DOMContentLoaded', () => {
         current = parseInt(saved);
         document.documentElement.style.setProperty('--accent-color', palettes[current]);
     }
+    // hook remove course forms to use adminConfirm
+    Array.from(document.querySelectorAll('.remove-course-form')).forEach(function(f){
+        f.addEventListener('submit', function(e){
+            e.preventDefault();
+            window.adminConfirm('Remove course', 'Are you sure you want to remove this course?').then(function(ok){ if (!ok) return; f.submit(); });
+        });
+    });
 });
 </script>
 

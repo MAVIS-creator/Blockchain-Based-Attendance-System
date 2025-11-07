@@ -5,6 +5,10 @@ if (empty($_SESSION['admin_logged_in'])) {
   echo json_encode(['ok'=>false,'message'=>'Not authorized']);
   exit;
 }
+// CSRF protection
+$csrfPath = __DIR__ . '/includes/csrf.php';
+if (file_exists($csrfPath)) require_once $csrfPath;
+if (function_exists('csrf_check_request') && !csrf_check_request()) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'csrf_failed']); exit; }
 
 // Accept fingerprint or matric to clear device-blocking state for today
 $fingerprint = trim($_POST['fingerprint'] ?? '');

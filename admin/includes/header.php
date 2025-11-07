@@ -36,7 +36,18 @@
 <!-- SweetAlert2 (CDN) and local theme -->
 <link rel="stylesheet" href="<?= htmlspecialchars($adminRoot) ?>/swal-theme.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<?php
+  // expose CSRF token to JS by including the helper
+  $csrfToken = '';
+  $csrfPath = __DIR__ . '/csrf.php';
+  if (file_exists($csrfPath)) {
+    require_once $csrfPath;
+    if (function_exists('csrf_token')) $csrfToken = csrf_token();
+  }
+?>
 <script>
+  // make CSRF token available to admin scripts
+  window.ADMIN_CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
   // Lightweight helpers so pages can replace native alert/confirm easily
   window.adminAlert = function(title, text, icon){
     icon = icon || 'info';

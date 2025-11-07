@@ -8,6 +8,10 @@ $secure = dirname(__DIR__) . '/secure_logs';
 $fingerprints = $admin . '/fingerprints.json';
 $backupsDir = $admin . '/backups';
 if (!is_dir($backupsDir)) @mkdir($backupsDir,0755,true);
+// CSRF protection
+$csrfPath = __DIR__ . '/includes/csrf.php';
+if (file_exists($csrfPath)) require_once $csrfPath;
+if (function_exists('csrf_check_request') && !csrf_check_request()) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'csrf_failed']); exit; }
 
 $ts = date('Ymd_His');
 $zipName = "backup_{$ts}.zip";

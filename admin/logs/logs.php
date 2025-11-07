@@ -424,23 +424,28 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
     }
   });
 
-  // Clear logs button
+  // Clear logs button (uses adminConfirm + includes CSRF token)
   document.getElementById('clearLogsBtn')?.addEventListener('click', function(){
-    if (!confirm('Are you sure you want to delete logs and backups? This action cannot be undone.')) return;
-    fetch('../clear_logs.php', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: 'scope=all' })
-      .then(r=>r.json()).then(j=>{ if (j && j.ok) { alert('Logs cleared.'); location.reload(); } else alert('Failed: '+JSON.stringify(j)); })
-      .catch(e=>alert('Error clearing logs'));
+    window.adminConfirm('Delete logs', 'Are you sure you want to delete logs and backups? This action cannot be undone.').then(function(ok){
+      if (!ok) return;
+      var body = new URLSearchParams(); body.append('scope','all');
+      fetch('../clear_logs.php', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN }, body: body.toString() })
+        .then(r=>r.json()).then(j=>{ if (j && j.ok) { window.adminAlert('Logs cleared','Logs and backups removed','success').then(()=>location.reload()); } else window.adminAlert('Failed',JSON.stringify(j),'error'); })
+        .catch(e=>window.adminAlert('Error','Error clearing logs','error'));
+    });
   });
 
-  // Clear device button
+  // Clear device button (uses adminConfirm + CSRF)
   document.getElementById('clearDeviceBtn')?.addEventListener('click', function(){
     var fp = document.getElementById('clearFingerprint').value.trim();
     var mt = document.getElementById('clearMatric').value.trim();
-    if (!fp && !mt) { alert('Enter a fingerprint or matric to clear'); return; }
-    if (!confirm('Clear device entries for this fingerprint/matric?')) return;
-    var body = new URLSearchParams(); if (fp) body.append('fingerprint', fp); if (mt) body.append('matric', mt);
-    fetch('../clear_device.php', { method: 'POST', body: body })
-      .then(r=>r.json()).then(j=>{ if (j && j.ok) { alert('Device cleared: '+JSON.stringify(j.result)); } else alert('Failed: '+JSON.stringify(j)); })
-      .catch(e=>alert('Error clearing device'));
+    if (!fp && !mt) { window.adminAlert('Input required','Enter a fingerprint or matric to clear','warning'); return; }
+    window.adminConfirm('Clear device', 'Clear device entries for this fingerprint/matric?').then(function(ok){
+      if (!ok) return;
+      var body = new URLSearchParams(); if (fp) body.append('fingerprint', fp); if (mt) body.append('matric', mt); body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
+      fetch('../clear_device.php', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN }, body: body.toString() })
+        .then(r=>r.json()).then(j=>{ if (j && j.ok) { window.adminAlert('Device cleared','Device entries removed: '+JSON.stringify(j.result),'success'); } else window.adminAlert('Failed',JSON.stringify(j),'error'); })
+        .catch(e=>window.adminAlert('Error','Error clearing device','error'));
+    });
   });
 </script>

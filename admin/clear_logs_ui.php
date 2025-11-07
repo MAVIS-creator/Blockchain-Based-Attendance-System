@@ -66,7 +66,7 @@ if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; 
   document.getElementById('backupBtn').addEventListener('click', function(){
     var btn = this;
     btn.disabled = true; btn.textContent = 'Creating...';
-    fetch('backup_logs.php', { method:'POST' })
+    fetch('backup_logs.php', { method:'POST', headers: {'X-CSRF-Token': window.ADMIN_CSRF_TOKEN } })
       .then(function(r){ return r.json(); })
       .then(function(j){ btn.disabled=false; btn.textContent='Create Backup'; if (j && j.ok && j.file) { document.getElementById('backupResult').innerHTML = 'Backup created: <a href="backups/'+encodeURIComponent(j.file)+'" target="_blank">'+j.file+'</a>'; } else document.getElementById('backupResult').textContent = 'Backup failed: '+JSON.stringify(j); })
       .catch(function(e){ btn.disabled=false; btn.textContent='Create Backup'; document.getElementById('backupResult').textContent='Error'; });
@@ -75,6 +75,8 @@ if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; 
 document.getElementById('restoreForm').addEventListener('submit', function(e){
   e.preventDefault();
   var fd = new FormData(this);
+  // include CSRF token
+  if (window.ADMIN_CSRF_TOKEN) fd.append('csrf_token', window.ADMIN_CSRF_TOKEN);
   document.getElementById('restoreResult').textContent = 'Uploading...';
   fetch('restore_logs.php', { method:'POST', body: fd }).then(r=>r.json()).then(j=>{
     if (j && j.ok) document.getElementById('restoreResult').textContent = 'Restore successful';
@@ -108,11 +110,12 @@ document.getElementById('clearSelectedBtn').addEventListener('click', function()
   if (document.getElementById('scopeBackups').checked) scopes.push('backups');
   if (document.getElementById('scopeChain').checked) scopes.push('chain');
   if (document.getElementById('scopeFingerprints').checked) scopes.push('fingerprints');
-  if (!scopes.length) { alert('Select something to clear'); return; }
-  showConfirm('Confirm Clear', 'This will permanently delete selected items. Proceed?', function(){
-    var body = new URLSearchParams(); body.append('scope', scopes.join(','));
-    fetch('clear_logs.php', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
-      .then(r=>r.json()).then(j=>{ document.getElementById('clearResult').textContent = JSON.stringify(j); if (j && j.ok) { /* optionally refresh */ } })
+  if (!scopes.length) { window.adminAlert('Select items','Select something to clear','warning'); return; }
+  window.adminConfirm('Confirm Clear', 'This will permanently delete selected items. Proceed?').then(function(ok){
+    if (!ok) return;
+    var body = new URLSearchParams(); body.append('scope', scopes.join(',')); body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
+    fetch('clear_logs.php', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN }, body: body.toString() })
+      .then(r=>r.json()).then(j=>{ document.getElementById('clearResult').textContent = JSON.stringify(j); if (j && j.ok) { window.adminAlert('Cleared','Selected items removed','success'); } })
       .catch(e=>document.getElementById('clearResult').textContent='Error');
   });
 });
