@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php
                         // include CSRF hidden field when available
                         $csrfPath = __DIR__ . '/../includes/csrf.php';
-                        if (file_exists($csrfPath)) { require_once $csrfPath; echo csrf_input_field(); }
+                        if (file_exists($csrfPath)) { require_once $csrfPath; csrf_field(); }
                         ?>
                         <button type="submit" class="remove-btn" title="Remove Course">&times;</button>
                     </form>
