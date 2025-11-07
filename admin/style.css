@@ -41,6 +41,21 @@ a {
   width: 60px;
 }
 
+/* collapsed: show icons only and center them */
+.sidebar.collapsed .sidebar-nav ul li a {
+  padding: 12px 8px !important;
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-nav ul li a span,
+.sidebar.collapsed .sidebar-nav ul li a .label-text {
+  display: none !important;
+}
+
+.sidebar.collapsed .sidebar-header h2 {
+  opacity: 0;
+}
+
 .sidebar-header {
   display: flex;
   justify-content: space-between;
