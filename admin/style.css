@@ -614,6 +614,21 @@ details.sidebar-group summary {
     position: relative;
 }
 
+/* Smooth open/close for details groups */
+details.sidebar-group > ul {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 260ms cubic-bezier(.2,.8,.2,1), padding 200ms ease;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+details.sidebar-group[open] > ul {
+  max-height: 400px; /* reasonable max to allow items to expand */
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
 details.sidebar-group summary::-webkit-details-marker {
     display: none;
 }
