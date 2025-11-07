@@ -146,179 +146,159 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
-:root {
-  --primary-gradient: linear-gradient(135deg, #00eaff, #00c5cc);
-  --card-bg: rgba(255, 255, 255, 0.05);
-  --text-color: #fff;
-  --header-color: #00eaff;
-  --shadow-color: rgba(0, 234, 255, 0.2);
-}
-body.light-mode {
-  --primary-gradient: linear-gradient(135deg, #ff7e5f, #feb47b);
-  --card-bg: #ffffff;
-  --text-color: #333;
-  --header-color: #ff7e5f;
-  --shadow-color: rgba(255, 126, 95, 0.3);
-}
-body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: #001a33;
-  color: var(--text-color);
-  transition: all 0.3s ease;
-}
 .page-title {
-  text-align: center;
-  margin-top: 30px;
-  font-size: 2em;
-  color: var(--header-color);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--light);
 }
+
+.page-title i {
+  color: var(--primary);
+  font-size: 1.75rem;
+}
+
 .tickets-wrapper {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 20px;
-  padding: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem;
 }
+
 .ticket-card {
-  background: var(--card-bg);
-  border-radius: 16px;
-  box-shadow: 0 8px 25px var(--shadow-color);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s, box-shadow 0.3s;
-  backdrop-filter: blur(10px);
+  background: var(--white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--light);
 }
+
 .ticket-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 40px var(--shadow-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
+
 .ticket-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  font-weight: bold;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--light);
 }
+
 .ticket-matric {
-  background: var(--primary-gradient);
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.85em;
-  color: #000;
+  background: var(--bg-gradient);
+  color: var(--white);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
+
 .ticket-message {
-  margin-bottom: 10px;
-  flex-grow: 1;
+  margin-bottom: 1.25rem;
+  color: var(--dark);
+  line-height: 1.6;
 }
+
 .ticket-fingerprint, .ticket-ip {
-  font-size: 0.85em;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 6px 10px;
-  border-radius: 6px;
-  margin-bottom: 8px;
+  font-size: 0.875rem;
+  background: var(--light);
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 0.75rem;
   word-break: break-all;
 }
+
 .ticket-footer {
-  font-size: 0.85em;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--light);
+  font-size: 0.875rem;
+  color: var(--secondary);
 }
+
+.ticket-footer i {
+  margin-right: 0.5rem;
+}
+
 .resolve-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: var(--primary-gradient);
-  color: #000;
-  padding: 6px 14px;
-  border-radius: 8px;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-gradient);
+  color: var(--white);
+  border-radius: var(--border-radius);
+  font-weight: 500;
   text-decoration: none;
-  font-weight: bold;
-  box-shadow: 0 2px 10px var(--shadow-color);
-  transition: 0.3s;
+  transition: all 0.2s;
 }
+
 .resolve-btn:hover {
   transform: translateY(-2px);
+  box-shadow: var(--shadow);
 }
-.dot-container {
-  text-align: center;
-  margin-top: 10px;
-}
-.dot {
-  width: 16px;
-  height: 16px;
-  background: var(--primary-gradient);
-  border-radius: 50%;
-  margin: 0 auto;
-  cursor: pointer;
-  box-shadow: 0 0 8px rgba(0,0,0,0.2);
-  transition: transform 0.2s;
-}
-.dot:hover {
-  transform: scale(1.2);
-}
-.dot-actions button {
-  display: block;
-  width: 80%;
-  margin: 6px auto;
-  padding: 6px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.85em;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
-}
-.dot-actions .checkin-btn {
-  background: linear-gradient(135deg, #22c55e, #15803d);
-  color: white;
-}
-.dot-actions .checkout-btn {
-  background: linear-gradient(135deg, #ef4444, #b91c1c);
-  color: white;
-}
-.dot-actions button:hover {
-  filter: brightness(1.1);
-}
+
 .empty-tickets {
   text-align: center;
-  font-style: italic;
-  margin-top: 50px;
+  padding: 3rem;
+  color: var(--secondary);
+  font-size: 1.1rem;
 }
+
 .theme-toggle {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 1.5rem;
+  right: 1.5rem;
   z-index: 999;
 }
 
 #palette-icon {
-  font-size: 28px;
-  color: var(--header-color);
+  font-size: 1.5rem;
+  color: var(--primary);
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: transform 0.2s;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  background: var(--white);
+  box-shadow: var(--shadow);
 }
 
 #palette-icon:hover {
-  transform: scale(1.2);
+  transform: scale(1.1);
 }
 
 #palette-options {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.5rem;
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  padding: 0.75rem;
   display: none;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
 }
 
 #palette-options button {
-  width: 28px;
-  height: 28px;
+  width: 2rem;
+  height: 2rem;
   border: none;
   border-radius: 50%;
-  outline: 2px solid #fff;
   cursor: pointer;
   transition: transform 0.2s;
+  box-shadow: var(--shadow-sm);
 }
 
 #palette-options button:hover {
