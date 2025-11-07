@@ -28,6 +28,16 @@ function csrf_field() {
 }
 
 /**
+ * Backwards-compatible helper used in some older files which expected
+ * a function that returns the input HTML rather than echoing it.
+ *
+ * Returns the hidden input HTML string.
+ */
+function csrf_input_field() {
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrf_token()) . '">';
+}
+
+/**
  * Validate request for non-GET methods.
  * Accepts token from header X-CSRF-Token, POST field csrf_token or JSON body {csrf_token:...}
  */
