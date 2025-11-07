@@ -66,9 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
                 $mailerInfo = '';
                 if (file_exists(__DIR__ . '/vendor/autoload.php')){
                     require_once __DIR__ . '/vendor/autoload.php';
-                    if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
-                        try {
-                            $mail = new PHPMailer\\PHPMailer\\PHPMailer(true);
+          if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
+            try {
+              $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
                             // default: try using local mail for now; advise configuring SMTP
                             $mail->setFrom('no-reply@example.com', 'Attendance System');
                             $mail->addAddress($recipient);
@@ -78,9 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
                             $mail->send();
                             $sent = true;
                             $success = 'Email sent with logs attached.';
-                        } catch (Exception $e) {
-                            $error = 'PHPMailer failed to send: ' . $e->getMessage();
-                        }
+            } catch (\Exception $e) {
+              $error = 'PHPMailer failed to send: ' . $e->getMessage();
+            }
                     } else {
                         $mailerInfo = 'PHPMailer not found in vendor; please run: composer require phpmailer/phpmailer';
                     }
