@@ -16,9 +16,10 @@ if (!file_exists($settingsFile)) file_put_contents($settingsFile, json_encode(['
 $accounts = json_decode(file_get_contents($accountsFile), true) ?: [];
 $settings = json_decode(file_get_contents($settingsFile), true) ?: ['prefer_mac' => true, 'max_admins' => 5];
 
-// CSRF token
-if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
-$csrf = $_SESSION['csrf_token'];
+// CSRF helper
+require_once __DIR__ . '/includes/csrf.php';
+// ensure token exists
+csrf_token();
 
 // determine current user role
 $currentRole = $_SESSION['admin_role'] ?? 'admin';
@@ -27,9 +28,8 @@ $message = '';
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  // validate CSRF
-  $token = $_POST['csrf_token'] ?? '';
-  if (!hash_equals($_SESSION['csrf_token'], $token)) {
+  // validate CSRF centrally
+  if (!csrf_check_request()) {
     $errors[] = 'Invalid CSRF token.';
   }
 
