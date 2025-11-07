@@ -343,3 +343,26 @@ a {
     margin-left: 0;
   }
 }
+
+/* Timeout page styles */
+.timeout-card {
+  max-width: 760px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 32px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  text-align: center;
+}
+.timeout-hero { font-size: 48px; color: #f59e0b; margin-bottom: 8px; }
+.timeout-card h2 { margin: 6px 0 10px; font-size: 1.6rem; color: #0f172a; }
+.timeout-card p { color: #475569; margin-bottom: 16px; }
+.timeout-actions { display:flex; gap:12px; justify-content:center; margin-top:8px; }
+.timeout-actions .btn { padding:10px 16px; border-radius:8px; }
+.btn-primary { background: linear-gradient(90deg,#6366f1,#3b82f6); color: #fff; border:none; }
+.btn { background:#f3f4f6; color:#111827; border:none; }
+
+@media (max-width:640px){
+  .timeout-card{ padding:20px; }
+  .timeout-hero{ font-size:40px }
+}
