@@ -43,57 +43,118 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
             }
         }
 
-        if (empty($matches)){
-            $error = 'No matching log files found for the given filter.';
-        } else {
-            // create a zip
-            $timestamp = time();
-            $safeVal = preg_replace('/[^a-zA-Z0-9_-]/', '_', $value ?: 'logs');
-            $zipName = "logs_{$safeVal}_{$timestamp}.zip";
-            $zipPath = $exportDir . '/' . $zipName;
+    if (empty($matches)){
+      $error = 'No matching log files or lines found for the given filter.';
+    } else {
+      // Build CSV from matched files/lines. CSV is more user-friendly than a raw ZIP.
+      $rows = [];
 
-            $zip = new ZipArchive();
-            if ($zip->open($zipPath, ZipArchive::CREATE) !== true){
-                $error = 'Could not create ZIP archive on server.';
-            } else {
-                foreach ($matches as $m) {
-                    $zip->addFile($m, basename($m));
-                }
-                $zip->close();
+      $parse_line = function($line){
+        $parts = array_map('trim', explode('|', $line));
+        // Normalize to expected columns
+        $cols = array_pad($parts, 10, '');
+        return [
+          'name' => $cols[0],
+          'matric' => $cols[1],
+          'action' => $cols[2],
+          'token' => $cols[3],
+          'ip' => $cols[4],
+          'status' => $cols[5],
+          'datetime' => $cols[6],
+          'user_agent' => $cols[7],
+          'course' => $cols[8],
+          'reason' => $cols[9]
+        ];
+      };
 
-                // try to send with PHPMailer if available
-                $sent = false;
-                $mailerInfo = '';
-                if (file_exists(__DIR__ . '/vendor/autoload.php')){
-                    require_once __DIR__ . '/vendor/autoload.php';
-          if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
-            try {
-              $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-                            // default: try using local mail for now; advise configuring SMTP
-                            $mail->setFrom('no-reply@example.com', 'Attendance System');
-                            $mail->addAddress($recipient);
-                            $mail->Subject = 'Requested logs from Attendance System';
-                            $mail->Body = "Attached are the requested logs.";
-                            $mail->addAttachment($zipPath);
-                            $mail->send();
-                            $sent = true;
-                            $success = 'Email sent with logs attached.';
-            } catch (\Exception $e) {
-              $error = 'PHPMailer failed to send: ' . $e->getMessage();
-            }
-                    } else {
-                        $mailerInfo = 'PHPMailer not found in vendor; please run: composer require phpmailer/phpmailer';
-                    }
-                } else {
-                    $mailerInfo = 'No composer autoloader found (vendor/autoload.php). To enable rich sending, run composer and install PHPMailer.';
-                }
-
-                if (!$sent){
-                    // provide download link and instructions
-                    $success = 'ZIP created: ' . basename($zipPath) . '. ' . ($mailerInfo ? $mailerInfo : '');
-                }
-            }
+      // For date filter we read files that match the date and include all their lines
+      if ($type === 'date'){
+        foreach ($matches as $m){
+          if (!is_readable($m)) continue;
+          $lines = file($m, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+          foreach ($lines as $ln){
+            $rows[] = $parse_line($ln);
+          }
         }
+      } else {
+        // course: scan files and include only lines that mention the course (case-insensitive)
+        foreach ($available as $fn){
+          $path = $logsDir . '/' . $fn;
+          if (!is_readable($path)) continue;
+          $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+          foreach ($lines as $ln){
+            if (stripos($ln, $value) !== false){
+              $rows[] = $parse_line($ln);
+            }
+          }
+        }
+      }
+
+      if (empty($rows)){
+        $error = 'No log entries matched the filter.';
+      } else {
+        // determine filename components
+        $safeVal = preg_replace('/[^a-zA-Z0-9_-]/', '_', $value ?: 'logs');
+        // determine date for filename: use provided date or date from first row
+        $dateForName = $value;
+        if ($type !== 'date'){
+          // try to extract YYYY-MM-DD from first row datetime
+          $d = $rows[0]['datetime'] ?? '';
+          if (preg_match('/(\d{4}-\d{2}-\d{2})/', $d, $mdate)){
+            $dateForName = $mdate[1];
+          } else {
+            $dateForName = date('Y-m-d');
+          }
+        }
+
+        $csvName = "attendance_{$safeVal}_{$dateForName}.csv";
+        $csvPath = $exportDir . '/' . $csvName;
+
+        $fh = fopen($csvPath, 'w');
+        if (!$fh){
+          $error = 'Could not create CSV file on server.';
+        } else {
+          // header
+          fputcsv($fh, ['Name','Matric','Action','Token','IP','Status','Datetime','UserAgent','Course','Reason']);
+          foreach ($rows as $r){
+            fputcsv($fh, [$r['name'],$r['matric'],$r['action'],$r['token'],$r['ip'],$r['status'],$r['datetime'],$r['user_agent'],$r['course'],$r['reason']]);
+          }
+          fclose($fh);
+
+          // attempt to send via PHPMailer if available
+          $sent = false;
+          $mailerInfo = '';
+          if (file_exists(__DIR__ . '/vendor/autoload.php')){
+            require_once __DIR__ . '/vendor/autoload.php';
+            if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
+              try {
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                // note: SMTP should be configured by an admin for reliable delivery
+                $mail->setFrom('no-reply@example.com', 'Attendance System');
+                $mail->addAddress($recipient);
+                $mail->Subject = "Attendance export: {$safeVal} - {$dateForName}";
+                $mail->Body = "Please find attached the attendance export for {$safeVal} on {$dateForName}.";
+                $mail->addAttachment($csvPath, $csvName);
+                $mail->send();
+                $sent = true;
+                $success = 'Email sent with attendance CSV attached.';
+              } catch (\Exception $e){
+                $error = 'PHPMailer failed to send: ' . $e->getMessage();
+              }
+            } else {
+              $mailerInfo = 'PHPMailer not found in vendor; ask your system admin to run: composer require phpmailer/phpmailer';
+            }
+          } else {
+            $mailerInfo = 'Automatic email not available: no composer autoloader (vendor/autoload.php).';
+          }
+
+          if (!$sent){
+            $success = 'CSV created: ' . basename($csvPath) . '. ' . ($mailerInfo ? $mailerInfo : '');
+            $zipPath = $csvPath; // reuse variable for download link display
+          }
+        }
+      }
+    }
     }
 }
 
