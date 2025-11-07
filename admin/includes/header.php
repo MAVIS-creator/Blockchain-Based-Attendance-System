@@ -63,6 +63,31 @@
     return Swal.fire({ title: title || 'Confirm', text: text || '', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes', cancelButtonText: 'Cancel' }).then(function(res){ return !!res.isConfirmed; });
   };
 </script>
+<!-- Page load timeout: redirect to timeout.php if the page hasn't completed loading within 60 seconds -->
+<script>
+  (function(){
+    var timeoutMs = 60 * 1000; // 1 minute
+    var timer = setTimeout(function(){
+      try{
+        var from = encodeURIComponent(window.location.pathname + window.location.search || '');
+        // Redirect to admin/timeout.php (relative path works for admin pages)
+        window.location.replace('timeout.php' + (from ? ('?from=' + from) : ''));
+      }catch(e){
+        window.location.replace('timeout.php');
+      }
+    }, timeoutMs);
+
+    function clearTimer(){ if (timer){ clearTimeout(timer); timer = null; } }
+
+    // When page fully loads, cancel the timeout
+    window.addEventListener('load', clearTimer, {passive:true});
+    // If user navigates away before load completes, cancel the timer to avoid spurious redirects
+    window.addEventListener('beforeunload', clearTimer, {passive:true});
+
+    // Expose cancel function for pages that perform heavy dynamic loads and want to cancel the timeout
+    window.__cancelPageLoadTimeout = clearTimer;
+  })();
+</script>
 <script>
   // detect whether icon fonts loaded; if not, enable fallback CSS
   (function(){
