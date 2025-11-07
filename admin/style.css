@@ -764,6 +764,31 @@ details.sidebar-group ul li a:hover::before {
     opacity: 1;
 }
 
+/* Replace the default dot marker for nested items with the actual icon element.
+   Hide the ::before marker so nested icons (the <i> elements) are visible and aligned. */
+details.sidebar-group ul li a::before { display: none; }
+
+/* make nested icons slightly dimmer and properly sized */
+details.sidebar-group ul li a i { font-size: 0.95rem; opacity: 0.9; color: inherit; }
+
+/* Announcement buttons styling */
+.toggle-buttons { display:flex; gap:12px; }
+.btn-announcement { padding: 8px 14px; border-radius: 8px; border: 1px solid transparent; background: #f3f4f6; color: #0f172a; cursor: pointer; display: inline-flex; align-items:center; gap:8px; font-weight:600; }
+.btn-announcement i { font-size: 1.05rem; }
+.btn-announcement.btn-enable.active { background: linear-gradient(90deg,#10b981,#059669); color: #fff; border-color: rgba(16,185,129,0.15); box-shadow: 0 6px 18px rgba(6,95,70,0.12); }
+.btn-announcement.btn-enable:hover { transform: translateY(-1px); }
+.btn-announcement.btn-disable.active { background: linear-gradient(90deg,#ef4444,#dc2626); color: #fff; border-color: rgba(239,68,68,0.12); box-shadow: 0 6px 18px rgba(220,38,38,0.12); }
+.btn-announcement.btn-disable { background:#fff6f6; color:#7f1d1d; border-color: rgba(220,38,38,0.06); }
+
+.btn-save-announcement { width: 100%; padding: 12px; border-radius: 8px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.btn-save-announcement i { font-size:1.05rem; }
+
+/* Ensure textarea uses the announcement-textarea styling */
+.announcement-textarea { width: 100%; min-height: 120px; padding: 12px 14px; border-radius: 8px; border: 1px solid #e6eef9; resize: vertical; }
+
+/* small responsive tweak for announcement card */
+.announcement-container, .card { max-width: 980px; }
+
 /* Sidebar spacing and badge styles */
 .sidebar-nav ul {
     padding: 12px;
