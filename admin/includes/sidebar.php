@@ -30,12 +30,12 @@ if (file_exists($ticketsFile)) {
         <details class="sidebar-group" <?= in_array($page, ['logs','chain','failed_attempts','clear_logs_ui','clear_tokens_ui','send_logs_email']) ? 'open' : '' ?>>
           <summary><i class='bx bx-list-ul'></i><span class="label-text">Logs</span></summary>
           <ul>
-            <li><a href="index.php?page=logs" class="<?= $page == 'logs' ? 'active' : '' ?>"><i class='bx bx-chevron-right'></i><span class="label-text">General Logs</span></a></li>
-            <li><a href="index.php?page=chain" class="<?= $page == 'chain' ? 'active' : '' ?>"><i class='bx bx-chevron-right'></i><span class="label-text">Chain</span></a></li>
-            <li><a href="index.php?page=failed_attempts" class="<?= $page == 'failed_attempts' ? 'active' : '' ?>"><i class='bx bx-chevron-right'></i><span class="label-text">Failed Logs</span></a></li>
-            <li><a href="index.php?page=clear_logs_ui" class="<?= $page == 'clear_logs_ui' ? 'active' : '' ?>"><i class='bx bx-chevron-right'></i><span class="label-text">Clear / Backup</span></a></li>
-            <li><a href="index.php?page=clear_tokens_ui" class="<?= $page == 'clear_tokens_ui' ? 'active' : '' ?>"><i class='bx bx-chevron-right'></i><span class="label-text">Clear Tokens</span></a></li>
-            <li><a href="index.php?page=send_logs_email" class="<?= $page == 'send_logs_email' ? 'active' : '' ?>"><i class='bx bx-chevron-right'></i><span class="label-text">Email Logs</span></a></li>
+            <li><a href="index.php?page=logs" class="<?= $page == 'logs' ? 'active' : '' ?>"><i class='bx bx-file'></i><span class="label-text">General Logs</span></a></li>
+            <li><a href="index.php?page=chain" class="<?= $page == 'chain' ? 'active' : '' ?>"><i class='bx bx-link-alt'></i><span class="label-text">Chain</span></a></li>
+            <li><a href="index.php?page=failed_attempts" class="<?= $page == 'failed_attempts' ? 'active' : '' ?>"><i class='bx bx-error'></i><span class="label-text">Failed Logs</span></a></li>
+            <li><a href="index.php?page=clear_logs_ui" class="<?= $page == 'clear_logs_ui' ? 'active' : '' ?>"><i class='bx bx-database'></i><span class="label-text">Clear / Backup</span></a></li>
+            <li><a href="index.php?page=clear_tokens_ui" class="<?= $page == 'clear_tokens_ui' ? 'active' : '' ?>"><i class='bx bx-key'></i><span class="label-text">Clear Tokens</span></a></li>
+            <li><a href="index.php?page=send_logs_email" class="<?= $page == 'send_logs_email' ? 'active' : '' ?>"><i class='bx bx-mail-send'></i><span class="label-text">Email Logs</span></a></li>
           </ul>
         </details>
       </li>
