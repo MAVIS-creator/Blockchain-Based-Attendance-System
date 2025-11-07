@@ -14,7 +14,8 @@ $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 's
 
 // Process form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!csrf_verify()) {
+    require_once __DIR__ . '/includes/csrf.php';
+    if (!function_exists('csrf_check_request') || !csrf_check_request()) {
         die('CSRF verification failed');
     }
 
