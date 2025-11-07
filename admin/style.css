@@ -366,3 +366,20 @@ a {
   .timeout-card{ padding:20px; }
   .timeout-hero{ font-size:40px }
 }
+
+/* Loading warning banner */
+.loading-warning { position:fixed; left:50%; transform:translateX(-50%); bottom:28px; z-index:11000; background:linear-gradient(90deg,#f59e0b,#f97316); color:#07203a; padding:10px 18px; border-radius:999px; box-shadow:0 8px 30px rgba(0,0,0,0.12); font-weight:600; }
+.loading-warning-inner { display:flex; align-items:center; gap:10px; }
+
+/* Avatar dropdown menu small style tweaks */
+.avatar-btn { background:transparent; border:none; cursor:pointer; }
+.avatar-menu a { display:block; padding:10px 12px; color:#111; text-decoration:none; }
+.avatar-menu a:hover { background:#f7f7fb; }
+
+/* Sidebar grouped details style */
+details.sidebar-group { margin: 6px 0; }
+details.sidebar-group summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:10px; padding:10px 16px; color: #ecf0f1; border-radius: 8px; }
+details.sidebar-group[open] > summary { background: linear-gradient(135deg, #1abc9c, #16a085); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+details.sidebar-group ul { list-style:none; margin:0; padding-left:0; }
+details.sidebar-group ul li a { padding: 8px 28px; display:block; color:#ecf0f1; text-decoration:none; }
+details.sidebar-group ul li a:hover { background: rgba(255,255,255,0.04); }
