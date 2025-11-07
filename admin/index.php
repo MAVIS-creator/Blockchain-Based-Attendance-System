@@ -25,7 +25,7 @@ $routes = [
   'support_tickets'    => 'view_tickets.php',
   'unlink_fingerprint' => 'unlink_fingerprint.php',
   'announcement'       => 'announcement.php'
-  , 'send_logs_email'   => 'send_logs_email.php'
+  ,'send_logs_email'   => 'send_logs_email.php'
 ];
 $view = $routes[$page] ?? 'dashboard.php';
 ?>
