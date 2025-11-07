@@ -26,9 +26,9 @@
          </button>
 
          <div id="avatarMenu" class="avatar-menu" style="display:none;position:absolute;right:0;top:56px;min-width:180px;background:#fff;border-radius:8px;box-shadow:0 12px 30px rgba(2,6,23,0.12);overflow:hidden;z-index:10002;">
-           <a href="accounts.php" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Profile / Account</a>
-           <a href="accounts.php#change-password" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Change Password</a>
-           <a href="accounts.php#change-avatar" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Change Picture</a>
+           <a href="index.php?page=accounts" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Profile / Account</a>
+           <a href="index.php?page=accounts#change-password" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Change Password</a>
+           <a href="index.php?page=accounts#change-avatar" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Change Picture</a>
            <a href="logout.php" style="display:block;padding:10px 12px;color:#d9534f;text-decoration:none;">Logout</a>
          </div>
       </div>
