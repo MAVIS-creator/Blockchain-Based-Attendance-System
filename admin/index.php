@@ -26,6 +26,7 @@ $routes = [
   'unlink_fingerprint' => 'unlink_fingerprint.php',
   'announcement'       => 'announcement.php'
   ,'send_logs_email'   => 'send_logs_email.php'
+  ,'profile_settings'  => 'profile_settings.php'
 ];
 $view = $routes[$page] ?? 'dashboard.php';
 ?>
