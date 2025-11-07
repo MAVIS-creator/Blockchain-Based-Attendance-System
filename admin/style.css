@@ -142,6 +142,7 @@ a {
   margin-top: 25px;
   flex: 1;
   background: rgba(255, 255, 255, 0.65);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
@@ -160,6 +161,7 @@ a {
   margin-top: auto;
   border-top: 1px solid #e5e7eb;
   background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   transition: all 0.3s ease;
   z-index: 10;
