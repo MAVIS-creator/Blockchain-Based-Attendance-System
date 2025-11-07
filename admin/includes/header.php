@@ -25,11 +25,26 @@
            <span style="font-weight:600;color:#333;"><?= $adminName ?></span>
          </button>
 
-         <div id="avatarMenu" class="avatar-menu" style="display:none;position:absolute;right:0;top:56px;min-width:180px;background:#fff;border-radius:8px;box-shadow:0 12px 30px rgba(2,6,23,0.12);overflow:hidden;z-index:10002;">
-           <a href="index.php?page=accounts" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Profile / Account</a>
-           <a href="index.php?page=accounts#change-password" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Change Password</a>
-           <a href="index.php?page=accounts#change-avatar" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Change Picture</a>
-           <a href="logout.php" style="display:block;padding:10px 12px;color:#d9534f;text-decoration:none;">Logout</a>
+         <div id="avatarMenu" class="avatar-menu" style="display:none;position:absolute;right:0;top:56px;background:#fff;border-radius:12px;box-shadow:0 12px 30px rgba(2,6,23,0.12);overflow:hidden;z-index:10002;">
+           <a href="profile_settings.php">
+             <i class="bx bx-user"></i>
+             Profile Settings
+           </a>
+           <?php if ($isSuperAdmin): ?>
+           <a href="accounts.php">
+             <i class="bx bx-group"></i>
+             Manage Accounts
+           </a>
+           <a href="settings.php">
+             <i class="bx bx-cog"></i>
+             System Settings
+           </a>
+           <?php endif; ?>
+           <div class="menu-divider"></div>
+           <a href="logout.php" class="menu-danger">
+             <i class="bx bx-log-out"></i>
+             Logout
+           </a>
          </div>
       </div>
     <?php else: ?>
