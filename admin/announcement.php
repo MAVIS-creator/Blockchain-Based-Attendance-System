@@ -65,20 +65,20 @@ function render_announcement_form($announcement, $successMsg, $errorMsg, $embedd
     ?>
     <form method="post">
         <label for="message"><i class='bx bx-message-square-detail'></i> Announcement Message</label>
-        <textarea id="message" name="message" placeholder="Enter your announcement here..."><?= htmlspecialchars($announcement['message']) ?></textarea>
+        <textarea id="message" name="message" class="announcement-textarea" placeholder="Enter your announcement here..."><?= htmlspecialchars($announcement['message']) ?></textarea>
 
         <div class="toggle-buttons" style="margin:18px 0;display:flex;gap:12px;">
-            <button type="button" id="enableBtn" class="<?= $announcement['enabled'] ? 'active' : '' ?>">
+            <button type="button" id="enableBtn" class="btn-announcement btn-enable <?= $announcement['enabled'] ? 'active' : '' ?>">
                 <i class='bx bx-check-circle'></i> Enable
             </button>
-            <button type="button" id="disableBtn" class="<?= !$announcement['enabled'] ? 'active' : '' ?>">
+            <button type="button" id="disableBtn" class="btn-announcement btn-disable <?= !$announcement['enabled'] ? 'active' : '' ?>">
                 <i class='bx bx-x-circle'></i> Disable
             </button>
         </div>
 
         <input type="checkbox" id="enabled" name="enabled" style="display:none;" <?= $announcement['enabled'] ? 'checked' : '' ?>>
 
-        <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;border-radius:8px;"><i class='bx bx-save'></i> Save Announcement</button>
+    <button type="submit" class="btn btn-primary btn-save-announcement"><i class='bx bx-save'></i> Save Announcement</button>
     </form>
 
     <?php
