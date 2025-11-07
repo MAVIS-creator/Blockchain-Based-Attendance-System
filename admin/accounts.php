@@ -168,13 +168,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if ($currentRole === 'superadmin'): ?>
               <?php if (($u !== ($_SESSION['admin_user'] ?? ''))): ?>
                 <form method="POST" style="display:inline-block;margin:0 6px 0 0;">
-                  <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
+                  <?php csrf_field(); ?>
                   <input type="hidden" name="action" value="delete">
                   <input type="hidden" name="target" value="<?=htmlspecialchars($u)?>">
                   <button type="submit" style="padding:6px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;">Delete</button>
                 </form>
                 <form method="POST" style="display:inline-block;margin:0 0 0 6px;">
-                  <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
+                  <?php csrf_field(); ?>
                   <input type="hidden" name="action" value="set_password">
                   <input type="hidden" name="target" value="<?=htmlspecialchars($u)?>">
                   <input type="password" name="new_password" placeholder="New password" style="padding:6px;border-radius:4px;border:1px solid #ddd;">
@@ -194,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <?php if ($currentRole === 'superadmin'): ?>
   <form method="POST" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <input name="csrf_token" type="hidden" value="<?=htmlspecialchars($csrf)?>">
+    <?php csrf_field(); ?>
     <input name="action" type="hidden" value="create">
     <input name="username" placeholder="username" style="padding:8px;min-width:160px;" required>
     <input name="fullname" placeholder="full name" style="padding:8px;min-width:200px;">
@@ -209,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <h3>Change your password</h3>
   <form method="POST" style="max-width:560px;display:flex;flex-direction:column;gap:8px;">
-    <input type="hidden" name="csrf_token" value="<?=htmlspecialchars($csrf)?>">
+    <?php csrf_field(); ?>
     <input type="hidden" name="action" value="change_self">
     <input type="password" name="current_password" placeholder="Current password" style="padding:8px;">
     <input type="password" name="new_password" placeholder="New password" style="padding:8px;">
