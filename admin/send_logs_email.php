@@ -183,19 +183,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
         <label>Recipient Email</label>
         <input type="email" name="email" required class="form-control" />
 
-        <div style="display:flex;gap:12px;margin-top:12px;">
-          <label style="flex:0 0 120px;align-self:center;">Filter by</label>
-          <select name="type" class="form-control" style="flex:0 0 160px;">
-            <option value="date">Date (YYYY-MM-DD or YYYYMMDD)</option>
-            <option value="course">Course code</option>
+        <div style="display:flex;gap:12px;margin-top:12px;align-items:center;">
+          <label style="flex:0 0 120px;">Format</label>
+          <select name="format" class="form-control" style="flex:0 0 160px;">
+            <option value="csv">CSV (spreadsheet)</option>
+            <option value="pdf">PDF (readable report)</option>
           </select>
-          <input type="text" name="value" placeholder="Enter date or course" class="form-control" style="flex:1;" />
+
+          <label style="flex:0 0 120px;text-align:right;">Log type</label>
+          <select name="log_kind" class="form-control" style="flex:0 0 160px;">
+            <option value="all">All</option>
+            <option value="successful">Successful only</option>
+            <option value="failed">Failed only</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:12px;">
+          <label style="flex:0 0 120px;align-self:center;">Date or Range</label>
+          <input type="date" name="date_from" class="form-control" style="flex:0 0 180px;"> 
+          <input type="date" name="date_to" class="form-control" style="flex:0 0 180px;">
+          <input type="text" name="course" placeholder="Course code (optional)" class="form-control" style="flex:1;" />
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <label style="flex:0 0 120px;">Columns</label>
+          <label><input type="checkbox" name="cols[]" value="name" checked> Name</label>
+          <label><input type="checkbox" name="cols[]" value="matric" checked> Matric</label>
+          <label><input type="checkbox" name="cols[]" value="action" checked> Action</label>
+          <label><input type="checkbox" name="cols[]" value="datetime" checked> Datetime</label>
+          <label><input type="checkbox" name="cols[]" value="course" checked> Course</label>
+          <label><input type="checkbox" name="cols[]" value="user_agent"> User Agent</label>
+          <label><input type="checkbox" name="cols[]" value="ip"> IP</label>
         </div>
 
         <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
           <button class="btn btn-primary" type="submit">Create & Send</button>
           <?php if ($zipPath && file_exists($zipPath)): ?>
-            <a class="btn" href="backups/<?php echo basename($zipPath); ?>" download>Download ZIP</a>
+            <a class="btn" href="backups/<?php echo basename($zipPath); ?>" download>Download</a>
           <?php endif; ?>
         </div>
 
