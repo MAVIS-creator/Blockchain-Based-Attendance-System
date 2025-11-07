@@ -557,6 +557,15 @@ a {
     padding: 6px;
 }
 
+/* Force avatar menu above all content and use fixed positioning so it isn't clipped */
+#avatarMenu {
+  position: fixed !important;
+  right: 24px !important;
+  top: 68px !important;
+  z-index: 12000 !important;
+  min-width: 220px !important;
+}
+
 .avatar-menu a { 
     display: flex;
     align-items: center;
@@ -615,6 +624,15 @@ details.sidebar-group summary {
     transition: all 0.2s ease;
     position: relative;
 }
+/* align summary items with regular nav links */
+details.sidebar-group summary i,
+details.sidebar-group summary .bx {
+  width: 26px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+details.sidebar-group summary .label-text { display:inline-block; }
 
 /* Smooth open/close for details groups */
 details.sidebar-group > ul {
@@ -670,6 +688,59 @@ details.sidebar-group ul li a {
     transition: all 0.2s ease;
     position: relative;
 }
+
+/* Ensure nested chevrons/icons align with top-level icon sizing */
+details.sidebar-group ul li a i {
+  width: 26px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Content padding: give consistent inner spacing for pages that don't use .card */
+.content-wrapper > * {
+  padding: 12px 18px;
+}
+
+/* Tables: add inner padding so content doesn't touch edges */
+.content-wrapper .table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.content-wrapper .table td, .content-wrapper .table th {
+  padding: 12px 18px;
+}
+
+/* Pagination styles */
+.pagination {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  list-style: none;
+  padding: 8px 0;
+}
+.pagination a, .pagination span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  border: 1px solid #eef2f7;
+  text-decoration: none;
+}
+.pagination a:hover { background:#f8fafc; }
+.pagination .active { background: linear-gradient(90deg,#6366f1,#3b82f6); color:#fff; border:none; }
+
+/* Manual Attendance specific styling - generic improvements */
+.manual-attendance .attendance-card { background:#fff;border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(2,6,23,0.06); }
+.manual-attendance .controls { display:flex;gap:12px;align-items:center;margin-bottom:12px; }
+.manual-attendance .form-control { max-width:420px; }
+
+/* Footer: ensure it's always after content and sticky when short pages */
+.main-content { display:flex; flex-direction:column; min-height: calc(100vh - 0px); }
+.content-wrapper { flex:1 1 auto; }
 
 details.sidebar-group ul li a::before {
     content: '';
