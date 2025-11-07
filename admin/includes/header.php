@@ -253,7 +253,9 @@
               // use the SweetAlert2-based helper
               window.adminConfirm('Delete message', 'Delete this message?').then(function(ok){
                 if (!ok) return;
-                fetch('chat_delete.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({time: t})})
+                var payload = { time: t };
+                if (window.ADMIN_CSRF_TOKEN) payload.csrf_token = window.ADMIN_CSRF_TOKEN;
+                fetch('chat_delete.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)})
                   .then(function(r){ return r.json(); })
                   .then(function(r){ if (r && r.ok) fetchAndRender(); else window.adminAlert('Delete failed', JSON.stringify(r), 'error'); })
                   .catch(function(){ window.adminAlert('Delete failed', 'Network or server error', 'error'); });
