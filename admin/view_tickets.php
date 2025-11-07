@@ -114,15 +114,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
             </a>
           </div>
 
-          <div class="dot-container">
-            <div class="dot" onclick="toggleAction(this)"></div>
-            <form method="post" class="dot-actions" style="display:none;">
+          <div class="action-menu">
+            <button class="action-trigger" onclick="toggleActionMenu(this)">
+              <i class='bx bx-dots-vertical-rounded'></i>
+            </button>
+            <form method="post" class="action-menu-content">
               <input type="hidden" name="name" value="<?= htmlspecialchars($ticket['name']) ?>">
               <input type="hidden" name="matric" value="<?= htmlspecialchars($ticket['matric']) ?>">
               <input type="hidden" name="reason" value="<?= htmlspecialchars($ticket['message']) ?>">
-
-              <button type="submit" name="manual_action" value="checkin" class="checkin-btn">Check-In</button>
-              <button type="submit" name="manual_action" value="checkout" class="checkout-btn">Check-Out</button>
+              
+              <button type="submit" name="manual_action" value="checkin" class="action-menu-item">
+                <i class='bx bx-log-in'></i> Check-In
+              </button>
+              <button type="submit" name="manual_action" value="checkout" class="action-menu-item">
+                <i class='bx bx-log-out'></i> Check-Out
+              </button>
             </form>
           </div>
         </div>
