@@ -44,8 +44,8 @@ if (file_exists($ticketsFile)) {
         <details class="sidebar-group" <?= in_array($page, ['add_course','set_active']) ? 'open' : '' ?>>
           <summary><i class='bx bx-book'></i><span class="label-text">Courses</span></summary>
           <ul>
-            <li><a href="index.php?page=add_course" class="<?= $page == 'add_course' ? 'active' : '' ?>"><i class='bx bx-chevron-right'></i><span class="label-text">Add Course</span></a></li>
-            <li><a href="index.php?page=set_active" class="<?= $page == 'set_active' ? 'active' : '' ?>"><i class='bx bx-chevron-right'></i><span class="label-text">Set Active Course</span></a></li>
+            <li><a href="index.php?page=add_course" class="<?= $page == 'add_course' ? 'active' : '' ?>"><i class='bx bx-plus-circle'></i><span class="label-text">Add Course</span></a></li>
+            <li><a href="index.php?page=set_active" class="<?= $page == 'set_active' ? 'active' : '' ?>"><i class='bx bx-target-lock'></i><span class="label-text">Set Active Course</span></a></li>
           </ul>
         </details>
       </li>
