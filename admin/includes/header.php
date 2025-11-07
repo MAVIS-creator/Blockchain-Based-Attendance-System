@@ -36,6 +36,7 @@
 <!-- SweetAlert2 (CDN) and local theme -->
 <link rel="stylesheet" href="<?= htmlspecialchars($adminRoot) ?>/swal-theme.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="<?= htmlspecialchars($adminRoot) ?>/admin-theme.css">
 <?php
   // expose CSRF token to JS by including the helper
   $csrfToken = '';

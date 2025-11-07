@@ -325,39 +325,116 @@ function confirmResolve(e) {
     }
   });
 }
-function toggleAction(dot) {
-  const form = dot.nextElementSibling;
-  form.style.display = form.style.display === "none" ? "block" : "none";
+// Handle action menu toggles
+function toggleActionMenu(trigger) {
+  // Close any other open menus first
+  document.querySelectorAll('.action-menu.active').forEach(menu => {
+    if (menu !== trigger.parentElement) {
+      menu.classList.remove('active');
+    }
+  });
+  
+  // Toggle the clicked menu
+  trigger.parentElement.classList.toggle('active');
 }
+
+// Close action menus when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.action-menu')) {
+    document.querySelectorAll('.action-menu.active').forEach(menu => {
+      menu.classList.remove('active');
+    });
+  }
+});
+
+// Theme management
 const themes = [
-  { gradient: "linear-gradient(135deg, #00eaff, #00c5cc)", header: "#00eaff", shadow: "rgba(0, 234, 255, 0.2)", text: "#fff", bg: "#001a33" },
-  { gradient: "linear-gradient(135deg, #ff7e5f, #feb47b)", header: "#ff7e5f", shadow: "rgba(255, 126, 95, 0.3)", text: "#333", bg: "#fff" },
-  { gradient: "linear-gradient(135deg, #3b82f6, #06b6d4)", header: "#3b82f6", shadow: "rgba(59, 130, 246, 0.3)", text: "#fff", bg: "#001a33" },
-  { gradient: "linear-gradient(135deg, #10b981, #22d3ee)", header: "#10b981", shadow: "rgba(16, 185, 129, 0.3)", text: "#fff", bg: "#001a33" },
-  { gradient: "linear-gradient(135deg, #a855f7, #3b82f6)", header: "#a855f7", shadow: "rgba(168, 85, 247, 0.3)", text: "#fff", bg: "#001a33" },
-  { gradient: "linear-gradient(135deg, #ec4899, #f59e0b)", header: "#ec4899", shadow: "rgba(236, 72, 153, 0.3)", text: "#fff", bg: "#001a33" },
-  { gradient: "linear-gradient(135deg, #14b8a6, #0ea5e9)", header: "#14b8a6", shadow: "rgba(20, 184, 166, 0.3)", text: "#fff", bg: "#001a33" },
+  {
+    name: 'Blue Ocean',
+    colors: {
+      primary: '#3b82f6',
+      info: '#0ea5e9',
+      bg: '#f8fafc'
+    }
+  },
+  {
+    name: 'Sunset',
+    colors: {
+      primary: '#f97316',
+      info: '#f59e0b',
+      bg: '#fff7ed'
+    }
+  },
+  {
+    name: 'Forest',
+    colors: {
+      primary: '#10b981',
+      info: '#059669',
+      bg: '#f0fdf4'
+    }
+  },
+  {
+    name: 'Royal',
+    colors: {
+      primary: '#8b5cf6',
+      info: '#6366f1',
+      bg: '#f5f3ff'
+    }
+  },
+  {
+    name: 'Ruby',
+    colors: {
+      primary: '#e11d48',
+      info: '#be123c',
+      bg: '#fff1f2'
+    }
+  },
+  {
+    name: 'Emerald',
+    colors: {
+      primary: '#059669',
+      info: '#0d9488',
+      bg: '#ecfdf5'
+    }
+  }
 ];
 
 function setTheme(index) {
-  const t = themes[index];
-  document.documentElement.style.setProperty("--primary-gradient", t.gradient);
-  document.documentElement.style.setProperty("--header-color", t.header);
-  document.documentElement.style.setProperty("--shadow-color", t.shadow);
-  document.documentElement.style.setProperty("--text-color", t.text);
-  document.body.style.background = t.bg;
-  localStorage.setItem("selectedTheme", index);
+  const theme = themes[index];
+  document.documentElement.style.setProperty('--primary', theme.colors.primary);
+  document.documentElement.style.setProperty('--info', theme.colors.info);
+  document.documentElement.style.setProperty('--bg-gradient', `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.info})`);
+  document.body.style.background = theme.colors.bg;
+  localStorage.setItem('selectedTheme', index);
 }
 
-document.getElementById("palette-icon").addEventListener("click", () => {
-  const options = document.getElementById("palette-options");
-  options.style.display = options.style.display === "flex" ? "none" : "flex";
+// Theme switcher toggle
+document.getElementById('palette-icon').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const options = document.getElementById('palette-options');
+  options.style.display = options.style.display === 'grid' ? 'none' : 'grid';
 });
 
-// On page load
-const savedTheme = localStorage.getItem("selectedTheme");
+// Close theme options when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#palette-options')) {
+    document.getElementById('palette-options').style.display = 'none';
+  }
+});
+
+// Load saved theme
+const savedTheme = localStorage.getItem('selectedTheme');
 if (savedTheme !== null) {
   setTheme(parseInt(savedTheme));
 }
+
+// SweetAlert2 Theme
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true
+});
 
 </script>
