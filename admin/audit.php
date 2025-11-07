@@ -104,9 +104,15 @@ document.getElementById('purgeOld').addEventListener('click', function(){
         else if (window.Swal) { Swal.fire('Purge complete','Removed '+(j.purged||0)+' entries','success').then(()=>location.reload()); }
         else { location.reload(); }
       } else {
-        if (window.adminAlert) window.adminAlert('Purge failed', JSON.stringify(j),'error'); else alert('Purge failed: '+JSON.stringify(j));
+        if (window.adminAlert) {
+          window.adminAlert('Purge failed', JSON.stringify(j),'error');
+        } else if (window.Swal) {
+          Swal.fire('Purge failed', JSON.stringify(j), 'error');
+        } else {
+          console.error('Purge failed', j);
+        }
       }
-    }).catch(function(){ if (window.adminAlert) window.adminAlert('Purge failed','Network or server error','error'); else alert('Purge request failed'); });
+  }).catch(function(){ if (window.adminAlert) window.adminAlert('Purge failed','Network or server error','error'); else if (window.Swal) Swal.fire('Purge failed','Network or server error','error'); else console.error('Purge request failed'); });
   }
 
   if (window.adminConfirm) {
