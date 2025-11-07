@@ -6,6 +6,11 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit;
 }
 
+// CSRF protection (accepts JSON body token)
+$csrfPath = __DIR__ . '/includes/csrf.php';
+if (file_exists($csrfPath)) require_once $csrfPath;
+if (function_exists('csrf_check_request') && !csrf_check_request()) { echo json_encode(['error'=>'csrf_failed']); exit; }
+
 // parse and validate
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $msg = trim($data['message'] ?? '');
