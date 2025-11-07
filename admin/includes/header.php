@@ -6,7 +6,10 @@
   </div>
 
   <div style="display:flex;align-items:center;gap:12px;">
-    <?php if (!empty($_SESSION['admin_name'])): ?>
+    <?php
+      // ensure admin name and role variables exist to avoid undefined notices
+      $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'superadmin';
+      if (!empty($_SESSION['admin_name'])): ?>
       <?php
         $adminName = htmlspecialchars($_SESSION['admin_name']);
         $adminAvatar = $_SESSION['admin_avatar'] ?? null;
