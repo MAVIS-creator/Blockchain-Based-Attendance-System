@@ -37,11 +37,11 @@ $view = $routes[$page] ?? 'dashboard.php';
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="boxicons.min.css">
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <link rel="icon" type="image/x-icon" href="asset/favicon.ico">
-  <link rel="apple-touch-icon" sizes="180x180" href="asset/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="asset/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="asset/favicon-16x16.png">
-  <link rel="manifest" href="asset/site.webmanifest">
+          <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="../asset/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../asset/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../asset/favicon-16x16.png">
+  <link rel="manifest" href="../asset/site.webmanifest">
 </head>
 <body>
 
