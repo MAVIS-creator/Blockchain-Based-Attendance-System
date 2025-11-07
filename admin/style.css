@@ -420,9 +420,85 @@ a {
 .avatar-menu a:hover { background:#f7f7fb; }
 
 /* Sidebar grouped details style */
-details.sidebar-group { margin: 6px 0; }
-details.sidebar-group summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:10px; padding:10px 16px; color: #ecf0f1; border-radius: 8px; }
-details.sidebar-group[open] > summary { background: linear-gradient(135deg, #1abc9c, #16a085); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
-details.sidebar-group ul { list-style:none; margin:0; padding-left:0; }
-details.sidebar-group ul li a { padding: 8px 28px; display:block; color:#ecf0f1; text-decoration:none; }
-details.sidebar-group ul li a:hover { background: rgba(255,255,255,0.04); }
+details.sidebar-group { 
+    margin: 4px 22px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+details.sidebar-group summary { 
+    list-style: none; 
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    color: #ecf0f1;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+details.sidebar-group summary::-webkit-details-marker {
+    display: none;
+}
+
+details.sidebar-group summary::after {
+    content: '\25BC';
+    font-size: 0.8em;
+    position: absolute;
+    right: 16px;
+    transition: transform 0.2s ease;
+}
+
+details.sidebar-group[open] > summary::after {
+    transform: rotate(-180deg);
+}
+
+details.sidebar-group[open] > summary { 
+    background: linear-gradient(135deg, #1abc9c, #16a085);
+    box-shadow: 0 4px 15px rgba(26, 188, 156, 0.25);
+    margin-bottom: 4px;
+}
+
+details.sidebar-group ul { 
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+}
+
+details.sidebar-group ul li a { 
+    padding: 10px 16px 10px 42px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ecf0f1;
+    text-decoration: none;
+    font-size: 0.95em;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+details.sidebar-group ul li a::before {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.5;
+}
+
+details.sidebar-group ul li a:hover { 
+    background: rgba(255, 255, 255, 0.08);
+    padding-left: 46px;
+}
+
+details.sidebar-group ul li a:hover::before {
+    opacity: 1;
+}
