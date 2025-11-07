@@ -14,18 +14,28 @@
         $initials = trim(array_reduce(explode(' ', $adminName), function($carry, $part){ return $carry . ($part[0] ?? ''); }, ''));
         $initials = strtoupper(substr($initials, 0, 2));
       ?>
-      <div style="display:flex;align-items:center;gap:10px;">
+      <div style="display:flex;align-items:center;gap:10px;position:relative;">
          <img src="../asset/lautech_logo.png" alt="logo" style="height:40px;width:auto;background:#fff;padding:6px;border-radius:6px;">
-         <?php if ($adminAvatar): ?>
-           <img class="admin-avatar" src="<?= htmlspecialchars($adminAvatar) ?>" alt="avatar">
-         <?php else: ?>
-           <span class="admin-initials"><?= $initials ?></span>
-         <?php endif; ?>
+         <button class="avatar-btn" aria-haspopup="true" aria-expanded="false" id="avatarToggle" style="background:transparent;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
+           <?php if ($adminAvatar): ?>
+             <img class="admin-avatar" src="<?= htmlspecialchars($adminAvatar) ?>" alt="avatar">
+           <?php else: ?>
+             <span class="admin-initials"><?= $initials ?></span>
+           <?php endif; ?>
+           <span style="font-weight:600;color:#333;"><?= $adminName ?></span>
+         </button>
+
+         <div id="avatarMenu" class="avatar-menu" style="display:none;position:absolute;right:0;top:56px;min-width:180px;background:#fff;border-radius:8px;box-shadow:0 12px 30px rgba(2,6,23,0.12);overflow:hidden;z-index:10002;">
+           <a href="accounts.php" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Profile / Account</a>
+           <a href="accounts.php#change-password" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Change Password</a>
+           <a href="accounts.php#change-avatar" style="display:block;padding:10px 12px;color:#111;text-decoration:none;border-bottom:1px solid #f0f0f0;">Change Picture</a>
+           <a href="logout.php" style="display:block;padding:10px 12px;color:#d9534f;text-decoration:none;">Logout</a>
+         </div>
       </div>
-      <div style="font-weight:600;color:#333;"><?= $adminName ?></div>
     <?php else: ?>
       <a href="login.php" style="color:#333;text-decoration:none;font-weight:600;">Login</a>
     <?php endif; ?>
+  </div>
 </header>
 <?php
   // compute admin root path to include local admin assets reliably
