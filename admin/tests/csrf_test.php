@@ -108,6 +108,7 @@ $respBody = $parts[1] ?? $r['raw'];
 $json = json_decode($respBody, true);
 if (is_array($json) && (isset($json['ok']) && ($json['ok']===true || $json['ok']=='true'))) {
     logmsg("PASS: chat_post accepted request with token.");
+    $last_chat_time = $json['entry']['time'] ?? null;
 } else {
     echo "FAIL: chat_post did not accept request with token. Response: $respBody\n"; exit(4);
 }
@@ -136,6 +137,51 @@ if (is_array($json) && isset($json['ok']) && $json['ok']===true) {
 } else {
     echo "FAIL: revoke_entry did not accept request with token. Response: $respBody\n"; exit(6);
 }
+
+// 7) Test chat_delete without token -> expect csrf failure
+if (!empty($last_chat_time)) {
+    logmsg("[7] Testing chat_delete.php without token (expect csrf failure)...");
+    $r = post_json('chat_delete.php', ['time'=>$last_chat_time]);
+    $parts = preg_split("/\r?\n\r?\n/", $r['raw'], 2);
+    $respBody = $parts[1] ?? $r['raw'];
+    $json = json_decode($respBody, true);
+    $ok_chatdel_no_token = is_array($json) && isset($json['error']) && $json['error']==='csrf_failed';
+    if ($ok_chatdel_no_token) logmsg("PASS: chat_delete rejected request without token."); else { echo "FAIL: chat_delete did NOT reject request without token. Response: $respBody\n"; exit(7); }
+
+    // 8) chat_delete with token -> expect deletion
+    logmsg("[8] Testing chat_delete.php WITH token (expect success)...");
+    $r = post_json('chat_delete.php', ['time'=>$last_chat_time, 'csrf_token'=>$token]);
+    $parts = preg_split("/\r?\n\r?\n/", $r['raw'], 2);
+    $respBody = $parts[1] ?? $r['raw'];
+    $json = json_decode($respBody, true);
+    if (is_array($json) && isset($json['ok']) && $json['ok']===true) {
+        logmsg("PASS: chat_delete accepted request with token.");
+    } else { echo "FAIL: chat_delete did not accept request with token. Response: $respBody\n"; exit(8); }
+} else {
+    logmsg("WARN: no chat entry time available; skipping chat_delete tests.");
+}
+
+// 9) Test clear_device without token -> expect csrf failure
+logmsg("[9] Testing clear_device.php without token (expect csrf failure)...");
+$clearUrl = rtrim($base, '/') . '/clear_device.php';
+$postFields = http_build_query(['matric'=>'test-matric-123']);
+$r = curl_request('POST', $clearUrl, ['body'=>$postFields, 'headers'=>['Content-Type: application/x-www-form-urlencoded']]);
+$parts = preg_split("/\r?\n\r?\n/", $r['raw'], 2);
+$respBody = $parts[1] ?? $r['raw'];
+$json = json_decode($respBody, true);
+$ok_clear_no_token = is_array($json) && isset($json['message']) && $json['message']==='csrf_failed';
+if ($ok_clear_no_token) logmsg("PASS: clear_device rejected request without token."); else { echo "FAIL: clear_device did NOT reject request without token. Response: $respBody\n"; exit(9); }
+
+// 10) Test clear_device with token -> expect success
+logmsg("[10] Testing clear_device.php WITH token (expect success)...");
+$postFields = http_build_query(['matric'=>'test-matric-123','csrf_token'=>$token]);
+$r = curl_request('POST', $clearUrl, ['body'=>$postFields, 'headers'=>['Content-Type: application/x-www-form-urlencoded']]);
+$parts = preg_split("/\r?\n\r?\n/", $r['raw'], 2);
+$respBody = $parts[1] ?? $r['raw'];
+$json = json_decode($respBody, true);
+if (is_array($json) && isset($json['ok']) && $json['ok']===true) {
+    logmsg("PASS: clear_device accepted request with token.");
+} else { echo "FAIL: clear_device did not accept request with token. Response: $respBody\n"; exit(10); }
 
 logmsg("All CSRF tests passed.");
 exit(0);
