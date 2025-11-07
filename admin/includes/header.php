@@ -80,6 +80,8 @@
   }
 ?>
 <script>
+  // expose admin root to client scripts so relative redirects are safe
+  var ADMIN_ROOT = <?= json_encode($adminRoot) ?>;
   // make CSRF token available to admin scripts
   window.ADMIN_CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
   // Lightweight helpers so pages can replace native alert/confirm easily
@@ -113,7 +115,8 @@
     function doRedirect(){
       try{
         var from = encodeURIComponent(window.location.pathname + window.location.search || '');
-        window.location.replace('timeout.php' + (from ? ('?from=' + from) : ''));
+        var target = (typeof ADMIN_ROOT === 'string' && ADMIN_ROOT ? ADMIN_ROOT + '/timeout.php' : 'timeout.php');
+        window.location.replace(target + (from ? ('?from=' + from) : ''));
       }catch(e){ window.location.replace('timeout.php'); }
     }
 
