@@ -223,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
           <?php endif; ?>
         </div>
 
-  <div style="margin-top:12px;color:#6b7280;font-size:0.9rem;">Tip: If automatic email sending doesn't work you can download the generated CSV using the Download link and send it from your email account. For automatic delivery, ask your system administrator to configure the server's email/SMTP settings — I can provide step-by-step instructions if you want.</div>
+  <div style="margin-top:12px;color:#6b7280;font-size:0.9rem;">Tip: If automatic email sending doesn't work you can download the generated CSV using the Download link and send it from your email account. For automatic delivery, ask your system administrator to configure the server's email/SMTP settings</div>
       </form>
     </div>
   </div>
