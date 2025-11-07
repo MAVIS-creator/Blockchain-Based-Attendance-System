@@ -15,6 +15,8 @@ function csrf_token($regenerate = false) {
     try { $tok = bin2hex(random_bytes(24)); } catch (Exception $e) { $tok = bin2hex(openssl_random_pseudo_bytes(24)); }
     $_SESSION['_csrf']['token'] = $tok;
     $_SESSION['_csrf']['expires'] = time() + $ttl;
+    // Backwards-compatible alias used by some pages
+    $_SESSION['csrf_token'] = $tok;
     return $tok;
 }
 
