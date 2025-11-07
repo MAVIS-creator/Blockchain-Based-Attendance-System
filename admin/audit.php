@@ -94,11 +94,25 @@ if (file_exists($auditFile)) {
 
 <script>
 document.getElementById('purgeOld').addEventListener('click', function(){
-  if (!confirm('Purge audit entries older than <?= intval($settings['audit_retention_days']) ?> days?')) return; // fallback if adminConfirm unavailable
-  var body = new URLSearchParams(); body.append('action','purge'); body.append('days','<?= intval($settings['audit_retention_days']) ?>');
-  if (window.ADMIN_CSRF_TOKEN) body.append('csrf_token', window.ADMIN_CSRF_TOKEN);
-  fetch('audit.php', { method:'POST', body: body }).then(r=>r.json()).then(j=>{
-    if (j && j.ok) location.reload(); else alert('Purge failed: ' + JSON.stringify(j));
-  }).catch(function(){ alert('Purge request failed'); });
+  var days = <?= intval($settings['audit_retention_days']) ?>;
+  function doPurge(){
+    var body = new URLSearchParams(); body.append('action','purge'); body.append('days', String(days));
+    if (window.ADMIN_CSRF_TOKEN) body.append('csrf_token', window.ADMIN_CSRF_TOKEN);
+    fetch('audit.php', { method:'POST', body: body }).then(r=>r.json()).then(function(j){
+      if (j && j.ok) {
+        if (window.adminAlert) { window.adminAlert('Purge complete', 'Removed '+(j.purged||0)+' entries', 'success').then(()=>location.reload()); }
+        else if (window.Swal) { Swal.fire('Purge complete','Removed '+(j.purged||0)+' entries','success').then(()=>location.reload()); }
+        else { location.reload(); }
+      } else {
+        if (window.adminAlert) window.adminAlert('Purge failed', JSON.stringify(j),'error'); else alert('Purge failed: '+JSON.stringify(j));
+      }
+    }).catch(function(){ if (window.adminAlert) window.adminAlert('Purge failed','Network or server error','error'); else alert('Purge request failed'); });
+  }
+
+  if (window.adminConfirm) {
+    window.adminConfirm('Purge audit entries', 'Purge audit entries older than '+days+' days?').then(function(ok){ if (!ok) return; doPurge(); });
+  } else {
+    if (!confirm('Purge audit entries older than '+days+' days?')) return; doPurge();
+  }
 });
 </script>
