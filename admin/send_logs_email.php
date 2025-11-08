@@ -22,34 +22,22 @@ $error = '';
 $zipPath = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST'){
-    $type = $_POST['type'] ?? 'date';
-    $value = trim($_POST['value'] ?? '');
-    $recipient = trim($_POST['email'] ?? '');
+  // inputs
+  $recipient = trim($_POST['email'] ?? '');
+  $format = $_POST['format'] ?? 'csv';
+  $log_kind = $_POST['log_kind'] ?? 'all';
+  $date_from = trim($_POST['date_from'] ?? '');
+  $date_to = trim($_POST['date_to'] ?? '');
+  $course = trim($_POST['course'] ?? '');
+  $cols = isset($_POST['cols']) && is_array($_POST['cols']) ? $_POST['cols'] : ['name','matric','action','datetime','course'];
 
     if (!$recipient || !filter_var($recipient, FILTER_VALIDATE_EMAIL)){
         $error = 'Please provide a valid recipient email.';
     } else {
-        // gather files matching
-        $matches = [];
-        if ($type === 'date'){
-            // match files that contain the date string (YYYY-MM-DD or YYYYMMDD)
-            foreach ($available as $fn){
-                if (strpos($fn, $value) !== false) $matches[] = $logsDir . '/' . $fn;
-            }
-        } else {
-            // match files that contain the course code
-            foreach ($available as $fn){
-                if (stripos($fn, $value) !== false) $matches[] = $logsDir . '/' . $fn;
-            }
-        }
+        // Build rows from all log files and filter by inputs
+        $rows = [];
 
-    if (empty($matches)){
-      $error = 'No matching log files or lines found for the given filter.';
-    } else {
-      // Build CSV from matched files/lines. CSV is more user-friendly than a raw ZIP.
-      $rows = [];
-
-      $parse_line = function($line){
+        $parse_line = function($line){
         $parts = array_map('trim', explode('|', $line));
         // Normalize to expected columns
         $cols = array_pad($parts, 10, '');
@@ -66,33 +54,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
           'reason' => $cols[9]
         ];
       };
-
-      // For date filter we read files that match the date and include all their lines
-      if ($type === 'date'){
-        foreach ($matches as $m){
-          if (!is_readable($m)) continue;
-          $lines = file($m, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-          foreach ($lines as $ln){
-            $rows[] = $parse_line($ln);
-          }
-        }
-      } else {
-        // course: scan files and include only lines that mention the course (case-insensitive)
+        // read all files and collect lines
         foreach ($available as $fn){
           $path = $logsDir . '/' . $fn;
           if (!is_readable($path)) continue;
           $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
           foreach ($lines as $ln){
-            if (stripos($ln, $value) !== false){
-              $rows[] = $parse_line($ln);
+            $rows[] = $parse_line($ln);
+          }
+        }
+
+        if (empty($rows)){
+          $error = 'No log files found.';
+        } else {
+          // apply filters: date range, course, log_kind
+          $filtered = [];
+          foreach ($rows as $r){
+            // datetime parse
+            $dt = null;
+            if (!empty($r['datetime'])){
+              // try common formats
+              $dt = strtotime($r['datetime']);
             }
+            // date range filter
+            if ($date_from){
+              $fromTs = strtotime($date_from.' 00:00:00');
+              if ($dt === false || $dt < $fromTs) continue;
+            }
+            if ($date_to){
+              $toTs = strtotime($date_to.' 23:59:59');
+              if ($dt === false || $dt > $toTs) continue;
+            }
+            // course filter
+            if ($course){
+              if (stripos($r['course'] . ' ' . implode(' ', $r), $course) === false && stripos(implode('|',$r), $course) === false) continue;
+            }
+            // log kind filter
+            $lineText = implode(' | ', $r);
+            $isFailed = false;
+            if (stripos($lineText,'failed') !== false || stripos($lineText,'invalid') !== false) $isFailed = true;
+            if ($log_kind === 'failed' && !$isFailed) continue;
+            if ($log_kind === 'successful' && $isFailed) continue;
+
+            $filtered[] = $r;
+          }
+
+          if (empty($filtered)){
+            $error = 'No log entries matched the filter.';
+          } else {
+            // use filtered rows going forward
+            $rows = $filtered;
           }
         }
       }
-
-      if (empty($rows)){
-        $error = 'No log entries matched the filter.';
-      } else {
         // determine filename components
         $safeVal = preg_replace('/[^a-zA-Z0-9_-]/', '_', $value ?: 'logs');
         // determine date for filename: use provided date or date from first row
@@ -121,28 +135,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
           }
           fclose($fh);
 
-          // attempt to send via PHPMailer if available
+        // attempt to send via PHPMailer if available
           $sent = false;
           $mailerInfo = '';
+        $format = $_POST['format'] ?? 'csv';
           if (file_exists(__DIR__ . '/vendor/autoload.php')){
             require_once __DIR__ . '/vendor/autoload.php';
-            if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
+      // PDF generation support using Dompdf if requested
+      $generatedPath = '';
+      if ($format === 'pdf'){
+        // try Dompdf
+        if (class_exists('Dompdf\\Dompdf')){
+          try {
+            $dompdf = new \Dompdf\Dompdf();
+            $html = '<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ddd;padding:8px;font-size:12px;}th{background:#f3f4f6;text-align:left;}</style></head><body>';
+            $html .= '<h2>Attendance export: '.htmlspecialchars($safeVal).' - '.htmlspecialchars($dateForName).'</h2>';
+            $html .= '<table><thead><tr>';
+            $cols = ['Name','Matric','Action','Token','IP','Status','Datetime','UserAgent','Course','Reason'];
+            foreach ($cols as $c) $html .= '<th>'.htmlspecialchars($c).'</th>';
+            $html .= '</tr></thead><tbody>';
+            foreach ($rows as $r){
+              $html .= '<tr>';
+              foreach (['name','matric','action','token','ip','status','datetime','user_agent','course','reason'] as $k){
+                $html .= '<td>'.htmlspecialchars(mb_substr($r[$k] ?? '',0,500)).'</td>';
+              }
+              $html .= '</tr>';
+            }
+            $html .= '</tbody></table></body></html>';
+            $dompdf->setPaper('A4', 'landscape');
+            $dompdf->loadHtml($html);
+            $dompdf->render();
+            $pdfName = "attendance_{$safeVal}_{$dateForName}.pdf";
+            $pdfPath = $exportDir . '/' . $pdfName;
+            file_put_contents($pdfPath, $dompdf->output());
+            $generatedPath = $pdfPath;
+          } catch (\Exception $e){
+            $mailerInfo .= 'PDF generation failed: '. $e->getMessage() . ' ';
+          }
+        } else {
+          $mailerInfo .= 'PDF generation not available (dompdf missing). ';
+        }
+      } else {
+        $generatedPath = $csvPath;
+      }
+      if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
               try {
-                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-                // note: SMTP should be configured by an admin for reliable delivery
-                $mail->setFrom('no-reply@example.com', 'Attendance System');
-                $mail->addAddress($recipient);
-                $mail->Subject = "Attendance export: {$safeVal} - {$dateForName}";
-                $mail->Body = "Please find attached the attendance export for {$safeVal} on {$dateForName}.";
-                $mail->addAttachment($csvPath, $csvName);
-                $mail->send();
-                $sent = true;
-                $success = 'Email sent with attendance CSV attached.';
+        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+              // note: SMTP should be configured by an admin for reliable delivery
+              $mail->setFrom('no-reply@example.com', 'Attendance System');
+              $mail->addAddress($recipient);
+              $mail->Subject = "Attendance export: {$safeVal} - {$dateForName}";
+              $mail->Body = "Please find attached the attendance export for {$safeVal} on {$dateForName}.";
+              if (!empty($generatedPath) && file_exists($generatedPath)) {
+                $mail->addAttachment($generatedPath, basename($generatedPath));
+              } else {
+                // fall back to CSV if PDF not generated and csv exists
+                if (isset($csvPath) && file_exists($csvPath)) $mail->addAttachment($csvPath, basename($csvPath));
+              }
+              $mail->send();
+              $sent = true;
+              $success = 'Email sent with attendance export attached.';
               } catch (\Exception $e){
                 $error = 'PHPMailer failed to send: ' . $e->getMessage();
               }
             } else {
-              $mailerInfo = 'PHPMailer not found in vendor; ask your system admin to run: composer require phpmailer/phpmailer';
+            $mailerInfo = 'PHPMailer not found in vendor; ask your system admin to run: composer require phpmailer/phpmailer';
             }
           } else {
             $mailerInfo = 'Automatic email not available: no composer autoloader (vendor/autoload.php).';

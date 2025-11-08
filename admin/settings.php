@@ -99,6 +99,22 @@ if (!file_exists($settingsFile)) {
     'auto_backup' => true,
     'backup_retention' => 10,
     'encrypt_logs' => false
+    ,
+    // SMTP & auto-send defaults
+    'smtp' => [
+      'host' => '',
+      'port' => 587,
+      'user' => '',
+      'pass' => '',
+      'secure' => 'tls',
+      'from_email' => 'no-reply@example.com',
+      'from_name' => 'Attendance System'
+    ],
+    'auto_send' => [
+      'enabled' => false,
+      'recipient' => '',
+      'format' => 'csv'
+    ]
   ];
   save_settings($settingsFile, $keyFile, $default, false);
 }
@@ -219,6 +235,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $settings['backup_retention'] = $backupRetention;
   $settings['encrypt_logs'] = isset($_POST['encrypt_logs']) && $_POST['encrypt_logs'] === '1';
 
+        // SMTP & auto-send
+        $settings['smtp'] = $settings['smtp'] ?? [];
+        $settings['smtp']['host'] = trim($_POST['smtp_host'] ?? $settings['smtp']['host'] ?? '');
+        $settings['smtp']['port'] = intval($_POST['smtp_port'] ?? $settings['smtp']['port'] ?? 587);
+        $settings['smtp']['user'] = trim($_POST['smtp_user'] ?? $settings['smtp']['user'] ?? '');
+        $settings['smtp']['pass'] = trim($_POST['smtp_pass'] ?? $settings['smtp']['pass'] ?? '');
+        $settings['smtp']['secure'] = trim($_POST['smtp_secure'] ?? $settings['smtp']['secure'] ?? 'tls');
+        $settings['smtp']['from_email'] = trim($_POST['smtp_from_email'] ?? $settings['smtp']['from_email'] ?? 'no-reply@example.com');
+        $settings['smtp']['from_name'] = trim($_POST['smtp_from_name'] ?? $settings['smtp']['from_name'] ?? 'Attendance System');
+
+        $settings['auto_send'] = $settings['auto_send'] ?? [];
+        $settings['auto_send']['enabled'] = isset($_POST['auto_send_enabled']) && $_POST['auto_send_enabled'] === '1';
+        $settings['auto_send']['recipient'] = trim($_POST['auto_send_recipient'] ?? $settings['auto_send']['recipient'] ?? '');
+        $settings['auto_send']['format'] = trim($_POST['auto_send_format'] ?? $settings['auto_send']['format'] ?? 'csv');
+
         // save (respect encryption flag)
         save_settings($settingsFile, $keyFile, $settings, $settings['encrypted_settings'] ?? false);
 
@@ -335,6 +366,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div style="display:flex;gap:12px;align-items:center;">
       <button type="submit" name="save_settings" style="padding:8px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Save Advanced</button>
       <div style="flex:1;color:#6b7280;font-size:0.95rem;">Use these controls to protect and manage system-wide behavior. Note: enabling encryption will store settings encrypted on disk (a key file will be created).</div>
+    </div>
+  </form>
+
+  <hr style="margin:18px 0;">
+
+  <h3>Email & Auto-send</h3>
+  <form method="POST" style="max-width:900px;display:flex;flex-direction:column;gap:12px;">
+    <?php csrf_field(); ?>
+    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
+      <legend style="font-weight:600;padding:0 6px;">SMTP Settings</legend>
+      <label style="display:block;margin-bottom:8px;">Host <input type="text" name="smtp_host" value="<?=htmlspecialchars($settings['smtp']['host'] ?? '')?>" style="padding:8px;width:100%;"></label>
+      <label style="display:block;margin-bottom:8px;">Port <input type="number" name="smtp_port" value="<?=htmlspecialchars($settings['smtp']['port'] ?? 587)?>" style="padding:8px;width:120px;"></label>
+      <label style="display:block;margin-bottom:8px;">User <input type="text" name="smtp_user" value="<?=htmlspecialchars($settings['smtp']['user'] ?? '')?>" style="padding:8px;width:100%;"></label>
+      <label style="display:block;margin-bottom:8px;">Password <input type="password" name="smtp_pass" value="<?=htmlspecialchars($settings['smtp']['pass'] ?? '')?>" style="padding:8px;width:100%;"></label>
+      <label style="display:block;margin-bottom:8px;">Security <select name="smtp_secure"><option value="tls" <?=($settings['smtp']['secure'] ?? 'tls')==='tls'?'selected':''?>>TLS</option><option value="ssl" <?=($settings['smtp']['secure'] ?? '')==='ssl'?'selected':''?>>SSL</option></select></label>
+      <label style="display:block;margin-bottom:8px;">From email <input type="email" name="smtp_from_email" value="<?=htmlspecialchars($settings['smtp']['from_email'] ?? 'no-reply@example.com')?>" style="padding:8px;width:100%;"></label>
+      <label style="display:block;margin-bottom:8px;">From name <input type="text" name="smtp_from_name" value="<?=htmlspecialchars($settings['smtp']['from_name'] ?? 'Attendance System')?>" style="padding:8px;width:100%;"></label>
+    </fieldset>
+
+    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
+      <legend style="font-weight:600;padding:0 6px;">Auto-send logs</legend>
+      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="auto_send_enabled" value="1" <?=($settings['auto_send']['enabled'] ?? false)?'checked':''?>> Enable automatic sending of logs after a class window ends</label>
+      <label style="display:block;margin-bottom:8px;">Recipient email <input type="email" name="auto_send_recipient" value="<?=htmlspecialchars($settings['auto_send']['recipient'] ?? '')?>" style="padding:8px;width:100%;"></label>
+      <label style="display:block;margin-bottom:8px;">Default format <select name="auto_send_format"><option value="csv" <?=($settings['auto_send']['format'] ?? 'csv')==='csv'?'selected':''?>>CSV</option><option value="pdf" <?=($settings['auto_send']['format'] ?? '')==='pdf'?'selected':''?>>PDF</option></select></label>
+      <p style="color:#6b7280;font-size:0.9rem;">To enable automatic sending, configure SMTP above and a recipient. Then schedule the helper script (auto_send_logs.php) to run after class windows using your OS scheduler (Task Scheduler on Windows or cron on Linux). See the help link for instructions.</p>
+    </fieldset>
+
+    <div style="display:flex;gap:12px;align-items:center;">
+      <button type="submit" name="save_settings" style="padding:8px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Save Email Settings</button>
     </div>
   </form>
 
