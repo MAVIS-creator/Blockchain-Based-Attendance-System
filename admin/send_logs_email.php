@@ -28,6 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
     $log_kind = $_POST['log_kind'] ?? 'all';
     $date_from = trim($_POST['date_from'] ?? '');
     $date_to = trim($_POST['date_to'] ?? '');
+    $time_from = trim($_POST['time_from'] ?? '');
+    $time_to = trim($_POST['time_to'] ?? '');
     $course = trim($_POST['course'] ?? '');
     $cols = isset($_POST['cols']) && is_array($_POST['cols']) ? $_POST['cols'] : ['name','matric','action','datetime','course'];
 
@@ -68,11 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
             foreach ($rows as $r){
                 $dt = !empty($r['datetime']) ? strtotime($r['datetime']) : false;
                 if ($date_from){
-                    $fromTs = strtotime($date_from . ' 00:00:00');
+                    $fromStr = $date_from . ' ' . ($time_from ?: '00:00:00');
+                    $fromTs = strtotime($fromStr);
                     if ($dt === false || $dt < $fromTs) continue;
                 }
                 if ($date_to){
-                    $toTs = strtotime($date_to . ' 23:59:59');
+                    $toStr = $date_to . ' ' . ($time_to ?: '23:59:59');
+                    $toTs = strtotime($toStr);
                     if ($dt === false || $dt > $toTs) continue;
                 }
                 if ($course){
@@ -273,8 +277,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
 
         <div style="display:flex;gap:12px;margin-top:12px;">
           <label style="flex:0 0 120px;align-self:center;">Date or Range</label>
-          <input type="date" name="date_from" class="form-control" style="flex:0 0 180px;"> 
-          <input type="date" name="date_to" class="form-control" style="flex:0 0 180px;">
+                    <input type="date" name="date_from" class="form-control" style="flex:0 0 160px;"> 
+                    <input type="time" name="time_from" class="form-control" style="flex:0 0 110px;" placeholder="From">
+                    <input type="date" name="date_to" class="form-control" style="flex:0 0 160px;">
+                    <input type="time" name="time_to" class="form-control" style="flex:0 0 110px;" placeholder="To">
           <input type="text" name="course" placeholder="Course code (optional)" class="form-control" style="flex:1;" />
         </div>
 

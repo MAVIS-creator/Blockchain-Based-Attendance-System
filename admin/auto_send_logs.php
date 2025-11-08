@@ -29,16 +29,22 @@ if (empty($settings['auto_send']['enabled'])) exit("Auto-send not enabled\n");
 $recipient = $settings['auto_send']['recipient'] ?? '';
 if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) exit("No valid recipient configured\n");
 
-// Determine date window - default: yesterday
-$date = $argv[1] ?? date('Y-m-d', strtotime('-1 day'));
+// Determine date window - default: today (script intended to run at end of class window)
+$date = $argv[1] ?? date('Y-m-d');
 $format = $settings['auto_send']['format'] ?? 'csv';
+
+// determine time window from settings if available
+$time_from = $settings['checkin_time_start'] ?? ($settings['checkin_time'] ?? '');
+$time_to = $settings['checkin_time_end'] ?? ($settings['checkin_end'] ?? '');
 
 // Reuse send_logs_email logic by making an internal POST-like call
 $_POST = [
   'email' => $recipient,
   'format' => $format,
   'date_from' => $date,
+  'time_from' => $time_from ?? '',
   'date_to' => $date,
+  'time_to' => $time_to ?? '',
   'course' => '',
   'cols' => ['name','matric','action','datetime','course']
 ];
