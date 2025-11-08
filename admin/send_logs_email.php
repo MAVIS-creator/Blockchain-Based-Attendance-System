@@ -179,28 +179,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
         $generatedPath = $csvPath;
       }
       if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
-              try {
-        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-              // note: SMTP should be configured by an admin for reliable delivery
-              $mail->setFrom('no-reply@example.com', 'Attendance System');
-              $mail->addAddress($recipient);
-              $mail->Subject = "Attendance export: {$safeVal} - {$dateForName}";
-              $mail->Body = "Please find attached the attendance export for {$safeVal} on {$dateForName}.";
-              if (!empty($generatedPath) && file_exists($generatedPath)) {
-                $mail->addAttachment($generatedPath, basename($generatedPath));
-              } else {
-                // fall back to CSV if PDF not generated and csv exists
-                if (isset($csvPath) && file_exists($csvPath)) $mail->addAttachment($csvPath, basename($csvPath));
-              }
-              $mail->send();
-              $sent = true;
-              $success = 'Email sent with attendance export attached.';
-              } catch (\Exception $e){
-                $error = 'PHPMailer failed to send: ' . $e->getMessage();
-              }
-            } else {
-            $mailerInfo = 'PHPMailer not found in vendor; ask your system admin to run: composer require phpmailer/phpmailer';
+        try {
+          $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+          // load admin settings and .env
+          $adminSettings = [];
+          if (file_exists(__DIR__ . '/settings.json')){
+            $adminSettings = json_decode(file_get_contents(__DIR__ . '/settings.json'), true) ?: [];
+          }
+          $env = [];
+          $envPath = __DIR__ . '/../.env';
+          if (file_exists($envPath)){
+            $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $l){
+              if (strpos(trim($l),'#')===0) continue;
+              if (!strpos($l,'=')) continue;
+              list($k,$v) = explode('=', $l, 2);
+              $env[trim($k)] = trim(trim($v),"\"'");
             }
+          }
+
+          // prefer .env SMTP settings, fallback to admin settings
+          $smtpHost = $env['SMTP_HOST'] ?? $adminSettings['smtp']['host'] ?? '';
+          if ($smtpHost){
+            $mail->isSMTP();
+            $mail->Host = $smtpHost;
+            $mail->Port = intval($env['SMTP_PORT'] ?? $adminSettings['smtp']['port'] ?? 587);
+            $secure = $env['SMTP_SECURE'] ?? $adminSettings['smtp']['secure'] ?? '';
+            if ($secure) $mail->SMTPSecure = $secure;
+            $mail->SMTPAuth = true;
+            $mail->Username = $env['SMTP_USER'] ?? $adminSettings['smtp']['user'] ?? '';
+            $mail->Password = $env['SMTP_PASS'] ?? $adminSettings['smtp']['pass'] ?? '';
+          }
+
+          $fromEmail = $env['FROM_EMAIL'] ?? $adminSettings['smtp']['from_email'] ?? 'no-reply@example.com';
+          $fromName = $env['FROM_NAME'] ?? $adminSettings['smtp']['from_name'] ?? 'Attendance System';
+          $mail->setFrom($fromEmail, $fromName);
+          $mail->addAddress($recipient);
+          $mail->Subject = "Attendance export: {$safeVal} - {$dateForName}";
+          $mail->Body = "Please find attached the attendance export for {$safeVal} on {$dateForName}.";
+          if (!empty($generatedPath) && file_exists($generatedPath)) {
+            $mail->addAttachment($generatedPath, basename($generatedPath));
+          } else {
+            if (isset($csvPath) && file_exists($csvPath)) $mail->addAttachment($csvPath, basename($csvPath));
+          }
+          $mail->send();
+          $sent = true;
+          $success = 'Email sent with attendance export attached.';
+        } catch (\Exception $e){
+          $error = 'PHPMailer failed to send: ' . $e->getMessage();
+        }
+      } else {
+        $mailerInfo = 'PHPMailer not found in vendor; ask your system admin to run: composer require phpmailer/phpmailer';
+      }
           } else {
             $mailerInfo = 'Automatic email not available: no composer autoloader (vendor/autoload.php).';
           }
