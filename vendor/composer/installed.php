@@ -3,13 +3,22 @@
         'name' => 'mavis-creator/attendance',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '09226ba8a8ca5bc5e2969789e980db533d65ab8d',
+        'reference' => '85f98998ed02bd5eacc1f63dedf4021b88b427ff',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
         'dev' => true,
     ),
     'versions' => array(
+        'dompdf/dompdf' => array(
+            'pretty_version' => 'v3.1.4',
+            'version' => '3.1.4.0',
+            'reference' => 'db712c90c5b9868df3600e64e68da62e78a34623',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../dompdf/dompdf',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'dompdf/php-font-lib' => array(
             'pretty_version' => '1.0.1',
             'version' => '1.0.1.0',
@@ -94,7 +103,7 @@
         'mavis-creator/attendance' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '09226ba8a8ca5bc5e2969789e980db533d65ab8d',
+            'reference' => '85f98998ed02bd5eacc1f63dedf4021b88b427ff',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
