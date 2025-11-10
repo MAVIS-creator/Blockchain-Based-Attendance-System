@@ -48,6 +48,23 @@ if (is_dir($logsDir)){
             $available[] = $meta;
         }
     }
+
+        // Build groups (Date + Course) across all logs
+        $groupSummary = [];
+        foreach ($available as $m){
+            $lines = @file($m['path'], FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+            foreach ($lines as $ln){
+                $parts = array_map('trim', explode('|',$ln));
+                $parts = array_pad($parts,10,'');
+                $dt = $parts[6]; $dateOnly = null; if ($dt && preg_match('/(20\d{2}-\d{2}-\d{2})/',$dt,$md)) $dateOnly = $md[1]; else $dateOnly = ($m['date'] ?? date('Y-m-d'));
+                $course = $parts[8] !== '' ? $parts[8] : 'unknown';
+                $key = $dateOnly . '|' . $course;
+                if (!isset($groupSummary[$key])) $groupSummary[$key] = ['date'=>$dateOnly,'course'=>$course,'total'=>0,'failed'=>0,'files'=>[]];
+                $groupSummary[$key]['total']++;
+                $txt = strtolower($ln); if (strpos($txt,'failed') !== false || strpos($txt,'invalid') !== false) $groupSummary[$key]['failed']++;
+                $groupSummary[$key]['files'][$m['filename']] = true;
+            }
+        }
 }
 
 $success = '';
