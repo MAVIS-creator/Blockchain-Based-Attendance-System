@@ -8,12 +8,45 @@ $logsDir = __DIR__ . '/logs';
 $exportDir = __DIR__ . '/backups';
 if (!is_dir($exportDir)) @mkdir($exportDir, 0755, true);
 
+// discover log files and basic metadata
 $available = [];
-// scan logs directory for files (non-recursive)
 if (is_dir($logsDir)){
     $it = new DirectoryIterator($logsDir);
     foreach ($it as $f){
-        if ($f->isFile()) $available[] = $f->getFilename();
+        if ($f->isFile()){
+            $fn = $f->getFilename();
+            // skip php helper scripts and css
+            if (preg_match('/\.php$/i',$fn) || preg_match('/\.css$/i',$fn)) continue;
+            $full = $logsDir . '/' . $fn;
+            $meta = [
+                'filename' => $fn,
+                'path' => $full,
+                'size' => filesize($full),
+                'date' => null,
+                'courses' => [],
+                'entries' => 0,
+                'failed' => 0
+            ];
+            // attempt date from filename (YYYY-MM-DD)
+            if (preg_match('/(20\d{2}-\d{2}-\d{2})/',$fn,$m)) $meta['date'] = $m[1];
+            // light parse first 200 lines for courses and counts
+            $lines = @file($full, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+            $meta['entries'] = count($lines);
+            $courseSet = [];
+            $maxScan = 200; $scanned = 0;
+            foreach ($lines as $ln){
+                $parts = array_map('trim', explode('|',$ln));
+                if (isset($parts[8]) && $parts[8] !== '') $courseSet[$parts[8]] = true;
+                $failed = false;
+                $txt = strtolower($ln);
+                if (strpos($txt,'failed') !== false || strpos($txt,'invalid') !== false) $failed = true;
+                if ($failed) $meta['failed']++;
+                if (!$meta['date'] && isset($parts[6]) && preg_match('/(20\d{2}-\d{2}-\d{2})/',$parts[6],$md)) $meta['date'] = $md[1];
+                $scanned++; if ($scanned >= $maxScan) break;
+            }
+            $meta['courses'] = array_keys($courseSet);
+            $available[] = $meta;
+        }
     }
 }
 
@@ -30,204 +63,121 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
     $date_to = trim($_POST['date_to'] ?? '');
     $time_from = trim($_POST['time_from'] ?? '');
     $time_to = trim($_POST['time_to'] ?? '');
-    $course = trim($_POST['course'] ?? '');
+    $courseFilter = trim($_POST['course'] ?? '');
     $cols = isset($_POST['cols']) && is_array($_POST['cols']) ? $_POST['cols'] : ['name','matric','action','datetime','course'];
+    $selectedFiles = isset($_POST['selected_files']) && is_array($_POST['selected_files']) ? $_POST['selected_files'] : [];
+    $singleSend = isset($_POST['single_file']) ? trim($_POST['single_file']) : '';
+    if ($singleSend !== '') $selectedFiles = [$singleSend];
 
     if (!$recipient || !filter_var($recipient, FILTER_VALIDATE_EMAIL)){
         $error = 'Please provide a valid recipient email.';
     } else {
-        // collect rows from logs
-        $rows = [];
-        $parse_line = function($line){
-            $parts = array_map('trim', explode('|', $line));
-            $cols = array_pad($parts, 10, '');
-            return [
-                'name' => $cols[0],
-                'matric' => $cols[1],
-                'action' => $cols[2],
-                'token' => $cols[3],
-                'ip' => $cols[4],
-                'status' => $cols[5],
-                'datetime' => $cols[6],
-                'user_agent' => $cols[7],
-                'course' => $cols[8],
-                'reason' => $cols[9]
-            ];
-        };
+        // map metadata by filename for quick lookups
+        $metaIndex = [];
+        foreach ($available as $m) $metaIndex[$m['filename']] = $m;
 
-        foreach ($available as $fn){
-            $path = $logsDir . '/' . $fn;
-            if (!is_readable($path)) continue;
-            $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($lines as $ln) $rows[] = $parse_line($ln);
+        // if no selection, default to all
+        if (empty($selectedFiles)) $selectedFiles = array_keys($metaIndex);
+
+        // sanitize selection
+        $validSelection = [];
+        foreach ($selectedFiles as $sf){
+            if (isset($metaIndex[$sf])) $validSelection[] = $sf;
         }
+        $selectedFiles = $validSelection;
 
-        if (empty($rows)){
-            $error = 'No log files found.';
+        if (empty($selectedFiles)){
+            $error = 'No log files selected.';
         } else {
-            // apply filters
-            $filtered = [];
-            foreach ($rows as $r){
-                $dt = !empty($r['datetime']) ? strtotime($r['datetime']) : false;
-                if ($date_from){
-                    $fromStr = $date_from . ' ' . ($time_from ?: '00:00:00');
-                    $fromTs = strtotime($fromStr);
-                    if ($dt === false || $dt < $fromTs) continue;
-                }
-                if ($date_to){
-                    $toStr = $date_to . ' ' . ($time_to ?: '23:59:59');
-                    $toTs = strtotime($toStr);
-                    if ($dt === false || $dt > $toTs) continue;
-                }
-                if ($course){
-                    if (stripos($r['course'] ?? '', $course) === false && stripos(implode('|',$r), $course) === false) continue;
-                }
-                $lineText = implode(' | ', $r);
-                $isFailed = (stripos($lineText,'failed') !== false || stripos($lineText,'invalid') !== false);
-                if ($log_kind === 'failed' && !$isFailed) continue;
-                if ($log_kind === 'successful' && $isFailed) continue;
-                $filtered[] = $r;
-            }
-
-            if (empty($filtered)){
-                $error = 'No log entries matched the filter.';
-            } else {
-                $rows = $filtered;
-
-                // filename
-                $safeVal = preg_replace('/[^a-zA-Z0-9_-]/', '_', $course ?: 'logs');
-                if ($date_from && $date_to){
-                    $dateForName = $date_from . '_to_' . $date_to;
-                } elseif ($date_from){
-                    $dateForName = $date_from;
-                } else {
-                    // try to extract from first row
-                    $d = $rows[0]['datetime'] ?? '';
-                    if (preg_match('/(\d{4}-\d{2}-\d{2})/', $d, $mdate)) $dateForName = $mdate[1]; else $dateForName = date('Y-m-d');
-                }
-
-                // generate file
-                $csvName = "attendance_{$safeVal}_{$dateForName}.csv";
-                $csvPath = $exportDir . '/' . $csvName;
-
-                // write CSV (always create a CSV as fallback)
-                $fh = fopen($csvPath, 'w');
-                if (!$fh){
-                    $error = 'Could not create CSV file on server.';
-                } else {
-                    // write header using selected columns
-                    $headerMap = [
-                        'name'=>'Name','matric'=>'Matric','action'=>'Action','token'=>'Token','ip'=>'IP','status'=>'Status','datetime'=>'Datetime','user_agent'=>'UserAgent','course'=>'Course','reason'=>'Reason'
+            // parse lines from selected files
+            $rows = [];
+            foreach ($selectedFiles as $fn){
+                $path = $metaIndex[$fn]['path'];
+                if (!is_readable($path)) continue;
+                $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+                foreach ($lines as $line){
+                    $parts = array_map('trim', explode('|',$line));
+                    $parts = array_pad($parts,10,'');
+                    $rows[] = [
+                        'name'=>$parts[0],'matric'=>$parts[1],'action'=>$parts[2],'token'=>$parts[3],'ip'=>$parts[4],'status'=>$parts[5],'datetime'=>$parts[6],'user_agent'=>$parts[7],'course'=>$parts[8],'reason'=>$parts[9]
                     ];
-                    $header = [];
-                    foreach ($cols as $c) if (isset($headerMap[$c])) $header[] = $headerMap[$c];
-                    fputcsv($fh, $header);
-                    foreach ($rows as $r){
-                        $out = [];
-                        foreach ($cols as $c) $out[] = $r[$c] ?? '';
-                        fputcsv($fh, $out);
+                }
+            }
+            if (empty($rows)){
+                $error = 'Selected files contained no log entries.';
+            } else {
+                // filtering
+                $filtered = [];
+                foreach ($rows as $r){
+                    $dt = $r['datetime'] ? strtotime($r['datetime']) : false;
+                    if ($date_from){
+                        $fromTs = strtotime($date_from . ' ' . ($time_from ?: '00:00:00'));
+                        if ($dt === false || $dt < $fromTs) continue;
                     }
-                    fclose($fh);
-
-                    $generatedPath = $csvPath;
-
-                    // if PDF requested, try to generate
-                    $mailerInfo = '';
-                    if ($format === 'pdf'){
-                        if (file_exists(__DIR__ . '/vendor/autoload.php')){
-                            require_once __DIR__ . '/vendor/autoload.php';
-                            if (class_exists('Dompdf\\Dompdf')){
-                                try {
-                                    $dompdf = new \Dompdf\Dompdf();
-                                    $html = '<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ddd;padding:8px;font-size:12px;}th{background:#f3f4f6;text-align:left;}</style></head><body>';
-                                    $html .= '<h2>Attendance export: '.htmlspecialchars($safeVal).' - '.htmlspecialchars($dateForName).'</h2>';
-                                    $html .= '<table><thead><tr>';
-                                    foreach ($header as $h) $html .= '<th>'.htmlspecialchars($h).'</th>';
-                                    $html .= '</tr></thead><tbody>';
-                                    foreach ($rows as $r){
-                                        $html .= '<tr>';
-                                        foreach ($cols as $c) $html .= '<td>'.htmlspecialchars(mb_substr($r[$c] ?? '',0,500)).'</td>';
-                                        $html .= '</tr>';
-                                    }
-                                    $html .= '</tbody></table></body></html>';
-                                    $dompdf->setPaper('A4','landscape');
-                                    $dompdf->loadHtml($html);
-                                    $dompdf->render();
-                                    $pdfName = "attendance_{$safeVal}_{$dateForName}.pdf";
-                                    $pdfPath = $exportDir . '/' . $pdfName;
-                                    file_put_contents($pdfPath, $dompdf->output());
-                                    $generatedPath = $pdfPath;
-                                } catch (\Exception $e){
-                                    $mailerInfo .= 'PDF generation failed: '.$e->getMessage();
-                                }
-                            } else {
-                                $mailerInfo .= 'PDF generation not available (dompdf missing). ';
-                            }
-                        } else {
-                            $mailerInfo .= 'PDF generation not available (composer autoloader missing). ';
-                        }
+                    if ($date_to){
+                        $toTs = strtotime($date_to . ' ' . ($time_to ?: '23:59:59'));
+                        if ($dt === false || $dt > $toTs) continue;
                     }
-
-                    // attempt to send via PHPMailer
-                    $sent = false;
-                    if (file_exists(__DIR__ . '/vendor/autoload.php')){
-                        require_once __DIR__ . '/vendor/autoload.php';
-                        if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
-                            try {
-                                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-                                // load admin settings and .env
-                                $adminSettings = [];
-                                if (file_exists(__DIR__ . '/settings.json')){
-                                    $adminSettings = json_decode(file_get_contents(__DIR__ . '/settings.json'), true) ?: [];
-                                }
-                                $env = [];
-                                $envPath = __DIR__ . '/../.env';
-                                if (file_exists($envPath)){
-                                    $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                                    foreach ($lines as $l){
-                                        if (strpos(trim($l),'#')===0) continue;
-                                        if (!strpos($l,'=')) continue;
-                                        list($k,$v) = explode('=', $l, 2);
-                                        $env[trim($k)] = trim(trim($v),"\"'");
-                                    }
-                                }
-
-                                $smtpHost = $env['SMTP_HOST'] ?? $adminSettings['smtp']['host'] ?? '';
-                                if ($smtpHost){
-                                    $mail->isSMTP();
-                                    $mail->Host = $smtpHost;
-                                    $mail->Port = intval($env['SMTP_PORT'] ?? $adminSettings['smtp']['port'] ?? 587);
-                                    $secure = $env['SMTP_SECURE'] ?? $adminSettings['smtp']['secure'] ?? '';
-                                    if ($secure) $mail->SMTPSecure = $secure;
-                                    $mail->SMTPAuth = true;
-                                    $mail->Username = $env['SMTP_USER'] ?? $adminSettings['smtp']['user'] ?? '';
-                                    $mail->Password = $env['SMTP_PASS'] ?? $adminSettings['smtp']['pass'] ?? '';
-                                }
-
-                                $fromEmail = $env['FROM_EMAIL'] ?? $adminSettings['smtp']['from_email'] ?? 'no-reply@example.com';
-                                $fromName = $env['FROM_NAME'] ?? $adminSettings['smtp']['from_name'] ?? 'Attendance System';
-                                $mail->setFrom($fromEmail, $fromName);
-                                $mail->addAddress($recipient);
-                                $mail->Subject = "Attendance export: {$safeVal} - {$dateForName}";
-                                $mail->Body = "Please find attached the attendance export for {$safeVal} on {$dateForName}.";
-                                if (!empty($generatedPath) && file_exists($generatedPath)) $mail->addAttachment($generatedPath, basename($generatedPath));
-                                elseif (file_exists($csvPath)) $mail->addAttachment($csvPath, basename($csvPath));
-                                $mail->send();
-                                $sent = true;
-                                $success = 'Email sent with attendance export attached.';
-                            } catch (\Exception $e){
-                                $error = 'PHPMailer failed to send: ' . $e->getMessage();
-                            }
-                        } else {
-                            $mailerInfo = 'PHPMailer not found in vendor; ask your system admin to run: composer require phpmailer/phpmailer';
-                        }
+                    if ($courseFilter){
+                        if (stripos($r['course'] ?? '', $courseFilter) === false) continue;
+                    }
+                    $lineText = implode(' | ',$r);
+                    $isFailed = (stripos($lineText,'failed') !== false || stripos($lineText,'invalid') !== false);
+                    if ($log_kind === 'failed' && !$isFailed) continue;
+                    if ($log_kind === 'successful' && $isFailed) continue;
+                    $filtered[] = $r;
+                }
+                if (empty($filtered)){
+                    $error = 'No log entries matched the filters.';
+                } else {
+                    $rows = $filtered;
+                    // naming
+                    $safeCourse = preg_replace('/[^a-zA-Z0-9_-]/','_', $courseFilter ?: 'logs');
+                    if ($date_from && $date_to) $dateForName = $date_from . '_to_' . $date_to;
+                    elseif ($date_from) $dateForName = $date_from; else {
+                        $d = $rows[0]['datetime'] ?? '';
+                        if (preg_match('/(\d{4}-\d{2}-\d{2})/',$d,$md)) $dateForName = $md[1]; else $dateForName = date('Y-m-d');
+                    }
+                    $multiTag = count($selectedFiles) > 1 ? '_multi' : '';
+                    $baseName = "attendance_{$safeCourse}_{$dateForName}{$multiTag}";
+                    $csvPath = $exportDir . '/' . $baseName . '.csv';
+                    $fh = fopen($csvPath,'w');
+                    if (!$fh){
+                        $error = 'Server cannot create export file.';
                     } else {
-                        $mailerInfo = 'Automatic email not available: no composer autoloader (vendor/autoload.php).';
-                    }
-
-                    if (!$sent){
-                        $success = 'File created: ' . basename($generatedPath) . '. ' . ($mailerInfo ? $mailerInfo : '');
-                        $zipPath = $generatedPath;
+                        $headerMap = ['name'=>'Name','matric'=>'Matric','action'=>'Action','token'=>'Token','ip'=>'IP','status'=>'Status','datetime'=>'Datetime','user_agent'=>'UserAgent','course'=>'Course','reason'=>'Reason'];
+                        $header = []; foreach ($cols as $c) if (isset($headerMap[$c])) $header[] = $headerMap[$c];
+                        fputcsv($fh,$header);
+                        foreach ($rows as $r){
+                            $out = []; foreach ($cols as $c) $out[] = $r[$c] ?? ''; fputcsv($fh,$out);
+                        }
+                        fclose($fh);
+                        $generatedPath = $csvPath; $mailerInfo='';
+                        if ($format === 'pdf'){
+                            if (file_exists(__DIR__ . '/vendor/autoload.php')){ require_once __DIR__ . '/vendor/autoload.php'; if (class_exists('Dompdf\\Dompdf')){
+                                try { $dompdf = new \Dompdf\Dompdf(); $html = '<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ddd;padding:4px;font-size:11px;}th{background:#f3f4f6;text-align:left;}</style></head><body>';
+                                    $html .= '<h2>Attendance export</h2><p>Files: '.htmlspecialchars(implode(',',$selectedFiles)).'</p>';
+                                    $html .= '<table><thead><tr>'; foreach ($header as $h) $html .= '<th>'.htmlspecialchars($h).'</th>'; $html .= '</tr></thead><tbody>';
+                                    foreach ($rows as $r){ $html .= '<tr>'; foreach ($cols as $c) $html .= '<td>'.htmlspecialchars(mb_substr($r[$c] ?? '',0,500)).'</td>'; $html .= '</tr>'; }
+                                    $html .= '</tbody></table></body></html>'; $dompdf->setPaper('A4','landscape'); $dompdf->loadHtml($html); $dompdf->render(); $pdfPath = $exportDir . '/' . $baseName . '.pdf'; file_put_contents($pdfPath,$dompdf->output()); $generatedPath = $pdfPath; }
+                                catch (\Exception $e){ $mailerInfo .= 'PDF generation failed: '.$e->getMessage(); }
+                            } else { $mailerInfo .= 'dompdf missing. '; }
+                            } else { if ($format === 'pdf') $mailerInfo .= 'Composer autoload missing. '; }
+                        // send email via PHPMailer using .env + settings (env for SMTP details)
+                        $sent=false; if (file_exists(__DIR__ . '/vendor/autoload.php')){ require_once __DIR__ . '/vendor/autoload.php'; if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
+                            try { $mail = new \PHPMailer\PHPMailer\PHPMailer(true); $settings=[]; if (file_exists(__DIR__ . '/settings.json')) $settings = json_decode(file_get_contents(__DIR__ . '/settings.json'),true) ?: [];
+                                // load .env
+                                $env=[]; $envPath = __DIR__ . '/../.env'; if (file_exists($envPath)){ $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES); foreach ($lines as $l){ $t=trim($l); if ($t===''||strpos($t,'#')===0||strpos($t,'=')===false) continue; list($k,$v)=explode('=',$t,2); $env[trim($k)]=trim(trim($v),"\"'"); }}
+                                $smtpHost = $env['SMTP_HOST'] ?? $settings['smtp']['host'] ?? ''; if ($smtpHost){ $mail->isSMTP(); $mail->Host=$smtpHost; $mail->Port=intval($env['SMTP_PORT'] ?? $settings['smtp']['port'] ?? 587); $secure=$env['SMTP_SECURE'] ?? $settings['smtp']['secure'] ?? ''; if ($secure) $mail->SMTPSecure=$secure; $mail->SMTPAuth=true; $mail->Username=$env['SMTP_USER'] ?? $settings['smtp']['user'] ?? ''; $mail->Password=$env['SMTP_PASS'] ?? $settings['smtp']['pass'] ?? ''; }
+                                $fromEmail = $env['FROM_EMAIL'] ?? $settings['smtp']['from_email'] ?? 'no-reply@example.com'; $fromName = $settings['smtp']['from_name'] ?? ($env['FROM_NAME'] ?? 'Attendance System');
+                                $mail->setFrom($fromEmail, $fromName); $mail->addAddress($recipient);
+                                $mail->Subject = 'Attendance export ' . $dateForName . (count($selectedFiles)>1 ? ' (multiple files)' : '');
+                                $mail->Body = 'Attached attendance export generated from ' . count($selectedFiles) . ' file(s).';
+                                if (file_exists($generatedPath)) $mail->addAttachment($generatedPath, basename($generatedPath));
+                                $mail->send(); $sent=true; $success='Email sent with export.';
+                            } catch (\Exception $e){ $error='PHPMailer failed: '.$e->getMessage(); }
+                        } else { $mailerInfo .= 'PHPMailer missing. '; } } else { $mailerInfo .= 'Composer autoload missing. '; }
+                        if (!$sent){ $success = 'Export created: '.basename($generatedPath).'. '.($mailerInfo ? $mailerInfo : ''); $zipPath = $generatedPath; }
                     }
                 }
             }
@@ -256,54 +206,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
         <div class="msg success"><?php echo htmlspecialchars($success); ?></div>
       <?php endif; ?>
 
-      <form method="post">
-        <label>Recipient Email</label>
-        <input type="email" name="email" required class="form-control" />
-
-        <div style="display:flex;gap:12px;margin-top:12px;align-items:center;">
-          <label style="flex:0 0 120px;">Format</label>
-          <select name="format" class="form-control" style="flex:0 0 160px;">
-            <option value="csv">CSV (spreadsheet)</option>
-            <option value="pdf">PDF (readable report)</option>
-          </select>
-
-          <label style="flex:0 0 120px;text-align:right;">Log type</label>
-          <select name="log_kind" class="form-control" style="flex:0 0 160px;">
-            <option value="all">All</option>
-            <option value="successful">Successful only</option>
-            <option value="failed">Failed only</option>
-          </select>
-        </div>
-
-        <div style="display:flex;gap:12px;margin-top:12px;">
-          <label style="flex:0 0 120px;align-self:center;">Date or Range</label>
-                    <input type="date" name="date_from" class="form-control" style="flex:0 0 160px;"> 
-                    <input type="time" name="time_from" class="form-control" style="flex:0 0 110px;" placeholder="From">
-                    <input type="date" name="date_to" class="form-control" style="flex:0 0 160px;">
-                    <input type="time" name="time_to" class="form-control" style="flex:0 0 110px;" placeholder="To">
-          <input type="text" name="course" placeholder="Course code (optional)" class="form-control" style="flex:1;" />
-        </div>
-
-        <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <label style="flex:0 0 120px;">Columns</label>
-          <label><input type="checkbox" name="cols[]" value="name" checked> Name</label>
-          <label><input type="checkbox" name="cols[]" value="matric" checked> Matric</label>
-          <label><input type="checkbox" name="cols[]" value="action" checked> Action</label>
-          <label><input type="checkbox" name="cols[]" value="datetime" checked> Datetime</label>
-          <label><input type="checkbox" name="cols[]" value="course" checked> Course</label>
-          <label><input type="checkbox" name="cols[]" value="user_agent"> User Agent</label>
-          <label><input type="checkbox" name="cols[]" value="ip"> IP</label>
-        </div>
-
-        <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
-          <button class="btn btn-primary" type="submit">Create & Send</button>
-          <?php if ($zipPath && file_exists($zipPath)): ?>
-            <a class="btn" href="backups/<?php echo basename($zipPath); ?>" download>Download</a>
-          <?php endif; ?>
-        </div>
-
-  <div style="margin-top:12px;color:#6b7280;font-size:0.9rem;">Tip: If automatic email sending doesn't work you can download the generated CSV using the Download link and send it from your email account. For automatic delivery, ask your system administrator to configure the server's email/SMTP settings</div>
-      </form>
+            <form method="post">
+                <label>Recipient Email</label>
+                <input type="email" name="email" required class="form-control" />
+                <div style="display:flex;gap:12px;margin-top:12px;align-items:center;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:180px;">
+                        <label style="display:block;font-size:0.85rem;color:#555;">Format</label>
+                        <select name="format" class="form-control"><option value="csv">CSV (spreadsheet)</option><option value="pdf">PDF (readable report)</option></select>
+                    </div>
+                    <div style="flex:1;min-width:180px;">
+                        <label style="display:block;font-size:0.85rem;color:#555;">Log type</label>
+                        <select name="log_kind" class="form-control"><option value="all">All</option><option value="successful">Successful only</option><option value="failed">Failed only</option></select>
+                    </div>
+                    <div style="flex:1;min-width:180px;">
+                        <label style="display:block;font-size:0.85rem;color:#555;">Course filter (optional)</label>
+                        <input type="text" name="course" class="form-control" placeholder="Course code" />
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+                    <div><label style="display:block;font-size:0.85rem;color:#555;">Date from</label><input type="date" name="date_from" class="form-control" style="min-width:150px;"></div>
+                    <div><label style="display:block;font-size:0.85rem;color:#555;">Time from</label><input type="time" name="time_from" class="form-control" style="min-width:120px;"></div>
+                    <div><label style="display:block;font-size:0.85rem;color:#555;">Date to</label><input type="date" name="date_to" class="form-control" style="min-width:150px;"></div>
+                    <div><label style="display:block;font-size:0.85rem;color:#555;">Time to</label><input type="time" name="time_to" class="form-control" style="min-width:120px;"></div>
+                </div>
+                <fieldset style="margin-top:14px;padding:10px;border:1px solid #e5e7eb;border-radius:6px;">
+                    <legend style="font-weight:600;font-size:0.9rem;">Columns</legend>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:0.85rem;">
+                        <label><input type="checkbox" name="cols[]" value="name" checked> Name</label>
+                        <label><input type="checkbox" name="cols[]" value="matric" checked> Matric</label>
+                        <label><input type="checkbox" name="cols[]" value="action" checked> Action</label>
+                        <label><input type="checkbox" name="cols[]" value="datetime" checked> Datetime</label>
+                        <label><input type="checkbox" name="cols[]" value="course" checked> Course</label>
+                        <label><input type="checkbox" name="cols[]" value="user_agent"> User Agent</label>
+                        <label><input type="checkbox" name="cols[]" value="ip"> IP</label>
+                        <label><input type="checkbox" name="cols[]" value="reason"> Reason</label>
+                        <label><input type="checkbox" name="cols[]" value="status"> Status</label>
+                    </div>
+                </fieldset>
+                <h4 style="margin-top:18px;">Log files</h4>
+                <p style="color:#6b7280;font-size:0.85rem;margin-top:-6px;">Filter first, then select one or multiple files. Use the per-file Send button for an immediate single export.</p>
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <thead><tr style="background:#f3f4f6;">
+                        <th style="padding:6px;border:1px solid #ddd;">Select</th>
+                        <th style="padding:6px;border:1px solid #ddd;">Filename</th>
+                        <th style="padding:6px;border:1px solid #ddd;">Date</th>
+                        <th style="padding:6px;border:1px solid #ddd;">Courses</th>
+                        <th style="padding:6px;border:1px solid #ddd;">Entries</th>
+                        <th style="padding:6px;border:1px solid #ddd;">Failed</th>
+                        <th style="padding:6px;border:1px solid #ddd;">Actions</th>
+                    </tr></thead>
+                    <tbody>
+                        <?php foreach ($available as $m): ?>
+                            <tr>
+                                <td style="padding:4px;border:1px solid #ddd;text-align:center;"><input type="checkbox" name="selected_files[]" value="<?=htmlspecialchars($m['filename'])?>"></td>
+                                <td style="padding:4px;border:1px solid #ddd;white-space:nowrap;"><?=htmlspecialchars($m['filename'])?></td>
+                                <td style="padding:4px;border:1px solid #ddd;"><?=htmlspecialchars($m['date'] ?? 'n/a')?></td>
+                                <td style="padding:4px;border:1px solid #ddd;max-width:220px;"><?=htmlspecialchars(implode(', ',$m['courses']))?></td>
+                                <td style="padding:4px;border:1px solid #ddd;text-align:right;"><?= (int)$m['entries'] ?></td>
+                                <td style="padding:4px;border:1px solid #ddd;text-align:right;"><?= (int)$m['failed'] ?></td>
+                                <td style="padding:4px;border:1px solid #ddd;">
+                                    <button name="single_file" value="<?=htmlspecialchars($m['filename'])?>" style="padding:4px 8px;font-size:11px;background:#3b82f6;color:#fff;border:none;border-radius:4px;">Send this</button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <button class="btn btn-primary" type="submit" style="background:#2563eb;color:#fff;padding:8px 14px;border:none;border-radius:6px;">Create & Send Selected</button>
+                    <?php if ($zipPath && file_exists($zipPath)): ?>
+                        <a class="btn" href="backups/<?php echo basename($zipPath); ?>" download style="padding:8px 14px;border:1px solid #2563eb;color:#2563eb;border-radius:6px;text-decoration:none;">Download Export</a>
+                    <?php endif; ?>
+                </div>
+                <div style="margin-top:12px;color:#6b7280;font-size:0.9rem;">Tip: If automatic sending fails you can download the export and email manually. SMTP values come from <code>.env</code>. To automate daily sending use <code>auto_send_logs.php</code>.</div>
+            </form>
     </div>
   </div>
 </body>
