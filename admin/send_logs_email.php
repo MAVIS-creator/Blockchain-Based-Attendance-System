@@ -306,6 +306,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                                <h4 style="margin-top:28px;">Date & Course Groups (overview)</h4>
+                                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                                    <thead><tr style="background:#f3f4f6;">
+                                        <th style="padding:6px;border:1px solid #ddd;">Date</th>
+                                        <th style="padding:6px;border:1px solid #ddd;">Course</th>
+                                        <th style="padding:6px;border:1px solid #ddd;">Total Entries</th>
+                                        <th style="padding:6px;border:1px solid #ddd;">Failed</th>
+                                        <th style="padding:6px;border:1px solid #ddd;">Files Included</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        <?php foreach ($groupSummary as $g): ?>
+                                            <tr>
+                                                <td style="padding:4px;border:1px solid #ddd;white-space:nowrap;"><?=htmlspecialchars($g['date'])?></td>
+                                                <td style="padding:4px;border:1px solid #ddd;"><?=htmlspecialchars($g['course'])?></td>
+                                                <td style="padding:4px;border:1px solid #ddd;text-align:right;"><?= (int)$g['total'] ?></td>
+                                                <td style="padding:4px;border:1px solid #ddd;text-align:right;"><?= (int)$g['failed'] ?></td>
+                                                <td style="padding:4px;border:1px solid #ddd;max-width:260px;"><?=htmlspecialchars(implode(', ', array_keys($g['files'])))?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
                 <div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
                     <button class="btn btn-primary" type="submit" style="background:#2563eb;color:#fff;padding:8px 14px;border:none;border-radius:6px;">Create & Send Selected</button>
                     <?php if ($zipPath && file_exists($zipPath)): ?>
