@@ -54,6 +54,23 @@ $success = '';
 $error = '';
 $zipPath = '';
 
+// defaults from settings and .env for convenience
+$defaultRecipient = '';
+try {
+    $adminSettings = file_exists(__DIR__ . '/settings.json') ? (json_decode(file_get_contents(__DIR__ . '/settings.json'), true) ?: []) : [];
+    $defaultRecipient = $adminSettings['auto_send']['recipient'] ?? '';
+    $envPath = __DIR__ . '/../.env';
+    if (file_exists($envPath)){
+        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $l){
+            $t = trim($l);
+            if ($t === '' || strpos($t,'#') === 0 || strpos($t,'=') === false) continue;
+            list($k,$v) = explode('=',$t,2);
+            if (trim($k) === 'AUTO_SEND_RECIPIENT' && !$defaultRecipient) $defaultRecipient = trim(trim($v),"\"'");
+        }
+    }
+} catch (\Throwable $e) { /* ignore */ }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST'){
     // inputs
     $recipient = trim($_POST['email'] ?? '');
@@ -209,7 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
 
             <form method="post">
                 <label>Recipient Email</label>
-                <input type="email" name="email" required class="form-control" />
+                <input type="email" name="email" required class="form-control" value="<?=htmlspecialchars($defaultRecipient)?>" />
                 <div style="display:flex;gap:12px;margin-top:12px;align-items:center;flex-wrap:wrap;">
                     <div style="flex:1;min-width:180px;">
                         <label style="display:block;font-size:0.85rem;color:#555;">Format</label>
