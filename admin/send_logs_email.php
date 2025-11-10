@@ -164,6 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
                             } else { $mailerInfo .= 'dompdf missing. '; }
                             } else { if ($format === 'pdf') $mailerInfo .= 'Composer autoload missing. '; }
                         // send email via PHPMailer using .env + settings (env for SMTP details)
+                        }
                         $sent=false; if (file_exists(__DIR__ . '/vendor/autoload.php')){ require_once __DIR__ . '/vendor/autoload.php'; if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
                             try { $mail = new \PHPMailer\PHPMailer\PHPMailer(true); $settings=[]; if (file_exists(__DIR__ . '/settings.json')) $settings = json_decode(file_get_contents(__DIR__ . '/settings.json'),true) ?: [];
                                 // load .env
