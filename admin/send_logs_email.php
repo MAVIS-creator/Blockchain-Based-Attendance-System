@@ -321,7 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-                                <h4 style="margin-top:28px;">Date & Course Groups (overview)</h4>
+                                                <h4 style="margin-top:28px;">Date & Course Groups (overview)</h4>
                                 <table style="width:100%;border-collapse:collapse;font-size:12px;">
                                     <thead><tr style="background:#f3f4f6;">
                                         <th style="padding:6px;border:1px solid #ddd;">Date</th>
@@ -329,15 +329,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
                                         <th style="padding:6px;border:1px solid #ddd;">Total Entries</th>
                                         <th style="padding:6px;border:1px solid #ddd;">Failed</th>
                                         <th style="padding:6px;border:1px solid #ddd;">Files Included</th>
+                                                        <th style="padding:6px;border:1px solid #ddd;">Select</th>
+                                                        <th style="padding:6px;border:1px solid #ddd;">Action</th>
                                     </tr></thead>
                                     <tbody>
-                                        <?php foreach ($groupSummary as $g): ?>
+                                                        <?php foreach ($groupSummary as $gkey => $g): ?>
                                             <tr>
                                                 <td style="padding:4px;border:1px solid #ddd;white-space:nowrap;"><?=htmlspecialchars($g['date'])?></td>
                                                 <td style="padding:4px;border:1px solid #ddd;"><?=htmlspecialchars($g['course'])?></td>
                                                 <td style="padding:4px;border:1px solid #ddd;text-align:right;"><?= (int)$g['total'] ?></td>
                                                 <td style="padding:4px;border:1px solid #ddd;text-align:right;"><?= (int)$g['failed'] ?></td>
                                                 <td style="padding:4px;border:1px solid #ddd;max-width:260px;"><?=htmlspecialchars(implode(', ', array_keys($g['files'])))?></td>
+                                                                <td style="padding:4px;border:1px solid #ddd;text-align:center;"><input type="checkbox" name="selected_groups[]" value="<?=htmlspecialchars($gkey)?>"></td>
+                                                                <td style="padding:4px;border:1px solid #ddd;"><button name="single_group" value="<?=htmlspecialchars($gkey)?>" style="padding:4px 8px;font-size:11px;background:#059669;color:#fff;border:none;border-radius:4px;">Send group</button></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
