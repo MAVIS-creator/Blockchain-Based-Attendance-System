@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
                         fclose($fh);
                         $generatedPath = $csvPath; $mailerInfo='';
                         if ($format === 'pdf'){
-                            if (file_exists(__DIR__ . '/vendor/autoload.php')){ require_once __DIR__ . '/vendor/autoload.php'; if (class_exists('Dompdf\\Dompdf')){
+                            if (file_exists(__DIR__ . '/../vendor/autoload.php')){ require_once __DIR__ . '/../vendor/autoload.php'; if (class_exists('Dompdf\\Dompdf')){
                                 try { $dompdf = new \Dompdf\Dompdf(); $html = '<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ddd;padding:4px;font-size:11px;}th{background:#f3f4f6;text-align:left;}</style></head><body>';
                                     $html .= '<h2>Attendance export</h2><p>Files: '.htmlspecialchars(implode(',',$selectedFiles)).'</p>';
                                     $html .= '<table><thead><tr>'; foreach ($header as $h) $html .= '<th>'.htmlspecialchars($h).'</th>'; $html .= '</tr></thead><tbody>';
@@ -214,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
                             } else { if ($format === 'pdf') $mailerInfo .= 'Composer autoload missing. '; }
                         // send email via PHPMailer using .env + settings (env for SMTP details)
                         }
-                        $sent=false; if (file_exists(__DIR__ . '/vendor/autoload.php')){ require_once __DIR__ . '/vendor/autoload.php'; if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
+                        $sent=false; if (file_exists(__DIR__ . '/../vendor/autoload.php')){ require_once __DIR__ . '/../vendor/autoload.php'; if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
                             try { $mail = new \PHPMailer\PHPMailer\PHPMailer(true); $settings=[]; if (file_exists(__DIR__ . '/settings.json')) $settings = json_decode(file_get_contents(__DIR__ . '/settings.json'),true) ?: [];
                                 // load .env
                                 $env=[]; $envPath = __DIR__ . '/../.env'; if (file_exists($envPath)){ $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES); foreach ($lines as $l){ $t=trim($l); if ($t===''||strpos($t,'#')===0||strpos($t,'=')===false) continue; list($k,$v)=explode('=',$t,2); $env[trim($k)]=trim(trim($v),"\"'"); }}
