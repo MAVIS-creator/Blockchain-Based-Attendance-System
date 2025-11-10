@@ -99,9 +99,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
     $time_to = trim($_POST['time_to'] ?? '');
     $courseFilter = trim($_POST['course'] ?? '');
     $cols = isset($_POST['cols']) && is_array($_POST['cols']) ? $_POST['cols'] : ['name','matric','action','datetime','course'];
-    $selectedFiles = isset($_POST['selected_files']) && is_array($_POST['selected_files']) ? $_POST['selected_files'] : [];
-    $singleSend = isset($_POST['single_file']) ? trim($_POST['single_file']) : '';
+        $selectedFiles = isset($_POST['selected_files']) && is_array($_POST['selected_files']) ? $_POST['selected_files'] : [];
+        $singleSend = isset($_POST['single_file']) ? trim($_POST['single_file']) : '';
+        $selectedGroups = isset($_POST['selected_groups']) && is_array($_POST['selected_groups']) ? $_POST['selected_groups'] : [];
+        $singleGroup = isset($_POST['single_group']) ? trim($_POST['single_group']) : '';
     if ($singleSend !== '') $selectedFiles = [$singleSend];
+        if ($singleGroup !== '') $selectedGroups = [$singleGroup];
 
     if (!$recipient || !filter_var($recipient, FILTER_VALIDATE_EMAIL)){
         $error = 'Please provide a valid recipient email.';
@@ -110,8 +113,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
         $metaIndex = [];
         foreach ($available as $m) $metaIndex[$m['filename']] = $m;
 
-        // if no selection, default to all
-        if (empty($selectedFiles)) $selectedFiles = array_keys($metaIndex);
+        // if no selection, default to all files (unless groups are selected)
+        if (empty($selectedFiles) && empty($selectedGroups)) $selectedFiles = array_keys($metaIndex);
 
         // sanitize selection
         $validSelection = [];
@@ -120,21 +123,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'){
         }
         $selectedFiles = $validSelection;
 
-        if (empty($selectedFiles)){
-            $error = 'No log files selected.';
-        } else {
+            if (empty($selectedFiles) && empty($selectedGroups)){
+                $error = 'No log files or groups selected.';
+            } else {
             // parse lines from selected files
             $rows = [];
-            foreach ($selectedFiles as $fn){
+                $filesToRead = $selectedFiles;
+                // when groups are selected, include all files from those groups for filtering below
+                if (!empty($selectedGroups)){
+                    foreach ($selectedGroups as $gkey){ if (isset($groupSummary[$gkey])){ $filesToRead = array_unique(array_merge($filesToRead, array_keys($groupSummary[$gkey]['files']))); } }
+                }
+                foreach ($filesToRead as $fn){
                 $path = $metaIndex[$fn]['path'];
                 if (!is_readable($path)) continue;
                 $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
                 foreach ($lines as $line){
                     $parts = array_map('trim', explode('|',$line));
                     $parts = array_pad($parts,10,'');
-                    $rows[] = [
+                        $row = [
                         'name'=>$parts[0],'matric'=>$parts[1],'action'=>$parts[2],'token'=>$parts[3],'ip'=>$parts[4],'status'=>$parts[5],'datetime'=>$parts[6],'user_agent'=>$parts[7],'course'=>$parts[8],'reason'=>$parts[9]
-                    ];
+                        ];
+                        // if group selection present, keep only matching groups
+                        if (!empty($selectedGroups)){
+                            $dateOnly = null; if ($row['datetime'] && preg_match('/(20\d{2}-\d{2}-\d{2})/',$row['datetime'],$md)) $dateOnly = $md[1]; else $dateOnly = null;
+                            $grpKey = ($dateOnly ?: '') . '|' . ($row['course'] !== '' ? $row['course'] : 'unknown');
+                            if (!in_array($grpKey, $selectedGroups, true)) continue;
+                        }
+                        $rows[] = $row;
                 }
             }
             if (empty($rows)){
