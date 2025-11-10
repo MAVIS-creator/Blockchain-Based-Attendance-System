@@ -79,6 +79,24 @@ function audit_settings_change($adminUser, $changes){
 $templatesFile = __DIR__ . '/settings_templates.json';
 if (!file_exists($templatesFile)) file_put_contents($templatesFile, json_encode(new stdClass(), JSON_PRETTY_PRINT));
 
+// Load .env (simple parser – avoids extra dependency)
+function load_env_array($path){
+  $env = [];
+  if (file_exists($path)){
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $l){
+      $t = trim($l);
+      if ($t === '' || strpos($t,'#') === 0) continue;
+      if (strpos($t,'=') === false) continue;
+      list($k,$v) = explode('=', $t, 2);
+      $env[trim($k)] = trim(trim($v),"\"'");
+    }
+  }
+  return $env;
+}
+// Resolve env once for this page
+$ENV = load_env_array(__DIR__ . '/../.env');
+
 // default settings
 if (!file_exists($settingsFile)) {
   $default = [
@@ -235,19 +253,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $settings['backup_retention'] = $backupRetention;
   $settings['encrypt_logs'] = isset($_POST['encrypt_logs']) && $_POST['encrypt_logs'] === '1';
 
-        // SMTP & auto-send
-        $settings['smtp'] = $settings['smtp'] ?? [];
-        $settings['smtp']['host'] = trim($_POST['smtp_host'] ?? $settings['smtp']['host'] ?? '');
-        $settings['smtp']['port'] = intval($_POST['smtp_port'] ?? $settings['smtp']['port'] ?? 587);
-        $settings['smtp']['user'] = trim($_POST['smtp_user'] ?? $settings['smtp']['user'] ?? '');
-        $settings['smtp']['pass'] = trim($_POST['smtp_pass'] ?? $settings['smtp']['pass'] ?? '');
-        $settings['smtp']['secure'] = trim($_POST['smtp_secure'] ?? $settings['smtp']['secure'] ?? 'tls');
-        $settings['smtp']['from_email'] = trim($_POST['smtp_from_email'] ?? $settings['smtp']['from_email'] ?? 'no-reply@example.com');
-        $settings['smtp']['from_name'] = trim($_POST['smtp_from_name'] ?? $settings['smtp']['from_name'] ?? 'Attendance System');
+  // SMTP & auto-send
+  // Policy: SMTP connection details come from .env; only 'from_name' and auto-send recipient/format are changeable here.
+  $settings['smtp'] = $settings['smtp'] ?? [];
+  $settings['smtp']['host'] = $ENV['SMTP_HOST'] ?? ($settings['smtp']['host'] ?? '');
+  $settings['smtp']['port'] = isset($ENV['SMTP_PORT']) ? intval($ENV['SMTP_PORT']) : ($settings['smtp']['port'] ?? 587);
+  $settings['smtp']['user'] = $ENV['SMTP_USER'] ?? ($settings['smtp']['user'] ?? '');
+  $settings['smtp']['pass'] = $ENV['SMTP_PASS'] ?? ($settings['smtp']['pass'] ?? '');
+  $settings['smtp']['secure'] = strtolower($ENV['SMTP_SECURE'] ?? ($settings['smtp']['secure'] ?? 'tls'));
+  $settings['smtp']['from_email'] = $ENV['FROM_EMAIL'] ?? ($settings['smtp']['from_email'] ?? 'no-reply@example.com');
+  // Editable field
+  $settings['smtp']['from_name'] = trim($_POST['smtp_from_name'] ?? ($settings['smtp']['from_name'] ?? 'Attendance System'));
 
         $settings['auto_send'] = $settings['auto_send'] ?? [];
         $settings['auto_send']['enabled'] = isset($_POST['auto_send_enabled']) && $_POST['auto_send_enabled'] === '1';
-        $settings['auto_send']['recipient'] = trim($_POST['auto_send_recipient'] ?? $settings['auto_send']['recipient'] ?? '');
+  $settings['auto_send']['recipient'] = trim($_POST['auto_send_recipient'] ?? ($settings['auto_send']['recipient'] ?? ( $ENV['AUTO_SEND_RECIPIENT'] ?? '' )));
         $settings['auto_send']['format'] = trim($_POST['auto_send_format'] ?? $settings['auto_send']['format'] ?? 'csv');
 
         // save (respect encryption flag)
@@ -376,21 +396,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php csrf_field(); ?>
     <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
       <legend style="font-weight:600;padding:0 6px;">SMTP Settings</legend>
-      <label style="display:block;margin-bottom:8px;">Host <input type="text" name="smtp_host" value="<?=htmlspecialchars($settings['smtp']['host'] ?? '')?>" style="padding:8px;width:100%;"></label>
-      <label style="display:block;margin-bottom:8px;">Port <input type="number" name="smtp_port" value="<?=htmlspecialchars($settings['smtp']['port'] ?? 587)?>" style="padding:8px;width:120px;"></label>
-      <label style="display:block;margin-bottom:8px;">User <input type="text" name="smtp_user" value="<?=htmlspecialchars($settings['smtp']['user'] ?? '')?>" style="padding:8px;width:100%;"></label>
-      <label style="display:block;margin-bottom:8px;">Password <input type="password" name="smtp_pass" value="<?=htmlspecialchars($settings['smtp']['pass'] ?? '')?>" style="padding:8px;width:100%;"></label>
-      <label style="display:block;margin-bottom:8px;">Security <select name="smtp_secure"><option value="tls" <?=($settings['smtp']['secure'] ?? 'tls')==='tls'?'selected':''?>>TLS</option><option value="ssl" <?=($settings['smtp']['secure'] ?? '')==='ssl'?'selected':''?>>SSL</option></select></label>
-      <label style="display:block;margin-bottom:8px;">From email <input type="email" name="smtp_from_email" value="<?=htmlspecialchars($settings['smtp']['from_email'] ?? 'no-reply@example.com')?>" style="padding:8px;width:100%;"></label>
-      <label style="display:block;margin-bottom:8px;">From name <input type="text" name="smtp_from_name" value="<?=htmlspecialchars($settings['smtp']['from_name'] ?? 'Attendance System')?>" style="padding:8px;width:100%;"></label>
+      <label style="display:block;margin-bottom:8px;">Host <input type="text" value="<?=htmlspecialchars($ENV['SMTP_HOST'] ?? ($settings['smtp']['host'] ?? ''))?>" style="padding:8px;width:100%;" disabled></label>
+      <label style="display:block;margin-bottom:8px;">Port <input type="number" value="<?=htmlspecialchars($ENV['SMTP_PORT'] ?? ($settings['smtp']['port'] ?? 587))?>" style="padding:8px;width:120px;" disabled></label>
+      <label style="display:block;margin-bottom:8px;">User <input type="text" value="<?=htmlspecialchars($ENV['SMTP_USER'] ?? ($settings['smtp']['user'] ?? ''))?>" style="padding:8px;width:100%;" disabled></label>
+      <label style="display:block;margin-bottom:8px;">Password <input type="password" value="<?=htmlspecialchars($ENV['SMTP_PASS'] ?? ($settings['smtp']['pass'] ?? ''))?>" style="padding:8px;width:100%;" disabled></label>
+      <label style="display:block;margin-bottom:8px;">Security <input type="text" value="<?=htmlspecialchars(strtoupper($ENV['SMTP_SECURE'] ?? ($settings['smtp']['secure'] ?? 'TLS')))?>" style="padding:8px;width:120px;" disabled></label>
+      <label style="display:block;margin-bottom:8px;">From email <input type="email" value="<?=htmlspecialchars($ENV['FROM_EMAIL'] ?? ($settings['smtp']['from_email'] ?? 'no-reply@example.com'))?>" style="padding:8px;width:100%;" disabled></label>
+      <label style="display:block;margin-bottom:8px;">From name <input type="text" name="smtp_from_name" value="<?=htmlspecialchars($settings['smtp']['from_name'] ?? ($ENV['FROM_NAME'] ?? 'Attendance System'))?>" style="padding:8px;width:100%;"></label>
+      <p style="color:#6b7280;font-size:0.9rem;margin-top:4px;">SMTP connection details are managed via <code>.env</code>. Keys: <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>, <code>SMTP_SECURE</code>, <code>FROM_EMAIL</code>. You can customize only the sender display name here.</p>
     </fieldset>
 
     <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
       <legend style="font-weight:600;padding:0 6px;">Auto-send logs</legend>
       <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="auto_send_enabled" value="1" <?=($settings['auto_send']['enabled'] ?? false)?'checked':''?>> Enable automatic sending of logs after a class window ends</label>
-      <label style="display:block;margin-bottom:8px;">Recipient email <input type="email" name="auto_send_recipient" value="<?=htmlspecialchars($settings['auto_send']['recipient'] ?? '')?>" style="padding:8px;width:100%;"></label>
+      <label style="display:block;margin-bottom:8px;">Recipient email <input type="email" name="auto_send_recipient" value="<?=htmlspecialchars($settings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? ''))?>" style="padding:8px;width:100%;"></label>
       <label style="display:block;margin-bottom:8px;">Default format <select name="auto_send_format"><option value="csv" <?=($settings['auto_send']['format'] ?? 'csv')==='csv'?'selected':''?>>CSV</option><option value="pdf" <?=($settings['auto_send']['format'] ?? '')==='pdf'?'selected':''?>>PDF</option></select></label>
-      <p style="color:#6b7280;font-size:0.9rem;">To enable automatic sending, configure SMTP above and a recipient. Then schedule the helper script (auto_send_logs.php) to run after class windows using your OS scheduler (Task Scheduler on Windows or cron on Linux). See the help link for instructions.</p>
+      <p style="color:#6b7280;font-size:0.9rem;">To enable automatic sending, set SMTP values in <code>.env</code> and specify a recipient here. Then schedule the helper script (<code>auto_send_logs.php</code>) to run after class windows using your OS scheduler (Task Scheduler on Windows or cron on Linux). See the help link for instructions.</p>
     </fieldset>
 
     <div style="display:flex;gap:12px;align-items:center;">
