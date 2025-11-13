@@ -114,9 +114,21 @@ document.getElementById('clearSelectedBtn').addEventListener('click', function()
   window.adminConfirm('Confirm Clear', 'This will permanently delete selected items. Proceed?').then(function(ok){
     if (!ok) return;
     var body = new URLSearchParams(); body.append('scope', scopes.join(',')); body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
+    document.getElementById('clearResult').innerHTML = '<span style="color:#6b7280;">Processing...</span>';
     fetch('clear_logs.php', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN }, body: body.toString() })
-      .then(r=>r.json()).then(j=>{ document.getElementById('clearResult').textContent = JSON.stringify(j); if (j && j.ok) { window.adminAlert('Cleared','Selected items removed','success'); } })
-      .catch(e=>document.getElementById('clearResult').textContent='Error');
+      .then(r=>r.json()).then(j=>{ 
+        if (j && j.ok) { 
+          var deletedCount = j.result && j.result.deleted ? j.result.deleted.length : 0;
+          var errorCount = j.result && j.result.errors ? j.result.errors.length : 0;
+          var msg = 'Successfully deleted ' + deletedCount + ' item(s).';
+          if (errorCount > 0) msg += ' ' + errorCount + ' error(s) occurred.';
+          document.getElementById('clearResult').innerHTML = '<span style="color:#059669;font-weight:600;">✓ ' + msg + '</span>';
+          window.adminAlert('Cleared', msg, 'success');
+        } else {
+          document.getElementById('clearResult').innerHTML = '<span style="color:#dc2626;">Failed to clear items.</span>';
+        }
+      })
+      .catch(e=>{ document.getElementById('clearResult').innerHTML = '<span style="color:#dc2626;">Error occurred during clearing.</span>'; });
   });
 });
 </script>
