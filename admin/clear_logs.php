@@ -39,7 +39,7 @@ if (in_array('logs', $scopes) || in_array('all', $scopes)) {
   }
 }
 
-if ($scope === 'backups' || $scope === 'all') {
+if (in_array('backups', $scopes) || in_array('all', $scopes)) {
   if (is_dir($backupsDir)){
     foreach (glob($backupsDir . '/*') as $f) {
       if (is_file($f)) { if (safe_unlink($f)) $result['deleted'][] = $f; else $result['errors'][] = $f; }
@@ -54,9 +54,9 @@ if ($scope === 'backups' || $scope === 'all') {
   }
 }
 
-if ($scope === 'chain' || $scope === 'all') {
+if (in_array('chain', $scopes) || in_array('all', $scopes)) {
   // chain is important; only delete if explicitly requested
-  if ($scope === 'chain' || $scope === 'all') {
+  if (in_array('chain', $scopes) || in_array('all', $scopes)) {
     $chainFile = $secureDir . '/attendance_chain.json';
     if (file_exists($chainFile)) {
       if (safe_unlink($chainFile)) $result['deleted'][] = $chainFile; else $result['errors'][] = $chainFile;
@@ -65,7 +65,7 @@ if ($scope === 'chain' || $scope === 'all') {
 }
 
 // fingerprints.json handling
-if ($scope === 'fingerprints' || $scope === 'all') {
+if (in_array('fingerprints', $scopes) || in_array('all', $scopes)) {
   $fpFile = dirname(__DIR__) . '/admin/fingerprints.json';
   if (file_exists($fpFile)) {
     if (safe_unlink($fpFile)) $result['deleted'][] = $fpFile; else $result['errors'][] = $fpFile;
