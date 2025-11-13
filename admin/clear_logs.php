@@ -10,8 +10,9 @@ $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
 if (function_exists('csrf_check_request') && !csrf_check_request()) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'csrf_failed']); exit; }
 
-// scope: logs|backups|chain|all
-$scope = $_POST['scope'] ?? ($_GET['scope'] ?? 'all');
+// scope: logs|backups|chain|fingerprints|all (can be comma-separated)
+$scopeRaw = $_POST['scope'] ?? ($_GET['scope'] ?? 'all');
+$scopes = array_map('trim', explode(',', $scopeRaw));
 $adminDir = __DIR__;
 $logsDir = $adminDir . '/logs';
 $backupsDir = $adminDir . '/backups';
@@ -24,7 +25,7 @@ function safe_unlink($file){
   try { @unlink($file); return true; } catch (Throwable $e) { return false; }
 }
 
-if ($scope === 'logs' || $scope === 'all') {
+if (in_array('logs', $scopes) || in_array('all', $scopes)) {
   if (is_dir($logsDir)){
     $patterns = ["{$logsDir}/*.log", "{$logsDir}/*_failed_attempts.log", "{$logsDir}/*.json", "{$logsDir}/inactivity_log.txt"];
     foreach ($patterns as $pat) {
