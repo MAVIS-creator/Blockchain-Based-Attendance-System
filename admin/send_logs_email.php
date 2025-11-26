@@ -1,104 +1,80 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-// send_logs_email.php
-// Small admin utility to collect logs by date or course, compress them and either send via PHPMailer or provide a downloadable ZIP.
+// send_logs_email.php - redesigned to show selectable log files grouped by date+course
 
 $logsDir = __DIR__ . '/logs';
 $exportDir = __DIR__ . '/backups';
 if (!is_dir($exportDir)) @mkdir($exportDir, 0755, true);
 
-// discover log files and basic metadata
-$available = [];
+// Load .env helper
+function load_env_vars($path){
+    $env = [];
+    if (file_exists($path)){
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $l){
+            $t = trim($l);
+            if ($t === '' || strpos($t,'#') === 0 || strpos($t,'=') === false) continue;
+            list($k,$v) = explode('=',$t,2);
+            $env[trim($k)] = trim(trim($v),"\"'");
+        }
+    }
+    return $env;
+}
+$ENV = load_env_vars(__DIR__ . '/../.env');
+
+// Get default recipient from settings
+$defaultRecipient = '';
+try {
+    $adminSettings = file_exists(__DIR__ . '/settings.json') ? (json_decode(file_get_contents(__DIR__ . '/settings.json'), true) ?: []) : [];
+    $defaultRecipient = $adminSettings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? '');
+} catch (\Throwable $e) { /* ignore */ }
+
+// Build groups: parse all log files and group entries by date+course
+$groups = [];
 if (is_dir($logsDir)){
     $it = new DirectoryIterator($logsDir);
     foreach ($it as $f){
         if ($f->isFile()){
             $fn = $f->getFilename();
-            // skip php helper scripts and css
-            if (preg_match('/\.php$/i',$fn) || preg_match('/\.css$/i',$fn)) continue;
-            $full = $logsDir . '/' . $fn;
-            $meta = [
-                'filename' => $fn,
-                'path' => $full,
-                'size' => filesize($full),
-                'date' => null,
-                'courses' => [],
-                'entries' => 0,
-                'failed' => 0
-            ];
-            // attempt date from filename (YYYY-MM-DD)
-            if (preg_match('/(20\d{2}-\d{2}-\d{2})/',$fn,$m)) $meta['date'] = $m[1];
-            // light parse first 200 lines for courses and counts
-            $lines = @file($full, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-            $meta['entries'] = count($lines);
-            $courseSet = [];
-            $maxScan = 200; $scanned = 0;
-            foreach ($lines as $ln){
-                $parts = array_map('trim', explode('|',$ln));
-                if (isset($parts[8]) && $parts[8] !== '') $courseSet[$parts[8]] = true;
-                $failed = false;
-                $txt = strtolower($ln);
-                if (strpos($txt,'failed') !== false || strpos($txt,'invalid') !== false) $failed = true;
-                if ($failed) $meta['failed']++;
-                if (!$meta['date'] && isset($parts[6]) && preg_match('/(20\d{2}-\d{2}-\d{2})/',$parts[6],$md)) $meta['date'] = $md[1];
-                $scanned++; if ($scanned >= $maxScan) break;
-            }
-            $meta['courses'] = array_keys($courseSet);
-            $available[] = $meta;
-        }
-    }
-
-        // Build groups (Date + Course) across all logs
-        $groupSummary = [];
-        foreach ($available as $m){
-            $lines = @file($m['path'], FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+            if (preg_match('/\.(php|css)$/i',$fn)) continue; // skip helpers
+            $lines = @file($logsDir . '/' . $fn, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
             foreach ($lines as $ln){
                 $parts = array_map('trim', explode('|',$ln));
                 $parts = array_pad($parts,10,'');
-                $dt = $parts[6]; $dateOnly = null; if ($dt && preg_match('/(20\d{2}-\d{2}-\d{2})/',$dt,$md)) $dateOnly = $md[1]; else $dateOnly = ($m['date'] ?? date('Y-m-d'));
-                $course = $parts[8] !== '' ? $parts[8] : 'unknown';
+                // extract date and course
+                $dt = $parts[6] ?? ''; $dateOnly = null;
+                if ($dt && preg_match('/(20\d{2}-\d{2}-\d{2})/',$dt,$md)) $dateOnly = $md[1];
+                if (!$dateOnly && preg_match('/(20\d{2}-\d{2}-\d{2})/',$fn,$mf)) $dateOnly = $mf[1];
+                if (!$dateOnly) $dateOnly = date('Y-m-d');
+                $course = ($parts[8] ?? '') !== '' ? $parts[8] : 'Unknown';
                 $key = $dateOnly . '|' . $course;
-                if (!isset($groupSummary[$key])) $groupSummary[$key] = ['date'=>$dateOnly,'course'=>$course,'total'=>0,'failed'=>0,'files'=>[]];
-                $groupSummary[$key]['total']++;
-                $txt = strtolower($ln); if (strpos($txt,'failed') !== false || strpos($txt,'invalid') !== false) $groupSummary[$key]['failed']++;
-                $groupSummary[$key]['files'][$m['filename']] = true;
+                if (!isset($groups[$key])) $groups[$key] = ['date'=>$dateOnly,'course'=>$course,'entries'=>0,'failed'=>0,'files'=>[]];
+                $groups[$key]['entries']++;
+                $txt = strtolower($ln);
+                if (strpos($txt,'failed')!==false || strpos($txt,'invalid')!==false) $groups[$key]['failed']++;
+                if (!in_array($fn, $groups[$key]['files'])) $groups[$key]['files'][] = $fn;
             }
         }
+    }
 }
+uasort($groups, function($a,$b){ return strcmp($b['date'].$b['course'], $a['date'].$a['course']); });
 
 $success = '';
 $error = '';
-$zipPath = '';
 
-// defaults from settings and .env for convenience
-$defaultRecipient = '';
-try {
-    $adminSettings = file_exists(__DIR__ . '/settings.json') ? (json_decode(file_get_contents(__DIR__ . '/settings.json'), true) ?: []) : [];
-    $defaultRecipient = $adminSettings['auto_send']['recipient'] ?? '';
-    $envPath = __DIR__ . '/../.env';
-    if (file_exists($envPath)){
-        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $l){
-            $t = trim($l);
-            if ($t === '' || strpos($t,'#') === 0 || strpos($t,'=') === false) continue;
-            list($k,$v) = explode('=',$t,2);
-            if (trim($k) === 'AUTO_SEND_RECIPIENT' && !$defaultRecipient) $defaultRecipient = trim(trim($v),"\"'");
-        }
-    }
-} catch (\Throwable $e) { /* ignore */ }
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST'){
-    // inputs
-    $recipient = trim($_POST['email'] ?? '');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
+    // Get selected groups
+    $selectedKeys = isset($_POST['selected_groups']) && is_array($_POST['selected_groups']) ? $_POST['selected_groups'] : [];
+    $recipient = trim($_POST['recipient'] ?? '');
     $format = $_POST['format'] ?? 'csv';
-    $log_kind = $_POST['log_kind'] ?? 'all';
-    $date_from = trim($_POST['date_from'] ?? '');
-    $date_to = trim($_POST['date_to'] ?? '');
-    $time_from = trim($_POST['time_from'] ?? '');
-    $time_to = trim($_POST['time_to'] ?? '');
-    $courseFilter = trim($_POST['course'] ?? '');
     $cols = isset($_POST['cols']) && is_array($_POST['cols']) ? $_POST['cols'] : ['name','matric','action','datetime','course'];
+    
+    if (empty($selectedKeys)) {
+        $error = 'Please select at least one log group to send.';
+    } elseif (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Please enter a valid recipient email address.';
+    } else {
         $selectedFiles = isset($_POST['selected_files']) && is_array($_POST['selected_files']) ? $_POST['selected_files'] : [];
         $singleSend = isset($_POST['single_file']) ? trim($_POST['single_file']) : '';
         $selectedGroups = isset($_POST['selected_groups']) && is_array($_POST['selected_groups']) ? $_POST['selected_groups'] : [];
