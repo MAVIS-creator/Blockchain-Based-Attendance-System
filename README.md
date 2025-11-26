@@ -40,6 +40,12 @@
 - View all logs (valid & failed attempts)  
   <img src="https://i.ibb.co/Y736XQp5/image.png" alt="Valid Logs" width="100%">
   <img src="https://i.ibb.co/krTrJps/image.png" alt="Failed Logs" width="100%">
+- **Email log exports** with advanced filtering:
+  - Multi-file selection (date & course groups)
+  - Filter by date range, time range, course
+  - Select specific columns to include
+  - Export as CSV or PDF
+  - Send individual files or grouped batches
 - Create, edit, and delete courses  
   <img src="https://i.ibb.co/zVRspk8v/image.png" alt="Manage Courses" width="100%">
 - Set active courses for attendance  
