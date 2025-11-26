@@ -80,10 +80,18 @@
 
 ## 📦 Installation
 
-### Via Composer (Recommended)
+> **Note:** This is a private repository. See [INSTALLATION_PRIVATE.md](INSTALLATION_PRIVATE.md) for authentication setup.
 
+### Via Composer with GitHub Authentication
+
+First, configure your GitHub token:
 ```bash
-composer create-project mavis-creator/blockchain-attendance-system attendance-system
+composer config --global github-oauth.github.com YOUR_GITHUB_TOKEN
+```
+
+Then install:
+```bash
+composer create-project mavis-creator/blockchain-attendance-system attendance-system --repository='{"type":"vcs","url":"https://github.com/MAVIS-creator/Blockchain-Based-Attendance-System.git"}'
 cd attendance-system
 cp .env.example .env
 # Edit .env with your configuration
@@ -100,7 +108,8 @@ cp .env.example .env
 # Configure your .env file
 ```
 
-**📖 For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md)**
+**📖 For detailed private repo setup, see [INSTALLATION_PRIVATE.md](INSTALLATION_PRIVATE.md)**  
+**📖 For quick start guide, see [QUICKSTART.md](QUICKSTART.md)**
 
 ---
 
