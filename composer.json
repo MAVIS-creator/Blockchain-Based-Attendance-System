@@ -15,12 +15,6 @@
     ],
     "homepage": "https://github.com/MAVIS-creator/Blockchain-Based-Attendance-System",
     "license": "MIT",
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/MAVIS-creator/Blockchain-Based-Attendance-System.git"
-        }
-    ],
     "authors": [
         {
             "name": "MAVIS",
