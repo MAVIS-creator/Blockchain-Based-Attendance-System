@@ -21,10 +21,21 @@ Blockchain-Based-Attendance-System/
 ├── 📄 fix_chain.php                # Utility to repair broken blockchain chains
 ├── 📄 log_inactivity.php           # Logs user inactivity for security monitoring
 │
-├── 📄 .env                         # Environment configuration (SMTP, database, API keys)
-├── 📄 composer.json                # PHP dependencies (PHPMailer, Web3.php, Dompdf)
+├── 📄 .env                         # Environment configuration (SMTP, timezone, API keys) - NEVER commit!
+├── 📄 .env.example                 # Environment template with all available settings
+├── 📄 bootstrap.php                # Application initialization and .env loader
+├── 📄 composer.json                # Composer package manifest - PSR-4 autoloading
 ├── 📄 composer.lock                # Locked dependency versions
-├── 📄 README.md                    # Project overview and setup instructions
+├── 📄 auth.json                    # Composer GitHub authentication (GITIGNORED)
+│
+├── 📄 README.md                    # Project overview and public installation
+├── 📄 QUICKSTART.md                # 5-minute setup guide
+├── 📄 INSTALL.md                   # Detailed installation instructions
+├── 📄 INSTALLATION_PRIVATE.md      # Private repo installation with GitHub tokens
+├── 📄 CONTRIBUTING.md              # Contribution guidelines
+├── 📄 CHANGELOG.md                 # Version history (v1.0.0 → v2.0.0)
+├── 📄 SECURITY.md                  # Security policy and vulnerability reporting
+├── 📄 PROJECT_STRUCTURE.md         # This file - complete project documentation
 ├── 📄 CONTRIBUTORS.md              # List of project contributors
 ├── 📄 LICENSE                      # MIT License
 ├── 📄 .gitignore                   # Git ignore rules
@@ -38,14 +49,67 @@ Blockchain-Based-Attendance-System/
 ├── 📄 active_course.json           # Currently active course for attendance
 ├── 📄 active_courses.json          # List of all active courses
 ├── 📄 announcement.json            # Active announcements for students
-├── 📄 invalid_attempts.log         # Root-level invalid attempt logs
+├── 📄 auth.json                    # OAuth tokens for Composer (DEPRECATED - use .env)
 │
+├── 📁 src/                         # PSR-4 source directory
+│   └── 📄 Config.php               # Configuration class for .env loading
 ├── 📁 admin/                       # Admin panel and management system
 ├── 📁 asset/                       # Static assets (images, icons, manifests)
 ├── 📁 js/                          # JavaScript libraries
 ├── 📁 secure_logs/                 # Blockchain-secured attendance chain
 ├── 📁 vendor/                      # Composer dependencies (auto-generated)
 └── 📁 .vscode/                     # VS Code workspace settings
+```
+
+---
+
+## 📦 Composer Package Information
+
+**Package Name:** `mavis-creator/blockchain-attendance-system`  
+**Version:** 2.0.0  
+**Type:** project  
+**License:** MIT  
+**Packagist:** https://packagist.org/packages/mavis-creator/blockchain-attendance-system
+
+### Installation
+
+```bash
+composer create-project mavis-creator/blockchain-attendance-system my-attendance
+```
+
+### PSR-4 Autoloading
+
+**Namespace:** `MavisCreator\AttendanceSystem`  
+**Directory:** `src/`
+
+Classes are autoloaded following PSR-4 standard:
+```php
+require __DIR__ . '/vendor/autoload.php';
+use MavisCreator\AttendanceSystem\Config;
+
+$config = new Config();
+$config->load(__DIR__ . '/.env');
+```
+
+### Dependencies
+
+**Production:**
+- `php` >= 7.4
+- `ext-json` - JSON handling
+- `ext-openssl` - Cryptographic operations
+- `ext-mbstring` - Multi-byte string handling
+- `web3p/web3.php` ^0.3.2 - Polygon blockchain integration
+- `phpmailer/phpmailer` ^7.0 - SMTP email sending
+- `dompdf/dompdf` ^3.1 - PDF generation
+
+**Development:**
+- `phpunit/phpunit` ^9.0 - Unit testing framework
+
+### Composer Scripts
+
+```bash
+composer test          # Run PHPUnit tests
+composer setup         # Install dependencies and create .env
 ```
 
 ---
@@ -763,6 +827,7 @@ MIT License - See `LICENSE` file for details
 
 ---
 
-**Last Updated:** November 15, 2025  
-**Version:** 2.0  
+**Last Updated:** November 26, 2025  
+**Version:** 2.0.0  
+**Package:** mavis-creator/blockchain-attendance-system  
 **Documentation Status:** ✅ Complete
