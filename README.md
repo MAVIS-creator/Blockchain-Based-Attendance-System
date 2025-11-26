@@ -72,42 +72,75 @@
 
 ---
 
+## 📦 Installation
+
+### Via Composer (Recommended)
+
+```bash
+composer create-project mavis-creator/blockchain-attendance-system attendance-system
+cd attendance-system
+cp .env.example .env
+# Edit .env with your configuration
+php -S localhost:8000
+```
+
+### Manual Installation
+
+```bash
+git clone https://github.com/MAVIS-creator/Blockchain-Based-Attendance-System.git
+cd Blockchain-Based-Attendance-System
+composer install
+cp .env.example .env
+# Configure your .env file
+```
+
+**📖 For detailed setup instructions, see [QUICKSTART.md](QUICKSTART.md)**
+
+---
+
+## ⚙️ Configuration
+
+All configuration is done via the `.env` file:
+
+```env
+# SMTP Email Settings
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+SMTP_SECURE=tls
+FROM_EMAIL=no-reply@example.com
+FROM_NAME=Attendance System
+
+# Application Settings
+APP_ENV=production
+APP_DEBUG=false
+APP_TIMEZONE=Africa/Lagos
+
+# Security Settings
+FINGERPRINT_ENABLED=true
+MAX_CHECKINS_PER_DAY=1
+```
+
+See [.env.example](.env.example) for all available options.
+
+---
+
 ## ⚙️ Running Locally
 
-### 1️ Using XAMPP or WAMP
- #  Installation
- 1.  Clone the repository
- ```bash
-  git clone https://github.com/MAVIS-creator/Attendance_.git
-```
-2. Install [XAMPP](https://www.apachefriends.org/) or [WAMP](https://www.wampserver.com/).
-3. Place the project folder inside:
-   - **XAMPP:** `htdocs`
-   - **WAMP:** `www`
-4. Start Apache from the control panel.
-5. Access in your browser: 
-```bash 
-http://localhost/Attendance_
-```
-
-### 2️⃣ Using PHP Built-in Server
+### Using PHP Built-in Server
 ```bash
 php -S localhost:8000
 ```
-Visit:
+Visit: `http://localhost:8000`
 
-```bash
-http://localhost:8000
-```
-📁 Log Files
-```bash
+### Using XAMPP or WAMP
+1. Install [XAMPP](https://www.apachefriends.org/) or [WAMP](https://www.wampserver.com/)
+2. Place project in `htdocs` (XAMPP) or `www` (WAMP)
+3. Start Apache
+4. Visit: `http://localhost/blockchain-attendance-system/`
 
-admin/logs/YYYY-MM-DD.log → valid attendance logs
-admin/logs/YYYY-MM-DD_failed_attempts.log → failed login or action attempts
-secure_logs/attendance_chain.json → blockchain-secured log history
-```
-
-📝 License
+---
 - This project is licensed under the MIT LICENSE – see the <a href="https://github.com/MAVIS-creator/Attendance_/blob/main/LICENSE">LICENSE</a> file for details.
 
 👤 Author
