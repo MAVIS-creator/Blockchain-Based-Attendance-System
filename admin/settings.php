@@ -395,27 +395,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <form method="POST" style="max-width:900px;display:flex;flex-direction:column;gap:12px;">
     <?php csrf_field(); ?>
     <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
-      <legend style="font-weight:600;padding:0 6px;">SMTP Settings</legend>
-      <label style="display:block;margin-bottom:8px;">Host <input type="text" value="<?=htmlspecialchars($ENV['SMTP_HOST'] ?? ($settings['smtp']['host'] ?? ''))?>" style="padding:8px;width:100%;" disabled></label>
-      <label style="display:block;margin-bottom:8px;">Port <input type="number" value="<?=htmlspecialchars($ENV['SMTP_PORT'] ?? ($settings['smtp']['port'] ?? 587))?>" style="padding:8px;width:120px;" disabled></label>
-      <label style="display:block;margin-bottom:8px;">User <input type="text" value="<?=htmlspecialchars($ENV['SMTP_USER'] ?? ($settings['smtp']['user'] ?? ''))?>" style="padding:8px;width:100%;" disabled></label>
-      <label style="display:block;margin-bottom:8px;">Password <input type="password" value="<?=htmlspecialchars($ENV['SMTP_PASS'] ?? ($settings['smtp']['pass'] ?? ''))?>" style="padding:8px;width:100%;" disabled></label>
-      <label style="display:block;margin-bottom:8px;">Security <input type="text" value="<?=htmlspecialchars(strtoupper($ENV['SMTP_SECURE'] ?? ($settings['smtp']['secure'] ?? 'TLS')))?>" style="padding:8px;width:120px;" disabled></label>
-      <label style="display:block;margin-bottom:8px;">From email <input type="email" value="<?=htmlspecialchars($ENV['FROM_EMAIL'] ?? ($settings['smtp']['from_email'] ?? 'no-reply@example.com'))?>" style="padding:8px;width:100%;" disabled></label>
-      <label style="display:block;margin-bottom:8px;">From name <input type="text" name="smtp_from_name" value="<?=htmlspecialchars($settings['smtp']['from_name'] ?? ($ENV['FROM_NAME'] ?? 'Attendance System'))?>" style="padding:8px;width:100%;"></label>
-      <p style="color:#6b7280;font-size:0.9rem;margin-top:4px;">SMTP connection details are managed via <code>.env</code>. Keys: <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>, <code>SMTP_SECURE</code>, <code>FROM_EMAIL</code>. You can customize only the sender display name here.</p>
+      <legend style="font-weight:600;padding:0 6px;">Email Settings</legend>
+      <p style="color:#6b7280;font-size:0.9rem;margin-bottom:12px;">SMTP connection details (host, port, credentials, security) are managed via <code>.env</code> file. Required keys: <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>, <code>SMTP_SECURE</code>, <code>FROM_EMAIL</code></p>
+      <label style="display:block;margin-bottom:8px;">From name (display name for outgoing emails)
+        <input type="text" name="smtp_from_name" value="<?=htmlspecialchars($settings['smtp']['from_name'] ?? ($ENV['FROM_NAME'] ?? 'Attendance System'))?>" style="padding:8px;width:100%;margin-top:4px;">
+      </label>
     </fieldset>
 
     <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
       <legend style="font-weight:600;padding:0 6px;">Auto-send logs</legend>
       <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="auto_send_enabled" value="1" <?=($settings['auto_send']['enabled'] ?? false)?'checked':''?>> Enable automatic sending of logs after a class window ends</label>
-      <label style="display:block;margin-bottom:8px;">Recipient email <input type="email" name="auto_send_recipient" value="<?=htmlspecialchars($settings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? ''))?>" style="padding:8px;width:100%;"></label>
-      <label style="display:block;margin-bottom:8px;">Default format <select name="auto_send_format"><option value="csv" <?=($settings['auto_send']['format'] ?? 'csv')==='csv'?'selected':''?>>CSV</option><option value="pdf" <?=($settings['auto_send']['format'] ?? '')==='pdf'?'selected':''?>>PDF</option></select></label>
-      <p style="color:#6b7280;font-size:0.9rem;">To enable automatic sending, set SMTP values in <code>.env</code> and specify a recipient here. Then schedule the helper script (<code>auto_send_logs.php</code>) to run after class windows using your OS scheduler (Task Scheduler on Windows or cron on Linux). See the help link for instructions.</p>
+      <label style="display:block;margin-bottom:8px;">Recipient email
+        <input type="email" name="auto_send_recipient" value="<?=htmlspecialchars($settings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? ''))?>" style="padding:8px;width:100%;margin-top:4px;">
+      </label>
+      <label style="display:block;margin-bottom:8px;">Default format <select name="auto_send_format" style="padding:8px;"><option value="csv" <?=($settings['auto_send']['format'] ?? 'csv')==='csv'?'selected':''?>>CSV</option><option value="pdf" <?=($settings['auto_send']['format'] ?? '')==='pdf'?'selected':''?>>PDF</option></select></label>
+      <p style="color:#6b7280;font-size:0.9rem;">Schedule the helper script (<code>auto_send_logs.php</code>) to run after class windows using your OS scheduler (Task Scheduler on Windows or cron on Linux).</p>
     </fieldset>
 
     <div style="display:flex;gap:12px;align-items:center;">
-      <button type="submit" name="save_settings" style="padding:8px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Save Email Settings</button>
+      <button type="submit" name="save_settings" style="padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;">Save Email Settings</button>
     </div>
   </form>
 
