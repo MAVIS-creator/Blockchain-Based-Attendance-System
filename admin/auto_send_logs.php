@@ -29,32 +29,66 @@ if (empty($settings['auto_send']['enabled'])) exit("Auto-send not enabled\n");
 $recipient = $settings['auto_send']['recipient'] ?? '';
 if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) exit("No valid recipient configured\n");
 
-// Determine date window - default: today (script intended to run at end of class window)
+// Determine date - default: today (script intended to run at end of class window)
 $date = $argv[1] ?? date('Y-m-d');
 $format = $settings['auto_send']['format'] ?? 'csv';
 
-// determine time window from settings if available
-$time_from = $settings['checkin_time_start'] ?? ($settings['checkin_time'] ?? '');
-$time_to = $settings['checkin_time_end'] ?? ($settings['checkin_end'] ?? '');
+// Build the groups that should exist for today
+// We'll need to scan all courses from logs and select groups for this date
+$logsDir = __DIR__ . '/logs';
+$selectedGroups = [];
 
-// Reuse send_logs_email logic by making an internal POST-like call
+if (is_dir($logsDir)){
+    $it = new DirectoryIterator($logsDir);
+    foreach ($it as $f){
+        if ($f->isFile()){
+            $fn = $f->getFilename();
+            if (preg_match('/\.(php|css)$/i',$fn)) continue;
+            // Check if this file might contain today's logs
+            if (strpos($fn, $date) !== false || preg_match('/(20\d{2}-\d{2}-\d{2})/', $fn, $m) && $m[1] === $date) {
+                // Parse the file to find courses
+                $lines = @file($logsDir . '/' . $fn, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+                $courses = [];
+                foreach ($lines as $ln){
+                    $parts = array_map('trim', explode('|',$ln));
+                    if (isset($parts[8]) && $parts[8] !== '') $courses[$parts[8]] = true;
+                }
+                // Add group keys for this date + each course
+                foreach (array_keys($courses) as $course){
+                    $selectedGroups[] = $date . '|' . $course;
+                }
+            }
+        }
+    }
+}
+
+// Remove duplicates
+$selectedGroups = array_unique($selectedGroups);
+
+if (empty($selectedGroups)){
+    exit("No log groups found for date {$date}\n");
+}
+
+// Simulate POST request to send_logs_email.php
 $_POST = [
-  'email' => $recipient,
+  'send_logs' => '1',
+  'recipient' => $recipient,
   'format' => $format,
-  'date_from' => $date,
-  'time_from' => $time_from ?? '',
-  'date_to' => $date,
-  'time_to' => $time_to ?? '',
-  'course' => '',
+  'selected_groups' => $selectedGroups,
   'cols' => ['name','matric','action','datetime','course']
 ];
 
-// include the send script but avoid sending HTML; it will run and echo messages
+// Capture output from send_logs_email.php
+ob_start();
 require __DIR__ . '/send_logs_email.php';
+$output = ob_get_clean();
+
+echo "Auto-send attempted for date {$date}\n";
+echo "Selected groups: " . implode(', ', $selectedGroups) . "\n";
+echo "Output:\n$output\n";
 
 // Note: schedule this script to run after your class ends. On Windows, use Task Scheduler; on Linux use cron.
 // Example cron (run at 23:05 daily): 5 23 * * * /usr/bin/php /path/to/admin/auto_send_logs.php
-
-echo "Auto-send attempted for date {$date}\n";
+// Example Windows Task Scheduler: C:\path\to\php.exe C:\path\to\admin\auto_send_logs.php
 
 ?>
