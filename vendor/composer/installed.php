@@ -3,7 +3,7 @@
         'name' => 'mavis-creator/blockchain-attendance-system',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '5b705ac35220734fc74779a5a5e16f7b7a40bc52',
+        'reference' => '3792b54b66187f0101e26fc52aaf425eb4e35cb9',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -112,7 +112,7 @@
         'mavis-creator/blockchain-attendance-system' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '5b705ac35220734fc74779a5a5e16f7b7a40bc52',
+            'reference' => '3792b54b66187f0101e26fc52aaf425eb4e35cb9',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
