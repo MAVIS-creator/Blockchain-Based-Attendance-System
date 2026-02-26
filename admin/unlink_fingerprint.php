@@ -6,6 +6,25 @@ $fingerprintFile = __DIR__ . '/fingerprints.json';
 $fingerprintsData = file_exists($fingerprintFile) ? json_decode(file_get_contents($fingerprintFile), true) : [];
 if (!is_array($fingerprintsData)) $fingerprintsData = [];
 
+function save_fingerprints_atomic($fingerprintFile, $fingerprintsData) {
+    $fp = fopen($fingerprintFile, 'c+');
+    if (!$fp) return false;
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return false;
+    }
+
+    $payload = json_encode($fingerprintsData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    rewind($fp);
+    ftruncate($fp, 0);
+    fwrite($fp, $payload);
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+
+    return true;
+}
+
 // Pagination settings
 $entriesPerPage = 10;
 $totalEntries = count($fingerprintsData);
@@ -21,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($matric && isset($fingerprintsData[$matric])) {
         unset($fingerprintsData[$matric]);
-        file_put_contents($fingerprintFile, json_encode($fingerprintsData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        save_fingerprints_atomic($fingerprintFile, $fingerprintsData);
 
         // Audit log
         $auditFile = __DIR__ . '/fingerprint_audit.log';

@@ -113,6 +113,43 @@ function write_store($file, $data, $encrypt=false) {
     file_put_contents($file, 'ENC:' . $blob, LOCK_EX);
 }
 
+function upsert_fingerprint_atomic($file, $matric, $hashedFingerprint) {
+    $dir = dirname($file);
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+
+    $fp = fopen($file, 'c+');
+    if (!$fp) {
+        return ['ok' => false, 'reason' => 'open_failed'];
+    }
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return ['ok' => false, 'reason' => 'lock_failed'];
+    }
+
+    rewind($fp);
+    $raw = stream_get_contents($fp);
+    $data = json_decode($raw ?: '[]', true);
+    if (!is_array($data)) $data = [];
+
+    if (isset($data[$matric])) {
+        $matched = ($data[$matric] === $hashedFingerprint);
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        return ['ok' => $matched, 'reason' => $matched ? 'matched' : 'mismatch'];
+    }
+
+    $data[$matric] = $hashedFingerprint;
+    $payload = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    rewind($fp);
+    ftruncate($fp, 0);
+    fwrite($fp, $payload);
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+
+    return ['ok' => true, 'reason' => 'linked'];
+}
+
 // -----------------------
 // IP whitelist
 // -----------------------
@@ -229,26 +266,19 @@ if (!empty($settings['enforce_one_device_per_day'])) {
     write_store($mapFile, $mapData, !empty($settings['encrypt_logs']));
 }
 
-// Load existing fingerprints
+// Load/update fingerprints atomically
 $fingerprintFile = __DIR__ . '/admin/fingerprints.json';
-$fingerprintsData = file_exists($fingerprintFile) ? json_decode(file_get_contents($fingerprintFile), true) : [];
-if (!is_array($fingerprintsData)) {
-    $fingerprintsData = [];
-}
-
 $hashedFingerprint = hash('sha256', $fingerprint);
-
-// If fingerprint is already linked to this matric, check
-if (isset($fingerprintsData[$matric])) {
-    if ($fingerprintsData[$matric] !== $hashedFingerprint) {
-        header('Content-Type: application/json');
+// If fingerprint is already linked to this matric, check; otherwise link atomically
+$fpResult = upsert_fingerprint_atomic($fingerprintFile, $matric, $hashedFingerprint);
+if (!$fpResult['ok']) {
+    header('Content-Type: application/json');
+    if (($fpResult['reason'] ?? '') === 'mismatch') {
         echo json_encode(['ok' => false, 'message' => 'Fingerprint does not match this Matric Number.']);
-        exit;
+    } else {
+        echo json_encode(['ok' => false, 'message' => 'Unable to verify fingerprint at the moment. Please try again.']);
     }
-} else {
-    // Link it automatically since it’s not yet saved
-    $fingerprintsData[$matric] = $hashedFingerprint;
-    file_put_contents($fingerprintFile, json_encode($fingerprintsData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    exit;
 }
 
 // ✅ Prepare log file paths

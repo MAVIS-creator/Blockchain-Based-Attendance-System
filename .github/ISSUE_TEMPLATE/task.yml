@@ -1,0 +1,100 @@
+name: "🛠 Task / Improvement"
+description: Propose a concrete implementation task, refactor, or repo improvement
+title: "[Task]: "
+labels: ["task", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when you already have a concrete task in mind (not a bug, not a broad feature request).
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Task Summary
+      description: One clear sentence for what should be done.
+      placeholder: Add input validation to XYZ endpoint and return consistent JSON error codes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why this task is needed
+      description: Explain the problem/risk this task addresses.
+      placeholder: This currently causes inconsistent behavior and makes debugging difficult.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope (in/out)
+      description: Clearly define what is included and excluded.
+      placeholder: |
+        In scope:
+        - Update endpoint validation
+        - Add tests for success/failure paths
+
+        Out of scope:
+        - UI redesign
+        - New authentication flow
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: List checkable outcomes.
+      placeholder: |
+        - [ ] Invalid input returns HTTP 400 with JSON error
+        - [ ] Valid input continues existing success behavior
+        - [ ] No regression in related flow
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Check-in/Check-out
+        - Admin Panel
+        - Logs/Exports
+        - Blockchain Verification
+        - Fingerprint/Device Control
+        - Support Tickets
+        - Configuration/DevOps
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Estimated Effort
+      options:
+        - Small (few lines / single file)
+        - Medium (multi-file change)
+        - Large (multi-module change)
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Related references
+      description: Link related issues/PRs/files if available.
+      placeholder: "Related: #123, #456"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues first
+          required: true
+        - label: This task is specific and actionable
+          required: true

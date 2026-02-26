@@ -20,16 +20,41 @@ function checkLogMatch($logLines, $needle, $index) {
     return false;
 }
 
+function resolve_ticket_atomic($ticketsFile, $resolveTime) {
+  $fp = fopen($ticketsFile, 'c+');
+  if (!$fp) return false;
+  if (!flock($fp, LOCK_EX)) {
+    fclose($fp);
+    return false;
+  }
+
+  rewind($fp);
+  $raw = stream_get_contents($fp);
+  $tickets = json_decode($raw ?: '[]', true);
+  if (!is_array($tickets)) $tickets = [];
+
+  foreach ($tickets as &$ticket) {
+    if (($ticket['timestamp'] ?? '') === $resolveTime) {
+      $ticket['resolved'] = true;
+      break;
+    }
+  }
+
+  $payload = json_encode($tickets, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+  rewind($fp);
+  ftruncate($fp, 0);
+  fwrite($fp, $payload);
+  fflush($fp);
+  flock($fp, LOCK_UN);
+  fclose($fp);
+
+  return true;
+}
+
 // Handle resolve
 if (isset($_GET['resolve'])) {
     $resolveTime = $_GET['resolve'];
-    foreach ($tickets as &$ticket) {
-        if ($ticket['timestamp'] === $resolveTime) {
-            $ticket['resolved'] = true;
-            break;
-        }
-    }
-    file_put_contents($ticketsFile, json_encode($tickets, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+  resolve_ticket_atomic($ticketsFile, $resolveTime);
     header("Location: index.php?page=support_tickets");
     exit;
 }

@@ -4,7 +4,33 @@ date_default_timezone_set('Africa/Lagos');
 $ticketsFile = __DIR__ . '/admin/support_tickets.json';
 
 if (!file_exists($ticketsFile)) {
-    file_put_contents($ticketsFile, json_encode([]));
+  file_put_contents($ticketsFile, json_encode([]), LOCK_EX);
+}
+
+function append_support_ticket_atomic($ticketsFile, $ticket) {
+  $fp = fopen($ticketsFile, 'c+');
+  if (!$fp) return false;
+  if (!flock($fp, LOCK_EX)) {
+    fclose($fp);
+    return false;
+  }
+
+  rewind($fp);
+  $raw = stream_get_contents($fp);
+  $tickets = json_decode($raw ?: '[]', true);
+  if (!is_array($tickets)) $tickets = [];
+
+  $tickets[] = $ticket;
+  $payload = json_encode($tickets, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+  rewind($fp);
+  ftruncate($fp, 0);
+  fwrite($fp, $payload);
+  fflush($fp);
+  flock($fp, LOCK_UN);
+  fclose($fp);
+
+  return true;
 }
 
 $success = false;
@@ -17,8 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ip = $_SERVER['REMOTE_ADDR'];
 
     if ($name && $matric && $message) {
-        $tickets = json_decode(file_get_contents($ticketsFile), true);
-        $tickets[] = [
+      $saved = append_support_ticket_atomic($ticketsFile, [
             'name' => $name,
             'matric' => $matric,
             'message' => $message,
@@ -26,9 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'ip' => $ip,
             'timestamp' => date('Y-m-d H:i:s'),
             'resolved' => false
-        ];
-        file_put_contents($ticketsFile, json_encode($tickets, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        $success = true;
+      ]);
+      $success = $saved;
     }
 }
 

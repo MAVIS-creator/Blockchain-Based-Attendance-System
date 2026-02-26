@@ -37,7 +37,17 @@ Used for asking questions or getting help.
 - Support for screenshots and code snippets
 - Links to documentation resources
 
-### 4. Configuration (`config.yml`)
+### 4. 🛠 Task / Improvement (`task.yml`)
+Used for concrete implementation tasks, refactors, or scoped repo improvements.
+
+**Key Features:**
+- Task summary with clear motivation
+- Scope definition (in-scope/out-of-scope)
+- Acceptance criteria checklist
+- Area and effort estimation
+- Links to related issues/PRs
+
+### 5. Configuration (`config.yml`)
 Controls the issue creation experience.
 
 **Features:**
