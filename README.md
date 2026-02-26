@@ -30,6 +30,8 @@
   <img src="https://i.ibb.co/sdDxfVFt/image.png" alt="Support Tickets" width="100%">
 - View announcements  
   <img src="https://i.ibb.co/mCG6hkPd/image.png" alt="View Announcements" width="100%">
+- Closed-state handling for inactive/disabled attendance windows
+- Device-aware attendance validation
 
 </td>
 <td width="50%">
@@ -46,6 +48,7 @@
   - Select specific columns to include
   - Export as CSV or PDF
   - Send individual files or grouped batches
+- Automated log sending via scheduled task (`auto_send_logs.php`)
 - Create, edit, and delete courses  
   <img src="https://i.ibb.co/zVRspk8v/image.png" alt="Manage Courses" width="100%">
 - Set active courses for attendance  
@@ -54,6 +57,10 @@
   <img src="https://i.ibb.co/Ldnq0jcP/image.png" alt="Manual Attendance" width="100%">
 - Unlink fingerprints from users  
   <img src="https://i.ibb.co/dsd1NVkD/image.png" alt="Unlink Fingerprints" width="100%">
+- Clear device mappings and manage revocations (token/IP/MAC)
+- Backup / restore logs + chain data from ZIP
+- Audit log viewer and retention purge controls
+- Admin internal chat (post/fetch/delete)
 - View Support Tickets  
   <img src="https://i.ibb.co/XrQGzR5R/image.png" alt="View Support Tickets" width="100%">
 - Post announcements  
@@ -75,6 +82,17 @@
 - **Invalid attempts log** for all failed check-ins/outs  
 - **Blockchain log chaining** to make tampering detectable  
 - **Optional Polygon integration** for decentralized hash storage  
+- **CSRF protection** on admin write operations  
+- **Optional geo-fence, IP whitelist, cooldown, and user-agent lock rules**
+- **Locked file writes** (`LOCK_EX`/`flock`) on critical log/JSON update paths
+
+---
+
+## 📚 Feature Inventory (Full)
+
+For a full repo-wide breakdown of implemented capabilities by module, see:
+
+- [FEATURES_IMPLEMENTED.md](FEATURES_IMPLEMENTED.md)
 
 ---
 
@@ -147,7 +165,17 @@ Visit: `http://localhost:8000`
 4. Visit: `http://localhost/blockchain-attendance-system/`
 
 ---
-- This project is licensed under the MIT LICENSE – see the <a href="https://github.com/MAVIS-creator/Attendance_/blob/main/LICENSE">LICENSE</a> file for details.
+
+## 🤝 Community & Contributions
+
+- Report bugs with structured issue forms in GitHub Issues
+- Request features, ask support questions, or open task/improvement issues
+- Contribute via Pull Requests using the project PR template
+- See contribution details in [CONTRIBUTING.md](CONTRIBUTING.md)
+
+---
+
+- This project is licensed under the MIT LICENSE – see [LICENSE](LICENSE) for details.
 
 👤 Author
 - Mavis – Gamer, Web Developer, Security Enthusiast
