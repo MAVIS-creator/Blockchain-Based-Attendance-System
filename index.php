@@ -32,7 +32,8 @@ if (file_exists($announcementFile)) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Student Attendance</title>
+  <title>Attendance Portal</title>
+  <link rel="icon" type="image/svg+xml" href="asset/attendance-favicon.svg">
   <link rel="icon" type="image/x-icon" href="asset/favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="asset/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="asset/favicon-32x32.png">
@@ -40,157 +41,183 @@ if (file_exists($announcementFile)) {
   <link rel="manifest" href="asset/site.webmanifest">
   <style>
     :root{
-      --accent-red: #ef4444;
-      --accent-yellow: #facc15;
-      --accent-dark: #111827;
-      --card-bg: #ffffff;
-      --muted: #6b7280;
+      --bg-top: #f4f7fb;
+      --bg-bottom: #edf2f7;
+      --panel: #ffffff;
+      --text: #10233a;
+      --muted: #5f6d7d;
+      --line: #d8e1eb;
+      --primary: #1f5d99;
+      --primary-2: #3b7db6;
+      --info-bg: #eef6ff;
+      --info-line: #cfe1f5;
+      --info-text: #1d4f80;
+      --success: #1e8e6a;
+      --shadow: 0 18px 40px rgba(24, 39, 75, 0.08);
     }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #ffffff;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      position: relative;
-      color: var(--accent-dark);
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 16%, rgba(59,125,182,0.22), transparent 26%),
+        radial-gradient(circle at 88% 82%, rgba(30,142,106,0.16), transparent 24%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      padding: 20px;
     }
 
-    .announcement-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      background: linear-gradient(90deg,var(--accent-yellow),var(--accent-red));
-      color: #111;
-      padding: 0.75rem 0;
-      font-weight: bold;
-      z-index: 2000;
-      overflow: hidden;
-      display: none;
-    }
-
-    .scrolling-text {
-      display: inline-block;
-      white-space: nowrap;
-      animation: scroll-left 20s linear infinite;
-    }
-
-    @keyframes scroll-left {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-    }
-
-    .overlay { display:none; }
+    a { text-decoration: none; color: inherit; }
 
     .container {
-      z-index: 1;
-      background: var(--card-bg);
-      border-radius: 14px;
-      padding: 28px;
-      box-shadow: 0 8px 30px rgba(16,24,40,0.08);
-      width: 95%;
-      max-width: 460px;
-      margin-top: 40px;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      border: 1px solid rgba(16,24,40,0.04);
+      width: 100%;
+      max-width: 500px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      animation: rise-in 0.5s ease;
     }
 
-    .container:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 50px rgba(0, 255, 255, 0.25);
+    @keyframes rise-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .brand {
-      display:flex;align-items:center;gap:12px;margin-bottom:18px;
-    }
-  .brand img{ height:44px; width:44px; border-radius:8px; object-fit:cover }
-  /* global link style for client pages */
-  a { text-decoration: none; color: inherit }
-    .brand h2{ margin:0; font-size:1.05rem; color:var(--accent-dark); }
-
-    .form h2 { color:var(--muted); text-align:center; margin-bottom:14px; font-size:1.1rem }
-
-    .input-group {
-      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
     }
 
-    .input-group label { color: var(--muted); display:block; margin-bottom:6px; font-size:0.9rem }
+    .brand img {
+      height: 50px;
+      width: 50px;
+      border-radius: 12px;
+      object-fit: contain;
+      background: #f7fbff;
+      border: 1px solid var(--line);
+      padding: 6px;
+    }
+
+    .brand h2 {
+      margin: 0;
+      font-size: 1.02rem;
+      color: var(--text);
+      letter-spacing: 0.15px;
+    }
+
+    .announcement-panel {
+      display: none;
+      margin-bottom: 14px;
+      background: var(--info-bg);
+      border: 1px solid var(--info-line);
+      color: var(--info-text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      line-height: 1.35;
+      font-size: 0.93rem;
+    }
+
+    .announcement-title {
+      font-weight: 700;
+      margin-right: 6px;
+    }
+
+    .form h2 {
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 14px;
+      font-size: 1.02rem;
+      font-weight: 600;
+    }
+
+    .input-group { margin-bottom: 16px; }
+
+    .input-group label {
+      color: var(--muted);
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.89rem;
+    }
 
     .input-group input {
-      width: 100%; padding:12px; border:1px solid #e6e9ef; background: #fff; color: var(--accent-dark); border-radius:8px; transition: all 0.15s ease;
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 10px;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
-    .input-group input:focus { outline:none; box-shadow: 0 6px 20px rgba(16,24,40,0.06); border-color: rgba(16,24,40,0.06); }
-
-    .btn { width:100%; padding:12px; border:none; color:#fff; font-weight:700; border-radius:8px; cursor:pointer; font-size:1rem; transition: all 0.15s ease; }
-    .btn-primary { background: linear-gradient(90deg,var(--accent-red),#d97706); }
-    .btn-accent { background: linear-gradient(90deg,var(--accent-yellow),#f59e0b); color:#111 }
-    .btn:hover { transform: translateY(-2px); }
-
-    button:hover {
-      background-color: #00c5cc;
-      transform: translateY(-2px);
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--primary-2);
+      box-shadow: 0 0 0 3px rgba(59,125,182,0.16);
     }
 
-    /* SweetAlert2 customizations */
-    .swal2-popup { border-radius:12px; }
-    .swal2-header { color:var(--accent-dark) }
-    .swal2-title { color:var(--accent-dark); font-weight:700 }
-    .swal2-confirm { background: linear-gradient(90deg,var(--accent-red),var(--accent-yellow)) !important; color:#111 !important }
-
-    /* Responsive Styles */
-    @media (max-width: 480px) {
-      .container {
-        padding: 20px;
-        margin: 15px;
-        width: calc(100% - 30px);
-      }
-
-      .form h2 {
-        font-size: 1.1rem;
-      }
-
-      .brand {
-        flex-direction: column;
-        text-align: center;
-      }
-
-      .brand img {
-        margin: 0 auto 10px;
-      }
-
-      .brand h2 {
-        font-size: 1rem;
-      }
-
-      .input-group label {
-        font-size: 0.85rem;
-      }
-
-      .input-group input {
-        padding: 10px;
-        font-size: 0.95rem;
-      }
-
-      .btn {
-        padding: 12px;
-        font-size: 0.95rem;
-      }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.98rem;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.2s ease;
     }
 
-    @media (max-width: 360px) {
-      .container {
-        padding: 15px;
-      }
+    .btn-primary {
+      background: linear-gradient(90deg, var(--primary), var(--primary-2));
+      box-shadow: 0 8px 20px rgba(31,93,153,0.25);
+    }
 
-      .brand img {
-        height: 36px;
-        width: 36px;
-      }
+    .btn-accent {
+      background: #f4f8fc;
+      color: var(--primary);
+      border: 1px solid var(--line);
+      font-size: 0.9rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      width: auto;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    .support-row {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .swal2-popup { border-radius: 12px; }
+    .swal2-title { color: var(--text); font-weight: 700; }
+    .swal2-confirm { background: linear-gradient(90deg, var(--primary), var(--primary-2)) !important; }
+
+    @media (max-width: 520px) {
+      body { padding: 14px; }
+      .container { padding: 18px; border-radius: 14px; }
+      .brand { align-items: flex-start; }
+      .brand h2 { font-size: 0.95rem; }
+      .support-row { align-items: flex-start; }
     }
   </style>
   <link rel="stylesheet" href="admin/boxicons.min.css">
@@ -199,14 +226,14 @@ if (file_exists($announcementFile)) {
 </head>
 <body>
 
-<div id="announcementBar" class="announcement-bar">
-  <div id="scrollingText" class="scrolling-text"><?= htmlspecialchars($announcement['message']) ?></div>
-</div>
-
 <div class="container">
   <div class="brand">
-    <img src="asset/lautech_logo.png" alt="LAUTECH" style="background:#fff;padding:6px;border-radius:8px;">
-    <h2>Student Attendance — <?= htmlspecialchars($activeCourse) ?></h2>
+    <img src="asset/attendance-mark.svg" alt="Attendance Mark">
+    <h2>Attendance Portal - <?= htmlspecialchars($activeCourse) ?></h2>
+  </div>
+  <div id="announcementPanel" class="announcement-panel">
+    <span class="announcement-title"><i class='bx bx-bell'></i> Announcement:</span>
+    <span id="announcementText"><?= htmlspecialchars($announcement['message']) ?></span>
   </div>
   <form class="form" id="attendanceForm">
     <h2>Attendance (<?= ucfirst($activeMode) ?>)</h2>
@@ -226,9 +253,9 @@ if (file_exists($announcementFile)) {
     <input type="hidden" name="course" value="<?= htmlspecialchars($activeCourse) ?>">
 
     <button id="submitBtn" class="btn btn-primary" type="submit" disabled>Submit Attendance</button>
-    <p style="display: inline-block; margin: 10px 0 0; font-size: 14px; color: var(--muted);">
+    <p class="support-row">
       Need help? 
-      <a href="support.php" style="margin-left:8px; padding:8px 14px; border-radius:8px; text-decoration:none;" class="btn btn-accent"><i class='bx bx-message'></i> Support</a>
+      <a href="support.php" class="btn btn-accent"><i class='bx bx-message'></i> Support</a>
     </p>
   </form>
 </div>
@@ -238,8 +265,8 @@ if (file_exists($announcementFile)) {
 <script>
 const submitBtn = document.getElementById('submitBtn');
 const fingerprintInput = document.getElementById('fingerprint');
-const announcementBar = document.getElementById('announcementBar');
-const scrollingText = document.getElementById('scrollingText');
+const announcementPanel = document.getElementById('announcementPanel');
+const announcementText = document.getElementById('announcementText');
 
 let inactivityTimer;
 let fencingActive = true;
@@ -423,10 +450,10 @@ function fetchAnnouncement() {
     .then(res => res.json())
     .then(data => {
       if (data.enabled && data.message.trim()) {
-        scrollingText.textContent = data.message;
-        announcementBar.style.display = 'block';
+        announcementText.textContent = data.message;
+        announcementPanel.style.display = 'block';
       } else {
-        announcementBar.style.display = 'none';
+        announcementPanel.style.display = 'none';
       }
     })
     .catch(err => {

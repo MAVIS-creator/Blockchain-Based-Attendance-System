@@ -8,6 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="admin/boxicons.min.css">
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <link rel="icon" type="image/svg+xml" href="asset/attendance-favicon.svg">
   <link rel="icon" type="image/x-icon" href="asset/favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="asset/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="asset/favicon-32x32.png">
@@ -15,25 +16,111 @@
   <link rel="manifest" href="asset/site.webmanifest">
   <title>Attendance Closed</title>
   <style>
-    :root{ --accent-red:#ef4444; --accent-yellow:#facc15; --accent-dark:#111827 }
-    body{ margin:0; font-family:'Segoe UI',sans-serif; background:#f8fafc; color:var(--accent-dark); display:flex; align-items:center; justify-content:center; min-height:100vh; padding: 20px; box-sizing: border-box; }
-    .card{ background:#fff; padding:28px; border-radius:12px; box-shadow:0 12px 40px rgba(16,24,40,0.08); max-width:720px; width:100%; text-align:center; margin: 10px; box-sizing: border-box; }
-    .logo{ height:64px; width:64px; object-fit:cover; border-radius:10px; margin-bottom:12px }
-    h1{ margin:0 0 8px; font-size:1.6rem }
-    p{ color:#374151; line-height: 1.5; }
-    .actions{ margin-top:18px; display:flex; gap:12px; justify-content:center; flex-wrap: wrap; }
-    .btn{ padding:10px 18px; border-radius:8px; font-weight:700; border:none; cursor:pointer; width: auto; min-width: 140px; }
-    .btn-primary{ background: linear-gradient(90deg,var(--accent-red),#d97706); color:#fff }
-    .btn-accent{ background: linear-gradient(90deg,var(--accent-yellow),#f59e0b); color:#111 }
+    :root{
+      --bg-top: #f4f7fb;
+      --bg-bottom: #edf2f7;
+      --panel: #ffffff;
+      --text: #10233a;
+      --muted: #5f6d7d;
+      --line: #d8e1eb;
+      --primary: #1f5d99;
+      --primary-2: #3b7db6;
+      --shadow: 0 18px 40px rgba(24, 39, 75, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 14%, rgba(59,125,182,0.22), transparent 26%),
+        radial-gradient(circle at 88% 82%, rgba(30,142,106,0.14), transparent 24%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      padding: 20px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      max-width: 680px;
+      width: 100%;
+      text-align: center;
+      padding: 28px;
+      animation: rise-in 0.45s ease;
+    }
+
+    @keyframes rise-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      height: 70px;
+      width: 70px;
+      object-fit: contain;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      background: #f7fbff;
+      border: 1px solid var(--line);
+      padding: 8px;
+    }
+
+    h1 { margin: 0 0 8px; font-size: 1.62rem; }
+
+    p {
+      color: var(--muted);
+      line-height: 1.55;
+      margin: 0 auto;
+      max-width: 520px;
+    }
+
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 11px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      width: auto;
+      min-width: 148px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--primary), var(--primary-2));
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(31,93,153,0.25);
+    }
+
+    .btn-primary:hover { transform: translateY(-1px); }
 
     @media (max-width: 480px) {
       .card {
         padding: 20px;
-        margin: 10px;
+        border-radius: 14px;
       }
       
       h1 {
-        font-size: 1.3rem;
+        font-size: 1.28rem;
       }
 
       p {
@@ -41,13 +128,13 @@
       }
 
       .logo {
-        height: 48px;
-        width: 48px;
+        height: 56px;
+        width: 56px;
       }
 
       .btn {
-        min-width: 120px;
-        padding: 8px 16px;
+        min-width: 128px;
+        padding: 9px 16px;
         font-size: 0.9rem;
       }
     }
@@ -70,7 +157,7 @@
 </head>
 <body>
   <div class="card">
-  <img class="logo" src="asset/lautech_logo.png" alt="logo" style="background:#fff;padding:8px;border-radius:8px;">
+  <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
     <h1>Attendance Currently Closed</h1>
     <p>Attendance is not open at this time. Please return later or contact support if you believe this is an error.</p>
     <div class="actions">

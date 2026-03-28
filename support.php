@@ -78,7 +78,8 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Support Ticket</title>
+  <title>Attendance Support</title>
+  <link rel="icon" type="image/svg+xml" href="asset/attendance-favicon.svg">
   <link rel="stylesheet" href="./admin/boxicons.min.css">
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <link rel="icon" type="image/x-icon" href="asset/favicon.ico">
@@ -88,149 +89,177 @@ if (isset($_COOKIE['attendanceBlocked'])) {
   <link rel="manifest" href="asset/site.webmanifest">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
-    :root{ --accent-red:#ef4444; --accent-yellow:#facc15; --accent-dark:#111827; --muted:#6b7280 }
-    body { 
-      margin:0; 
-      font-family:'Segoe UI',sans-serif; 
-      background:#f3f4f6; 
-      min-height:100vh; 
-      display:flex; 
-      align-items:center; 
-      justify-content:center; 
-      padding: 20px;
-      box-sizing: border-box;
+    :root {
+      --bg-top: #f4f7fb;
+      --bg-bottom: #edf2f7;
+      --panel: #ffffff;
+      --text: #10233a;
+      --muted: #5f6d7d;
+      --line: #d8e1eb;
+      --primary: #1f5d99;
+      --primary-2: #3b7db6;
+      --info-bg: #eef6ff;
+      --info-line: #cfe1f5;
+      --info-text: #1d4f80;
+      --success-bg: #e8f8f1;
+      --success-text: #1b6c51;
+      --shadow: 0 18px 40px rgba(24, 39, 75, 0.08);
     }
-    .announcement-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      background: #007bff;
-      color: white;
-      padding: 0.75rem 0;
-      font-weight: bold;
-      text-align: center;
-      border-radius: 0 0 8px 8px;
-      z-index: 2000;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      overflow: hidden;
-      display: none;
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 14% 14%, rgba(59,125,182,0.22), transparent 26%),
+        radial-gradient(circle at 86% 78%, rgba(30,142,106,0.14), transparent 24%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      color: var(--text);
+      padding: 18px;
     }
-    .scrolling-text {
-      display: flex;
-      white-space: nowrap;
-      animation: scroll-left 18s linear infinite;
-    }
-    .scrolling-text span {
-      padding-right: 80px;
-      font-size: 1.1em;
-    }
-    @keyframes scroll-left {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
-    .overlay {
-      position: absolute;
+
+    a { text-decoration: none; color: inherit; }
+
+    .container {
       width: 100%;
-      height: 100%;
-      background: rgba(5, 15, 35, 0.75);
-      z-index: 0;
-    }
-    .container { 
-      z-index:1; 
-      background:#fff; 
-      border-radius:12px; 
-      padding:28px; 
-      box-shadow:0 10px 30px rgba(16,24,40,0.08); 
-      max-width:480px; 
-      width:100%; 
-      margin: 10px;
-      box-sizing: border-box;
+      max-width: 520px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      animation: rise-in 0.5s ease;
     }
 
-    @media (max-width: 480px) {
-      .container {
-        padding: 20px;
-      }
-
-      .logo {
-        height: 80px;
-      }
-
-      h2 {
-        font-size: 1.2rem;
-      }
-
-      .input-group label {
-        font-size: 0.9rem;
-      }
-
-      .input-group input,
-      .input-group textarea {
-        padding: 8px;
-        font-size: 0.95rem;
-      }
-
-      .btn {
-        padding: 10px;
-        font-size: 0.95rem;
-      }
-    }
-
-    @media (max-width: 360px) {
-      .container {
-        padding: 15px;
-      }
-
-      .logo {
-        height: 60px;
-      }
-
-      .back-link {
-        font-size: 0.9rem;
-      }
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
+    @keyframes rise-in {
+      from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    h2 { color: #00eaff; text-align: center; margin-bottom: 25px; }
-    h2 { color:var(--accent-dark); text-align:center; margin-bottom:12px }
-    .input-group { margin-bottom: 20px; }
-    .input-group label { color: #ccc; display: block; margin-bottom: 5px; }
-    .input-group input, .input-group textarea { width:100%; padding:10px; border:1px solid #e6e9ef; background:#fff; color:#111; border-radius:8px }
-    .input-group textarea { resize: vertical; min-height: 80px; }
-    .input-group input:focus, .input-group textarea:focus {
-      outline: none;
-      box-shadow: 0 0 10px #00eaff;
+
+    .announcement-panel {
+      display: none;
+      margin-bottom: 14px;
+      background: var(--info-bg);
+      border: 1px solid var(--info-line);
+      color: var(--info-text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 0.93rem;
+      line-height: 1.35;
     }
-    button { width:100%; padding:12px; border-radius:8px; border:none; font-weight:700; cursor:pointer; }
-    .btn { width:100%; padding:12px; border-radius:8px; border:none; font-weight:700; cursor:pointer; }
-    .btn-primary { background: linear-gradient(90deg,var(--accent-red),#d97706); color:#fff; }
-    .btn-accent { background: linear-gradient(90deg,var(--accent-yellow),#f59e0b); color:#111; }
-    .success-message { background:#f0fdf4; color:#065f46; padding:12px; margin-top:12px; border-radius:6px; text-align:center; }
-    .back-link { display:block; text-align:center; margin-top:14px; color:var(--accent-red); text-decoration:none; font-weight:700; }
-    .disabled-link { pointer-events:none; opacity:0.5 }
-  .logo{ height:120px; width:auto; max-width:240px; border-radius:8px; margin:0 auto 12px; display:block; background:transparent; }
-  /* remove default link underlines and make anchors button-like where used */
-  a { text-decoration: none; color: inherit }
-  
+
+    .announcement-title { font-weight: 700; margin-right: 6px; }
+
+    .logo {
+      height: 88px;
+      width: 88px;
+      border-radius: 18px;
+      margin: 0 auto 10px;
+      display: block;
+      border: 1px solid var(--line);
+      background: #f7fbff;
+      padding: 8px;
+      object-fit: contain;
+    }
+
+    h2 {
+      color: var(--text);
+      text-align: center;
+      margin: 0 0 16px;
+      font-size: 1.2rem;
+    }
+
+    .input-group { margin-bottom: 15px; }
+    .input-group label {
+      color: var(--muted);
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+
+    .input-group input,
+    .input-group textarea {
+      width: 100%;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 10px;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .input-group textarea { resize: vertical; min-height: 90px; }
+
+    .input-group input:focus,
+    .input-group textarea:focus {
+      outline: none;
+      border-color: var(--primary-2);
+      box-shadow: 0 0 0 3px rgba(59,125,182,0.16);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--primary), var(--primary-2));
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(31,93,153,0.25);
+    }
+
+    .btn-primary:hover { transform: translateY(-1px); }
+
+    .success-message {
+      background: var(--success-bg);
+      color: var(--success-text);
+      padding: 11px;
+      margin-top: 12px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid #cfeedd;
+      font-size: 0.93rem;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 14px;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 0.93rem;
+    }
+
+    .disabled-link { pointer-events: none; opacity: 0.5; }
+
+    @media (max-width: 520px) {
+      body { padding: 14px; }
+      .container { border-radius: 14px; padding: 18px; }
+      .logo { height: 72px; width: 72px; border-radius: 14px; }
+      h2 { font-size: 1.08rem; }
+    }
   </style>
 </head>
 <body>
 
+  <div class="container">
   <?php if ($announcement['enabled'] && $announcement['message']): ?>
-  <div id="announcementBar" class="announcement-bar" style="display: block;">
-    <div class="scrolling-text">
-      <span><?= htmlspecialchars($announcement['message']) ?></span>
+    <div class="announcement-panel" style="display:block;">
+      <span class="announcement-title"><i class='bx bx-bell'></i> Announcement:</span>
       <span><?= htmlspecialchars($announcement['message']) ?></span>
     </div>
-  </div>
   <?php endif; ?>
 
-  <div class="overlay"></div>
-  <div class="container">
-  <img class="logo" src="asset/lautech_logo.png" alt="logo" style="background:#fff;padding:8px;border-radius:8px;">
+  <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
   <h2><i class='bx bx-ticket'></i> Submit Support Ticket</h2>
 
     <?php if ($success): ?>
