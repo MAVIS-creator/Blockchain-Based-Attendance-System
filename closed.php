@@ -3,6 +3,7 @@ session_start();
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -29,7 +30,9 @@ session_start();
       --shadow: 0 18px 40px rgba(24, 39, 75, 0.08);
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -39,8 +42,8 @@ session_start();
       place-items: center;
       color: var(--text);
       background:
-        radial-gradient(circle at 12% 14%, rgba(59,125,182,0.22), transparent 26%),
-        radial-gradient(circle at 88% 82%, rgba(30,142,106,0.14), transparent 24%),
+        radial-gradient(circle at 12% 14%, rgba(59, 125, 182, 0.22), transparent 26%),
+        radial-gradient(circle at 88% 82%, rgba(30, 142, 106, 0.14), transparent 24%),
         linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
       padding: 20px;
     }
@@ -58,8 +61,15 @@ session_start();
     }
 
     @keyframes rise-in {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .logo {
@@ -115,10 +125,12 @@ session_start();
     .btn-primary {
       background: linear-gradient(90deg, var(--primary), var(--primary-2));
       color: #fff;
-      box-shadow: 0 8px 20px rgba(31,93,153,0.25);
+      box-shadow: 0 8px 20px rgba(31, 93, 153, 0.25);
     }
 
-    .btn:hover { transform: translateY(-1px); }
+    .btn:hover {
+      transform: translateY(-1px);
+    }
 
     @media (max-width: 480px) {
       .card {
@@ -158,6 +170,7 @@ session_start();
     }
   </style>
 </head>
+
 <body>
   <div class="card">
     <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
@@ -169,4 +182,5 @@ session_start();
     </div>
   </div>
 </body>
+
 </html>

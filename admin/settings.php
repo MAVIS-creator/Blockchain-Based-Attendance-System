@@ -112,11 +112,13 @@ if (!file_exists($settingsFile)) {
     'ip_whitelist' => [],
     'encrypted_settings' => false,
     'device_cooldown_seconds' => 0,
+    'geo_fence_enabled' => false,
     'geo_fence' => ['lat'=>null,'lng'=>null,'radius_m'=>0],
     'user_agent_lock' => false,
     'auto_backup' => true,
     'backup_retention' => 10,
-    'encrypt_logs' => false
+    'encrypt_logs' => false,
+    'blocked_tokens_retention_days' => 30
     ,
     // SMTP & auto-send defaults
     'smtp' => [
@@ -138,6 +140,42 @@ if (!file_exists($settingsFile)) {
 }
 
 $settings = load_settings($settingsFile, $keyFile) ?: ['prefer_mac'=>true,'max_admins'=>5];
+
+// Ensure missing keys from older settings files are populated safely.
+$settings = array_replace([
+  'prefer_mac' => true,
+  'max_admins' => 5,
+  'require_fingerprint_match' => false,
+  'require_reason_keywords' => false,
+  'reason_keywords' => '',
+  'checkin_time_start' => '',
+  'checkin_time_end' => '',
+  'enforce_one_device_per_day' => false,
+  'ip_whitelist' => [],
+  'encrypted_settings' => false,
+  'device_cooldown_seconds' => 0,
+  'geo_fence_enabled' => false,
+  'geo_fence' => ['lat'=>null,'lng'=>null,'radius_m'=>0],
+  'user_agent_lock' => false,
+  'auto_backup' => true,
+  'backup_retention' => 10,
+  'encrypt_logs' => false,
+  'blocked_tokens_retention_days' => 30,
+  'smtp' => [
+    'host' => '',
+    'port' => 587,
+    'user' => '',
+    'pass' => '',
+    'secure' => 'tls',
+    'from_email' => 'no-reply@example.com',
+    'from_name' => 'Attendance System'
+  ],
+  'auto_send' => [
+    'enabled' => false,
+    'recipient' => '',
+    'format' => 'csv'
+  ]
+], is_array($settings) ? $settings : []);
 
 // determine current user role
 $currentRole = $_SESSION['admin_role'] ?? 'admin';
@@ -214,12 +252,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $ipWhitelist = array_values(array_filter(array_map('trim', preg_split('/[\r\n,]+/', $ipWhitelistRaw))));
       $encryptedSettings = isset($_POST['encrypted_settings']) && $_POST['encrypted_settings'] === '1';
       $deviceCooldown = intval($_POST['device_cooldown_seconds'] ?? 0);
+      $geoFenceEnabled = isset($_POST['geo_fence_enabled']) && $_POST['geo_fence_enabled'] === '1';
       $geoLat = $_POST['geo_lat'] ?? null;
       $geoLng = $_POST['geo_lng'] ?? null;
       $geoRadius = intval($_POST['geo_radius_m'] ?? 0);
       $userAgentLock = isset($_POST['user_agent_lock']) && $_POST['user_agent_lock'] === '1';
       $autoBackup = isset($_POST['auto_backup']) && $_POST['auto_backup'] === '1';
       $backupRetention = intval($_POST['backup_retention'] ?? 10);
+      $blockedTokensRetention = intval($_POST['blocked_tokens_retention_days'] ?? ($settings['blocked_tokens_retention_days'] ?? 30));
 
       if ($maxAdmins < 1 || $maxAdmins > 50) $errors[] = 'Max admins must be between 1 and 50.';
       if ($requireReasonKeywords && $reasonKeywords === '') $errors[] = 'Provide at least one reason keyword when requiring reason keywords.';
@@ -227,6 +267,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if ($checkinStart !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $checkinStart)) $errors[] = 'Check-in start must be in HH:MM format.';
       if ($checkinEnd !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $checkinEnd)) $errors[] = 'Check-in end must be in HH:MM format.';
       if ($backupRetention < 1) $backupRetention = 1;
+      if ($blockedTokensRetention < 1) $blockedTokensRetention = 1;
+      if ($blockedTokensRetention > 3650) $blockedTokensRetention = 3650;
+
+      if ($geoFenceEnabled) {
+        if ($geoLat === null || $geoLat === '' || !is_numeric($geoLat)) $errors[] = 'Geo-fence latitude must be a valid number when geo-fencing is enabled.';
+        if ($geoLng === null || $geoLng === '' || !is_numeric($geoLng)) $errors[] = 'Geo-fence longitude must be a valid number when geo-fencing is enabled.';
+        if ($geoRadius <= 0) $errors[] = 'Geo-fence radius must be greater than 0 when geo-fencing is enabled.';
+      }
 
       // if critical fields are changing and encryption toggle or max_admins changed, require reauth
       $critical = false;
@@ -247,11 +295,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $settings['ip_whitelist'] = $ipWhitelist;
         $settings['encrypted_settings'] = $encryptedSettings;
         $settings['device_cooldown_seconds'] = $deviceCooldown;
+          $settings['geo_fence_enabled'] = $geoFenceEnabled;
         $settings['geo_fence'] = ['lat'=>$geoLat,'lng'=>$geoLng,'radius_m'=>$geoRadius];
         $settings['user_agent_lock'] = $userAgentLock;
   $settings['auto_backup'] = $autoBackup;
   $settings['backup_retention'] = $backupRetention;
   $settings['encrypt_logs'] = isset($_POST['encrypt_logs']) && $_POST['encrypt_logs'] === '1';
+        $settings['blocked_tokens_retention_days'] = $blockedTokensRetention;
 
   // SMTP & auto-send
   // Policy: SMTP connection details come from .env; only 'from_name' and auto-send recipient/format are changeable here.
@@ -374,13 +424,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
       <legend style="font-weight:600;padding:0 6px;">Geo-fencing</legend>
+      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="geo_fence_enabled" value="1" <?=($settings['geo_fence_enabled'] ?? false) ? 'checked' : ''?>> Enable geo-fencing enforcement (optional)</label>
       <div style="display:flex;gap:8px;align-items:center;"><input type="text" name="geo_lat" placeholder="Latitude" value="<?=htmlspecialchars($settings['geo_fence']['lat'] ?? '')?>" style="padding:8px;width:160px;"><input type="text" name="geo_lng" placeholder="Longitude" value="<?=htmlspecialchars($settings['geo_fence']['lng'] ?? '')?>" style="padding:8px;width:160px;"><input type="number" name="geo_radius_m" placeholder="Radius (m)" value="<?=htmlspecialchars($settings['geo_fence']['radius_m'] ?? 0)?>" style="padding:8px;width:120px;"></div>
+      <p style="color:#6b7280;font-size:0.9rem;margin:8px 0 0;">When disabled, location checks are skipped even if coordinates are saved.</p>
+
+      <div style="margin-top:12px;padding:10px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;">
+        <label style="display:block;font-weight:600;margin-bottom:8px;">Geo-fence tester (safe check)</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input id="geo_test_lat" type="text" placeholder="Test latitude" style="padding:8px;width:160px;">
+          <input id="geo_test_lng" type="text" placeholder="Test longitude" style="padding:8px;width:160px;">
+          <button id="geo_test_btn" type="button" style="padding:8px 12px;background:#0ea5e9;color:#fff;border:none;border-radius:6px;cursor:pointer;">Run Geo Test</button>
+        </div>
+        <div id="geo_test_result" style="margin-top:8px;color:#334155;font-size:0.9rem;"></div>
+      </div>
     </fieldset>
 
     <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
       <legend style="font-weight:600;padding:0 6px;">Backups & retention</legend>
       <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="auto_backup" value="1" <?=($settings['auto_backup'] ?? true) ? 'checked' : ''?>> Keep automatic backups on each save</label>
       <label style="display:block;margin-bottom:8px;">Backup retention (number of backups to keep) <input type="number" name="backup_retention" value="<?=htmlspecialchars($settings['backup_retention'] ?? 10)?>" style="width:120px;margin-left:8px;padding:6px;"></label>
+      <label style="display:block;margin-bottom:8px;">Blocked token log retention (days) <input type="number" name="blocked_tokens_retention_days" min="1" max="3650" value="<?=htmlspecialchars($settings['blocked_tokens_retention_days'] ?? 30)?>" style="width:120px;margin-left:8px;padding:6px;"></label>
     </fieldset>
 
     <div style="display:flex;gap:12px;align-items:center;">
@@ -438,3 +501,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <pre style="max-height:220px;overflow:auto;background:#f3f4f6;padding:8px;"><?php foreach($lastAudit as $la){ echo htmlspecialchars($la)."\n"; } ?></pre>
   </div>
 </div>
+
+<script>
+(function() {
+  var btn = document.getElementById('geo_test_btn');
+  var out = document.getElementById('geo_test_result');
+  var testLatInput = document.getElementById('geo_test_lat');
+  var testLngInput = document.getElementById('geo_test_lng');
+  if (!btn || !out || !testLatInput || !testLngInput) return;
+
+  function read(name) {
+    var el = document.querySelector('[name="' + name + '"]');
+    return el ? el.value : '';
+  }
+
+  if (!testLatInput.value) testLatInput.value = read('geo_lat');
+  if (!testLngInput.value) testLngInput.value = read('geo_lng');
+
+  btn.addEventListener('click', function() {
+    var csrf = read('csrf_token');
+    var body = new URLSearchParams();
+    body.append('csrf_token', csrf || '');
+    body.append('test_lat', testLatInput.value.trim());
+    body.append('test_lng', testLngInput.value.trim());
+
+    out.textContent = 'Running geofence test...';
+    fetch('geofence_test.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: body.toString()
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data || !data.ok) {
+        out.style.color = '#b91c1c';
+        out.textContent = 'Test failed: ' + ((data && data.message) ? data.message : 'Unknown error');
+        return;
+      }
+
+      if (data.enforced === false) {
+        out.style.color = '#0369a1';
+        out.textContent = 'Geo-fence is currently disabled, so attendance would not be blocked by location.';
+        return;
+      }
+
+      if (data.inside) {
+        out.style.color = '#166534';
+        out.textContent = 'Inside geofence. Distance: ' + data.distance_m + 'm (radius: ' + data.radius_m + 'm).';
+      } else {
+        out.style.color = '#b91c1c';
+        out.textContent = 'Outside geofence. Distance: ' + data.distance_m + 'm (radius: ' + data.radius_m + 'm).';
+      }
+    })
+    .catch(function() {
+      out.style.color = '#b91c1c';
+      out.textContent = 'Request error while testing geofence.';
+    });
+  });
+})();
+</script>

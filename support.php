@@ -7,7 +7,8 @@ if (!file_exists($ticketsFile)) {
   file_put_contents($ticketsFile, json_encode([]), LOCK_EX);
 }
 
-function append_support_ticket_atomic($ticketsFile, $ticket) {
+function append_support_ticket_atomic($ticketsFile, $ticket)
+{
   $fp = fopen($ticketsFile, 'c+');
   if (!$fp) return false;
   if (!flock($fp, LOCK_EX)) {
@@ -36,48 +37,49 @@ function append_support_ticket_atomic($ticketsFile, $ticket) {
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name'] ?? '');
-    $matric = trim($_POST['matric'] ?? '');
-    $message = trim($_POST['message'] ?? '');
-    $fingerprint = trim($_POST['fingerprint'] ?? '');
-    $ip = $_SERVER['REMOTE_ADDR'];
+  $name = trim($_POST['name'] ?? '');
+  $matric = trim($_POST['matric'] ?? '');
+  $message = trim($_POST['message'] ?? '');
+  $fingerprint = trim($_POST['fingerprint'] ?? '');
+  $ip = $_SERVER['REMOTE_ADDR'];
 
-    if ($name && $matric && $message) {
-      $saved = append_support_ticket_atomic($ticketsFile, [
-            'name' => $name,
-            'matric' => $matric,
-            'message' => $message,
-            'fingerprint' => $fingerprint,
-            'ip' => $ip,
-            'timestamp' => date('Y-m-d H:i:s'),
-            'resolved' => false
-      ]);
-      $success = $saved;
-    }
+  if ($name && $matric && $message) {
+    $saved = append_support_ticket_atomic($ticketsFile, [
+      'name' => $name,
+      'matric' => $matric,
+      'message' => $message,
+      'fingerprint' => $fingerprint,
+      'ip' => $ip,
+      'timestamp' => date('Y-m-d H:i:s'),
+      'resolved' => false
+    ]);
+    $success = $saved;
+  }
 }
 
 // ✅ Announcement logic
 $announcementFile = __DIR__ . '/admin/announcement.json';
 $announcement = ['enabled' => false, 'message' => ''];
 if (file_exists($announcementFile)) {
-    $json = json_decode(file_get_contents($announcementFile), true);
-    if (is_array($json)) {
-        $announcement['enabled'] = $json['enabled'] ?? false;
-        $announcement['message'] = $json['message'] ?? '';
-    }
+  $json = json_decode(file_get_contents($announcementFile), true);
+  if (is_array($json)) {
+    $announcement['enabled'] = $json['enabled'] ?? false;
+    $announcement['message'] = $json['message'] ?? '';
+  }
 }
 
 // ✅ Blocked logic: Check if user is blocked via cookie
 $blocked = false;
 if (isset($_COOKIE['attendanceBlocked'])) {
-    $blocked = true;
+  $blocked = true;
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Attendance Support</title>
   <link rel="icon" type="image/svg+xml" href="asset/attendance-favicon.svg">
   <link rel="stylesheet" href="./admin/boxicons.min.css">
@@ -98,6 +100,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       --line: #d8e1eb;
       --primary: #1f5d99;
       --primary-2: #3b7db6;
+      --accent-red: #1f5d99;
       --info-bg: #eef6ff;
       --info-line: #cfe1f5;
       --info-text: #1d4f80;
@@ -106,7 +109,9 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       --shadow: 0 18px 40px rgba(24, 39, 75, 0.08);
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -115,14 +120,17 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       display: grid;
       place-items: center;
       background:
-        radial-gradient(circle at 14% 14%, rgba(59,125,182,0.22), transparent 26%),
-        radial-gradient(circle at 86% 78%, rgba(30,142,106,0.14), transparent 24%),
+        radial-gradient(circle at 14% 14%, rgba(59, 125, 182, 0.22), transparent 26%),
+        radial-gradient(circle at 86% 78%, rgba(30, 142, 106, 0.14), transparent 24%),
         linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
       color: var(--text);
       padding: 18px;
     }
 
-    a { text-decoration: none; color: inherit; }
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
 
     .container {
       width: 100%;
@@ -136,8 +144,15 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     }
 
     @keyframes rise-in {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .announcement-panel {
@@ -152,7 +167,10 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       line-height: 1.35;
     }
 
-    .announcement-title { font-weight: 700; margin-right: 6px; }
+    .announcement-title {
+      font-weight: 700;
+      margin-right: 6px;
+    }
 
     .logo {
       height: 88px;
@@ -173,7 +191,10 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       font-size: 1.2rem;
     }
 
-    .input-group { margin-bottom: 15px; }
+    .input-group {
+      margin-bottom: 15px;
+    }
+
     .input-group label {
       color: var(--muted);
       display: block;
@@ -192,13 +213,16 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
-    .input-group textarea { resize: vertical; min-height: 90px; }
+    .input-group textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
 
     .input-group input:focus,
     .input-group textarea:focus {
       outline: none;
       border-color: var(--primary-2);
-      box-shadow: 0 0 0 3px rgba(59,125,182,0.16);
+      box-shadow: 0 0 0 3px rgba(59, 125, 182, 0.16);
     }
 
     .btn {
@@ -214,10 +238,12 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     .btn-primary {
       background: linear-gradient(90deg, var(--primary), var(--primary-2));
       color: #fff;
-      box-shadow: 0 8px 20px rgba(31,93,153,0.25);
+      box-shadow: 0 8px 20px rgba(31, 93, 153, 0.25);
     }
 
-    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+    }
 
     .success-message {
       background: var(--success-bg);
@@ -239,37 +265,62 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       font-size: 0.93rem;
     }
 
-    .disabled-link { pointer-events: none; opacity: 0.5; }
+    .disabled-link {
+      pointer-events: none;
+      opacity: 0.5;
+    }
 
     @media (max-width: 520px) {
-      body { padding: 14px; }
-      .container { border-radius: 14px; padding: 18px; }
-      .logo { height: 72px; width: 72px; border-radius: 14px; }
-      h2 { font-size: 1.08rem; }
+      body {
+        padding: 14px;
+      }
+
+      .container {
+        border-radius: 14px;
+        padding: 18px;
+      }
+
+      .logo {
+        height: 72px;
+        width: 72px;
+        border-radius: 14px;
+      }
+
+      h2 {
+        font-size: 1.08rem;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <div class="container">
-  <?php if ($announcement['enabled'] && $announcement['message']): ?>
-    <div class="announcement-panel" style="display:block;">
-      <span class="announcement-title"><i class='bx bx-bell'></i> Announcement:</span>
-      <span><?= htmlspecialchars($announcement['message']) ?></span>
-    </div>
-  <?php endif; ?>
+    <?php if ($announcement['enabled'] && $announcement['message']): ?>
+      <div class="announcement-panel" style="display:block;">
+        <span class="announcement-title"><i class='bx bx-bell'></i> Announcement:</span>
+        <span><?= htmlspecialchars($announcement['message']) ?></span>
+      </div>
+    <?php endif; ?>
 
-  <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
-  <h2><i class='bx bx-ticket'></i> Submit Support Ticket</h2>
+    <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
+    <h2><i class='bx bx-ticket'></i> Submit Support Ticket</h2>
 
     <?php if ($success): ?>
       <div class="success-message">
         ✅ Your ticket has been submitted successfully!
       </div>
-      <script>Swal.fire({ icon:'success', title: 'Ticket Submitted', text: 'Your support ticket was submitted successfully.', confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red') });</script>
+      <script>
+        Swal.fire({
+          icon: 'success',
+          title: 'Ticket Submitted',
+          text: 'Your support ticket was submitted successfully.',
+          confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red')
+        });
+      </script>
     <?php endif; ?>
 
-  <form method="post">
+    <form method="post">
       <div class="input-group">
         <label for="name"><i class='bx bx-user'></i> Name</label>
         <input type="text" id="name" name="name" placeholder="Your Name" required />
@@ -302,4 +353,5 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     });
   </script>
 </body>
+
 </html>

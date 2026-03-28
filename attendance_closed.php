@@ -3,6 +3,7 @@
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +17,7 @@
   <link rel="manifest" href="asset/site.webmanifest">
   <title>Attendance Closed</title>
   <style>
-    :root{
+    :root {
       --bg-top: #f4f7fb;
       --bg-bottom: #edf2f7;
       --panel: #ffffff;
@@ -28,7 +29,9 @@
       --shadow: 0 18px 40px rgba(24, 39, 75, 0.08);
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -38,8 +41,8 @@
       place-items: center;
       color: var(--text);
       background:
-        radial-gradient(circle at 12% 14%, rgba(59,125,182,0.22), transparent 26%),
-        radial-gradient(circle at 88% 82%, rgba(30,142,106,0.14), transparent 24%),
+        radial-gradient(circle at 12% 14%, rgba(59, 125, 182, 0.22), transparent 26%),
+        radial-gradient(circle at 88% 82%, rgba(30, 142, 106, 0.14), transparent 24%),
         linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
       padding: 20px;
     }
@@ -57,8 +60,15 @@
     }
 
     @keyframes rise-in {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .logo {
@@ -72,7 +82,10 @@
       padding: 8px;
     }
 
-    h1 { margin: 0 0 8px; font-size: 1.62rem; }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.62rem;
+    }
 
     p {
       color: var(--muted);
@@ -108,17 +121,19 @@
     .btn-primary {
       background: linear-gradient(90deg, var(--primary), var(--primary-2));
       color: #fff;
-      box-shadow: 0 8px 20px rgba(31,93,153,0.25);
+      box-shadow: 0 8px 20px rgba(31, 93, 153, 0.25);
     }
 
-    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+    }
 
     @media (max-width: 480px) {
       .card {
         padding: 20px;
         border-radius: 14px;
       }
-      
+
       h1 {
         font-size: 1.28rem;
       }
@@ -155,9 +170,10 @@
     }
   </style>
 </head>
+
 <body>
   <div class="card">
-  <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
+    <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
     <h1>Attendance Currently Closed</h1>
     <p>Attendance is not open at this time. Please return later or contact support if you believe this is an error.</p>
     <div class="actions">
@@ -165,4 +181,5 @@
     </div>
   </div>
 </body>
+
 </html>

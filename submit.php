@@ -7,6 +7,10 @@ date_default_timezone_set('Africa/Lagos');
 $name = filter_var(trim($_POST['name']), FILTER_SANITIZE_STRING);
 $matric = filter_var(trim($_POST['matric']), FILTER_SANITIZE_STRING);
 $fingerprint = filter_var(trim($_POST['fingerprint']), FILTER_SANITIZE_STRING);
+$reason = trim($_POST['reason'] ?? '');
+$reasonSanitized = preg_replace('/\s+/', ' ', $reason);
+$reasonSanitized = trim((string)$reasonSanitized);
+$reasonSanitized = str_replace('|', '/', $reasonSanitized);
 $action = filter_var($_POST['action'], FILTER_SANITIZE_STRING);
 $course = isset($_POST['course']) ? filter_var($_POST['course'], FILTER_SANITIZE_STRING) : "General";
 
@@ -150,6 +154,36 @@ function upsert_fingerprint_atomic($file, $matric, $hashedFingerprint) {
     return ['ok' => true, 'reason' => 'linked'];
 }
 
+function link_fingerprint_if_missing_atomic($file, $matric, $hashedFingerprint) {
+    $dir = dirname($file);
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+
+    $fp = fopen($file, 'c+');
+    if (!$fp) return false;
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return false;
+    }
+
+    rewind($fp);
+    $raw = stream_get_contents($fp);
+    $data = json_decode($raw ?: '[]', true);
+    if (!is_array($data)) $data = [];
+
+    if (!isset($data[$matric])) {
+        $data[$matric] = $hashedFingerprint;
+        $payload = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        rewind($fp);
+        ftruncate($fp, 0);
+        fwrite($fp, $payload);
+        fflush($fp);
+    }
+
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    return true;
+}
+
 // -----------------------
 // IP whitelist
 // -----------------------
@@ -186,7 +220,7 @@ if (!empty($settings['ip_whitelist']) && is_array($settings['ip_whitelist'])) {
 // -----------------------
 // Geo-fence enforcement (if configured)
 // -----------------------
-if (!empty($settings['geo_fence']) && is_array($settings['geo_fence'])) {
+if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && is_array($settings['geo_fence'])) {
     $gf = $settings['geo_fence'];
     $gfLat = isset($gf['lat']) ? floatval($gf['lat']) : null;
     $gfLng = isset($gf['lng']) ? floatval($gf['lng']) : null;
@@ -208,6 +242,31 @@ if (!empty($settings['geo_fence']) && is_array($settings['geo_fence'])) {
         if ($dist > $gfRadius) {
             fail('GEOFENCE_OUTSIDE','You are outside the allowed attendance area.');
         }
+    }
+}
+
+// -----------------------
+// Reason keywords enforcement (optional, controlled from settings)
+// -----------------------
+if (!empty($settings['require_reason_keywords'])) {
+    $keywordsRaw = trim((string)($settings['reason_keywords'] ?? ''));
+    if ($keywordsRaw === '') {
+        fail('REASON_KEYWORDS_NOT_CONFIGURED', 'Reason keyword enforcement is enabled but no keywords are configured.');
+    }
+    if ($reasonSanitized === '') {
+        fail('REASON_REQUIRED', 'A reason is required for attendance right now.');
+    }
+
+    $keywords = array_values(array_filter(array_map('trim', preg_split('/[\r\n,]+/', $keywordsRaw))));
+    $matched = false;
+    foreach ($keywords as $kw) {
+        if ($kw !== '' && stripos($reasonSanitized, $kw) !== false) {
+            $matched = true;
+            break;
+        }
+    }
+    if (!$matched) {
+        fail('REASON_KEYWORD_MISSING', 'Your reason does not contain any allowed keyword.');
     }
 }
 
@@ -266,19 +325,24 @@ if (!empty($settings['enforce_one_device_per_day'])) {
     write_store($mapFile, $mapData, !empty($settings['encrypt_logs']));
 }
 
-// Load/update fingerprints atomically
+// Load/update fingerprints atomically (toggleable from settings)
 $fingerprintFile = __DIR__ . '/admin/fingerprints.json';
 $hashedFingerprint = hash('sha256', $fingerprint);
-// If fingerprint is already linked to this matric, check; otherwise link atomically
-$fpResult = upsert_fingerprint_atomic($fingerprintFile, $matric, $hashedFingerprint);
-if (!$fpResult['ok']) {
-    header('Content-Type: application/json');
-    if (($fpResult['reason'] ?? '') === 'mismatch') {
-        echo json_encode(['ok' => false, 'message' => 'Fingerprint does not match this Matric Number.']);
-    } else {
-        echo json_encode(['ok' => false, 'message' => 'Unable to verify fingerprint at the moment. Please try again.']);
+if (!empty($settings['require_fingerprint_match'])) {
+    // If fingerprint is already linked to this matric, check; otherwise link atomically
+    $fpResult = upsert_fingerprint_atomic($fingerprintFile, $matric, $hashedFingerprint);
+    if (!$fpResult['ok']) {
+        header('Content-Type: application/json');
+        if (($fpResult['reason'] ?? '') === 'mismatch') {
+            echo json_encode(['ok' => false, 'message' => 'Fingerprint does not match this Matric Number.']);
+        } else {
+            echo json_encode(['ok' => false, 'message' => 'Unable to verify fingerprint at the moment. Please try again.']);
+        }
+        exit;
     }
-    exit;
+} else {
+    // Keep initial link for empty records without enforcing hard mismatch checks.
+    link_fingerprint_if_missing_atomic($fingerprintFile, $matric, $hashedFingerprint);
 }
 
 // ✅ Prepare log file paths
@@ -370,7 +434,8 @@ if ($action === "checkout") {
     }
 }
 // ✅ Save to .log file (include MAC when available)
-$logEntry = "$name | $matric | $action | $fingerprint | $ip | $mac | " . date("Y-m-d H:i:s") . " | $userAgent | $course | -\n";
+$logReason = $reasonSanitized !== '' ? $reasonSanitized : '-';
+$logEntry = "$name | $matric | $action | $fingerprint | $ip | $mac | " . date("Y-m-d H:i:s") . " | $userAgent | $course | $logReason\n";
 file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
 
 // ✅ Save as blockchain block (JSON)

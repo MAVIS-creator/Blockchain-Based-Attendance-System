@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Geo-fence
-            if (empty($errorMessage) && !empty($settings['geo_fence']) && is_array($settings['geo_fence'])) {
+            if (empty($errorMessage) && !empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && is_array($settings['geo_fence'])) {
                 $gf = $settings['geo_fence'];
                 $gfLat = isset($gf['lat']) ? floatval($gf['lat']) : null;
                 $gfLng = isset($gf['lng']) ? floatval($gf['lng']) : null;
