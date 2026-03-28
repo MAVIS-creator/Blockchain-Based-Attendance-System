@@ -24,7 +24,8 @@ if (!csrf_check_request()) {
 $settingsFile = __DIR__ . '/settings.json';
 $keyFile = __DIR__ . '/.settings_key';
 
-function load_settings_maybe_decrypt($settingsFile, $keyFile) {
+function load_settings_maybe_decrypt($settingsFile, $keyFile)
+{
   if (!file_exists($settingsFile)) return [];
   $raw = file_get_contents($settingsFile);
   $decoded = json_decode($raw, true);

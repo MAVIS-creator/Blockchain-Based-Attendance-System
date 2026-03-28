@@ -1,7 +1,8 @@
 <?php
 session_start();
 
-function load_admin_settings_for_retention() {
+function load_admin_settings_for_retention()
+{
 	$settingsFile = __DIR__ . '/admin/settings.json';
 	$keyFile = __DIR__ . '/admin/.settings_key';
 	if (!file_exists($settingsFile)) return [];
@@ -103,4 +104,3 @@ session_destroy();
 // Respond
 header('Content-Type: application/json');
 echo json_encode(['ok' => true]);
-

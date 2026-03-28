@@ -426,7 +426,8 @@ if (file_exists($announcementFile)) {
                 clearInterval(poll);
               }
             }).catch(function() {
-              /* ignore */ });
+              /* ignore */
+            });
             if (attempts >= maxAttempts) clearInterval(poll);
           }, 5000);
         } catch (e) {}

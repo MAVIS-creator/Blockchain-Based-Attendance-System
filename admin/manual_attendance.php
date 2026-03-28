@@ -70,21 +70,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $decoded = json_decode($raw, true);
                 if (is_array($decoded)) $settings = $decoded;
                 else if (strpos($raw, 'ENC:') === 0) {
-                  $keyFile = __DIR__ . '/.settings_key';
-                  if (file_exists($keyFile)) {
-                    $key = trim(file_get_contents($keyFile));
-                    $blob = base64_decode(substr($raw,4));
-                    $iv = substr($blob,0,16);
-                    $ct = substr($blob,16);
-                    $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
-                    $decoded2 = json_decode($plain, true);
-                    if (is_array($decoded2)) $settings = $decoded2;
-                  }
+                    $keyFile = __DIR__ . '/.settings_key';
+                    if (file_exists($keyFile)) {
+                        $key = trim(file_get_contents($keyFile));
+                        $blob = base64_decode(substr($raw, 4));
+                        $iv = substr($blob, 0, 16);
+                        $ct = substr($blob, 16);
+                        $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+                        $decoded2 = json_decode($plain, true);
+                        if (is_array($decoded2)) $settings = $decoded2;
+                    }
                 }
             }
 
             // helper for CIDR match (IPv4)
-            $ip_in_cidr = function($ip, $cidr) {
+            $ip_in_cidr = function ($ip, $cidr) {
                 if (strpos($cidr, '/') === false) return $ip === $cidr;
                 list($net, $mask) = explode('/', $cidr, 2);
                 if (!filter_var($net, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) return false;
@@ -101,9 +101,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 foreach ($settings['ip_whitelist'] as $w) {
                     $w = trim($w);
                     if ($w === '') continue;
-                    if ($ip_in_cidr($ipAddr, $w)) { $ok = true; break; }
+                    if ($ip_in_cidr($ipAddr, $w)) {
+                        $ok = true;
+                        break;
+                    }
                 }
-                if (!$ok) { $errorMessage = 'Your IP is not allowed to submit manual attendance.'; }
+                if (!$ok) {
+                    $errorMessage = 'Your IP is not allowed to submit manual attendance.';
+                }
             }
 
             // Geo-fence
@@ -132,34 +137,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $cdData = [];
                     if (file_exists($cdFile)) {
                         $raw = file_get_contents($cdFile);
-                        if ($encryptLogs && strpos($raw,'ENC:')===0) {
-                            $kfile = __DIR__ . '/.settings_key'; if (file_exists($kfile)) { $key = trim(file_get_contents($kfile)); $blob = base64_decode(substr($raw,4)); $iv = substr($blob,0,16); $ct = substr($blob,16); $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv); $cdData = json_decode($plain,true) ?: []; }
-                        } else { $cdData = json_decode($raw,true) ?: []; }
+                        if ($encryptLogs && strpos($raw, 'ENC:') === 0) {
+                            $kfile = __DIR__ . '/.settings_key';
+                            if (file_exists($kfile)) {
+                                $key = trim(file_get_contents($kfile));
+                                $blob = base64_decode(substr($raw, 4));
+                                $iv = substr($blob, 0, 16);
+                                $ct = substr($blob, 16);
+                                $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+                                $cdData = json_decode($plain, true) ?: [];
+                            }
+                        } else {
+                            $cdData = json_decode($raw, true) ?: [];
+                        }
                     }
                     $k = $fingerprint . '|' . $deviceId;
                     $last = isset($cdData[$k]) ? intval($cdData[$k]) : 0;
                     $cool = intval($settings['device_cooldown_seconds']);
                     if ($last > 0 && ($now - $last) < $cool) {
                         $errorMessage = 'Please wait before making another attendance from this device.';
-                    } else { $cdData[$k] = $now; $payload = json_encode($cdData, JSON_PRETTY_PRINT); if ($encryptLogs && isset($key)) { $iv = random_bytes(16); $ct = openssl_encrypt($payload,'AES-256-CBC',base64_decode($key),OPENSSL_RAW_DATA,$iv); file_put_contents($cdFile,'ENC:'.base64_encode($iv.$ct),LOCK_EX); } else { file_put_contents($cdFile,$payload,LOCK_EX); } }
+                    } else {
+                        $cdData[$k] = $now;
+                        $payload = json_encode($cdData, JSON_PRETTY_PRINT);
+                        if ($encryptLogs && isset($key)) {
+                            $iv = random_bytes(16);
+                            $ct = openssl_encrypt($payload, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+                            file_put_contents($cdFile, 'ENC:' . base64_encode($iv . $ct), LOCK_EX);
+                        } else {
+                            file_put_contents($cdFile, $payload, LOCK_EX);
+                        }
+                    }
                 }
                 // ua lock
                 if (empty($errorMessage) && !empty($settings['user_agent_lock'])) {
                     $uaFile = __DIR__ . '/logs/fp_useragent_' . $today . '.json';
                     $uaData = [];
-                    if (file_exists($uaFile)) { $raw = file_get_contents($uaFile); if ($encryptLogs && strpos($raw,'ENC:')===0) { $kfile=__DIR__.'/.settings_key'; if (file_exists($kfile)) { $key=trim(file_get_contents($kfile)); $blob=base64_decode(substr($raw,4)); $iv=substr($blob,0,16); $ct=substr($blob,16); $plain=openssl_decrypt($ct,'AES-256-CBC',base64_decode($key),OPENSSL_RAW_DATA,$iv); $uaData=json_decode($plain,true)?:[]; }} else { $uaData = json_decode($raw,true)?:[]; } }
-                    $h = hash('sha256',$userAgent);
-                    if (isset($uaData[$fingerprint]) && $uaData[$fingerprint] !== $h) { $errorMessage = 'Device change detected; manual attendance blocked.'; }
-                    else { $uaData[$fingerprint] = $h; $payload = json_encode($uaData, JSON_PRETTY_PRINT); if ($encryptLogs && isset($key)) { $iv=random_bytes(16); $ct=openssl_encrypt($payload,'AES-256-CBC',base64_decode($key),OPENSSL_RAW_DATA,$iv); file_put_contents($uaFile,'ENC:'.base64_encode($iv.$ct),LOCK_EX); } else { file_put_contents($uaFile,$payload,LOCK_EX); } }
+                    if (file_exists($uaFile)) {
+                        $raw = file_get_contents($uaFile);
+                        if ($encryptLogs && strpos($raw, 'ENC:') === 0) {
+                            $kfile = __DIR__ . '/.settings_key';
+                            if (file_exists($kfile)) {
+                                $key = trim(file_get_contents($kfile));
+                                $blob = base64_decode(substr($raw, 4));
+                                $iv = substr($blob, 0, 16);
+                                $ct = substr($blob, 16);
+                                $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+                                $uaData = json_decode($plain, true) ?: [];
+                            }
+                        } else {
+                            $uaData = json_decode($raw, true) ?: [];
+                        }
+                    }
+                    $h = hash('sha256', $userAgent);
+                    if (isset($uaData[$fingerprint]) && $uaData[$fingerprint] !== $h) {
+                        $errorMessage = 'Device change detected; manual attendance blocked.';
+                    } else {
+                        $uaData[$fingerprint] = $h;
+                        $payload = json_encode($uaData, JSON_PRETTY_PRINT);
+                        if ($encryptLogs && isset($key)) {
+                            $iv = random_bytes(16);
+                            $ct = openssl_encrypt($payload, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+                            file_put_contents($uaFile, 'ENC:' . base64_encode($iv . $ct), LOCK_EX);
+                        } else {
+                            file_put_contents($uaFile, $payload, LOCK_EX);
+                        }
+                    }
                 }
                 // enforce one device per fingerprint
                 if (empty($errorMessage) && !empty($settings['enforce_one_device_per_day'])) {
                     $mapFile = __DIR__ . '/logs/fp_devices_' . $today . '.json';
                     $mapData = [];
-                    if (file_exists($mapFile)) { $raw=file_get_contents($mapFile); if ($encryptLogs && strpos($raw,'ENC:')===0) { $kfile=__DIR__.'/.settings_key'; if (file_exists($kfile)) { $key=trim(file_get_contents($kfile)); $blob=base64_decode(substr($raw,4)); $iv=substr($blob,0,16); $ct=substr($blob,16); $plain=openssl_decrypt($ct,'AES-256-CBC',base64_decode($key),OPENSSL_RAW_DATA,$iv); $mapData=json_decode($plain,true)?:[]; }} else { $mapData=json_decode($raw,true)?:[]; } }
+                    if (file_exists($mapFile)) {
+                        $raw = file_get_contents($mapFile);
+                        if ($encryptLogs && strpos($raw, 'ENC:') === 0) {
+                            $kfile = __DIR__ . '/.settings_key';
+                            if (file_exists($kfile)) {
+                                $key = trim(file_get_contents($kfile));
+                                $blob = base64_decode(substr($raw, 4));
+                                $iv = substr($blob, 0, 16);
+                                $ct = substr($blob, 16);
+                                $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+                                $mapData = json_decode($plain, true) ?: [];
+                            }
+                        } else {
+                            $mapData = json_decode($raw, true) ?: [];
+                        }
+                    }
                     $list = isset($mapData[$fingerprint]) ? (array)$mapData[$fingerprint] : [];
-                    if (count($list) > 0 && !in_array($deviceId,$list)) { $errorMessage = 'This fingerprint has already been used with a different device today.'; }
-                    else { if (!in_array($deviceId,$list)) $list[]=$deviceId; $mapData[$fingerprint]=$list; $payload=json_encode($mapData,JSON_PRETTY_PRINT); if ($encryptLogs && isset($key)) { $iv=random_bytes(16); $ct=openssl_encrypt($payload,'AES-256-CBC',base64_decode($key),OPENSSL_RAW_DATA,$iv); file_put_contents($mapFile,'ENC:'.base64_encode($iv.$ct),LOCK_EX); } else { file_put_contents($mapFile,$payload,LOCK_EX); } }
+                    if (count($list) > 0 && !in_array($deviceId, $list)) {
+                        $errorMessage = 'This fingerprint has already been used with a different device today.';
+                    } else {
+                        if (!in_array($deviceId, $list)) $list[] = $deviceId;
+                        $mapData[$fingerprint] = $list;
+                        $payload = json_encode($mapData, JSON_PRETTY_PRINT);
+                        if ($encryptLogs && isset($key)) {
+                            $iv = random_bytes(16);
+                            $ct = openssl_encrypt($payload, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+                            file_put_contents($mapFile, 'ENC:' . base64_encode($iv . $ct), LOCK_EX);
+                        } else {
+                            file_put_contents($mapFile, $payload, LOCK_EX);
+                        }
+                    }
                 }
             }
 
@@ -295,6 +373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transform: translateY(-3px);
             box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
         }
+
         .manual-form textarea {
             width: 550px;
             padding: 14px;

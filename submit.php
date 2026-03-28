@@ -59,9 +59,9 @@ if (file_exists($settingsPath)) {
         $keyFile = __DIR__ . '/admin/.settings_key';
         if (file_exists($keyFile)) {
             $key = trim(file_get_contents($keyFile));
-            $blob = base64_decode(substr($raw,4));
-            $iv = substr($blob,0,16);
-            $ct = substr($blob,16);
+            $blob = base64_decode(substr($raw, 4));
+            $iv = substr($blob, 0, 16);
+            $ct = substr($blob, 16);
             $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
             $decoded2 = json_decode($plain, true);
             if (is_array($decoded2)) $settings = $decoded2;
@@ -70,14 +70,16 @@ if (file_exists($settingsPath)) {
 }
 
 // Helper: respond JSON and exit
-function fail($code, $message) {
+function fail($code, $message)
+{
     header('Content-Type: application/json');
-    echo json_encode(['ok'=>false,'code'=>$code,'message'=>$message]);
+    echo json_encode(['ok' => false, 'code' => $code, 'message' => $message]);
     exit;
 }
 
 // Helper: read/write store with optional encryption using settings key
-function read_store($file, $encrypt=false) {
+function read_store($file, $encrypt = false)
+{
     if (!file_exists($file)) return [];
     $raw = file_get_contents($file);
     if (!$encrypt) {
@@ -89,15 +91,16 @@ function read_store($file, $encrypt=false) {
     $keyFile = __DIR__ . '/admin/.settings_key';
     if (!file_exists($keyFile)) return [];
     $key = trim(file_get_contents($keyFile));
-    $blob = base64_decode(substr($raw,4));
-    $iv = substr($blob,0,16);
-    $ct = substr($blob,16);
+    $blob = base64_decode(substr($raw, 4));
+    $iv = substr($blob, 0, 16);
+    $ct = substr($blob, 16);
     $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
     $d = json_decode($plain, true);
     return is_array($d) ? $d : [];
 }
 
-function write_store($file, $data, $encrypt=false) {
+function write_store($file, $data, $encrypt = false)
+{
     $payload = json_encode($data, JSON_PRETTY_PRINT);
     if (!$encrypt) {
         file_put_contents($file, $payload, LOCK_EX);
@@ -117,7 +120,8 @@ function write_store($file, $data, $encrypt=false) {
     file_put_contents($file, 'ENC:' . $blob, LOCK_EX);
 }
 
-function upsert_fingerprint_atomic($file, $matric, $hashedFingerprint) {
+function upsert_fingerprint_atomic($file, $matric, $hashedFingerprint)
+{
     $dir = dirname($file);
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
 
@@ -154,7 +158,8 @@ function upsert_fingerprint_atomic($file, $matric, $hashedFingerprint) {
     return ['ok' => true, 'reason' => 'linked'];
 }
 
-function link_fingerprint_if_missing_atomic($file, $matric, $hashedFingerprint) {
+function link_fingerprint_if_missing_atomic($file, $matric, $hashedFingerprint)
+{
     $dir = dirname($file);
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
 
@@ -205,15 +210,21 @@ if (!empty($settings['ip_whitelist']) && is_array($settings['ip_whitelist'])) {
                     $ip_long = ip2long($ip);
                     $net_long = ip2long($net);
                     $mask_long = -1 << (32 - $mask);
-                    if (($ip_long & $mask_long) === ($net_long & $mask_long)) { $allowed = true; break; }
+                    if (($ip_long & $mask_long) === ($net_long & $mask_long)) {
+                        $allowed = true;
+                        break;
+                    }
                 }
             }
         } else {
-            if ($w === $ip) { $allowed = true; break; }
+            if ($w === $ip) {
+                $allowed = true;
+                break;
+            }
         }
     }
     if (!$allowed) {
-        fail('IP_BLOCK','Your IP is not allowed to submit attendance.');
+        fail('IP_BLOCK', 'Your IP is not allowed to submit attendance.');
     }
 }
 
@@ -230,17 +241,17 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
         $postLat = isset($_POST['lat']) ? floatval($_POST['lat']) : null;
         $postLng = isset($_POST['lng']) ? floatval($_POST['lng']) : null;
         if ($postLat === null || $postLng === null) {
-            fail('GEOFENCE_MISSING','Location required for attendance at this time.');
+            fail('GEOFENCE_MISSING', 'Location required for attendance at this time.');
         }
         // haversine
         $earthRadius = 6371000; // meters
         $dLat = deg2rad($postLat - $gfLat);
         $dLon = deg2rad($postLng - $gfLng);
-        $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($gfLat)) * cos(deg2rad($postLat)) * sin($dLon/2) * sin($dLon/2);
-        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($gfLat)) * cos(deg2rad($postLat)) * sin($dLon / 2) * sin($dLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         $dist = $earthRadius * $c;
         if ($dist > $gfRadius) {
-            fail('GEOFENCE_OUTSIDE','You are outside the allowed attendance area.');
+            fail('GEOFENCE_OUTSIDE', 'You are outside the allowed attendance area.');
         }
     }
 }
@@ -289,7 +300,7 @@ if (!empty($settings['device_cooldown_seconds']) && intval($settings['device_coo
     $last = isset($cdData[$key]) ? intval($cdData[$key]) : 0;
     if ($last > 0 && ($now - $last) < $cool) {
         $wait = $cool - ($now - $last);
-        fail('COOLDOWN','Please wait ' . $wait . ' seconds before checking in again from this device.');
+        fail('COOLDOWN', 'Please wait ' . $wait . ' seconds before checking in again from this device.');
     }
     // update
     $cdData[$key] = $now;
@@ -304,7 +315,7 @@ if (!empty($settings['user_agent_lock'])) {
     $uaData = read_store($uaFile, !empty($settings['encrypt_logs']));
     $uaHash = hash('sha256', $userAgent);
     if (isset($uaData[$fingerprint]) && $uaData[$fingerprint] !== $uaHash) {
-        fail('UA_MISMATCH','Device change detected for this fingerprint; attendance blocked.');
+        fail('UA_MISMATCH', 'Device change detected for this fingerprint; attendance blocked.');
     }
     $uaData[$fingerprint] = $uaHash;
     write_store($uaFile, $uaData, !empty($settings['encrypt_logs']));
@@ -318,7 +329,7 @@ if (!empty($settings['enforce_one_device_per_day'])) {
     $mapData = read_store($mapFile, !empty($settings['encrypt_logs']));
     $devList = isset($mapData[$fingerprint]) ? (array)$mapData[$fingerprint] : [];
     if (count($devList) > 0 && !in_array($deviceId, $devList)) {
-        fail('DEVICE_MISMATCH','This fingerprint has already been used with a different device today.');
+        fail('DEVICE_MISMATCH', 'This fingerprint has already been used with a different device today.');
     }
     if (!in_array($deviceId, $devList)) $devList[] = $deviceId;
     $mapData[$fingerprint] = $devList;
@@ -373,9 +384,9 @@ foreach ($lines as $line) {
         list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
     }
     if ($logMatric === $matric && $logAction === $action) {
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => false, 'message' => "This Matric Number has already submitted $action today."]);
-    exit;
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'message' => "This Matric Number has already submitted $action today."]);
+        exit;
     }
 
     // Consult admin setting for preference: prefer_mac true = check MAC first, else check IP first
@@ -404,9 +415,9 @@ foreach ($lines as $line) {
     }
 
     if ($sameDevice) {
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => false, 'message' => "This device has already submitted $action today."]);
-    exit;
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'message' => "This device has already submitted $action today."]);
+        exit;
     }
 }
 
@@ -478,5 +489,3 @@ try {
 
 header('Content-Type: application/json');
 echo json_encode(['ok' => true, 'message' => "Your $action was recorded successfully!"]);
-
-?>
