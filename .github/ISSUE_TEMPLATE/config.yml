@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/MAVIS-creator/Blockchain-Based-Attendance-System/blob/main/README.md
+    about: Check out the README and documentation
+  - name: 🚀 Quick Start Guide
+    url: https://github.com/MAVIS-creator/Blockchain-Based-Attendance-System/blob/main/QUICKSTART.md
+    about: Get started with installation and setup
+  - name: 📧 Email Support
+    url: mailto:mavisenquires@gmail.com
+    about: Contact the maintainer directly for private inquiries
+  - name: 🤝 Contributing Guide
+    url: https://github.com/MAVIS-creator/Blockchain-Based-Attendance-System/blob/main/CONTRIBUTING.md
+    about: Learn how to contribute to the project

@@ -1,0 +1,76 @@
+<?php
+session_start();
+if (empty($_SESSION['admin_logged_in'])) {
+  header('HTTP/1.1 403 Forbidden');
+  echo json_encode(['ok'=>false,'message'=>'Not authorized']);
+  exit;
+}
+// CSRF protection
+$csrfPath = __DIR__ . '/includes/csrf.php';
+if (file_exists($csrfPath)) require_once $csrfPath;
+if (function_exists('csrf_check_request') && !csrf_check_request()) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'csrf_failed']); exit; }
+
+// scope: logs|backups|chain|fingerprints|all (can be comma-separated)
+$scopeRaw = $_POST['scope'] ?? ($_GET['scope'] ?? 'all');
+$scopes = array_map('trim', explode(',', $scopeRaw));
+$adminDir = __DIR__;
+$logsDir = $adminDir . '/logs';
+$backupsDir = $adminDir . '/backups';
+$secureDir = dirname(__DIR__) . '/secure_logs';
+
+$result = ['deleted'=>[],'skipped'=>[],'errors'=>[]];
+
+function safe_unlink($file){
+  if (!file_exists($file)) return false;
+  try { @unlink($file); return true; } catch (Throwable $e) { return false; }
+}
+
+if (in_array('logs', $scopes) || in_array('all', $scopes)) {
+  if (is_dir($logsDir)){
+    $patterns = ["{$logsDir}/*.log", "{$logsDir}/*_failed_attempts.log", "{$logsDir}/*.json", "{$logsDir}/inactivity_log.txt"];
+    foreach ($patterns as $pat) {
+      foreach (glob($pat) as $f) {
+        // do not delete PHP files or export scripts
+        if (preg_match('/\.php$/i', $f)) continue;
+        if (safe_unlink($f)) $result['deleted'][] = $f;
+        else $result['errors'][] = $f;
+      }
+    }
+  }
+}
+
+if (in_array('backups', $scopes) || in_array('all', $scopes)) {
+  if (is_dir($backupsDir)){
+    foreach (glob($backupsDir . '/*') as $f) {
+      if (is_file($f)) { if (safe_unlink($f)) $result['deleted'][] = $f; else $result['errors'][] = $f; }
+      elseif (is_dir($f)) {
+        // remove recursively
+        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($f, RecursiveDirectoryIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $inner){ @unlink($inner->getRealPath()); }
+        @rmdir($f);
+        $result['deleted'][] = $f;
+      }
+    }
+  }
+}
+
+if (in_array('chain', $scopes) || in_array('all', $scopes)) {
+  // chain is important; only delete if explicitly requested
+  if (in_array('chain', $scopes) || in_array('all', $scopes)) {
+    $chainFile = $secureDir . '/attendance_chain.json';
+    if (file_exists($chainFile)) {
+      if (safe_unlink($chainFile)) $result['deleted'][] = $chainFile; else $result['errors'][] = $chainFile;
+    }
+  }
+}
+
+// fingerprints.json handling
+if (in_array('fingerprints', $scopes) || in_array('all', $scopes)) {
+  $fpFile = dirname(__DIR__) . '/admin/fingerprints.json';
+  if (file_exists($fpFile)) {
+    if (safe_unlink($fpFile)) $result['deleted'][] = $fpFile; else $result['errors'][] = $fpFile;
+  }
+}
+
+header('Content-Type: application/json');
+echo json_encode(['ok'=>true,'result'=>$result]);

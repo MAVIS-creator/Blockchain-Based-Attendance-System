@@ -1,0 +1,32 @@
+# Logs and system files
+*.log
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Composer dependencies
+/vendor/
+vendor/
+vendor/**
+
+# Cloud sync / cloud repo folders (if present)
+cloud/
+Cloud/
+cloud-repo/
+cloud_repo/
+onedrive/
+OneDrive/
+drive/
+Drive/
+
+# Node (if you ever use npm/yarn later)
+/node_modules/
+
+# Cache and temp
+.cache/
+.idea/
+.vscode/
