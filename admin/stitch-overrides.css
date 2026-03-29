@@ -132,6 +132,79 @@ body {
     display: none !important;
   }
 
+  /* Keep desktop navbar compact so links fit without horizontal scrolling */
+  .desktop-navbar,
+  .navbar-container,
+  .navbar-menu,
+  .navbar-menu li,
+  .nav-dropdown {
+    overflow: visible !important;
+  }
+
+  .navbar-container {
+    gap: 8px !important;
+    min-height: 56px;
+    padding: 0 10px !important;
+  }
+
+  .navbar-brand {
+    min-width: auto;
+    gap: 8px;
+  }
+
+  .navbar-logo {
+    width: 28px;
+    height: 28px;
+    padding: 3px;
+  }
+
+  .navbar-title h1 {
+    font-size: 0.95rem !important;
+    line-height: 1.1;
+  }
+
+  .navbar-subtitle {
+    display: none;
+  }
+
+  .navbar-menu {
+    flex-wrap: nowrap;
+    gap: 0 !important;
+    overflow: visible !important;
+  }
+
+  .navbar-menu li {
+    flex: 0 0 auto;
+  }
+
+  .nav-item {
+    padding: 6px 8px !important;
+    font-size: 0.82rem !important;
+    gap: 4px;
+    border-radius: 8px !important;
+  }
+
+  .nav-item i {
+    font-size: 1rem;
+  }
+
+  .navbar-actions {
+    margin-left: 6px;
+    gap: 8px;
+  }
+
+  .user-btn {
+    padding: 4px 6px 4px 4px;
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .dropdown-menu {
+    min-width: 190px;
+  }
+
   .content-wrapper {
     border-radius: var(--st-radius-xl) !important;
     border: 1px solid var(--st-outline) !important;
@@ -186,6 +259,8 @@ body {
     background: linear-gradient(180deg, #163456, #1f4b73) !important;
     box-shadow: 0 20px 45px rgba(17, 24, 39, 0.35);
     border-right: none !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 
   .sidebar.open {
@@ -216,6 +291,23 @@ body {
     border: 1px solid var(--st-outline) !important;
     box-shadow: var(--st-shadow) !important;
     background: var(--st-surface) !important;
+  }
+
+  .sidebar-nav {
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    padding-bottom: 18px;
+  }
+
+  .sidebar-nav::-webkit-scrollbar,
+  .sidebar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .sidebar-nav::-webkit-scrollbar-thumb,
+  .sidebar::-webkit-scrollbar-thumb {
+    background: rgba(219, 232, 244, 0.35);
+    border-radius: 999px;
   }
 }
 
