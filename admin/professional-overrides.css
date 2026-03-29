@@ -12,10 +12,19 @@
   --admin-shadow: 0 16px 36px rgba(24, 39, 75, 0.08);
 }
 
-html, body {
+html,
+body {
   background:
-    radial-gradient(circle at 12% 14%, rgba(59, 125, 182, 0.14), transparent 26%),
-    radial-gradient(circle at 88% 82%, rgba(30, 142, 106, 0.1), transparent 24%),
+    radial-gradient(
+      circle at 12% 14%,
+      rgba(59, 125, 182, 0.14),
+      transparent 26%
+    ),
+    radial-gradient(
+      circle at 88% 82%,
+      rgba(30, 142, 106, 0.1),
+      transparent 24%
+    ),
     linear-gradient(180deg, var(--admin-bg-top), var(--admin-bg-bottom)) !important;
   color: var(--admin-text) !important;
 }
@@ -561,7 +570,9 @@ button,
   position: fixed;
   left: 0;
   top: 0;
-  transition: transform 0.3s ease, width 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    width 0.3s ease;
   transform: translateX(-100%);
   flex-shrink: 0;
   z-index: 998;

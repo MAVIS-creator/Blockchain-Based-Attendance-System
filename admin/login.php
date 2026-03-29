@@ -42,7 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // find account case-insensitively
     $foundUser = null;
     foreach ($accounts as $u => $info) {
-        if (strcasecmp($u, $username) === 0) { $foundUser = $u; break; }
+        if (strcasecmp($u, $username) === 0) {
+            $foundUser = $u;
+            break;
+        }
     }
 
     // if not found but username requested is Mavis (case-insensitive), ensure Mavis exists (should have been created earlier)
@@ -92,16 +95,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Admin Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="icon" type="image/svg+xml" href="../asset/attendance-favicon.svg">
-  <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
-  <link rel="apple-touch-icon" sizes="180x180" href="../asset/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="../asset/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="../asset/favicon-16x16.png">
-  <link rel="manifest" href="../asset/site.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="../asset/attendance-favicon.svg">
+    <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="../asset/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../asset/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../asset/favicon-16x16.png">
+    <link rel="manifest" href="../asset/site.webmanifest">
     <style>
         :root {
             --bg-top: #f3f7fc;
@@ -122,16 +126,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-family: "Trebuchet MS", "Segoe UI", sans-serif;
         }
 
-        html, body {
+        html,
+        body {
             height: 100%;
             margin: 0;
             display: grid;
             place-items: center;
             color: var(--text);
             background:
-              radial-gradient(circle at 12% 14%, rgba(59, 125, 182, 0.20), transparent 26%),
-              radial-gradient(circle at 88% 82%, rgba(30, 142, 106, 0.12), transparent 24%),
-              linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+                radial-gradient(circle at 12% 14%, rgba(59, 125, 182, 0.20), transparent 26%),
+                radial-gradient(circle at 88% 82%, rgba(30, 142, 106, 0.12), transparent 24%),
+                linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
             padding: 16px;
         }
 
@@ -147,8 +152,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @keyframes rise-in {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .brand {
@@ -275,11 +287,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @keyframes shake {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            50% { transform: translateX(5px); }
-            75% { transform: translateX(-5px); }
-            100% { transform: translateX(0); }
+            0% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            50% {
+                transform: translateX(5px);
+            }
+
+            75% {
+                transform: translateX(-5px);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
         }
 
         .footer-container {
@@ -303,6 +329,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="login-box">
@@ -348,4 +375,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </script>
 </body>
+
 </html>

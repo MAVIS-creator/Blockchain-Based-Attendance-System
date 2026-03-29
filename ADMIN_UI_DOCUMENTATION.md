@@ -65,6 +65,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Main navigation for desktop users (≥1025px)
 
 **Components**:
+
 - Logo + Brand Text ("Attendance Admin", "Management Console")
 - Navigation Menu (Dashboard, Status, Logs, Courses, Manual Attendance, Announcement, Unlink Fingerprint, Support Tickets)
 - Dropdown Menus (Logs submenu, Courses submenu)
@@ -72,6 +73,7 @@ Error Red          #ff4757  (badges, alerts)
 - Unread Badge (red #ff4757 on Support Tickets if count > 0)
 
 **Features**:
+
 - Sticky positioning (top: 0, z-index: 1000)
 - Gradient background (135deg, #1f5d99 → #2f6ca4)
 - 24px gap between brand and menu
@@ -81,6 +83,7 @@ Error Red          #ff4757  (badges, alerts)
 - All items have icons from Boxicons
 
 **States**:
+
 - Hover: Background becomes rgba(255, 255, 255, 0.15), text white
 - Active: Background rgba(255, 255, 255, 0.25), text white, bold
 - Dropdown Open: White panel with box-shadow
@@ -92,6 +95,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Main navigation for mobile/tablet users
 
 **Components**:
+
 - Sidebar Brand (logo + "Attendance" text)
 - Toggle Button (hamburger icon)
 - Navigation List (same items as navbar)
@@ -100,6 +104,7 @@ Error Red          #ff4757  (badges, alerts)
 - Superadmin-only items (Manage Accounts icon visible only for superadmins)
 
 **Styling**:
+
 - Width: 260px (80px when collapsed)
 - Gradient background: linear-gradient(180deg, #163456, #1f4b73)
 - Text color: #dbe8f4 (light text on dark background)
@@ -107,6 +112,7 @@ Error Red          #ff4757  (badges, alerts)
 - Icons from Boxicons (20-24px)
 
 **States**:
+
 - Default: Full width, labels visible
 - Collapsed: 80px width, labels hidden (smooth transition)
 - Hover on item: Background linear-gradient(135deg, #2f6ea6, #3d82bd)
@@ -119,10 +125,12 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Shows current page title/context on mobile
 
 **Component Structure**:
+
 - Brand section: Logo + Title + Subtitle
 - User actions: Avatar menu
 
 **Styling**:
+
 - White background (#ffffff)
 - Border: 1px solid #d7e0ea
 - Border-radius: 14px
@@ -137,6 +145,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Main content container for all page content
 
 **Styling**:
+
 - Background: #ffffff
 - Border: 1px solid #d7e0ea
 - Border-radius: 14px
@@ -149,6 +158,7 @@ Error Red          #ff4757  (badges, alerts)
 ### 5. **Form Controls**
 
 **Inputs** (text, number, email, password, select, textarea):
+
 - Border: 1px solid #d7e0ea
 - Border-radius: 8px
 - Background: #ffffff
@@ -157,6 +167,7 @@ Error Red          #ff4757  (badges, alerts)
 - Focus state: Border #1f5d99 + box-shadow: 0 0 0 3px rgba(31, 93, 153, 0.14)
 
 **Fieldsets**:
+
 - Border: 1px solid #d7e0ea
 - Border-radius: 10px
 - Background: #fbfdff
@@ -164,6 +175,7 @@ Error Red          #ff4757  (badges, alerts)
 - Legend color: #142b45 (text-dark)
 
 **Buttons**:
+
 - Border-radius: 8px
 - Background: #1f5d99 (primary) or #f3f7fc (secondary)
 - Color: white (primary) or #1f5d99 (secondary)
@@ -176,22 +188,26 @@ Error Red          #ff4757  (badges, alerts)
 ### 6. **Tables**
 
 **Structure**:
+
 - Width: 100%
 - Border-collapse: collapse
 - Background: #ffffff
 
 **Thead**:
+
 - Background: #f5f9fd
 - Color: #142b45
 - Font-weight: 700
 - Border-bottom: 1px solid #d7e0ea
 
 **Tbody/Rows**:
+
 - Zebra striping: even rows background #fafcff
 - Border-bottom: 1px solid #d7e0ea
 - Hover: Light highlight (optional)
 
 **Cells**:
+
 - Padding: 12px
 - Border-right: 1px solid #d7e0ea (optional)
 
@@ -202,12 +218,14 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Show key metrics (e.g., attendance count, active students)
 
 **Components**:
+
 - Title
 - Large number/value
 - Subtitle or trend indicator
 - Optional icon
 
 **Styling**:
+
 - Background: #ffffff
 - Border: 1px solid #d7e0ea
 - Border-radius: 12px
@@ -221,6 +239,7 @@ Error Red          #ff4757  (badges, alerts)
 ### 8. **Badges & Labels**
 
 **Support Tickets Badge** (unread count):
+
 - Background: #ff4757 (error red)
 - Color: white
 - Border-radius: 999px
@@ -234,6 +253,7 @@ Error Red          #ff4757  (badges, alerts)
 ### 9. **Dropdown Menus**
 
 **Styling**:
+
 - Background: #ffffff
 - Border: 1px solid #d7e0ea
 - Border-radius: 8px
@@ -243,6 +263,7 @@ Error Red          #ff4757  (badges, alerts)
 - Position: absolute (for navbar dropdowns)
 
 **Items**:
+
 - Padding: 10px 16px
 - Color: #142b45
 - Icon + text
@@ -250,6 +271,7 @@ Error Red          #ff4757  (badges, alerts)
 - Active: Color #1f5d99, font-weight: 700
 
 **Divider**:
+
 - Height: 1px
 - Background: #d7e0ea
 - Margin: 4px 0
@@ -263,6 +285,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Overview of system statistics and recent logs
 
 **Sections**:
+
 1. **Statistics Cards**:
    - Attendance Count (today)
    - Total Courses
@@ -290,6 +313,7 @@ Error Red          #ff4757  (badges, alerts)
 **Form Elements**: None (read-only)
 
 **Styling Notes**:
+
 - Cards use stat-card class
 - Charts use 300px height
 - Table uses standard table styling
@@ -302,6 +326,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Control check-in/check-out availability
 
 **Sections**:
+
 1. **Current Status**:
    - Display: Check-in enabled/disabled
    - Display: Check-out enabled/disabled
@@ -319,10 +344,12 @@ Error Red          #ff4757  (badges, alerts)
    - Visual indicator changes color as time runs out
 
 **Form**: POST form with CSRF token
+
 - Buttons: status-btn class (POST)
 - Auto-update countdown (JS setInterval)
 
 **Styling Notes**:
+
 - Status cards have status-card class
 - Countdown circle uses SVG or CSS circular progress
 - Buttons are action-focused (green for enable, red for disable)
@@ -336,6 +363,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: View all attendance logs
 
 **Features**:
+
 - Searchable table
 - Filter by date range
 - Filter by course
@@ -343,6 +371,7 @@ Error Red          #ff4757  (badges, alerts)
 - Export to CSV/PDF option
 
 **Table Columns**:
+
 - Timestamp
 - Student ID / Name
 - Course
@@ -361,6 +390,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: View blockchain chain validation
 
 **Display**:
+
 - Current chain hash
 - Previous block hash
 - Block count
@@ -369,6 +399,7 @@ Error Red          #ff4757  (badges, alerts)
 - Block history table (last 20 blocks)
 
 **Table Columns**:
+
 - Block ID
 - Timestamp
 - Hash
@@ -382,11 +413,13 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: View attendance failures (blocked attendance)
 
 **Features**:
+
 - Filter by reason
 - Filter by date
 - View detailed error message per row
 
 **Table Columns**:
+
 - Timestamp
 - Student ID
 - Course
@@ -401,6 +434,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Manage log data (backup, clear, restore)
 
 **Sections**:
+
 1. **Backup Logs**:
    - List of previous backups (date, size)
    - "Create Backup Now" button
@@ -424,6 +458,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Manage revoked/blocked tokens
 
 **Sections**:
+
 1. **Active Blocked Tokens**:
    - Table of blocked tokens (Device ID, Revocation Date, Reason)
    - "Clear All" button
@@ -440,6 +475,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Send logs via email
 
 **Form**:
+
 - Recipient email input
 - Select log type (General, Failed attempts, Chain)
 - Date range pickers (from/to)
@@ -456,6 +492,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Create a new course
 
 **Form Fields**:
+
 - Course Code (text input): e.g., "CS-101"
 - Course Name (text input): e.g., "Introduction to Computer Science"
 - Instructor Name (text input)
@@ -472,6 +509,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Choose which course is currently active for attendance
 
 **Features**:
+
 1. **Current Active Course**:
    - Display: Course Code, Name, Instructor
    - Display Active indicator (green badge)
@@ -540,6 +578,7 @@ Error Red          #ff4757  (badges, alerts)
 **Purpose**: Remove fingerprint enrollment for a student
 
 **Form**:
+
 - Student ID/Name search
 - Display: Current fingerprint status (Linked/Not linked)
   - If linked: Show "Fingerprint ID" and "Linked Date"
@@ -664,6 +703,7 @@ Error Red          #ff4757  (badges, alerts)
    - Success message on save
 
 **Styling Notes**:
+
 - All sections use fieldset with legend
 - Explanatory help text below each input
 - Checkboxes aligned with labels
@@ -674,6 +714,7 @@ Error Red          #ff4757  (badges, alerts)
 ## Typography & Spacing
 
 ### Font Sizes
+
 - **Page Title (H1)**: 1.8rem, font-weight: 700
 - **Section Title (H2)**: 1.4rem, font-weight: 700
 - **Subsection Title (H3)**: 1.1rem, font-weight: 600
@@ -682,6 +723,7 @@ Error Red          #ff4757  (badges, alerts)
 - **Tiny Text (badges)**: 0.75rem
 
 ### Spacing
+
 - **Margin/Padding Units**: 4px, 8px, 12px, 16px, 20px, 24px, 32px
 - **Gap between elements**: 16px (cards), 8px (form fields)
 - **Page padding**: 20px (mobile), 24px (desktop)
@@ -694,6 +736,7 @@ Error Red          #ff4757  (badges, alerts)
 ### Buttons
 
 **Primary Button**:
+
 - Background: #1f5d99
 - Color: white
 - Border-radius: 8px
@@ -702,6 +745,7 @@ Error Red          #ff4757  (badges, alerts)
 - Hover: Background #3b7db6 (lighter shade)
 
 **Secondary Button**:
+
 - Background: transparent
 - Color: #1f5d99
 - Border: 2px solid #1f5d99
@@ -709,6 +753,7 @@ Error Red          #ff4757  (badges, alerts)
 - Hover: Background #f4f8fc
 
 **Danger Button**:
+
 - Background: #ff4757
 - Color: white
 - Matches primary button style
@@ -717,16 +762,19 @@ Error Red          #ff4757  (badges, alerts)
 ### Forms & Inputs
 
 **Focus State**:
+
 - Border color: #1f5d99
 - Box-shadow: 0 0 0 3px rgba(31, 93, 153, 0.14)
 - Transition: 0.2s
 
 **Error State**:
+
 - Border color: #ff4757
 - Background: #fff5f5 (light red)
 - Error text below: 0.85rem, color #ff4757
 
 **Success State**:
+
 - Border color: #1e8E6A (green)
 - Background: #f0fdf7 (light green)
 - Success text: color #1e8E6A
