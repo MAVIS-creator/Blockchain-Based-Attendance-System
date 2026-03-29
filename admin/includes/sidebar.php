@@ -12,8 +12,12 @@ if (file_exists($ticketsFile)) {
 ?>
 
 <div class="sidebar <?= isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] == 'true' ? 'collapsed' : '' ?>">
+  <div class="sidebar-brand">
+    <img src="../asset/attendance-mark.svg" alt="Attendance Mark">
+    <span class="label-text">Attendance</span>
+  </div>
   <div class="sidebar-header">
-    <span class="toggle-btn" onclick="toggleSidebar()"><i class='bx bx-menu'></i></span>
+    <button class="toggle-btn" type="button" onclick="toggleSidebar()" aria-label="Toggle sidebar"><i class='bx bx-menu'></i></button>
     <h2>Admin Panel</h2>
   </div>
   <nav class="sidebar-nav">

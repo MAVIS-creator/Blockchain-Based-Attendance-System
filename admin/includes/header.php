@@ -1,11 +1,14 @@
 <?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
-<header class="page-header" style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#fff;border-bottom:1px solid #eee;">
-  <div style="display:flex;align-items:center;gap:12px;">
-    <img src="../asset/lautech_logo.png" alt="logo" style="height:40px;width:auto;background:#fff;padding:6px;border-radius:6px;box-shadow:0 6px 18px rgba(16,24,40,0.06)">
-    <h1 style="margin:0;font-size:1.2rem;color:#333;">Attendance Admin Panel</h1>
+<header class="page-header">
+  <div class="header-brand">
+    <img class="header-brand-logo" src="../asset/attendance-mark.svg" alt="Attendance Mark">
+    <div class="header-brand-text">
+      <h1>Attendance Admin Panel</h1>
+      <span>Operations Console</span>
+    </div>
   </div>
 
-  <div style="display:flex;align-items:center;gap:12px;">
+  <div class="header-actions">
     <?php
       // ensure admin name and role variables exist to avoid undefined notices
       $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'superadmin';
@@ -17,18 +20,18 @@
         $initials = trim(array_reduce(explode(' ', $adminName), function($carry, $part){ return $carry . ($part[0] ?? ''); }, ''));
         $initials = strtoupper(substr($initials, 0, 2));
       ?>
-      <div style="display:flex;align-items:center;gap:10px;position:relative;">
-         <img src="../asset/lautech_logo.png" alt="logo" style="height:40px;width:auto;background:#fff;padding:6px;border-radius:6px;">
-         <button class="avatar-btn" aria-haspopup="true" aria-expanded="false" id="avatarToggle" style="background:transparent;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
+      <div class="admin-user-wrap">
+         <button class="avatar-btn" aria-haspopup="true" aria-expanded="false" id="avatarToggle">
            <?php if ($adminAvatar): ?>
              <img class="admin-avatar" src="<?= htmlspecialchars($adminAvatar) ?>" alt="avatar">
            <?php else: ?>
              <span class="admin-initials"><?= $initials ?></span>
            <?php endif; ?>
-           <span style="font-weight:600;color:#333;"><?= $adminName ?></span>
+           <span class="admin-name"><?= $adminName ?></span>
+           <i class='bx bx-chevron-down'></i>
          </button>
 
-         <div id="avatarMenu" class="avatar-menu" style="display:none;position:absolute;right:0;top:56px;background:#fff;border-radius:12px;box-shadow:0 12px 30px rgba(2,6,23,0.12);overflow:hidden;z-index:10002;">
+         <div id="avatarMenu" class="avatar-menu" style="display:none;">
           <a href="index.php?page=profile_settings">
              <i class="bx bx-user"></i>
              Profile Settings
@@ -51,7 +54,7 @@
          </div>
       </div>
     <?php else: ?>
-  <a href="login.php" style="color:#333;text-decoration:none;font-weight:600;">Login</a>
+  <a href="login.php" class="header-login-link">Login</a>
     <?php endif; ?>
   </div>
 </header>
@@ -64,11 +67,6 @@
 <!-- SweetAlert2 (CDN) and local theme -->
 <link rel="stylesheet" href="<?= htmlspecialchars($adminRoot) ?>/swal-theme.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        <link rel="icon" type="image/x-icon" href=".../asset/favicon.ico">
-  <link rel="apple-touch-icon" sizes="180x180" href=".../asset/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href=".../asset/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href=".../asset/favicon-16x16.png">
-  <link rel="manifest" href=".../asset/site.webmanifest">
 <link rel="stylesheet" href="<?= htmlspecialchars($adminRoot) ?>/admin-theme.css">
 <?php
   // expose CSRF token to JS by including the helper

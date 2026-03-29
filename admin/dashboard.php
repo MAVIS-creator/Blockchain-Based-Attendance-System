@@ -255,24 +255,6 @@ if (file_exists($activeFile)) {
             background: linear-gradient(135deg, var(--accent-color), #1e40af);
         }
 
-        .palette-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.3);
-            border: none;
-            padding: 10px 15px;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 100;
-        }
-
-        .palette-toggle:hover {
-            backdrop-filter: blur(10px);
-            transform: scale(1.05);
-        }
-
         .recent-logs {
             margin: 60px auto;
             max-width: 700px;
@@ -389,8 +371,6 @@ if (file_exists($activeFile)) {
 </head>
 
 <body>
-    <button class="palette-toggle"><i class='bx bx-palette'></i></button>
-
     <header>
         <h1><i class='bx bxs-dashboard'></i> Admin Dashboard</h1>
     </header>
@@ -467,52 +447,6 @@ if (file_exists($activeFile)) {
     </div>
 
     <script>
-        const palettes = [{
-                color: '#3b82f6',
-                bg: 'linear-gradient(135deg, #3b82f6, #ef4444)'
-            },
-            {
-                color: '#10b981',
-                bg: 'linear-gradient(135deg, #10b981, #f59e0b)'
-            },
-            {
-                color: '#facc15',
-                bg: 'linear-gradient(135deg, #facc15, #8b5cf6)'
-            },
-            {
-                color: '#06b6d4',
-                bg: 'linear-gradient(135deg, #06b6d4, #f97316)'
-            },
-            {
-                color: '#ec4899',
-                bg: 'linear-gradient(135deg, #ec4899, #6366f1)'
-            },
-            {
-                color: '#000000',
-                bg: 'linear-gradient(135deg, #000000, #f59e0b)'
-            },
-            {
-                color: '#84cc16',
-                bg: 'linear-gradient(135deg, #84cc16, #3b82f6)'
-            }
-        ];
-
-        let current = 0;
-        document.querySelector('.palette-toggle').addEventListener('click', () => {
-            current = (current + 1) % palettes.length;
-            document.documentElement.style.setProperty('--accent-color', palettes[current].color);
-            document.documentElement.style.setProperty('--bg-gradient', palettes[current].bg);
-            localStorage.setItem('adminPalette', current);
-        });
-        document.addEventListener('DOMContentLoaded', () => {
-            const saved = localStorage.getItem('adminPalette');
-            if (saved !== null) {
-                current = parseInt(saved);
-                document.documentElement.style.setProperty('--accent-color', palettes[current].color);
-                document.documentElement.style.setProperty('--bg-gradient', palettes[current].bg);
-            }
-        });
-
         new Chart(document.getElementById('attendanceChart').getContext('2d'), {
             type: 'line',
             data: {

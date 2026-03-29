@@ -96,77 +96,128 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <title>Admin Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-      <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="../asset/attendance-favicon.svg">
+  <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="../asset/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="../asset/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="../asset/favicon-16x16.png">
   <link rel="manifest" href="../asset/site.webmanifest">
     <style>
         :root {
-            --primary-color: #667eea;
-            --primary-dark: #5469d4;
-            --primary-darker: #4353b8;
-            --error-color: #d9534f;
-            --text-color: #333;
-            --bg-gradient: linear-gradient(135deg, #667eea, #764ba2);
+            --bg-top: #f3f7fc;
+            --bg-bottom: #eaf0f6;
+            --panel: #ffffff;
+            --line: #d7e0ea;
+            --text: #142b45;
+            --muted: #5f6d7d;
+            --primary: #1f5d99;
+            --primary-dark: #1a4f84;
+            --danger-bg: #fef0f0;
+            --danger-text: #991b1b;
+            --shadow: 0 18px 40px rgba(24, 39, 75, 0.08);
         }
 
         * {
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
         }
 
         html, body {
             height: 100%;
             margin: 0;
-            background: var(--bg-gradient);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: var(--text-color);
+            display: grid;
+            place-items: center;
+            color: var(--text);
+            background:
+              radial-gradient(circle at 12% 14%, rgba(59, 125, 182, 0.20), transparent 26%),
+              radial-gradient(circle at 88% 82%, rgba(30, 142, 106, 0.12), transparent 24%),
+              linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+            padding: 16px;
         }
 
         .container {
             width: 100%;
-            max-width: 400px;
-            background: #fff;
-            border-radius: 16px;
-            padding: 32px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transition: box-shadow 0.3s ease;
+            max-width: 420px;
+            background: var(--panel);
+            border-radius: 18px;
+            padding: 24px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            animation: rise-in 0.45s ease;
         }
 
-        .container:hover {
-            box-shadow: 0 15px 45px rgba(0,0,0,0.15);
+        @keyframes rise-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .brand img {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: #f7fbff;
+            padding: 4px;
+            object-fit: contain;
+        }
+
+        .brand .brand-text {
+            font-size: 0.95rem;
+            color: var(--muted);
+            letter-spacing: 0.2px;
         }
 
         .login-box h1 {
             text-align: center;
-            font-size: 1.9rem;
-            color: var(--primary-color);
-            margin-bottom: 28px;
+            font-size: 1.55rem;
+            color: var(--text);
+            margin: 0 0 6px;
             user-select: none;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-bottom: 18px;
         }
 
         form {
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 14px;
+        }
+
+        .input-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+            display: block;
         }
 
         input[type="text"],
         input[type="password"] {
-            padding: 14px 16px;
-            border-radius: 8px;
-            border: 2px solid #ddd;
-            font-size: 1rem;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            width: 100%;
+            padding: 11px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            color: var(--text);
         }
 
         input[type="text"]:focus,
         input[type="password"]:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(31, 93, 153, 0.16);
             outline: none;
         }
 
@@ -181,45 +232,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transform: translateY(-50%);
             cursor: pointer;
             color: #888;
-            font-size: 1.15rem;
-            transition: color 0.25s ease;
+            font-size: 1rem;
+            transition: color 0.2s ease;
         }
 
         .password-container .toggle-password:hover {
-            color: var(--primary-color);
+            color: var(--primary);
         }
 
         button[type="submit"] {
-            padding: 14px 0;
+            padding: 11px 0;
             border: none;
-            background: var(--primary-color);
+            background: linear-gradient(90deg, var(--primary), #3b7db6);
             color: #fff;
-            font-size: 1.15rem;
+            font-size: 0.98rem;
             font-weight: 600;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: background 0.3s ease, transform 0.2s ease;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            box-shadow: 0 8px 20px rgba(31, 93, 153, 0.24);
         }
 
         button[type="submit"]:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
         }
 
         button[type="submit"]:active {
-            background: var(--primary-darker);
+            transform: translateY(0);
         }
 
         p.error-message {
-            color: var(--error-color);
+            color: var(--danger-text);
             text-align: center;
             font-weight: 600;
-            background: #ffeaea;
-            padding: 10px;
+            background: var(--danger-bg);
+            padding: 9px 10px;
             border-radius: 8px;
-            margin: -10px 0 10px 0;
+            margin: 0 0 8px;
             animation: shake 0.3s;
+            border: 1px solid #fbcaca;
+            font-size: 0.9rem;
         }
 
         @keyframes shake {
@@ -231,17 +283,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .footer-container {
-            margin-top: 24px;
+            margin-top: 16px;
             text-align: center;
-            font-size: 0.85rem;
-            color: #999;
+            font-size: 0.8rem;
+            color: #8a97a8;
             user-select: none;
         }
 
         @media (max-width: 480px) {
             .container {
-                margin: 10px;
-                padding: 24px;
+                margin: 8px;
+                padding: 18px;
+                border-radius: 14px;
+            }
+
+            .login-box h1 {
+                font-size: 1.35rem;
             }
         }
     </style>
@@ -249,17 +306,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container">
         <div class="login-box">
+            <div class="brand">
+                <img src="../asset/attendance-mark.svg" alt="Attendance Mark">
+                <span class="brand-text">Attendance Administration</span>
+            </div>
             <h1>Admin Login</h1>
+            <div class="subtitle">Secure access to attendance controls</div>
 
             <?php if ($error): ?>
                 <p class="error-message"><?= htmlspecialchars($error) ?></p>
             <?php endif; ?>
 
             <form method="POST">
-                <input type="text" name="username" placeholder="Username" required>
+                <div>
+                    <label class="input-label" for="username">Username</label>
+                    <input id="username" type="text" name="username" placeholder="Enter username" required>
+                </div>
 
                 <div class="password-container">
-                    <input type="password" name="password" placeholder="Password" id="password-field" required>
+                    <label class="input-label" for="password-field">Password</label>
+                    <input type="password" name="password" placeholder="Enter password" id="password-field" required>
                     <i class="fa fa-eye toggle-password" onclick="togglePassword(this)"></i>
                 </div>
 

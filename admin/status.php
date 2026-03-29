@@ -180,44 +180,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     font-weight: bold;
     color: #facc15;
   }
-  #palette-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999;
-}
-
-#palette-icon {
-  font-size: 28px;
-  color: #fff;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-#palette-icon:hover {
-  transform: scale(1.2);
-}
-
-#palette-options {
-  display: none;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-#palette-options button {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  outline: 2px solid #fff;
-  transition: transform 0.2s ease;
-}
-
-#palette-options button:hover {
-  transform: scale(1.15);
-}
 </style>
 
 <div class="status-card">
@@ -262,19 +224,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <button type="submit" name="disable"><i class='bx bx-power-off'></i> Disable All</button>
   </form>
 </div>
-<div id="palette-container">
-  <i class='bx bxs-color' id="palette-icon"></i>
-  <div id="palette-options">
-    <button style="background: linear-gradient(135deg, #3b82f6, #06b6d4);" onclick="setTheme(0)"></button>
-    <button style="background: linear-gradient(135deg, #10b981, #22d3ee);" onclick="setTheme(1)"></button>
-    <button style="background: linear-gradient(135deg, #f43f5e, #fb923c);" onclick="setTheme(2)"></button>
-    <button style="background: linear-gradient(135deg, #a855f7, #3b82f6);" onclick="setTheme(3)"></button>
-    <button style="background: linear-gradient(135deg, #ec4899, #f59e0b);" onclick="setTheme(4)"></button>
-    <button style="background: linear-gradient(135deg, #14b8a6, #0ea5e9);" onclick="setTheme(5)"></button>
-    <button style="background: linear-gradient(135deg, #f87171, #facc15);" onclick="setTheme(6)"></button>
-  </div>
-</div>
-
 <script>
 const endTime = <?= isset($status['end_time']) ? $status['end_time'] : 'null' ?>;
 
@@ -324,30 +273,5 @@ if (endTime !== null) {
       });
     }
   }, 1000);
-}
-const gradients = [
-  "linear-gradient(135deg, #3b82f6, #06b6d4)",
-  "linear-gradient(135deg, #10b981, #22d3ee)",
-  "linear-gradient(135deg, #f43f5e, #fb923c)",
-  "linear-gradient(135deg, #a855f7, #3b82f6)",
-  "linear-gradient(135deg, #ec4899, #f59e0b)",
-  "linear-gradient(135deg, #14b8a6, #0ea5e9)",
-  "linear-gradient(135deg, #f87171, #facc15)"
-];
-
-function setTheme(index) {
-  document.body.style.background = gradients[index];
-  localStorage.setItem("selectedGradient", index);
-}
-
-document.getElementById("palette-icon").addEventListener("click", () => {
-  const options = document.getElementById("palette-options");
-  options.style.display = options.style.display === "flex" ? "none" : "flex";
-});
-
-// On page load, check saved
-const saved = localStorage.getItem("selectedGradient");
-if (saved !== null) {
-  setTheme(parseInt(saved));
 }
 </script>

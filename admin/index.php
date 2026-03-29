@@ -39,7 +39,8 @@ $view = $routes[$page] ?? 'dashboard.php';
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="boxicons.min.css">
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-          <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="../asset/attendance-favicon.svg">
+  <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="../asset/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="../asset/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="../asset/favicon-16x16.png">
@@ -69,6 +70,7 @@ function toggleSidebar() {
   document.cookie = "sidebar_collapsed=" + (sidebar.classList.contains('collapsed') ? 'true' : 'false');
 }
 </script>
+<link rel="stylesheet" href="professional-overrides.css">
 <?php if (function_exists('ob_end_flush')) { @ob_end_flush(); } ?>
 </body>
 </html>
