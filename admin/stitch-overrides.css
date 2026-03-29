@@ -1,0 +1,373 @@
+/* Stitch-style global UI overrides loaded last. Keeps existing PHP/backend logic unchanged. */
+:root {
+  --st-bg: #f6faff;
+  --st-surface: #ffffff;
+  --st-surface-soft: #f0f4f9;
+  --st-text: #171c20;
+  --st-muted: #424750;
+  --st-outline: #dfe3e8;
+  --st-primary: #1f5d99;
+  --st-primary-dark: #00457b;
+  --st-danger: #ba1a1a;
+  --st-ok: #1e8e6a;
+  --st-shadow: 0 16px 36px rgba(24, 39, 75, 0.06);
+  --st-radius-xl: 14px;
+  --st-radius-lg: 12px;
+  --st-radius-md: 10px;
+}
+
+html,
+body {
+  background: var(--st-bg) !important;
+  color: var(--st-text) !important;
+  font-family: Inter, "Segoe UI", Tahoma, sans-serif !important;
+}
+
+/* Shell */
+.layout {
+  display: block !important;
+  min-height: 100vh;
+}
+
+.desktop-navbar {
+  display: block !important;
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  background: linear-gradient(135deg, #163456, #1f4b73) !important;
+  box-shadow: 0 10px 24px rgba(22, 52, 86, 0.24);
+}
+
+.navbar-container {
+  min-height: 64px;
+  padding: 0 14px !important;
+  gap: 12px !important;
+}
+
+.navbar-brand {
+  min-width: 190px;
+}
+
+.navbar-title h1 {
+  font-size: 1.12rem !important;
+  letter-spacing: -0.01em;
+}
+
+.navbar-subtitle {
+  color: rgba(219, 232, 244, 0.85);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+.navbar-menu {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+}
+
+.nav-item {
+  border-radius: 10px !important;
+  padding: 8px 11px !important;
+  color: rgba(237, 243, 250, 0.92) !important;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #fff !important;
+}
+
+.nav-dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  top: calc(100% + 10px) !important;
+  left: 0 !important;
+  border: 1px solid var(--st-outline) !important;
+  border-radius: var(--st-radius-md) !important;
+  box-shadow: var(--st-shadow) !important;
+  background: var(--st-surface) !important;
+  z-index: 2001 !important;
+}
+
+.dropdown-menu a {
+  color: var(--st-text) !important;
+}
+
+.dropdown-menu a:hover,
+.dropdown-menu a.active {
+  background: var(--st-surface-soft) !important;
+  color: var(--st-primary) !important;
+}
+
+.user-btn {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+}
+
+.user-menu {
+  border-radius: var(--st-radius-md) !important;
+  box-shadow: var(--st-shadow) !important;
+}
+
+/* Full-width desktop: no left sidebar at all */
+@media (min-width: 1025px) {
+  .sidebar,
+  .sidebar-overlay,
+  .sidebar-header,
+  .toggle-btn {
+    display: none !important;
+  }
+
+  .main-content {
+    margin: 0 !important;
+    padding: 18px 18px 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .page-header {
+    display: none !important;
+  }
+
+  .content-wrapper {
+    border-radius: var(--st-radius-xl) !important;
+    border: 1px solid var(--st-outline) !important;
+    box-shadow: var(--st-shadow) !important;
+    background: var(--st-surface) !important;
+    padding: 18px !important;
+  }
+}
+
+/* Mobile + tablet: top app bar hidden, keep drawer sidebar */
+@media (max-width: 1024px) {
+  .desktop-navbar {
+    display: none !important;
+  }
+
+  .page-header {
+    display: flex !important;
+    border-radius: var(--st-radius-xl) !important;
+    border: 1px solid var(--st-outline) !important;
+    box-shadow: var(--st-shadow) !important;
+    background: var(--st-surface) !important;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--st-outline);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--st-primary-dark);
+    cursor: pointer;
+    margin-right: 8px;
+  }
+
+  .mobile-menu-btn i {
+    font-size: 1.2rem;
+  }
+
+  .sidebar {
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    z-index: 1500 !important;
+    background: linear-gradient(180deg, #163456, #1f4b73) !important;
+    box-shadow: 0 20px 45px rgba(17, 24, 39, 0.35);
+    border-right: none !important;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.45);
+    z-index: 1450;
+  }
+
+  body.sidebar-open .sidebar-overlay {
+    display: block;
+  }
+
+  .main-content {
+    margin: 0 !important;
+    width: 100% !important;
+    padding: 14px 12px 0 !important;
+  }
+
+  .content-wrapper {
+    padding: 14px !important;
+    border-radius: var(--st-radius-lg) !important;
+    border: 1px solid var(--st-outline) !important;
+    box-shadow: var(--st-shadow) !important;
+    background: var(--st-surface) !important;
+  }
+}
+
+.mobile-menu-btn {
+  display: none;
+}
+
+/* Broad page normalization to Stitch visual language */
+.content-wrapper,
+.logs-container,
+.status-card,
+.ticket-card,
+.add-course-form,
+.course-list,
+.set-active-form,
+.announcement-container,
+.chart-wrapper,
+.stat,
+.recent-logs {
+  background: var(--st-surface) !important;
+  border: 1px solid var(--st-outline) !important;
+  border-radius: var(--st-radius-lg) !important;
+  box-shadow: var(--st-shadow) !important;
+}
+
+.palette-toggle,
+.palette-container,
+.theme-toggle,
+#palette-container,
+#palette-icon,
+#palette-options,
+.palette-switcher {
+  display: none !important;
+}
+
+/* Inputs/buttons/tables */
+.content-wrapper input,
+.content-wrapper select,
+.content-wrapper textarea,
+.logs-controls input,
+.logs-controls select {
+  border: 1px solid #c2c7d1 !important;
+  background: #fff !important;
+  color: var(--st-text) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.content-wrapper input:focus,
+.content-wrapper select:focus,
+.content-wrapper textarea:focus,
+.logs-controls input:focus,
+.logs-controls select:focus {
+  outline: none !important;
+  border-color: var(--st-primary) !important;
+  box-shadow: 0 0 0 3px rgba(31, 93, 153, 0.15) !important;
+}
+
+.content-wrapper button,
+.content-wrapper .btn,
+.logs-controls button,
+.logs-controls .btn,
+.set-active-form button,
+.add-course-form button,
+.btn-save-announcement,
+.resolve-btn {
+  background: linear-gradient(135deg, #24609d, #1f5d99) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 18px rgba(31, 93, 153, 0.22) !important;
+}
+
+.disable-btn,
+.menu-danger,
+.menu-logout,
+.resolve-btn[style*="dc3545"] {
+  background: linear-gradient(135deg, #ba1a1a, #921313) !important;
+}
+
+.content-wrapper table,
+.logs-table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid var(--st-outline) !important;
+  border-radius: 12px;
+  background: #fff !important;
+}
+
+.content-wrapper thead th,
+.logs-table thead th,
+.content-wrapper th {
+  background: #f0f4f9 !important;
+  color: #334863 !important;
+  font-weight: 700 !important;
+}
+
+.content-wrapper td,
+.content-wrapper th,
+.logs-table td,
+.logs-table th {
+  border-color: #e4e9ed !important;
+}
+
+.content-wrapper tbody tr:nth-child(even) td,
+.logs-table tbody tr:nth-child(even) td {
+  background: #fbfdff !important;
+}
+
+/* Dashboard stats/charts */
+.stats,
+.charts {
+  gap: 16px !important;
+}
+
+.stat h3,
+.stat .label,
+.ticket-header,
+.logs-title,
+.page-title,
+h1,
+h2,
+h3 {
+  color: #1a2e45 !important;
+}
+
+.stat span,
+.metric-value,
+.big-number {
+  color: #0f2135 !important;
+}
+
+/* Announcement + tickets */
+.announcement-textarea {
+  min-height: 140px;
+  border-radius: 10px !important;
+  border: 1px solid #c2c7d1 !important;
+  background: #fff !important;
+}
+
+.ticket-matric,
+.nav-badge,
+.badge,
+.badge-danger {
+  border-radius: 999px !important;
+}
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--st-outline) !important;
+  background: #fff !important;
+  color: var(--st-muted) !important;
+}

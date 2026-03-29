@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Status Control - Attendance Admin</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-error": "#ffffff",
+              "primary-container": "#1f5d99",
+              "on-surface-variant": "#424750",
+              "on-tertiary-fixed-variant": "#334863",
+              "secondary": "#15629a",
+              "on-tertiary": "#ffffff",
+              "on-secondary": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-low": "#f0f4f9",
+              "on-secondary-fixed": "#001d34",
+              "primary-fixed": "#d2e4ff",
+              "primary-fixed-dim": "#a1c9ff",
+              "on-background": "#171c20",
+              "secondary-container": "#83c1fe",
+              "inverse-on-surface": "#edf1f6",
+              "surface-container-highest": "#dfe3e8",
+              "on-surface": "#171c20",
+              "on-tertiary-container": "#bed4f6",
+              "tertiary-container": "#475c79",
+              "on-primary": "#ffffff",
+              "on-primary-container": "#b8d5ff",
+              "secondary-fixed": "#cfe5ff",
+              "surface-container-high": "#e4e9ed",
+              "outline-variant": "#c2c7d1",
+              "secondary-fixed-dim": "#99cbff",
+              "inverse-primary": "#a1c9ff",
+              "inverse-surface": "#2c3135",
+              "background": "#f6faff",
+              "error": "#ba1a1a",
+              "primary": "#00457b",
+              "outline": "#727781",
+              "surface-tint": "#24609d",
+              "on-secondary-container": "#004e7f",
+              "error-container": "#ffdad6",
+              "tertiary-fixed-dim": "#b2c8e9",
+              "on-tertiary-fixed": "#031c36",
+              "on-error-container": "#93000a",
+              "surface-dim": "#d6dadf",
+              "surface": "#f6faff",
+              "surface-variant": "#dfe3e8",
+              "surface-container": "#eaeef3",
+              "on-secondary-fixed-variant": "#004a78",
+              "on-primary-fixed-variant": "#004880",
+              "tertiary-fixed": "#d3e4ff",
+              "surface-bright": "#f6faff",
+              "tertiary": "#2f4560",
+              "on-primary-fixed": "#001c37"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass-effect {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+      .circular-progress {
+        background: radial-gradient(closest-side, white 80%, transparent 81% 100%),
+                    conic-gradient(#00457b 75%, #e4e9ed 0);
+      }
+      /* Mobile sidebar transition */
+      #mobile-sidebar {
+        transition: transform 0.3s ease-in-out;
+      }
+      #mobile-sidebar.hidden-sidebar {
+        transform: translateX(-100%);
+      }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface flex min-h-screen">
+<!-- Mobile Sidebar Overlay -->
+<div class="fixed inset-0 bg-black/50 z-[60] hidden lg:hidden" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+<!-- Sidebar (Desktop Fixed, Mobile Toggleable) -->
+<aside class="w-[260px] h-screen fixed left-0 top-0 bg-gradient-to-b from-[#163456] to-[#1f4b73] shadow-2xl flex flex-col p-4 space-y-2 z-[70] hidden-sidebar lg:translate-x-0 lg:block" id="mobile-sidebar">
+<div class="flex items-center justify-between px-2 py-4 mb-6">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<div>
+<h1 class="text-lg font-black text-white leading-tight">Attendance Admin</h1>
+<p class="text-xs font-medium text-blue-100/60 uppercase tracking-tighter">Blockchain Ledger</p>
+</div>
+</div>
+<button class="lg:hidden text-white" onclick="toggleSidebar()">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-medium text-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white shadow-inner translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-medium text-sm">Status</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined">history_edu</span>
+<span class="font-medium text-sm">Logs</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-medium text-sm">Courses</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined">touch_app</span>
+<span class="font-medium text-sm">Manual Attendance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined">campaign</span>
+<span class="font-medium text-sm">Announcement</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined">confirmation_number</span>
+<span class="font-medium text-sm">Support Tickets</span>
+</a>
+</nav>
+<button class="mt-4 mb-8 bg-white/10 border border-white/20 text-white rounded-xl py-3 px-4 flex items-center justify-center gap-2 font-bold text-sm hover:bg-white/20 transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+        New Announcement
+    </button>
+<div class="pt-4 border-t border-white/10 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-medium text-sm">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg" href="#">
+<span class="material-symbols-outlined text-red-300">logout</span>
+<span class="font-medium text-sm">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 lg:ml-[260px] min-h-screen flex flex-col w-full">
+<!-- TopAppBar - Sticky for Desktop -->
+<header class="sticky top-0 w-full z-40 bg-[#f6faff]/60 backdrop-blur-md flex justify-between items-center px-4 lg:px-8 h-16 shadow-[0_16px_36px_rgba(24,39,75,0.06)]">
+<div class="flex items-center gap-4 lg:gap-8">
+<button class="lg:hidden p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors" onclick="toggleSidebar()">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="text-lg lg:text-xl font-bold tracking-tighter text-[#171c20]">Status Control</h2>
+<nav class="hidden lg:flex items-center gap-6">
+<a class="font-['Inter'] font-medium text-sm tracking-tight text-[#424750] hover:text-[#1F5D99] transition-colors" href="#">Dashboard</a>
+<a class="font-['Inter'] font-medium text-sm tracking-tight text-[#1F5D99] border-b-2 border-[#1F5D99] pb-1" href="#">Status</a>
+<a class="font-['Inter'] font-medium text-sm tracking-tight text-[#424750] hover:text-[#1F5D99] transition-colors" href="#">Manual Attendance</a>
+<a class="font-['Inter'] font-medium text-sm tracking-tight text-[#424750] hover:text-[#1F5D99] transition-colors" href="#">Announcement</a>
+</nav>
+</div>
+<div class="flex items-center gap-2 lg:gap-4">
+<div class="relative group">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
+</div>
+<button class="hidden sm:block p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant/30 mx-1 lg:mx-2"></div>
+<div class="flex items-center gap-2 lg:gap-3 pl-1 lg:pl-2">
+<div class="text-right hidden md:block">
+<p class="text-xs font-bold text-on-surface">Alex Rivera</p>
+<p class="text-[10px] text-on-surface-variant font-medium">System Lead</p>
+</div>
+<img alt="Admin User Profile" class="w-8 h-8 lg:w-10 lg:h-10 rounded-full object-cover border-2 border-primary-fixed shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYozoVh_yrThlYu3LjaxpL8uJKZp0c2WWh646RyY2tp5xlzpLp3pPspHht2e4MIxi3c6JArVYsQNmlaWa5MSX0ah4qlpMXkRFPFQlVuLR2QJ1uPP0HUaYXW0q1TbDyj273qTEZR1JbPVN10y4Lq2LfC5POVTc06qGPsiNexKuyV1ejFfnDEIFtM1oXMGeMFIUPOnCU6b03aO5K7_ovHe2--e656rmMxhN1ZoSdbP6EwthKYkGyHkarYGaOHw2iYHNr4mFofi-KTQ"/>
+</div>
+</div>
+</header>
+<div class="p-4 lg:p-8 max-w-7xl mx-auto w-full space-y-8">
+<!-- Hero Grid: Current Status & Countdown -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+<!-- Status Info Cards -->
+<div class="lg:col-span-2 space-y-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Check-in Status -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)] border border-outline-variant/20 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-primary/10 p-3 rounded-lg">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">login</span>
+</div>
+<span class="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                Enabled
+                            </span>
+</div>
+<div>
+<h3 class="text-sm font-medium text-on-surface-variant mb-1">Check-in Terminal</h3>
+<p class="text-2xl font-bold text-on-surface">Active</p>
+<p class="text-xs text-on-surface-variant/70 mt-2 font-mono">HASH: 0x4f2..e91</p>
+</div>
+</div>
+<!-- Check-out Status -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)] border border-outline-variant/20 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4">
+<div class="bg-tertiary-container/10 p-3 rounded-lg">
+<span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings: 'FILL' 1;">logout</span>
+</div>
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold uppercase tracking-wider rounded-full">
+                                Disabled
+                            </span>
+</div>
+<div>
+<h3 class="text-sm font-medium text-on-surface-variant mb-1">Check-out Terminal</h3>
+<p class="text-2xl font-bold text-on-surface-variant">Inactive</p>
+<p class="text-xs text-on-surface-variant/70 mt-2 font-mono">LAST: 14:30:00</p>
+</div>
+</div>
+</div>
+<!-- Status Controls Card -->
+<div class="bg-surface-container-low p-6 lg:p-8 rounded-xl space-y-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">settings_suggest</span>
+<h3 class="text-lg font-bold">System Overrides</h3>
+</div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+<button class="bg-gradient-to-br from-green-600 to-green-700 text-white p-4 rounded-xl font-bold text-xs lg:text-sm shadow-lg hover:shadow-green-500/20 hover:-translate-y-1 transition-all flex flex-col items-center gap-2 group">
+<span class="material-symbols-outlined text-2xl lg:text-3xl group-hover:scale-110 transition-transform">play_circle</span>
+                            Enable Check-in
+                        </button>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white p-4 rounded-xl font-bold text-xs lg:text-sm shadow-lg hover:shadow-primary/20 hover:-translate-y-1 transition-all flex flex-col items-center gap-2 group">
+<span class="material-symbols-outlined text-2xl lg:text-3xl group-hover:scale-110 transition-transform">exit_to_app</span>
+                            Enable Check-out
+                        </button>
+<button class="bg-gradient-to-br from-error to-red-800 text-white p-4 rounded-xl font-bold text-xs lg:text-sm shadow-lg hover:shadow-error/20 hover:-translate-y-1 transition-all flex flex-col items-center gap-2 group">
+<span class="material-symbols-outlined text-2xl lg:text-3xl group-hover:scale-110 transition-transform">cancel</span>
+                            Disable All
+                        </button>
+<button class="bg-surface-container-lowest text-on-surface p-4 rounded-xl font-bold text-xs lg:text-sm shadow-sm hover:shadow-md hover:-translate-y-1 transition-all border border-outline-variant/20 flex flex-col items-center gap-2 group">
+<span class="material-symbols-outlined text-2xl lg:text-3xl text-primary group-hover:scale-110 transition-transform">timer</span>
+                            Set End Time
+                        </button>
+</div>
+</div>
+</div>
+<!-- Circular Countdown Display -->
+<div class="bg-surface-container-lowest p-8 rounded-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)] border border-outline-variant/20 flex flex-col items-center justify-center relative overflow-hidden">
+<div class="absolute inset-0 bg-primary/5 opacity-50"></div>
+<h3 class="text-xs uppercase tracking-[0.2em] font-black text-on-surface-variant/40 mb-8 relative z-10">Time Remaining</h3>
+<div class="relative w-48 h-48 lg:w-56 lg:h-56 flex items-center justify-center">
+<div class="absolute inset-0 rounded-full circular-progress shadow-inner"></div>
+<div class="relative z-10 text-center">
+<span class="text-3xl lg:text-4xl font-black text-primary block tracking-tighter">00:42:15</span>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase">Seconds Left</span>
+</div>
+</div>
+<div class="mt-8 text-center relative z-10">
+<p class="text-xs font-medium text-on-surface-variant">Scheduled Close at <span class="text-on-surface font-bold">17:00:00</span></p>
+<div class="mt-4 flex gap-1 justify-center">
+<span class="w-2 h-1 bg-primary rounded-full"></span>
+<span class="w-2 h-1 bg-primary rounded-full"></span>
+<span class="w-2 h-1 bg-primary/20 rounded-full"></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Detailed Management Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Blockchain Heartbeat Card -->
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+<div class="flex justify-between items-center mb-6">
+<h4 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Ledger Health</h4>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 bg-green-500 rounded-full"></span>
+<span class="text-[10px] font-bold text-green-600 uppercase">Synchronized</span>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 bg-white rounded-lg border border-outline-variant/20">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-xl">account_tree</span>
+<span class="text-xs font-medium">Node Connectivity</span>
+</div>
+<span class="text-xs font-bold text-primary">99.8%</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-white rounded-lg border border-outline-variant/20">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-xl">database</span>
+<span class="text-xs font-medium">Verification Delay</span>
+</div>
+<span class="text-xs font-bold text-primary">124ms</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-white rounded-lg border border-outline-variant/20">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-xl">security</span>
+<span class="text-xs font-medium">Last Block ID</span>
+</div>
+<span class="text-[10px] font-mono font-bold text-primary">#8291..A4</span>
+</div>
+</div>
+</div>
+<!-- Recent Triggers List -->
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+<h4 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-6">Control Logs</h4>
+<div class="space-y-3">
+<div class="flex items-center gap-4 py-2 border-b border-outline-variant/10">
+<span class="text-[10px] font-bold text-on-surface-variant font-mono">14:22:01</span>
+<div class="flex-1">
+<p class="text-xs font-bold text-on-surface">Auto-Enable Check-in</p>
+<p class="text-[10px] text-on-surface-variant">Triggered by System Schedule</p>
+</div>
+<span class="material-symbols-outlined text-green-600 text-lg">check_circle</span>
+</div>
+<div class="flex items-center gap-4 py-2 border-b border-outline-variant/10">
+<span class="text-[10px] font-bold text-on-surface-variant font-mono">13:45:10</span>
+<div class="flex-1">
+<p class="text-xs font-bold text-on-surface">Manual Override: Close</p>
+<p class="text-[10px] text-on-surface-variant">Admin: Alex Rivera</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-lg">history</span>
+</div>
+<div class="flex items-center gap-4 py-2">
+<span class="text-[10px] font-bold text-on-surface-variant font-mono">12:00:00</span>
+<div class="flex-1">
+<p class="text-xs font-bold text-on-surface">Blockchain Re-sync</p>
+<p class="text-[10px] text-on-surface-variant">Validated 1,422 entries</p>
+</div>
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<button class="w-full mt-4 py-2 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/5 rounded-lg transition-all">View All Logs</button>
+</div>
+</div>
+<!-- Dynamic Background Image Decorator -->
+<div class="relative h-[160px] lg:h-[200px] w-full rounded-2xl overflow-hidden mt-12">
+<img alt="Blockchain Visualization" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCABzWQANCAgsqVLLSGiR5b0c7M0lNmQm5UtgUvbSvVxIG4GxqzhSBJ4e4uJ4PpsSxZKuIkX2krmHSIZCXNs0eXXXrnpDr6o-rsLhSMjiEk256QnhAH00eZmqHY9GzuyWd7G2FeJNDlC_igBoVqY2SmGqUUnEti676x7Dt0xTjdB8_FgqYrvqIAVzS7SbJ1GnpWgaKLM6eOFriDvNNonJ1a2mEXUXmuko3zMNVxndtdC5x7wR1Gg_k97l3oRlHpYBe3rmnG6PqAIw"/>
+<div class="absolute inset-0 bg-gradient-to-r from-[#163456] to-transparent flex items-center px-6 lg:px-12">
+<div class="max-w-md">
+<h4 class="text-white text-xl lg:text-2xl font-black leading-tight mb-2">Immutable Ledger Verification</h4>
+<p class="text-blue-100/70 text-xs lg:text-sm">Every status change is cryptographically signed and stored on the decentralized chain for audit-ready compliance.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="w-full py-6 mt-auto bg-[#f0f4f9] border-t border-[#c2c7d1]/20 flex flex-col md:flex-row justify-between items-center px-6 lg:px-12 text-center md:text-left">
+<p class="font-['Inter'] text-[10px] lg:text-xs uppercase tracking-widest text-[#475c79]">© 2024 Immutable Ledger Attendance System. Verified on Chain.</p>
+<div class="flex flex-wrap justify-center gap-4 lg:gap-8 mt-4 md:mt-0">
+<a class="font-['Inter'] text-[10px] lg:text-xs uppercase tracking-widest text-[#475c79] hover:underline transition-all" href="#">Privacy Policy</a>
+<a class="font-['Inter'] text-[10px] lg:text-xs uppercase tracking-widest text-[#1F5D99] font-bold hover:underline transition-all" href="#">Audit Logs</a>
+<a class="font-['Inter'] text-[10px] lg:text-xs uppercase tracking-widest text-[#475c79] hover:underline transition-all" href="#">System Status</a>
+</div>
+</footer>
+</main>
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('mobile-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        
+        if (sidebar.classList.contains('hidden-sidebar')) {
+            sidebar.classList.remove('hidden-sidebar');
+            sidebar.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('hidden-sidebar');
+            overlay.classList.add('hidden');
+            // Wait for transition before hiding if needed
+        }
+    }
+</script>
+</body></html>

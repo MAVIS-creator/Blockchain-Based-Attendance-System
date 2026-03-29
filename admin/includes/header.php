@@ -1,6 +1,9 @@
 <?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
 <header class="page-header">
   <div class="header-brand">
+    <button class="mobile-menu-btn" type="button" onclick="toggleSidebar()" aria-label="Open navigation">
+      <i class='bx bx-menu'></i>
+    </button>
     <img class="header-brand-logo" src="../asset/attendance-mark.svg" alt="Attendance Mark">
     <div class="header-brand-text">
       <h1>Attendance Admin Panel</h1>

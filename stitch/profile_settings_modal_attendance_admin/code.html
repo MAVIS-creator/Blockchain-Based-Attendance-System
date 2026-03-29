@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard | Immutable Ledger</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-effect {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .modal-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .modal-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .modal-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "background": "#f6faff",
+                        "on-secondary": "#ffffff",
+                        "outline-variant": "#c2c7d1",
+                        "on-tertiary-fixed-variant": "#334863",
+                        "surface-bright": "#f6faff",
+                        "on-secondary-fixed": "#001d34",
+                        "surface-container": "#eaeef3",
+                        "surface": "#f6faff",
+                        "tertiary-container": "#475c79",
+                        "surface-container-high": "#e4e9ed",
+                        "secondary-container": "#83c1fe",
+                        "on-primary-container": "#b8d5ff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#004e7f",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#d3e4ff",
+                        "secondary-fixed-dim": "#99cbff",
+                        "primary-container": "#1f5d99",
+                        "on-background": "#171c20",
+                        "inverse-primary": "#a1c9ff",
+                        "primary-fixed": "#d2e4ff",
+                        "surface-variant": "#dfe3e8",
+                        "on-tertiary-container": "#bed4f6",
+                        "on-primary-fixed": "#001c37",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#b2c8e9",
+                        "on-surface": "#171c20",
+                        "on-primary-fixed-variant": "#004880",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#24609d",
+                        "on-primary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#15629a",
+                        "surface-container-highest": "#dfe3e8",
+                        "inverse-on-surface": "#edf1f6",
+                        "primary-fixed-dim": "#a1c9ff",
+                        "surface-container-low": "#f0f4f9",
+                        "inverse-surface": "#2c3135",
+                        "surface-dim": "#d6dadf",
+                        "error": "#ba1a1a",
+                        "tertiary": "#2f4560",
+                        "outline": "#727781",
+                        "on-tertiary-fixed": "#031c36",
+                        "on-surface-variant": "#424750",
+                        "on-secondary-fixed-variant": "#004a78",
+                        "primary": "#00457b",
+                        "secondary-fixed": "#cfe5ff"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex overflow-hidden">
+<!-- SideNavBar Component -->
+<aside class="h-screen w-64 fixed left-0 top-0 z-40 bg-gradient-to-br from-blue-950 to-slate-900 flex flex-col p-4 gap-2 shadow-2xl">
+<div class="mb-8 px-4 py-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+</div>
+<div>
+<h1 class="text-lg font-black uppercase tracking-widest text-white">The Ledger</h1>
+<p class="text-[10px] text-blue-200/60 tracking-wider">Verified Presence</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="bg-white/10 text-white px-4 py-3 flex items-center gap-3 rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-sans text-sm font-normal tracking-wide">Dashboard</span>
+</a>
+<a class="text-blue-200/60 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">verified</span>
+<span class="font-sans text-sm font-normal tracking-wide">Status</span>
+</a>
+<a class="text-blue-200/60 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-sans text-sm font-normal tracking-wide">Logs</span>
+</a>
+<a class="text-blue-200/60 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">school</span>
+<span class="font-sans text-sm font-normal tracking-wide">Courses</span>
+</a>
+<a class="text-blue-200/60 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">fingerprint</span>
+<span class="font-sans text-sm font-normal tracking-wide">Manual Attendance</span>
+</a>
+<a class="text-blue-200/60 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">campaign</span>
+<span class="font-sans text-sm font-normal tracking-wide">Announcement</span>
+</a>
+<a class="text-blue-200/60 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">confirmation_number</span>
+<span class="font-sans text-sm font-normal tracking-wide">Support Tickets</span>
+</a>
+</nav>
+<div class="mt-auto pt-4 border-t border-white/10 space-y-1">
+<a class="text-blue-200/60 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-sans text-sm font-normal tracking-wide">Settings</span>
+</a>
+<a class="text-blue-200/60 hover:text-white px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-sans text-sm font-normal tracking-wide">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 min-h-screen flex flex-col relative">
+<!-- TopNavBar Component (Sticky) -->
+<header class="sticky top-0 h-16 bg-slate-50/80 backdrop-blur-md flex justify-between items-center px-8 z-30 shadow-sm border-b border-slate-200/50">
+<div class="flex items-center gap-4">
+<span class="text-xl font-bold tracking-tighter text-blue-900">Attendance Admin</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<button class="text-slate-500 hover:text-blue-800 transition-colors p-2 rounded-full hover:bg-blue-50/50">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-blue-700 border-b-2 border-blue-700 pb-1 font-medium text-sm transition-colors">
+                        Dashboard
+                    </button>
+</div>
+<div class="h-8 w-8 rounded-full overflow-hidden bg-surface-container-high ring-2 ring-primary/10">
+<img alt="Administrator Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxjHnXR9wzHyMDUI2dfTgX-T8b7hGXHVYKh_E-DpvpNOgA5B62Yh24cYx7sm83mA0tWdA6jvQq0lcUqXbMOT-ED-dxwd8CHBRhwK7Py0Ffsp9AvXR1ARWpjvIG-jY7DlRbnsfneZ17PZNgUmjSVFAAxPrMH_wVRSM4uHjqZqGvi2YcrSaMxCmHvkR6bMN9HTkCL_DxyYUKCGCXbLlo6ZenkzMsZBJmkUvHxUHvXGtSoUstuxlY3RpF5CeUwyIp8kkr40JpX0VfzQ"/>
+</div>
+</div>
+</header>
+<!-- Content Canvas (Dashboard View) -->
+<div class="p-8 flex-1">
+<div class="max-w-6xl mx-auto">
+<div class="mb-8">
+<h2 class="text-2xl font-bold text-on-surface">Welcome back, Alexander</h2>
+<p class="text-on-surface-variant">System status is operational. All nodes are synced.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+<p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Verified</p>
+<h3 class="text-3xl font-black text-primary">12,482</h3>
+</div>
+<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+<p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Active Sessions</p>
+<h3 class="text-3xl font-black text-primary">154</h3>
+</div>
+<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+<p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">System Uptime</p>
+<h3 class="text-3xl font-black text-primary">99.9%</h3>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm h-96 flex items-center justify-center">
+<p class="text-slate-400 font-medium italic">Activity Visualization Canvas</p>
+</div>
+</div>
+</div>
+<!-- Footer Component -->
+<footer class="w-full py-6 mt-auto bg-slate-50 flex flex-col md:flex-row justify-between items-center px-12 gap-4 border-t border-slate-200/20">
+<p class="text-[10px] uppercase tracking-widest font-mono text-slate-500">© 2024 Immutable Ledger. All records verified on-chain.</p>
+<div class="flex gap-8">
+<a class="text-[10px] uppercase tracking-widest font-mono text-slate-400 hover:text-slate-900 hover:underline decoration-blue-500 underline-offset-4 transition-opacity duration-300" href="#">Privacy Policy</a>
+<a class="text-[10px] uppercase tracking-widest font-mono text-slate-400 hover:text-slate-900 hover:underline decoration-blue-500 underline-offset-4 transition-opacity duration-300" href="#">Blockchain Explorer</a>
+<a class="text-[10px] uppercase tracking-widest font-mono text-slate-400 hover:text-slate-900 hover:underline decoration-blue-500 underline-offset-4 transition-opacity duration-300" href="#">System Status</a>
+</div>
+</footer>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
+<!-- Backdrop -->
+<div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
+<!-- Modal Container -->
+<div class="relative bg-background w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+<!-- Modal Header -->
+<div class="px-8 py-6 border-b border-outline-variant/10 flex items-center justify-between bg-white shrink-0">
+<div>
+<h2 class="text-xl font-bold text-on-surface tracking-tight">Account Architecture</h2>
+<p class="text-xs text-on-surface-variant">Configure administrative identity and security parameters.</p>
+</div>
+<button class="p-2 hover:bg-slate-100 rounded-full transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">close</span>
+</button>
+</div>
+<!-- Modal Content Scroll Area -->
+<div class="flex-1 overflow-y-auto p-8 modal-scrollbar">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Profile Info Section (Bento Card) -->
+<div class="lg:col-span-2 space-y-8">
+<section class="bg-surface-container-lowest rounded-xl p-8 shadow-[0_16px_36px_rgba(24,39,75,0.06)] border border-outline-variant/10">
+<div class="flex items-start justify-between mb-8">
+<h3 class="text-lg font-semibold text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">person</span>
+                                        Administrative Identity
+                                    </h3>
+<span class="text-[10px] font-mono uppercase tracking-widest text-primary bg-primary-fixed px-3 py-1 rounded-full">Primary Node</span>
+</div>
+<div class="flex flex-col md:flex-row gap-12">
+<!-- Avatar Upload -->
+<div class="flex flex-col items-center gap-4">
+<div class="relative group">
+<div class="w-32 h-32 rounded-xl overflow-hidden ring-4 ring-surface-container-low transition-all group-hover:ring-primary/20">
+<img alt="Profile Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUFyFQ2KYQtvrbD0Wb9m4Z5c52ul3enstY9wrqBqNnw-K2VoP1K7i3HJb1j-li-cDFgY7U3Lec3MThN_EZQIyyNo6Yo4Ey75VzEft-DXUG-N5UTWT7b2e3q7hpclLBpEPX0aC0C5gsgdEC0j9YBmA_96lUuqZx7CwIshZDKleNhYz0toBTdAwQa-s4bPpwjvLxEiW7Kps0Q27CLfDY-hesMfVFCAmfmi_lu0Q-zJoSMvCmHmfTWrD8__3MJHz3u62zm5jJed5sAg"/>
+</div>
+<button class="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-lg shadow-lg hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-sm">photo_camera</span>
+</button>
+</div>
+<p class="text-[10px] uppercase tracking-tighter text-outline font-bold">Max 5MB • PNG/JPG</p>
+</div>
+<!-- Form Fields -->
+<div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">Display Name</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 text-sm focus:ring-4 focus:ring-primary-fixed focus:border-primary outline-none transition-all" type="text" value="Alexander Sterling"/>
+</div>
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">Administrative Role</label>
+<input class="w-full bg-surface-container-low border border-transparent rounded-lg px-4 py-3 text-sm text-outline cursor-not-allowed" disabled="" type="text" value="System Architect"/>
+</div>
+<div class="md:col-span-2 space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">Immutable Email Address</label>
+<div class="relative">
+<input class="w-full bg-surface-container-low border border-transparent rounded-lg pl-4 pr-10 py-3 text-sm text-outline cursor-not-allowed" disabled="" type="email" value="a.sterling@immutableledger.io"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-sm text-outline">lock</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-12 flex justify-end gap-4">
+<button class="px-6 py-2.5 text-sm font-medium text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors">Discard</button>
+<button class="px-8 py-2.5 bg-gradient-to-br from-primary to-primary-container text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-[0_16px_36px_rgba(24,39,75,0.06)] transition-all">Save Identity</button>
+</div>
+</section>
+<!-- Change Password Section -->
+<section class="bg-surface-container-low rounded-xl p-8 border border-outline-variant/10">
+<h3 class="text-lg font-semibold text-on-surface-variant flex items-center gap-2 mb-8">
+<span class="material-symbols-outlined text-primary">security</span>
+                                    Security Protocol
+                                </h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">Current Password</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 text-sm focus:ring-4 focus:ring-primary-fixed focus:border-primary outline-none transition-all" placeholder="••••••••" type="password"/>
+</div>
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">New Password</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 text-sm focus:ring-4 focus:ring-primary-fixed focus:border-primary outline-none transition-all" placeholder="••••••••" type="password"/>
+</div>
+<div class="space-y-2">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant">Confirm New</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 text-sm focus:ring-4 focus:ring-primary-fixed focus:border-primary outline-none transition-all" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="mt-8 flex items-center justify-between">
+<p class="text-xs text-on-surface-variant/60">Last changed: Oct 24, 2023</p>
+<button class="px-6 py-2 bg-surface-container-lowest border border-outline-variant/20 text-primary text-sm font-bold rounded-lg hover:bg-white transition-all">Update Security</button>
+</div>
+</section>
+</div>
+<!-- Right Column: Login History & Quick Actions -->
+<div class="space-y-8">
+<!-- Recent History Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_16px_36px_rgba(24,39,75,0.06)] border border-outline-variant/5">
+<h3 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">history</span>
+                                    Ledger Access Logs
+                                </h3>
+<div class="space-y-4">
+<div class="p-4 bg-surface-container-low rounded-lg flex items-center gap-4">
+<div class="w-8 h-8 rounded bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-sm">laptop_mac</span>
+</div>
+<div class="flex-1">
+<p class="text-[13px] font-semibold text-on-surface">London, UK (Current)</p>
+<p class="text-[11px] text-on-surface-variant">Chrome • 192.168.1.45</p>
+</div>
+<span class="text-[10px] font-mono text-primary font-bold">ACTIVE</span>
+</div>
+<div class="p-4 rounded-lg flex items-center gap-4 border border-outline-variant/10">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">smartphone</span>
+</div>
+<div class="flex-1">
+<p class="text-[13px] font-medium text-on-surface">San Francisco, US</p>
+<p class="text-[11px] text-on-surface-variant">iOS App • 104.22.1.8</p>
+</div>
+<span class="text-[10px] font-mono text-outline">2D AGO</span>
+</div>
+<div class="p-4 rounded-lg flex items-center gap-4 border border-outline-variant/10">
+<div class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">public</span>
+</div>
+<div class="flex-1">
+<p class="text-[13px] font-medium text-on-surface">Berlin, DE</p>
+<p class="text-[11px] text-on-surface-variant">Firefox • 88.192.3.1</p>
+</div>
+<span class="text-[10px] font-mono text-outline">5D AGO</span>
+</div>
+</div>
+<button class="w-full mt-6 py-3 text-xs font-bold uppercase tracking-widest text-error hover:bg-error/5 rounded-lg transition-colors">Terminate All Sessions</button>
+</div>
+<!-- 2FA Status -->
+<div class="bg-gradient-to-br from-tertiary to-slate-800 rounded-xl p-6 text-white overflow-hidden relative">
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-secondary-container">verified_user</span>
+<h4 class="text-sm font-bold uppercase tracking-widest">Two-Factor Auth</h4>
+</div>
+<p class="text-xs text-blue-100/70 mb-6 leading-relaxed">Multi-factor authentication is active on this account using decentralized keys.</p>
+<button class="w-full py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg text-xs font-bold transition-all border border-white/10">Configure Ledger Key</button>
+</div>
+<span class="material-symbols-outlined absolute -bottom-4 -right-4 text-8xl text-white/5 rotate-12">shield</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

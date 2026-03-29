@@ -46,7 +46,10 @@ $view = $routes[$page] ?? 'dashboard.php';
   <link rel="icon" type="image/png" sizes="16x16" href="../asset/favicon-16x16.png">
   <link rel="manifest" href="../asset/site.webmanifest">
 </head>
-<body>
+<body class="use-stitch admin-page-<?= htmlspecialchars($page) ?>">
+
+<!-- Desktop Navigation Bar -->
+<?php include 'includes/navbar.php'; ?>
 
 <div class="layout"> 
 
@@ -64,13 +67,30 @@ $view = $routes[$page] ?? 'dashboard.php';
 <script>
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
-  const content = document.querySelector('.main-content');
-  sidebar.classList.toggle('collapsed');
-  if (content) content.classList.toggle('expanded');
-  document.cookie = "sidebar_collapsed=" + (sidebar.classList.contains('collapsed') ? 'true' : 'false');
+  if (!sidebar) return;
+  const isOpen = sidebar.classList.toggle('open');
+  document.body.classList.toggle('sidebar-open', isOpen);
 }
+
+document.addEventListener('click', function (e) {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+  if (e.target.closest('.sidebar a')) {
+    sidebar.classList.remove('open');
+    document.body.classList.remove('sidebar-open');
+  }
+});
+
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+  sidebar.classList.remove('open');
+  document.body.classList.remove('sidebar-open');
+});
 </script>
 <link rel="stylesheet" href="professional-overrides.css">
+<link rel="stylesheet" href="stitch-overrides.css">
 <?php if (function_exists('ob_end_flush')) { @ob_end_flush(); } ?>
 </body>
 </html>
