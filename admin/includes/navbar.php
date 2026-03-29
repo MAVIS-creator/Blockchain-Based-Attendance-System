@@ -128,7 +128,9 @@
   // Toggle navbar user menu
   document.getElementById('navUserToggle')?.addEventListener('click', function() {
     const menu = document.getElementById('navUserMenu');
-    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    if (!menu) return;
+    const shown = window.getComputedStyle(menu).display !== 'none';
+    menu.style.display = shown ? 'none' : 'block';
   });
 
   // Close menu when clicking outside
@@ -145,10 +147,12 @@
     toggle.addEventListener('click', function(e) {
       e.preventDefault();
       const menu = this.nextElementSibling;
+      if (!menu) return;
       document.querySelectorAll('.dropdown-menu').forEach(m => {
         if (m !== menu) m.style.display = 'none';
       });
-      menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+      const shown = window.getComputedStyle(menu).display !== 'none';
+      menu.style.display = shown ? 'none' : 'block';
     });
   });
 
@@ -157,5 +161,20 @@
     link.addEventListener('click', function() {
       document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
     });
+  });
+
+  // Close dropdowns when clicking outside nav items
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.nav-dropdown')) {
+      document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+    }
+  });
+
+  // ESC closes all menus
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+    const userMenu = document.getElementById('navUserMenu');
+    if (userMenu) userMenu.style.display = 'none';
   });
 </script>
