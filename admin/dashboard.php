@@ -76,7 +76,10 @@ if (file_exists($activeFile)) {
         $activeCourse = $activeData['course'] ?? "General";
     }
 }
+
+$embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($page));
 ?>
+<?php if (!$embedded): ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -371,6 +374,7 @@ if (file_exists($activeFile)) {
 </head>
 
 <body>
+<?php endif; ?>
     <header>
         <h1><i class='bx bxs-dashboard'></i> Admin Dashboard</h1>
     </header>
@@ -498,6 +502,8 @@ if (file_exists($activeFile)) {
             }
         });
     </script>
+<?php if (!$embedded): ?>
 </body>
 
 </html>
+<?php endif; ?>

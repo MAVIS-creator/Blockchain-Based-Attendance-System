@@ -356,13 +356,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 ?>
+<style>
+  .settings-shell { padding: 20px; }
+  .settings-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }
+  .settings-tab-btn {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #1f2937;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .settings-tab-btn.is-active { background: #1f5d99; border-color: #1f5d99; color: #fff; }
+  .settings-pane { display: none; }
+  .settings-pane.is-active { display: block; }
+</style>
 
-<div style="padding:20px;">
+<div class="settings-shell">
   <h2>Settings</h2>
   <?php if ($message): ?><div style="background:#dff0d8;padding:10px;border-radius:6px;margin-bottom:12px;color:#2d6a2d;"><?= htmlspecialchars($message) ?></div><?php endif; ?>
   <?php if ($errors): ?><div style="background:#ffe6e6;padding:10px;border-radius:6px;margin-bottom:12px;color:#8a1f1f;">
       <ul><?php foreach ($errors as $e) echo '<li>' . htmlspecialchars($e) . '</li>'; ?></ul>
     </div><?php endif; ?>
+
+  <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+    <button type="button" class="settings-tab-btn is-active" data-tab="general">General</button>
+    <button type="button" class="settings-tab-btn" data-tab="templates">Templates</button>
+    <button type="button" class="settings-tab-btn" data-tab="advanced">Advanced</button>
+    <button type="button" class="settings-tab-btn" data-tab="email">Email</button>
+    <button type="button" class="settings-tab-btn" data-tab="overview">Overview</button>
+  </div>
+
+  <section class="settings-pane is-active" data-pane="general">
 
   <form method="POST" style="max-width:900px;">
     <?php csrf_field(); ?>
@@ -399,6 +425,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </form>
 
+  </section>
+
+  <section class="settings-pane" data-pane="templates">
+
   <hr style="margin:18px 0;">
 
   <h3>Templates</h3>
@@ -415,6 +445,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </select>
     <button type="submit" name="apply_template" style="padding:8px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Apply</button>
   </form>
+
+  </section>
+
+  <section class="settings-pane" data-pane="advanced">
 
   <hr style="margin:18px 0;">
 
@@ -465,6 +499,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </form>
 
+  </section>
+
+  <section class="settings-pane" data-pane="email">
+
   <hr style="margin:18px 0;">
 
   <h3>Email & Auto-send</h3>
@@ -496,6 +534,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </form>
 
+  </section>
+
+  <section class="settings-pane" data-pane="overview">
+
   <hr style="margin:18px 0;">
 
   <h3>System overview</h3>
@@ -523,9 +565,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                                                   echo htmlspecialchars($la) . "\n";
                                                                                 } ?></pre>
   </div>
+
+  </section>
 </div>
 
 <script>
+  (function() {
+    var tabButtons = document.querySelectorAll('.settings-tab-btn');
+    var panes = document.querySelectorAll('.settings-pane');
+    if (!tabButtons.length || !panes.length) return;
+
+    function activate(tabName) {
+      tabButtons.forEach(function(btn) {
+        btn.classList.toggle('is-active', btn.dataset.tab === tabName);
+      });
+      panes.forEach(function(pane) {
+        pane.classList.toggle('is-active', pane.dataset.pane === tabName);
+      });
+      try { localStorage.setItem('settings_active_tab', tabName); } catch (e) {}
+    }
+
+    tabButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        activate(btn.dataset.tab);
+      });
+    });
+
+    try {
+      var saved = localStorage.getItem('settings_active_tab');
+      if (saved) activate(saved);
+    } catch (e) {}
+  })();
+
   (function() {
     var btn = document.getElementById('geo_test_btn');
     var out = document.getElementById('geo_test_result');

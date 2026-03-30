@@ -31,8 +31,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
+
+$embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($page));
 ?>
 
+<?php if (!$embedded): ?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -168,6 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+<?php endif; ?>
 
 <!-- Palette Switcher -->
 <div class="palette-switcher">
@@ -211,5 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 </script>
 
+<?php if (!$embedded): ?>
 </body>
 </html>
+<?php endif; ?>

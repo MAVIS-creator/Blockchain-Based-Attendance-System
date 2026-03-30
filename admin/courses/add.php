@@ -25,8 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
+
+$embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($page));
 ?>
 
+<?php if (!$embedded): ?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -167,6 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+<?php endif; ?>
 
 <button class="palette-toggle" title="Change Color"><i class='bx bx-palette'></i></button>
 
@@ -225,5 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<?php if (!$embedded): ?>
 </body>
 </html>
+<?php endif; ?>

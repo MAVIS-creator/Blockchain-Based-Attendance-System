@@ -213,7 +213,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
 }
 
 // Minimal UI
+
+$embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($page));
 ?>
+<?php if (!$embedded): ?>
 <!doctype html>
 <html>
 <head>
@@ -240,6 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
   </style>
 </head>
 <body>
+<?php endif; ?>
   <div class="card">
     <div class="card-header"><h3>Send Logs via Email</h3></div>
     <div class="card-body">
@@ -340,5 +344,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
       </form>
     </div>
   </div>
+<?php if (!$embedded): ?>
 </body>
 </html>
+<?php endif; ?>
