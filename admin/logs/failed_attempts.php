@@ -148,11 +148,9 @@ $totalPages = ceil($totalLogs / $perPage);
 $currentPage = min($page, $totalPages > 0 ? $totalPages : 1);
 $startIndex = ($currentPage - 1) * $perPage;
 $logsPage = array_slice($logs, $startIndex, $perPage);
-
-$embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($page));
 ?>
 
-<?php if (!$embedded): ?>
+
 <!DOCTYPE html>
 <html>
 
@@ -341,7 +339,6 @@ $embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($p
 </head>
 
 <body>
-<?php endif; ?>
 
     <button class="palette-toggle"><i class='bx bx-palette'></i></button>
 
@@ -425,8 +422,6 @@ $embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($p
         });
     </script>
 
-<?php if (!$embedded): ?>
 </body>
 
 </html>
-<?php endif; ?>

@@ -76,10 +76,7 @@ if (file_exists($activeFile)) {
         $activeCourse = $activeData['course'] ?? "General";
     }
 }
-
-$embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($page));
 ?>
-<?php if (!$embedded): ?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -258,6 +255,24 @@ $embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($p
             background: linear-gradient(135deg, var(--accent-color), #1e40af);
         }
 
+        .palette-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .palette-toggle:hover {
+            backdrop-filter: blur(10px);
+            transform: scale(1.05);
+        }
+
         .recent-logs {
             margin: 60px auto;
             max-width: 700px;
@@ -323,58 +338,59 @@ $embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($p
             color: #6b7280;
             font-style: italic;
         }
-
         .log-list li {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            background: rgba(255, 255, 255, 0.8);
-            margin-bottom: 12px;
-            padding: 14px 20px;
-            border-radius: 12px;
-            color: #1f2937;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    background: rgba(255, 255, 255, 0.8);
+    margin-bottom: 12px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    color: #1f2937;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
 
-        .log-list li:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-        }
+.log-list li:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
 
-        .log-main {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-        }
+.log-main {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
 
-        .log-name {
-            font-weight: 700;
-            color: #374151;
-        }
+.log-name {
+    font-weight: 700;
+    color: #374151;
+}
 
-        .log-matric {
-            font-weight: 500;
-            color: #6366f1;
-        }
+.log-matric {
+    font-weight: 500;
+    color: #6366f1;
+}
 
-        .log-course {
-            margin-top: 4px;
-            font-size: 14px;
-            color: #6b7280;
-            font-style: italic;
-        }
+.log-course {
+    margin-top: 4px;
+    font-size: 14px;
+    color: #6b7280;
+    font-style: italic;
+}
 
-        .empty-log {
-            text-align: center;
-            color: #6b7280;
-            font-style: italic;
-        }
+.empty-log {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+}
+
     </style>
 </head>
 
 <body>
-<?php endif; ?>
+    <button class="palette-toggle"><i class='bx bx-palette'></i></button>
+
     <header>
         <h1><i class='bx bxs-dashboard'></i> Admin Dashboard</h1>
     </header>
@@ -413,18 +429,18 @@ $embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($p
         <h3><i class='bx bx-time'></i> Recent Activity (Last 2 Days)</h3>
         <ul class="log-list">
             <?php if (!empty($recentLogs)): ?>
-                <?php foreach ($recentLogs as $log): ?>
-                    <?php
-                    $parts = array_map('trim', explode('|', $log));
-                    $name = isset($parts[0]) ? strtoupper($parts[0]) : 'Unknown';
-                    $matric = isset($parts[1]) ? $parts[1] : 'N/A';
-                    $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
-                    if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
-                        $course = isset($parts[8]) ? $parts[8] : 'General';
-                    } else {
-                        $course = isset($parts[7]) ? $parts[7] : 'General';
-                    }
-                    ?>
+                    <?php foreach ($recentLogs as $log): ?>
+                        <?php
+                        $parts = array_map('trim', explode('|', $log));
+                        $name = isset($parts[0]) ? strtoupper($parts[0]) : 'Unknown';
+                        $matric = isset($parts[1]) ? $parts[1] : 'N/A';
+                        $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
+                        if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
+                            $course = isset($parts[8]) ? $parts[8] : 'General';
+                        } else {
+                            $course = isset($parts[7]) ? $parts[7] : 'General';
+                        }
+                        ?>
                     <li>
                         <div class="log-main">
                             <span class="log-name"><?= htmlspecialchars($name) ?></span>
@@ -451,6 +467,52 @@ $embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($p
     </div>
 
     <script>
+        const palettes = [{
+                color: '#3b82f6',
+                bg: 'linear-gradient(135deg, #3b82f6, #ef4444)'
+            },
+            {
+                color: '#10b981',
+                bg: 'linear-gradient(135deg, #10b981, #f59e0b)'
+            },
+            {
+                color: '#facc15',
+                bg: 'linear-gradient(135deg, #facc15, #8b5cf6)'
+            },
+            {
+                color: '#06b6d4',
+                bg: 'linear-gradient(135deg, #06b6d4, #f97316)'
+            },
+            {
+                color: '#ec4899',
+                bg: 'linear-gradient(135deg, #ec4899, #6366f1)'
+            },
+            {
+                color: '#000000',
+                bg: 'linear-gradient(135deg, #000000, #f59e0b)'
+            },
+            {
+                color: '#84cc16',
+                bg: 'linear-gradient(135deg, #84cc16, #3b82f6)'
+            }
+        ];
+
+        let current = 0;
+        document.querySelector('.palette-toggle').addEventListener('click', () => {
+            current = (current + 1) % palettes.length;
+            document.documentElement.style.setProperty('--accent-color', palettes[current].color);
+            document.documentElement.style.setProperty('--bg-gradient', palettes[current].bg);
+            localStorage.setItem('adminPalette', current);
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('adminPalette');
+            if (saved !== null) {
+                current = parseInt(saved);
+                document.documentElement.style.setProperty('--accent-color', palettes[current].color);
+                document.documentElement.style.setProperty('--bg-gradient', palettes[current].bg);
+            }
+        });
+
         new Chart(document.getElementById('attendanceChart').getContext('2d'), {
             type: 'line',
             data: {
@@ -502,8 +564,6 @@ $embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($p
             }
         });
     </script>
-<?php if (!$embedded): ?>
 </body>
 
 </html>
-<?php endif; ?>

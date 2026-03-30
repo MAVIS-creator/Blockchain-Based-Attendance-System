@@ -266,11 +266,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
-$embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($page));
 ?>
 
-<?php if (!$embedded): ?>
+
 <!DOCTYPE html>
 <html>
 
@@ -400,7 +398,6 @@ $embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($p
 </head>
 
 <body>
-<?php endif; ?>
 
     <button class="palette-btn" onclick="togglePalette()"><i class='bx bx-adjust'></i> Switch Palette</button>
 
@@ -453,8 +450,6 @@ $embedded = (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'index.php' || isset($p
         }
     </script>
 
-<?php if (!$embedded): ?>
 </body>
 
 </html>
-<?php endif; ?>
