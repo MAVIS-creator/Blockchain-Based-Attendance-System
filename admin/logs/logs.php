@@ -235,14 +235,14 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
     </table>
 
     <?php if ($totalPages > 1): ?>
-    <div style="padding:16px 24px;border-top:1px solid var(--surface-container-high);display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
-      <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-        <a href="?page=logs&logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>&filterType=<?= urlencode($filterType) ?>&page_num=<?= $i ?>"
-           style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:6px;font-weight:600;font-size:0.85rem;text-decoration:none;<?= $i === $page ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);' ?>">
-          <?= $i ?>
-        </a>
-      <?php endfor; ?>
-    </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--surface-container-high);display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+          <a href="?page=logs&logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>&filterType=<?= urlencode($filterType) ?>&page_num=<?= $i ?>"
+            style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:6px;font-weight:600;font-size:0.85rem;text-decoration:none;<?= $i === $page ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);' ?>">
+            <?= $i ?>
+          </a>
+        <?php endfor; ?>
+      </div>
     <?php endif; ?>
 
   <?php else: ?>
@@ -255,27 +255,56 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
 
 <script>
   // Clear logs button
-  document.getElementById('clearLogsBtn')?.addEventListener('click', function(){
-    window.adminConfirm('Clear all logs', 'Are you sure you want to delete logs and backups? This action cannot be undone.', 'warning').then(function(ok){
+  document.getElementById('clearLogsBtn')?.addEventListener('click', function() {
+    window.adminConfirm('Clear all logs', 'Are you sure you want to delete logs and backups? This action cannot be undone.', 'warning').then(function(ok) {
       if (!ok) return;
-      var body = new URLSearchParams(); body.append('scope','all');
-      fetch('../clear_logs.php', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN }, body: body.toString() })
-        .then(r=>r.json()).then(j=>{ if (j && j.ok) { window.adminAlert('Logs cleared','Logs and backups removed','success').then(()=>location.reload()); } else window.adminAlert('Failed',JSON.stringify(j),'error'); })
-        .catch(e=>window.adminAlert('Error','Error clearing logs','error'));
+      var body = new URLSearchParams();
+      body.append('scope', 'all');
+      fetch('../clear_logs.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': window.ADMIN_CSRF_TOKEN
+          },
+          body: body.toString()
+        })
+        .then(r => r.json()).then(j => {
+          if (j && j.ok) {
+            window.adminAlert('Logs cleared', 'Logs and backups removed', 'success').then(() => location.reload());
+          } else window.adminAlert('Failed', JSON.stringify(j), 'error');
+        })
+        .catch(e => window.adminAlert('Error', 'Error clearing logs', 'error'));
     });
   });
 
   // Clear device button
-  document.getElementById('clearDeviceBtn')?.addEventListener('click', function(){
+  document.getElementById('clearDeviceBtn')?.addEventListener('click', function() {
     var fp = document.getElementById('clearFingerprint').value.trim();
     var mt = document.getElementById('clearMatric').value.trim();
-    if (!fp && !mt) { window.adminAlert('Input required','Enter a fingerprint or matric to clear','warning'); return; }
-    window.adminConfirm('Clear device ban', 'Clear device entries for this fingerprint/matric?').then(function(ok){
+    if (!fp && !mt) {
+      window.adminAlert('Input required', 'Enter a fingerprint or matric to clear', 'warning');
+      return;
+    }
+    window.adminConfirm('Clear device ban', 'Clear device entries for this fingerprint/matric?').then(function(ok) {
       if (!ok) return;
-      var body = new URLSearchParams(); if (fp) body.append('fingerprint', fp); if (mt) body.append('matric', mt); body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
-      fetch('../clear_device.php', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN }, body: body.toString() })
-        .then(r=>r.json()).then(j=>{ if (j && j.ok) { window.adminAlert('Device cleared','Device entries removed: '+JSON.stringify(j.result),'success'); } else window.adminAlert('Failed',JSON.stringify(j),'error'); })
-        .catch(e=>window.adminAlert('Error','Error clearing device','error'));
+      var body = new URLSearchParams();
+      if (fp) body.append('fingerprint', fp);
+      if (mt) body.append('matric', mt);
+      body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
+      fetch('../clear_device.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': window.ADMIN_CSRF_TOKEN
+          },
+          body: body.toString()
+        })
+        .then(r => r.json()).then(j => {
+          if (j && j.ok) {
+            window.adminAlert('Device cleared', 'Device entries removed: ' + JSON.stringify(j.result), 'success');
+          } else window.adminAlert('Failed', JSON.stringify(j), 'error');
+        })
+        .catch(e => window.adminAlert('Error', 'Error clearing device', 'error'));
     });
   });
 </script>

@@ -145,6 +145,186 @@ function mask_secret_value($value)
   if ($len <= 6) return str_repeat('*', $len);
   return substr($value, 0, 3) . str_repeat('*', max(4, $len - 6)) . substr($value, -3);
 }
+
+function test_supabase_connection_env($env)
+{
+  $url = rtrim(trim($env['SUPABASE_URL'] ?? ''), '/');
+  $key = trim($env['SUPABASE_SERVICE_ROLE_KEY'] ?? '');
+  if ($url === '' || $key === '') {
+    return ['ok' => false, 'message' => 'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.'];
+  }
+
+  $endpoint = $url . '/rest/v1/attendance_logs?select=id&limit=1';
+  $ch = curl_init($endpoint);
+  if ($ch === false) {
+    return ['ok' => false, 'message' => 'Unable to initialize cURL.'];
+  }
+
+  curl_setopt_array($ch, [
+    CURLOPT_HTTPGET => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 8,
+    CURLOPT_CONNECTTIMEOUT => 3,
+    CURLOPT_HTTPHEADER => [
+      'apikey: ' . $key,
+      'Authorization: Bearer ' . $key,
+    ],
+  ]);
+
+  $resp = curl_exec($ch);
+  $http = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  $err = curl_error($ch);
+  curl_close($ch);
+
+  if ($resp === false || $err) {
+    return ['ok' => false, 'message' => 'Connection failed: ' . $err];
+  }
+  if ($http < 200 || $http >= 300) {
+    return ['ok' => false, 'message' => 'Supabase responded with HTTP ' . $http . '.'];
+  }
+
+  return ['ok' => true, 'message' => 'Supabase connection successful (HTTP ' . $http . ').'];
+}
+
+function test_supabase_write_env($env)
+{
+  $url = rtrim(trim($env['SUPABASE_URL'] ?? ''), '/');
+  $key = trim($env['SUPABASE_SERVICE_ROLE_KEY'] ?? '');
+  if ($url === '' || $key === '') {
+    return ['ok' => false, 'message' => 'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.'];
+  }
+
+  $probeMatric = 'SYS-' . date('YmdHis');
+  $probeHash = 'probe-' . bin2hex(random_bytes(8));
+  $payload = [[
+    'timestamp' => date('c'),
+    'name' => 'SYSTEM PROBE',
+    'matric' => $probeMatric,
+    'action' => 'checkin',
+    'fingerprint' => 'probe',
+    'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
+    'mac' => 'PROBE',
+    'user_agent' => 'Admin Settings Probe',
+    'course' => 'System',
+    'reason' => 'probe',
+    'chain_hash' => $probeHash,
+  ]];
+
+  $endpoint = $url . '/rest/v1/attendance_logs';
+  $ch = curl_init($endpoint);
+  if ($ch === false) {
+    return ['ok' => false, 'message' => 'Unable to initialize cURL.'];
+  }
+
+  curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 8,
+    CURLOPT_CONNECTTIMEOUT => 3,
+    CURLOPT_HTTPHEADER => [
+      'apikey: ' . $key,
+      'Authorization: Bearer ' . $key,
+      'Content-Type: application/json',
+      'Prefer: return=representation',
+    ],
+    CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
+  ]);
+
+  $resp = curl_exec($ch);
+  $http = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  $err = curl_error($ch);
+  curl_close($ch);
+
+  if ($resp === false || $err) {
+    return ['ok' => false, 'message' => 'Write probe failed: ' . $err];
+  }
+  if ($http < 200 || $http >= 300) {
+    return ['ok' => false, 'message' => 'Write probe failed. Supabase HTTP ' . $http . '.'];
+  }
+
+  $rows = json_decode((string)$resp, true);
+  if (!is_array($rows) || empty($rows[0])) {
+    return ['ok' => true, 'message' => 'Write probe sent (HTTP ' . $http . '), but response payload was empty.'];
+  }
+
+  $inserted = $rows[0];
+  $id = $inserted['id'] ?? 'n/a';
+  return ['ok' => true, 'message' => 'Supabase write probe succeeded. Inserted row id: ' . $id . ' (matric: ' . $probeMatric . ').'];
+}
+
+function test_smtp_connection_env($env, $recipient = '')
+{
+  $host = trim($env['SMTP_HOST'] ?? '');
+  $user = trim($env['SMTP_USER'] ?? '');
+  $pass = trim($env['SMTP_PASS'] ?? '');
+  $port = intval($env['SMTP_PORT'] ?? 587);
+  $secure = strtolower(trim($env['SMTP_SECURE'] ?? 'tls'));
+
+  if ($host === '' || $user === '' || $pass === '' || $port <= 0) {
+    return ['ok' => false, 'message' => 'SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS are required.'];
+  }
+
+  $autoload = __DIR__ . '/../vendor/autoload.php';
+  if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
+    if (!file_exists($autoload)) {
+      return ['ok' => false, 'message' => 'Composer autoload file not found.'];
+    }
+    require_once $autoload;
+  }
+
+  try {
+    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+    $mail->isSMTP();
+    $mail->Host = $host;
+    $mail->Port = $port;
+    $mail->SMTPAuth = true;
+    $mail->Username = $user;
+    $mail->Password = $pass;
+    $mail->Timeout = 8;
+    $mail->SMTPAutoTLS = true;
+
+    if ($secure === 'ssl') {
+      $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+    } else {
+      $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+    }
+
+    if (!$mail->smtpConnect()) {
+      return ['ok' => false, 'message' => 'SMTP connect failed: ' . ($mail->ErrorInfo ?: 'Unknown SMTP error')];
+    }
+
+    $to = trim((string)$recipient);
+    if ($to === '') {
+      $to = trim((string)($env['SMTP_USER'] ?? ''));
+    }
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+      $mail->smtpClose();
+      return ['ok' => false, 'message' => 'SMTP test recipient is invalid.'];
+    }
+
+    $fromEmail = trim((string)($env['FROM_EMAIL'] ?? ''));
+    if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+      $fromEmail = $user;
+    }
+    $fromName = trim((string)($env['FROM_NAME'] ?? 'Attendance System'));
+
+    $mail->setFrom($fromEmail, $fromName);
+    $mail->addAddress($to);
+    $mail->Subject = 'SMTP Test - Attendance System';
+    $mail->Body = "SMTP test successful.\n\nTime: " . date('c') . "\nServer: " . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $mail->AltBody = $mail->Body;
+
+    if (!$mail->send()) {
+      $mail->smtpClose();
+      return ['ok' => false, 'message' => 'SMTP connected but test mail failed: ' . ($mail->ErrorInfo ?: 'Unknown send error')];
+    }
+
+    $mail->smtpClose();
+    return ['ok' => true, 'message' => 'SMTP connection successful and test email sent to ' . $to . '.'];
+  } catch (\Throwable $e) {
+    return ['ok' => false, 'message' => 'SMTP test failed: ' . $e->getMessage()];
+  }
+}
 // Resolve env once for this page
 $envPath = __DIR__ . '/../.env';
 $ENV = load_env_array($envPath);
@@ -241,6 +421,7 @@ csrf_token();
 // handle POST actions: save settings, templates, apply template
 $message = '';
 $errors = [];
+$envTestResult = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // validate CSRF centrally
@@ -388,6 +569,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $message = 'Settings saved.';
     }
+  }
+
+  if (isset($_POST['test_supabase_connection'])) {
+    $envTestResult = test_supabase_connection_env($ENV);
+    if ($envTestResult['ok']) $message = $envTestResult['message'];
+    else $errors[] = $envTestResult['message'];
+  }
+
+  if (isset($_POST['test_supabase_write'])) {
+    $envTestResult = test_supabase_write_env($ENV);
+    if ($envTestResult['ok']) $message = $envTestResult['message'];
+    else $errors[] = $envTestResult['message'];
+  }
+
+  if (isset($_POST['test_smtp_connection'])) {
+    $smtpTestRecipient = trim($_POST['smtp_test_recipient'] ?? '');
+    $envTestResult = test_smtp_connection_env($ENV, $smtpTestRecipient);
+    if ($envTestResult['ok']) $message = $envTestResult['message'];
+    else $errors[] = $envTestResult['message'];
   }
 
   // Save environment key/value flow
@@ -583,50 +783,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </div>
 
-  <div id="tab-advanced" class="st-tab-content hidden">
-    <form method="POST" class="grid grid-cols-1 md:grid-cols-12 gap-8">
+  <div id="tab-advanced" class="st-tab-content hidden overflow-x-hidden">
+    <form method="POST" class="grid grid-cols-1 xl:grid-cols-12 gap-6 max-w-full">
       <?php csrf_field(); ?>
-      <section class="md:col-span-8 bg-surface-container-lowest p-8 rounded-xl shadow-sm space-y-6 border border-outline-variant/20">
+      <section class="xl:col-span-8 min-w-0 bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-5 border border-outline-variant/20">
         <h3 class="text-lg font-semibold">Network &amp; Security</h3>
-        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="encrypted_settings" value="1" <?= ($settings['encrypted_settings'] ?? false) ? 'checked' : '' ?>> encrypted_settings</label>
-        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="encrypt_logs" value="1" <?= ($settings['encrypt_logs'] ?? false) ? 'checked' : '' ?>> encrypt_logs</label>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="encrypted_settings" value="1" <?= ($settings['encrypted_settings'] ?? false) ? 'checked' : '' ?>> Encrypted settings</label>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="encrypt_logs" value="1" <?= ($settings['encrypt_logs'] ?? false) ? 'checked' : '' ?>> Encrypt logs</label>
         <div>
-          <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">ip_whitelist</label>
+          <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">IP whitelist</label>
           <textarea class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" name="ip_whitelist" rows="4"><?= htmlspecialchars(implode("\n", $settings['ip_whitelist'] ?? [])) ?></textarea>
         </div>
       </section>
 
-      <section class="md:col-span-4 bg-surface-container-low p-8 rounded-xl space-y-4">
+      <section class="xl:col-span-4 min-w-0 bg-surface-container-low p-6 rounded-xl space-y-4">
         <h3 class="text-lg font-semibold">Device &amp; Anti-spam</h3>
         <div>
-          <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">device_cooldown_seconds</label>
+          <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Device cooldown (seconds)</label>
           <input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="device_cooldown_seconds" value="<?= htmlspecialchars($settings['device_cooldown_seconds'] ?? 0) ?>">
         </div>
-        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="user_agent_lock" value="1" <?= ($settings['user_agent_lock'] ?? false) ? 'checked' : '' ?>> user_agent_lock</label>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="user_agent_lock" value="1" <?= ($settings['user_agent_lock'] ?? false) ? 'checked' : '' ?>> Lock by user agent</label>
       </section>
 
-      <section class="md:col-span-7 bg-surface-container-lowest p-8 rounded-xl shadow-sm space-y-4 border border-outline-variant/20">
+      <section class="xl:col-span-7 min-w-0 bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4 border border-outline-variant/20">
         <h3 class="text-lg font-semibold">Geo-fencing</h3>
-        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="geo_fence_enabled" value="1" <?= ($settings['geo_fence_enabled'] ?? false) ? 'checked' : '' ?>> geo_fence_enabled</label>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="geo_fence_enabled" value="1" <?= ($settings['geo_fence_enabled'] ?? false) ? 'checked' : '' ?>> Enable geo-fence</label>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input class="bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="text" name="geo_lat" placeholder="geo_lat" value="<?= htmlspecialchars($settings['geo_fence']['lat'] ?? '') ?>">
-          <input class="bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="text" name="geo_lng" placeholder="geo_lng" value="<?= htmlspecialchars($settings['geo_fence']['lng'] ?? '') ?>">
+          <input class="bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="text" name="geo_lat" placeholder="Latitude" value="<?= htmlspecialchars($settings['geo_fence']['lat'] ?? '') ?>">
+          <input class="bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="text" name="geo_lng" placeholder="Longitude" value="<?= htmlspecialchars($settings['geo_fence']['lng'] ?? '') ?>">
         </div>
         <div class="flex items-end gap-4">
-          <div class="flex-1"><input class="w-full bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="geo_radius_m" placeholder="geo_radius_m" value="<?= htmlspecialchars($settings['geo_fence']['radius_m'] ?? 0) ?>"></div>
+          <div class="flex-1"><input class="w-full bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="geo_radius_m" placeholder="Radius (meters)" value="<?= htmlspecialchars($settings['geo_fence']['radius_m'] ?? 0) ?>"></div>
           <button id="geo_test_btn" type="button" class="bg-primary hover:bg-primary-container text-white h-[46px] px-6 rounded-lg font-semibold text-sm">Test Geofence</button>
         </div>
         <div id="geo_test_result" class="text-sm text-on-surface-variant"></div>
       </section>
 
-      <section class="md:col-span-5 bg-surface-container-low p-8 rounded-xl space-y-4">
+      <section class="xl:col-span-5 min-w-0 bg-surface-container-low p-6 rounded-xl space-y-4">
         <h3 class="text-lg font-semibold">Backups &amp; Retention</h3>
-        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="auto_backup" value="1" <?= ($settings['auto_backup'] ?? true) ? 'checked' : '' ?>> auto_backup</label>
-        <div><label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">backup_retention</label><input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="backup_retention" value="<?= htmlspecialchars($settings['backup_retention'] ?? 10) ?>"></div>
-        <div><label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">blocked_tokens_retention_days</label><input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" min="1" max="3650" name="blocked_tokens_retention_days" value="<?= htmlspecialchars($settings['blocked_tokens_retention_days'] ?? 30) ?>"></div>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="auto_backup" value="1" <?= ($settings['auto_backup'] ?? true) ? 'checked' : '' ?>> Enable auto backup</label>
+        <div><label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Backup retention</label><input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="backup_retention" value="<?= htmlspecialchars($settings['backup_retention'] ?? 10) ?>"></div>
+        <div><label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Blocked token retention (days)</label><input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" min="1" max="3650" name="blocked_tokens_retention_days" value="<?= htmlspecialchars($settings['blocked_tokens_retention_days'] ?? 30) ?>"></div>
       </section>
 
-      <div class="md:col-span-12 flex justify-end gap-4 border-t border-outline-variant/20 pt-6">
+      <div class="xl:col-span-12 flex justify-end gap-4 border-t border-outline-variant/20 pt-4">
         <button class="px-8 py-2.5 rounded-lg bg-gradient-to-br from-primary to-primary-container text-white font-semibold text-sm" type="submit" name="save_settings">Commit to Chain</button>
       </div>
     </form>
@@ -690,6 +890,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <section class="lg:col-span-7 bg-white rounded-xl border border-outline-variant/30 p-6 shadow-sm space-y-5">
           <h3 class="text-base font-bold text-on-surface">Hybrid / Storage</h3>
 
+          <?php if ($envTestResult !== null): ?>
+            <div class="rounded-lg p-3 text-sm border <?= !empty($envTestResult['ok']) ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800' ?>">
+              <?= htmlspecialchars($envTestResult['message'] ?? '') ?>
+            </div>
+          <?php endif; ?>
+
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SUPABASE_URL</label>
             <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_supabase_url" value="<?= htmlspecialchars($ENV['SUPABASE_URL'] ?? '') ?>" placeholder="https://your-project.supabase.co">
@@ -719,6 +925,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">STORAGE_PATH</label>
             <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_storage_path" value="<?= htmlspecialchars($ENV['STORAGE_PATH'] ?? '') ?>" placeholder="/home/data">
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+            <button class="w-full rounded-lg border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-semibold py-2.5" type="submit" name="test_supabase_connection" value="1">
+              Test Supabase Connection
+            </button>
+            <button class="w-full rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold py-2.5" type="submit" name="test_supabase_write" value="1">
+              Test Supabase Write
+            </button>
+            <button class="w-full rounded-lg border border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-800 font-semibold py-2.5" type="submit" name="test_smtp_connection" value="1">
+              Test SMTP
+            </button>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SMTP test recipient (optional)</label>
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="email" name="smtp_test_recipient" placeholder="defaults to SMTP_USER if empty">
           </div>
         </section>
 

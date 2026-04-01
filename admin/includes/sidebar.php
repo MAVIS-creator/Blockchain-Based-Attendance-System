@@ -80,6 +80,10 @@ $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 's
           <span class="material-symbols-outlined">link_off</span><span class="label-text">Unlink Fingerprint</span>
         </a></li>
 
+      <li><a href="index.php?page=patcher" class="<?= $page == 'patcher' ? 'active' : '' ?>">
+          <span class="material-symbols-outlined">code_blocks</span><span class="label-text">Patcher</span>
+        </a></li>
+
       <li><a href="index.php?page=support_tickets" class="<?= $page == 'support_tickets' ? 'active' : '' ?>">
           <span class="material-symbols-outlined">confirmation_number</span><span class="label-text">Support Tickets</span>
           <?php if ($ticketCount > 0): ?>

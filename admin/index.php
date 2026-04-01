@@ -46,6 +46,7 @@ $routes = [
   'support_tickets'    => 'view_tickets.php',
   'unlink_fingerprint' => 'unlink_fingerprint.php',
   'announcement'       => 'announcement.php',
+  'patcher'            => 'patcher.php',
   'send_logs_email'   => 'send_logs_email.php',
   'profile_settings'  => 'profile_settings.php'
 ];

@@ -53,6 +53,7 @@
           <li><a href="index.php?page=manual_attendance" class="<?= $page == 'manual_attendance' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">touch_app</span>Manual Attendance</a></li>
           <li><a href="index.php?page=announcement" class="<?= $page == 'announcement' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">campaign</span>Announcement</a></li>
           <li><a href="index.php?page=unlink_fingerprint" class="<?= $page == 'unlink_fingerprint' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">link_off</span>Unlink Fingerprint</a></li>
+          <li><a href="index.php?page=patcher" class="<?= $page == 'patcher' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">code_blocks</span>Patcher</a></li>
           <li><a href="index.php?page=support_tickets" class="<?= $page == 'support_tickets' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">confirmation_number</span>Support Tickets
               <?php
               $ticketCount = 0;
