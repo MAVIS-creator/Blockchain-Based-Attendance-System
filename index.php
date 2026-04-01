@@ -660,7 +660,10 @@ if (file_exists($announcementFile)) {
         .then(data => {
           const enabled = !!(data && data.enabled);
           const message = (data && data.message ? String(data.message) : '').trim();
-          const signature = JSON.stringify({ enabled, message });
+          const signature = JSON.stringify({
+            enabled,
+            message
+          });
 
           if (enabled) {
             announcementText.textContent = message || 'An important announcement is currently active.';

@@ -438,7 +438,10 @@ if (isset($_COOKIE['attendanceBlocked'])) {
         .then(data => {
           const enabled = !!(data && data.enabled);
           const msg = (data && data.message ? String(data.message) : '').trim();
-          const signature = JSON.stringify({ enabled, message: msg });
+          const signature = JSON.stringify({
+            enabled,
+            message: msg
+          });
 
           if (enabled) {
             announcementText.textContent = msg || 'An important announcement is currently active.';

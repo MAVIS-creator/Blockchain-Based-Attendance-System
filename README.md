@@ -148,6 +148,13 @@ MAX_CHECKINS_PER_DAY=1
 
 See [.env.example](.env.example) for all available options.
 
+### Hybrid File + Supabase (Optional)
+
+If you want cloud-backed dual-write while keeping local file reliability, follow:
+
+- [`supabase/schema.sql`](supabase/schema.sql) to create required tables
+- [`supabase/HYBRID_SETUP.md`](supabase/HYBRID_SETUP.md) for rollout steps
+
 ---
 
 ## ⚙️ Running Locally
