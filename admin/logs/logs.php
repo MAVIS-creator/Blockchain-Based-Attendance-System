@@ -1,5 +1,6 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
+require_once dirname(__DIR__) . '/includes/hybrid_admin_read.php';
 
 $logDir = __DIR__;
 $courseFile = dirname(__DIR__) . "/courses/course.json";
@@ -34,7 +35,13 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
 $entries = [];
 $logFile = $logDir . "/{$selectedDate}.log";
 
-if (file_exists($logFile)) {
+$hybridSource = 'file';
+$hybridEntries = hybrid_fetch_attendance_entries($selectedDate, $selectedCourse, $searchName, $filterType, $hybridSource);
+if (is_array($hybridEntries)) {
+  $entries = $hybridEntries;
+}
+
+if (empty($entries) && file_exists($logFile)) {
   $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
   foreach ($lines as $line) {
     $parts = array_map('trim', explode('|', $line));
@@ -124,7 +131,7 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
     <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">
       <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">receipt_long</span>Attendance Logs
     </h2>
-    <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Review, filter, and export student attendance records.</p>
+    <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Review, filter, and export student attendance records. Source: <strong><?= htmlspecialchars($hybridSource) ?></strong></p>
   </div>
   <div style="display:flex;gap:8px;">
     <a href="../admin/logs/export.php?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>" class="st-btn st-btn-success st-btn-sm">

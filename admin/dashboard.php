@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/hybrid_admin_read.php';
 $logDir = __DIR__ . '/logs';
 $failedDir = $logDir;
 
@@ -54,7 +55,11 @@ foreach (glob($failedDir . '/*_failed_attempts.log') as $file) {
 }
 
 $supportFile = __DIR__ . '/support_tickets.json';
-$supportTickets = file_exists($supportFile) ? json_decode(file_get_contents($supportFile), true) : [];
+$supportSource = 'file';
+$supportTickets = hybrid_fetch_support_tickets($supportSource);
+if (!is_array($supportTickets)) {
+  $supportTickets = file_exists($supportFile) ? json_decode(file_get_contents($supportFile), true) : [];
+}
 $newSupportCount = 0;
 if (is_array($supportTickets)) {
     foreach ($supportTickets as $ticket) {

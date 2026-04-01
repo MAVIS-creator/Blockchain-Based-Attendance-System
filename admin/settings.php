@@ -101,8 +101,53 @@ function load_env_array($path)
   }
   return $env;
 }
+
+function load_env_lines($path)
+{
+  if (!file_exists($path)) return [];
+  return file($path, FILE_IGNORE_NEW_LINES);
+}
+
+function update_env_values($path, $updates)
+{
+  $lines = load_env_lines($path);
+  $seen = [];
+
+  foreach ($lines as $i => $line) {
+    $trim = trim($line);
+    if ($trim === '' || strpos($trim, '#') === 0 || strpos($trim, '=') === false) continue;
+
+    list($k,) = explode('=', $line, 2);
+    $key = trim($k);
+    if (array_key_exists($key, $updates)) {
+      $val = str_replace(["\r", "\n"], '', (string)$updates[$key]);
+      $lines[$i] = $key . '=' . $val;
+      $seen[$key] = true;
+    }
+  }
+
+  foreach ($updates as $k => $v) {
+    if (!isset($seen[$k])) {
+      $val = str_replace(["\r", "\n"], '', (string)$v);
+      $lines[] = $k . '=' . $val;
+    }
+  }
+
+  $payload = implode("\n", $lines);
+  if ($payload !== '' && substr($payload, -1) !== "\n") $payload .= "\n";
+  return file_put_contents($path, $payload, LOCK_EX) !== false;
+}
+
+function mask_secret_value($value)
+{
+  $value = (string)$value;
+  $len = strlen($value);
+  if ($len <= 6) return str_repeat('*', $len);
+  return substr($value, 0, 3) . str_repeat('*', max(4, $len - 6)) . substr($value, -3);
+}
 // Resolve env once for this page
-$ENV = load_env_array(__DIR__ . '/../.env');
+$envPath = __DIR__ . '/../.env';
+$ENV = load_env_array($envPath);
 
 // default settings
 if (!file_exists($settingsFile)) {
@@ -344,6 +389,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $message = 'Settings saved.';
     }
   }
+
+  // Save environment key/value flow
+  if (isset($_POST['save_env_settings'])) {
+    if (!$reauthOk) {
+      $errors[] = 'Re-authentication required to rotate environment keys. Please enter your password.';
+    } else {
+      $hybridMode = trim($_POST['env_hybrid_mode'] ?? ($ENV['HYBRID_MODE'] ?? 'off'));
+      if (!in_array($hybridMode, ['off', 'dual_write'], true)) {
+        $hybridMode = 'off';
+      }
+
+      $hybridAdminRead = isset($_POST['env_hybrid_admin_read']) && $_POST['env_hybrid_admin_read'] === '1' ? 'true' : 'false';
+
+      $updates = [
+        'SUPABASE_URL' => trim($_POST['env_supabase_url'] ?? ($ENV['SUPABASE_URL'] ?? '')),
+        'SUPABASE_SERVICE_ROLE_KEY' => trim($_POST['env_supabase_service_role_key'] ?? ($ENV['SUPABASE_SERVICE_ROLE_KEY'] ?? '')),
+        'HYBRID_MODE' => $hybridMode,
+        'HYBRID_ADMIN_READ' => $hybridAdminRead,
+        'STORAGE_PATH' => trim($_POST['env_storage_path'] ?? ($ENV['STORAGE_PATH'] ?? '')),
+        'POLYGON_PRIVATE_KEY' => trim($_POST['env_polygon_private_key'] ?? ($ENV['POLYGON_PRIVATE_KEY'] ?? '')),
+        'SMTP_USER' => trim($_POST['env_smtp_user'] ?? ($ENV['SMTP_USER'] ?? '')),
+        'SMTP_PASS' => trim($_POST['env_smtp_pass'] ?? ($ENV['SMTP_PASS'] ?? '')),
+      ];
+
+      if ($updates['SUPABASE_URL'] !== '' && !preg_match('#^https?://#i', $updates['SUPABASE_URL'])) {
+        $errors[] = 'SUPABASE_URL must start with http:// or https://';
+      }
+
+      if (empty($errors)) {
+        $saved = update_env_values($envPath, $updates);
+        if ($saved) {
+          $maskedAudit = [];
+          foreach ($updates as $k => $v) {
+            $oldV = $ENV[$k] ?? '';
+            if ($oldV !== $v) {
+              $isSensitive = in_array($k, ['SUPABASE_SERVICE_ROLE_KEY', 'POLYGON_PRIVATE_KEY', 'SMTP_PASS'], true);
+              $maskedAudit[$k] = [
+                'old' => $isSensitive ? mask_secret_value($oldV) : $oldV,
+                'new' => $isSensitive ? mask_secret_value($v) : $v,
+              ];
+            }
+          }
+          audit_settings_change($currentUser, ['env_rotation' => $maskedAudit]);
+          $ENV = load_env_array($envPath);
+          $message = 'Environment settings updated successfully.';
+        } else {
+          $errors[] = 'Unable to write .env file.';
+        }
+      }
+    }
+  }
 }
 
 ?>
@@ -400,6 +496,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-templates')">Templates</button>
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-advanced')">Advanced &amp; Security</button>
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-email')">Email &amp; Auto-send</button>
+    <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-envkeys')">Env &amp; Key Rotation</button>
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-overview')">System Overview</button>
   </div>
 
@@ -568,6 +665,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="flex gap-4">
           <button class="flex-1 bg-gradient-to-br from-primary to-primary-container text-white font-semibold py-4 rounded-xl" type="submit" name="save_settings">Save Configuration</button>
         </div>
+      </div>
+    </form>
+  </div>
+
+  <div id="tab-envkeys" class="st-tab-content hidden">
+    <form method="POST" class="space-y-6">
+      <?php csrf_field(); ?>
+
+      <section class="rounded-2xl p-6 md:p-8 border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 shadow-sm">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h2 class="text-xl font-extrabold tracking-tight text-indigo-900">Environment &amp; Key Rotation</h2>
+            <p class="text-sm text-indigo-700 mt-1">Rotate critical <code>.env</code> values safely from one panel. Changes apply on next request lifecycle.</p>
+          </div>
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
+            <span class="material-symbols-outlined" style="font-size:16px;">shield_lock</span>
+            Superadmin only
+          </span>
+        </div>
+      </section>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <section class="lg:col-span-7 bg-white rounded-xl border border-outline-variant/30 p-6 shadow-sm space-y-5">
+          <h3 class="text-base font-bold text-on-surface">Hybrid / Storage</h3>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SUPABASE_URL</label>
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_supabase_url" value="<?= htmlspecialchars($ENV['SUPABASE_URL'] ?? '') ?>" placeholder="https://your-project.supabase.co">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SUPABASE_SERVICE_ROLE_KEY</label>
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="password" name="env_supabase_service_role_key" value="<?= htmlspecialchars($ENV['SUPABASE_SERVICE_ROLE_KEY'] ?? '') ?>" placeholder="service role key">
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">HYBRID_MODE</label>
+              <select class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" name="env_hybrid_mode">
+                <option value="off" <?= (($ENV['HYBRID_MODE'] ?? 'off') === 'off') ? 'selected' : '' ?>>off</option>
+                <option value="dual_write" <?= (($ENV['HYBRID_MODE'] ?? '') === 'dual_write') ? 'selected' : '' ?>>dual_write</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <label class="flex items-center gap-3 rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 w-full">
+                <input class="w-5 h-5" type="checkbox" name="env_hybrid_admin_read" value="1" <?= (strtolower($ENV['HYBRID_ADMIN_READ'] ?? 'true') === 'true') ? 'checked' : '' ?>>
+                <span class="text-sm font-medium">HYBRID_ADMIN_READ</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">STORAGE_PATH</label>
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_storage_path" value="<?= htmlspecialchars($ENV['STORAGE_PATH'] ?? '') ?>" placeholder="/home/data">
+          </div>
+        </section>
+
+        <section class="lg:col-span-5 bg-white rounded-xl border border-outline-variant/30 p-6 shadow-sm space-y-5">
+          <h3 class="text-base font-bold text-on-surface">Secrets Rotation</h3>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">POLYGON_PRIVATE_KEY</label>
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="password" name="env_polygon_private_key" value="<?= htmlspecialchars($ENV['POLYGON_PRIVATE_KEY'] ?? '') ?>">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SMTP_USER</label>
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_smtp_user" value="<?= htmlspecialchars($ENV['SMTP_USER'] ?? '') ?>">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SMTP_PASS</label>
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="password" name="env_smtp_pass" value="<?= htmlspecialchars($ENV['SMTP_PASS'] ?? '') ?>">
+          </div>
+
+          <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+            <strong>Security note:</strong> Use this for key rotation/revocation workflows. Audit logs mask sensitive values.
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Confirm Password</label>
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="password" name="reauth_password" placeholder="Required for env changes">
+          </div>
+
+          <button class="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white font-bold py-3 rounded-lg" type="submit" name="save_env_settings">
+            Rotate &amp; Save Environment
+          </button>
+        </section>
       </div>
     </form>
   </div>

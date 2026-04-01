@@ -77,6 +77,14 @@ if (!function_exists('hybrid_outbox_append')) {
 if (!function_exists('hybrid_supabase_insert')) {
   function hybrid_supabase_insert($table, array $payload, &$err = null)
   {
+    $resp = null;
+    return hybrid_supabase_request('POST', $table, [], $payload, $resp, $err, ['Prefer: return=minimal']);
+  }
+}
+
+if (!function_exists('hybrid_supabase_request')) {
+  function hybrid_supabase_request($method, $table, array $query = [], $body = null, &$respBody = null, &$err = null, array $extraHeaders = [])
+  {
     $url = rtrim((string)hybrid_env('SUPABASE_URL', ''), '/');
     $key = (string)hybrid_env('SUPABASE_SERVICE_ROLE_KEY', '');
     if ($url === '' || $key === '') {
@@ -85,26 +93,37 @@ if (!function_exists('hybrid_supabase_insert')) {
     }
 
     $endpoint = $url . '/rest/v1/' . rawurlencode($table);
+    if (!empty($query)) {
+      $endpoint .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+    }
+
     $ch = curl_init($endpoint);
     if ($ch === false) {
       $err = 'curl_init_failed';
       return false;
     }
 
-    $body = json_encode($payload, JSON_UNESCAPED_SLASHES);
-    curl_setopt_array($ch, [
-      CURLOPT_POST => true,
+    $headers = [
+      'apikey: ' . $key,
+      'Authorization: Bearer ' . $key,
+      'Content-Type: application/json',
+    ];
+    foreach ($extraHeaders as $h) $headers[] = $h;
+
+    $method = strtoupper((string)$method);
+    $opts = [
+      CURLOPT_CUSTOMREQUEST => $method,
       CURLOPT_RETURNTRANSFER => true,
-      CURLOPT_TIMEOUT => 4,
-      CURLOPT_CONNECTTIMEOUT => 2,
-      CURLOPT_HTTPHEADER => [
-        'apikey: ' . $key,
-        'Authorization: Bearer ' . $key,
-        'Content-Type: application/json',
-        'Prefer: return=minimal'
-      ],
-      CURLOPT_POSTFIELDS => $body,
-    ]);
+      CURLOPT_TIMEOUT => 8,
+      CURLOPT_CONNECTTIMEOUT => 3,
+      CURLOPT_HTTPHEADER => $headers,
+    ];
+
+    if ($body !== null) {
+      $opts[CURLOPT_POSTFIELDS] = json_encode($body, JSON_UNESCAPED_SLASHES);
+    }
+
+    curl_setopt_array($ch, $opts);
 
     $resp = curl_exec($ch);
     $http = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -116,11 +135,38 @@ if (!function_exists('hybrid_supabase_insert')) {
       return false;
     }
     if ($http < 200 || $http >= 300) {
-      $err = 'http_' . $http . ':' . substr((string)$resp, 0, 300);
+      $err = 'http_' . $http . ':' . substr((string)$resp, 0, 400);
       return false;
     }
 
+    $respBody = $resp;
     return true;
+  }
+}
+
+if (!function_exists('hybrid_supabase_select')) {
+  function hybrid_supabase_select($table, array $query = [], &$rows = null, &$err = null)
+  {
+    $query = array_merge(['select' => '*'], $query);
+    $resp = null;
+    $ok = hybrid_supabase_request('GET', $table, $query, null, $resp, $err);
+    if (!$ok) return false;
+
+    $decoded = json_decode((string)$resp, true);
+    if (!is_array($decoded)) {
+      $err = 'invalid_json_response';
+      return false;
+    }
+    $rows = $decoded;
+    return true;
+  }
+}
+
+if (!function_exists('hybrid_supabase_update')) {
+  function hybrid_supabase_update($table, array $filters, array $payload, &$err = null)
+  {
+    $resp = null;
+    return hybrid_supabase_request('PATCH', $table, $filters, $payload, $resp, $err, ['Prefer: return=minimal']);
   }
 }
 
@@ -142,5 +188,59 @@ if (!function_exists('hybrid_dual_write')) {
     ]);
 
     return false;
+  }
+}
+
+if (!function_exists('hybrid_replay_outbox')) {
+  function hybrid_replay_outbox($max = 200)
+  {
+    $base = hybrid_storage_path();
+    $outbox = $base . '/hybrid_outbox.jsonl';
+    if (!file_exists($outbox)) {
+      return ['ok' => true, 'processed' => 0, 'replayed' => 0, 'remaining' => 0, 'message' => 'outbox_not_found'];
+    }
+
+    $lines = file($outbox, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($lines)) $lines = [];
+
+    $processed = 0;
+    $replayed = 0;
+    $remainingLines = [];
+
+    foreach ($lines as $line) {
+      $item = json_decode($line, true);
+      if (!is_array($item) || empty($item['table']) || !isset($item['payload']) || !is_array($item['payload'])) {
+        continue;
+      }
+
+      if ($processed >= $max) {
+        $remainingLines[] = $line;
+        continue;
+      }
+
+      $processed++;
+      $err = null;
+      $ok = hybrid_supabase_insert((string)$item['table'], (array)$item['payload'], $err);
+      if ($ok) {
+        $replayed++;
+      } else {
+        $item['replay_error'] = (string)$err;
+        $item['replay_attempt_at'] = date('c');
+        $remainingLines[] = json_encode($item, JSON_UNESCAPED_SLASHES);
+      }
+    }
+
+    $payload = '';
+    if (!empty($remainingLines)) {
+      $payload = implode(PHP_EOL, $remainingLines) . PHP_EOL;
+    }
+    @file_put_contents($outbox, $payload, LOCK_EX);
+
+    return [
+      'ok' => true,
+      'processed' => $processed,
+      'replayed' => $replayed,
+      'remaining' => count($remainingLines),
+    ];
   }
 }

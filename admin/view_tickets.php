@@ -6,12 +6,17 @@ if (empty($_SESSION['admin_logged_in'])) {
 }
 
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/hybrid_admin_read.php';
 $pageCsrfToken = csrf_token();
 
 $ticketsFile = __DIR__ . '/support_tickets.json';
 $tickets = [];
+$ticketsSource = 'file';
 
-if (file_exists($ticketsFile)) {
+$hybridTickets = hybrid_fetch_support_tickets($ticketsSource);
+if (is_array($hybridTickets)) {
+  $tickets = $hybridTickets;
+} else if (file_exists($ticketsFile)) {
   $tickets = json_decode(file_get_contents($ticketsFile), true);
 }
 
@@ -71,6 +76,7 @@ if (isset($_GET['resolve'])) {
     exit;
   }
   $resolveTime = $_GET['resolve'];
+  hybrid_mark_support_ticket_resolved($resolveTime);
   resolve_ticket_atomic($ticketsFile, $resolveTime);
   header("Location: index.php?page=support_tickets");
   exit;
@@ -109,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
   <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">
     <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">confirmation_number</span>Support Tickets
   </h2>
-  <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Review and resolve student support requests.</p>
+  <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Review and resolve student support requests. Source: <strong><?= htmlspecialchars($ticketsSource) ?></strong></p>
 </div>
 
 <div class="tickets-wrapper" style="grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));">
