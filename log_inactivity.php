@@ -1,5 +1,7 @@
 <?php
 session_start();
+require_once __DIR__ . '/storage_helpers.php';
+app_storage_init();
 
 function load_admin_settings_for_retention()
 {
@@ -21,10 +23,10 @@ function load_admin_settings_for_retention()
 	return [];
 }
 
-// Log file or DB logic — here we'll use a simple file for example
-$logDir = __DIR__ . '/admin/logs';
+// Log file or DB logic — persist mutable data under STORAGE_PATH
+$logDir = app_storage_file('logs');
 if (!is_dir($logDir)) @mkdir($logDir, 0755, true);
-$inactivityLog = __DIR__ . '/logs/inactivity_log.txt';
+$inactivityLog = app_storage_file('logs/inactivity_log.txt');
 $blockedLog = $logDir . '/blocked_tokens.log';
 
 // Get reason (just in case you have multiple triggers)
@@ -60,7 +62,7 @@ if ($token !== '') {
 	file_put_contents($blockedLog, $line, FILE_APPEND | LOCK_EX);
 	// Rotate blocked_tokens.log if it grows too large (e.g. 5MB) and keep backups for retention period
 	$maxSize = 5 * 1024 * 1024; // 5 MB
-	$backupDir = __DIR__ . '/admin/backups';
+	$backupDir = app_storage_file('backups');
 	if (!is_dir($backupDir)) @mkdir($backupDir, 0755, true);
 	if (file_exists($blockedLog) && filesize($blockedLog) > $maxSize) {
 		$ts = date('Ymd_His');

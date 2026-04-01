@@ -2,7 +2,15 @@
 session_start();
 date_default_timezone_set('Africa/Lagos');
 require_once __DIR__ . '/hybrid_dual_write.php';
-$ticketsFile = __DIR__ . '/admin/support_tickets.json';
+require_once __DIR__ . '/storage_helpers.php';
+app_storage_init();
+
+$ticketsFile = app_storage_file('support_tickets.json');
+$legacyTicketsFile = __DIR__ . '/admin/support_tickets.json';
+
+if (!file_exists($ticketsFile) && file_exists($legacyTicketsFile)) {
+  @copy($legacyTicketsFile, $ticketsFile);
+}
 
 if (!file_exists($ticketsFile)) {
   file_put_contents($ticketsFile, json_encode([]), LOCK_EX);

@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '/hybrid_dual_write.php';
+require_once __DIR__ . '/storage_helpers.php';
+app_storage_init();
 
 // ✅ Set timezone to Nigeria
 date_default_timezone_set('Africa/Lagos');
@@ -207,7 +209,11 @@ function link_fingerprint_if_missing_atomic($file, $matric, $hashedFingerprint)
 // -----------------------
 // Revocation enforcement (token / IP / MAC)
 // -----------------------
-$revokedFile = __DIR__ . '/admin/revoked.json';
+$revokedFile = app_storage_file('revoked.json');
+if (!file_exists($revokedFile)) {
+    $legacyRevoked = __DIR__ . '/admin/revoked.json';
+    if (file_exists($legacyRevoked)) $revokedFile = $legacyRevoked;
+}
 if (file_exists($revokedFile)) {
     $revokedData = json_decode(file_get_contents($revokedFile), true);
     if (is_array($revokedData)) {
@@ -308,7 +314,7 @@ else $deviceId = hash('sha256', $userAgent);
 $now = time();
 if (!empty($settings['device_cooldown_seconds']) && intval($settings['device_cooldown_seconds']) > 0) {
     $cool = intval($settings['device_cooldown_seconds']);
-    $cdFile = __DIR__ . '/admin/logs/device_cooldowns_' . $today . '.json';
+    $cdFile = app_storage_file('logs/device_cooldowns_' . $today . '.json');
     $cdData = read_store($cdFile, !empty($settings['encrypt_logs']));
     $key = $fingerprint . '|' . $deviceId;
     $last = isset($cdData[$key]) ? intval($cdData[$key]) : 0;
@@ -325,7 +331,7 @@ if (!empty($settings['device_cooldown_seconds']) && intval($settings['device_coo
 // User-agent lock
 // -----------------------
 if (!empty($settings['user_agent_lock'])) {
-    $uaFile = __DIR__ . '/admin/logs/fp_useragent_' . $today . '.json';
+    $uaFile = app_storage_file('logs/fp_useragent_' . $today . '.json');
     $uaData = read_store($uaFile, !empty($settings['encrypt_logs']));
     $uaHash = hash('sha256', $userAgent);
     if (isset($uaData[$fingerprint]) && $uaData[$fingerprint] !== $uaHash) {
@@ -339,7 +345,7 @@ if (!empty($settings['user_agent_lock'])) {
 // Enforce one device per fingerprint per day
 // -----------------------
 if (!empty($settings['enforce_one_device_per_day'])) {
-    $mapFile = __DIR__ . '/admin/logs/fp_devices_' . $today . '.json';
+    $mapFile = app_storage_file('logs/fp_devices_' . $today . '.json');
     $mapData = read_store($mapFile, !empty($settings['encrypt_logs']));
     $devList = isset($mapData[$fingerprint]) ? (array)$mapData[$fingerprint] : [];
     if (count($devList) > 0 && !in_array($deviceId, $devList)) {
@@ -351,7 +357,7 @@ if (!empty($settings['enforce_one_device_per_day'])) {
 }
 
 // Load/update fingerprints atomically (toggleable from settings)
-$fingerprintFile = __DIR__ . '/admin/fingerprints.json';
+$fingerprintFile = app_storage_file('fingerprints.json');
 $hashedFingerprint = hash('sha256', $fingerprint);
 if (!empty($settings['require_fingerprint_match'])) {
     // If fingerprint is already linked to this matric, check; otherwise link atomically
@@ -371,7 +377,7 @@ if (!empty($settings['require_fingerprint_match'])) {
 }
 
 // ✅ Prepare log file paths
-$logDir = __DIR__ . "/admin/logs";
+$logDir = app_storage_file('logs');
 if (!is_dir($logDir)) {
     mkdir($logDir, 0755, true);
 }
@@ -464,7 +470,7 @@ $logEntry = "$name | $matric | $action | $fingerprint | $ip | $mac | " . date("Y
 file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
 
 // ✅ Save as blockchain block (JSON)
-$chainFile = __DIR__ . '/secure_logs/attendance_chain.json';
+$chainFile = app_storage_file('secure_logs/attendance_chain.json');
 $chain = file_exists($chainFile) ? json_decode(file_get_contents($chainFile), true) : [];
 if (!is_array($chain)) {
     $chain = [];
