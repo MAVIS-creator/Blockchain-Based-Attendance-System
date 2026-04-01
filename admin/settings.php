@@ -5,9 +5,12 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
   exit;
 }
 
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+
 $settingsFile = __DIR__ . '/settings.json';
 $keyFile = __DIR__ . '/.settings_key';
-$backupDir = __DIR__ . '/backups';
+$backupDir = app_storage_file('backups');
 if (!is_dir($backupDir)) @mkdir($backupDir, 0700, true);
 
 // helper: generate/return encryption key
@@ -58,7 +61,7 @@ function save_settings($settingsFile, $keyFile, $settings, $encrypt = false)
 {
   $payload = json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
   // create backup
-  $backupDir = dirname($settingsFile) . '/backups';
+  $backupDir = app_storage_file('backups');
   if (!is_dir($backupDir)) @mkdir($backupDir, 0700, true);
   $timestamp = date('Y-m-d_His');
   @file_put_contents($backupDir . "/settings_{$timestamp}.json", $payload);
@@ -548,7 +551,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       // retention cleanup
       if ($settings['auto_backup']) {
-        $backups = glob(__DIR__ . '/backups/settings_*.json');
+        $backups = glob(app_storage_file('backups') . '/settings_*.json');
         if (count($backups) > ($settings['backup_retention'] ?? 10)) {
           usort($backups, function ($a, $b) {
             return filemtime($a) - filemtime($b);
@@ -984,9 +987,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php
     $acct = json_decode(file_get_contents(__DIR__ . '/accounts.json'), true) ?: [];
     $adminCount = count($acct);
-    $status = @json_decode(file_get_contents(__DIR__ . '/../status.json'), true) ?: [];
+    $statusFile = app_storage_migrate_file('status.json', __DIR__ . '/../status.json');
+    $status = @json_decode(file_get_contents($statusFile), true) ?: [];
     $lastAudit = file_exists(__DIR__ . '/settings_audit.log') ? array_slice(array_map('trim', file(__DIR__ . '/settings_audit.log')), -10) : [];
-    $backups = glob(__DIR__ . '/backups/settings_*.json');
+    $backups = glob(app_storage_file('backups') . '/settings_*.json');
     usort($backups, function ($a, $b) {
       return filemtime($b) - filemtime($a);
     });

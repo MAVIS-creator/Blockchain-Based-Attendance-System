@@ -92,7 +92,7 @@ if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; 
         btn.disabled=false;
         btn.innerHTML=ogHtml;
         if (j && j.ok && j.file) {
-          document.getElementById('backupResult').innerHTML = '<span style="color:var(--success);font-weight:600;">Backup created:</span> <a href="backups/'+encodeURIComponent(j.file)+'" target="_blank" style="color:var(--primary);text-decoration:none;">'+j.file+'</a>';
+          document.getElementById('backupResult').innerHTML = '<span style="color:var(--success);font-weight:600;">Backup created:</span> <a href="download_backup.php?file='+encodeURIComponent(j.file)+'" target="_blank" style="color:var(--primary);text-decoration:none;">'+j.file+'</a>';
         } else {
           document.getElementById('backupResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Backup failed:</span> '+JSON.stringify(j);
         }

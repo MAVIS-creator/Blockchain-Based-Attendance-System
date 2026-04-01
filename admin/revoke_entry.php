@@ -6,9 +6,19 @@ $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
 if (function_exists('csrf_check_request') && !csrf_check_request()) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'csrf_failed']); exit; }
 
-$file = __DIR__ . '/revoked.json';
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+$file = app_storage_migrate_file('revoked.json', __DIR__ . '/revoked.json');
 $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
 if (!is_array($data)) $data = ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
+
+function mask_audit_value($value)
+{
+	$value = (string)$value;
+	$len = strlen($value);
+	if ($len <= 6) return str_repeat('*', $len);
+	return substr($value, 0, 3) . str_repeat('*', max(4, $len - 6)) . substr($value, -3);
+}
 
 $token = trim($_POST['token'] ?? '');
 $ip = trim($_POST['ip'] ?? '');
@@ -41,14 +51,13 @@ if ($mac !== '') {
 file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
 
 // Audit log
-$auditDir = __DIR__ . '/logs';
-if (!is_dir($auditDir)) @mkdir($auditDir, 0755, true);
-$auditFile = $auditDir . '/audit.log';
+$auditFile = app_storage_file('logs/audit.log');
 $remoteIp = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
 $timeStr = date('Y-m-d H:i:s');
 foreach ($added as $type) {
 	$target = ($type === 'token') ? $token : (($type === 'ip') ? $ip : $mac);
-	$line = "$timeStr | revoke | $adminUser | $type | $target | expiry:" . date('Y-m-d',$expiry) . " | from:$remoteIp" . PHP_EOL;
+	$maskedTarget = mask_audit_value($target);
+	$line = "$timeStr | revoke | $adminUser | $type | $maskedTarget | expiry:" . date('Y-m-d',$expiry) . " | from:$remoteIp" . PHP_EOL;
 	file_put_contents($auditFile, $line, FILE_APPEND | LOCK_EX);
 }
 

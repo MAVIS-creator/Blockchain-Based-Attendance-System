@@ -9,6 +9,8 @@
  * - Queue failed DB writes to outbox for later replay.
  */
 
+require_once __DIR__ . '/storage_helpers.php';
+
 if (!function_exists('hybrid_env')) {
   function hybrid_env($key, $default = null)
   {
@@ -49,7 +51,7 @@ if (!function_exists('hybrid_storage_path')) {
     if ($configured !== '') {
       return rtrim($configured, '/\\');
     }
-    return __DIR__ . '/admin/logs';
+    return app_storage_path();
   }
 }
 
@@ -66,9 +68,10 @@ if (!function_exists('hybrid_ensure_dir')) {
 if (!function_exists('hybrid_outbox_append')) {
   function hybrid_outbox_append(array $record)
   {
+    app_storage_init();
     $base = hybrid_storage_path();
     if (!hybrid_ensure_dir($base)) return false;
-    $outbox = $base . '/hybrid_outbox.jsonl';
+    $outbox = app_storage_file('logs/hybrid_outbox.jsonl');
     $line = json_encode($record, JSON_UNESCAPED_SLASHES) . PHP_EOL;
     return @file_put_contents($outbox, $line, FILE_APPEND | LOCK_EX) !== false;
   }
@@ -194,8 +197,9 @@ if (!function_exists('hybrid_dual_write')) {
 if (!function_exists('hybrid_replay_outbox')) {
   function hybrid_replay_outbox($max = 200)
   {
+    app_storage_init();
     $base = hybrid_storage_path();
-    $outbox = $base . '/hybrid_outbox.jsonl';
+    $outbox = app_storage_file('logs/hybrid_outbox.jsonl');
     if (!file_exists($outbox)) {
       return ['ok' => true, 'processed' => 0, 'replayed' => 0, 'remaining' => 0, 'message' => 'outbox_not_found'];
     }

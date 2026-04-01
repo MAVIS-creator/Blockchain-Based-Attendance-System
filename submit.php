@@ -31,7 +31,7 @@ if (strpos($fingerprint, '_') !== false) {
 }
 
 // ✅ Check attendance status
-$statusFile = "status.json";
+$statusFile = app_storage_migrate_file('status.json', __DIR__ . '/status.json');
 if (!file_exists($statusFile)) {
     header('Content-Type: application/json');
     echo json_encode(['ok' => false, 'message' => 'Attendance status file not found.']);

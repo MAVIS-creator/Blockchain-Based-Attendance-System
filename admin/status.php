@@ -8,7 +8,9 @@ if (empty($_SESSION['admin_logged_in'])) {
 require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
 
-$statusFile = __DIR__ . '/../status.json';
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+$statusFile = app_storage_migrate_file('status.json', __DIR__ . '/../status.json');
 // load status
 $status = file_exists($statusFile) ? json_decode(file_get_contents($statusFile), true) : ['checkin' => false, 'checkout' => false, 'end_time' => null];
 if (!isset($status['end_time'])) {
@@ -75,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   if (empty($errorMessage)) {
-    file_put_contents($statusFile, json_encode($status, JSON_PRETTY_PRINT));
+    file_put_contents($statusFile, json_encode($status, JSON_PRETTY_PRINT), LOCK_EX);
     header("Location: index.php?page=status");
     exit;
   }

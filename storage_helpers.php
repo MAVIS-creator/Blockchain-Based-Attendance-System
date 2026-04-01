@@ -54,6 +54,21 @@ if (!function_exists('app_storage_file')) {
   }
 }
 
+if (!function_exists('app_storage_migrate_file')) {
+  function app_storage_migrate_file($relative, $legacyPath)
+  {
+    $target = app_storage_file($relative);
+    if (!file_exists($target) && is_string($legacyPath) && $legacyPath !== '' && file_exists($legacyPath)) {
+      $dir = dirname($target);
+      if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+      }
+      @copy($legacyPath, $target);
+    }
+    return $target;
+  }
+}
+
 if (!function_exists('app_storage_init')) {
   function app_storage_init()
   {

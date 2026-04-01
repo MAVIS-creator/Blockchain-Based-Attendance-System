@@ -6,12 +6,14 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
 header('Connection: keep-alive');
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
 @ini_set('output_buffering', 'off');
 @ini_set('zlib.output_compression', 0);
 set_time_limit(0);
 ob_implicit_flush(true);
 
-$file = __DIR__ . '/revoked.json';
+$file = app_storage_migrate_file('revoked.json', __DIR__ . '/revoked.json');
 $lastMtime = file_exists($file) ? filemtime($file) : 0;
 
 // send an initial comment

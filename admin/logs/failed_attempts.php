@@ -1,7 +1,9 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-$logDir = __DIR__;
+require_once dirname(__DIR__, 2) . '/storage_helpers.php';
+app_storage_init();
+$logDir = app_storage_file('logs');
 $courseFile = dirname(__DIR__) . "/courses/course.json";
 
 // Load courses safely

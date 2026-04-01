@@ -14,6 +14,9 @@ if (function_exists('csrf_check_request') && !csrf_check_request()) {
   exit;
 }
 
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+
 // Accept fingerprint or matric to clear device-blocking state for today
 $fingerprint = trim($_POST['fingerprint'] ?? '');
 $matric = trim($_POST['matric'] ?? '');
@@ -21,7 +24,7 @@ $token = trim($_POST['token'] ?? '');
 $ip = trim($_POST['ip'] ?? '');
 $mac = trim($_POST['mac'] ?? '');
 $today = date('Y-m-d');
-$adminLogs = __DIR__ . '/logs';
+$adminLogs = app_storage_file('logs');
 $responses = ['cleared' => [], 'skipped' => [], 'errors' => []];
 
 if ($fingerprint === '' && $matric === '' && $token === '' && $ip === '' && $mac === '') {
@@ -76,6 +79,14 @@ function write_json($file, $data)
   @file_put_contents($file, 'ENC:' . base64_encode($iv . $ct), LOCK_EX);
 }
 
+function mask_audit_value($value)
+{
+  $value = (string)$value;
+  $len = strlen($value);
+  if ($len <= 6) return str_repeat('*', $len);
+  return substr($value, 0, 3) . str_repeat('*', max(4, $len - 6)) . substr($value, -3);
+}
+
 // Target files for clearing
 $targets = [
   $adminLogs . "/fp_useragent_{$today}.json",
@@ -126,7 +137,7 @@ foreach ($targets as $file) {
   }
   if ($matric !== '') {
     // fingerprints.json maps matric -> hashedFingerprint
-    $fpFile = __DIR__ . '/fingerprints.json';
+    $fpFile = app_storage_migrate_file('fingerprints.json', __DIR__ . '/fingerprints.json');
     if (file_exists($fpFile)) {
       $fps = read_json($fpFile);
       if (isset($fps[$matric])) {
@@ -202,15 +213,15 @@ if (file_exists($cdFile)) {
 }
 
 // Audit: record who cleared and what
-$auditDir = __DIR__ . '/logs';
-if (!is_dir($auditDir)) @mkdir($auditDir, 0755, true);
-$auditFile = $auditDir . '/audit.log';
+$auditFile = app_storage_file('logs/audit.log');
 $adminUser = $_SESSION['admin_user'] ?? 'unknown';
 $remoteIp = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
 if (!empty($responses['cleared'])) {
   $timeStr = date('Y-m-d H:i:s');
   foreach ($responses['cleared'] as $f) {
-    $line = "$timeStr | clear_device | $adminUser | file:$f | key:" . ($fingerprint ?: ($matric ?: ($token ?: ($ip ?: $mac)))) . " | from:$remoteIp" . PHP_EOL;
+    $rawKey = ($fingerprint ?: ($matric ?: ($token ?: ($ip ?: $mac))));
+    $maskedKey = mask_audit_value($rawKey);
+    $line = "$timeStr | clear_device | $adminUser | file:$f | key:" . $maskedKey . " | from:$remoteIp" . PHP_EOL;
     file_put_contents($auditFile, $line, FILE_APPEND | LOCK_EX);
   }
 }

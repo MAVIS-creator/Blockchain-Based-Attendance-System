@@ -7,10 +7,13 @@ if (empty($_SESSION['admin_logged_in'])) {
 require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
 
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+
 // send_logs_email.php - redesigned to show selectable log files grouped by date+course
 
-$logsDir = __DIR__ . '/logs';
-$exportDir = __DIR__ . '/backups';
+$logsDir = app_storage_file('logs');
+$exportDir = app_storage_file('backups');
 if (!is_dir($exportDir)) @mkdir($exportDir, 0755, true);
 
 // Load .env helper
@@ -262,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])) {
     </div>
     <?php if ($exportPath && file_exists($exportPath)): ?>
       <div style="margin-bottom:24px;">
-        <a href="backups/<?php echo basename($exportPath); ?>" download class="st-btn st-btn-primary" style="text-decoration:none;display:inline-flex;">
+        <a href="download_backup.php?file=<?php echo urlencode(basename($exportPath)); ?>" download class="st-btn st-btn-primary" style="text-decoration:none;display:inline-flex;">
           <span class="material-symbols-outlined">download</span> Download Export
         </a>
       </div>

@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/includes/hybrid_admin_read.php';
-$logDir = __DIR__ . '/logs';
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+$logDir = app_storage_file('logs');
 $failedDir = $logDir;
 
 $dailyCounts = [];
@@ -54,7 +56,7 @@ foreach (glob($failedDir . '/*_failed_attempts.log') as $file) {
   }
 }
 
-$supportFile = __DIR__ . '/support_tickets.json';
+$supportFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/support_tickets.json');
 $supportSource = 'file';
 $supportTickets = hybrid_fetch_support_tickets($supportSource);
 if (!is_array($supportTickets)) {

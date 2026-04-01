@@ -9,10 +9,12 @@ if (empty($_SESSION['admin_logged_in'])) {
 
 require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
 
 date_default_timezone_set('Africa/Lagos');
 
-$logDir = __DIR__ . '/logs';
+$logDir = app_storage_file('logs');
 $activeCourseFile = __DIR__ . '/courses/active_course.json';
 $today = date('Y-m-d');
 $logFile = "{$logDir}/{$today}.log";
@@ -144,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // device cooldown
                 if (!empty($settings['device_cooldown_seconds'])) {
-                    $cdFile = __DIR__ . '/logs/device_cooldowns_' . $today . '.json';
+                    $cdFile = app_storage_file('logs/device_cooldowns_' . $today . '.json');
                     $cdData = [];
                     if (file_exists($cdFile)) {
                         $raw = file_get_contents($cdFile);
@@ -181,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 // ua lock
                 if (empty($errorMessage) && !empty($settings['user_agent_lock'])) {
-                    $uaFile = __DIR__ . '/logs/fp_useragent_' . $today . '.json';
+                    $uaFile = app_storage_file('logs/fp_useragent_' . $today . '.json');
                     $uaData = [];
                     if (file_exists($uaFile)) {
                         $raw = file_get_contents($uaFile);
@@ -216,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 // enforce one device per fingerprint
                 if (empty($errorMessage) && !empty($settings['enforce_one_device_per_day'])) {
-                    $mapFile = __DIR__ . '/logs/fp_devices_' . $today . '.json';
+                    $mapFile = app_storage_file('logs/fp_devices_' . $today . '.json');
                     $mapData = [];
                     if (file_exists($mapFile)) {
                         $raw = file_get_contents($mapFile);

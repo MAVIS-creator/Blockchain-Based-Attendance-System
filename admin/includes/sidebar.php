@@ -1,6 +1,8 @@
 <?php
 $ticketCount = 0;
-$ticketsFile = __DIR__ . '/../support_tickets.json';
+require_once __DIR__ . '/../../storage_helpers.php';
+app_storage_init();
+$ticketsFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/../support_tickets.json');
 if (file_exists($ticketsFile)) {
   $tickets = json_decode(file_get_contents($ticketsFile), true);
   if (is_array($tickets)) {

@@ -6,6 +6,9 @@ if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; 
 $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
 
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+
 // settings for retention (default fallback)
 $settingsFileAdmin = __DIR__ . '/settings.json';
 $defaults = ['audit_retention_days' => 90];
@@ -15,7 +18,7 @@ if (file_exists($settingsFileAdmin)) {
     if (is_array($j)) $settings = array_merge($settings, $j);
 }
 
-$auditFile = __DIR__ . '/logs/audit.log';
+$auditFile = app_storage_migrate_file('logs/audit.log', __DIR__ . '/logs/audit.log');
 
 // Purge old entries when posted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

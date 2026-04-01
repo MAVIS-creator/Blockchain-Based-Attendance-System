@@ -5,16 +5,18 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     echo json_encode(['error' => 'unauthenticated']);
     exit;
 }
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
 $base = __DIR__ . '/';
 $accounts = $base . 'accounts.json';
 $settings = $base . 'settings.json';
-$chain = __DIR__ . '/../secure_logs/attendance_chain.json';
+$chain = app_storage_migrate_file('secure_logs/attendance_chain.json', __DIR__ . '/../secure_logs/attendance_chain.json');
 // additional watched files/pages/data
-$ticketsFile = $base . 'support_tickets.json';
-$fingerprints = $base . 'fingerprints.json';
+$ticketsFile = app_storage_migrate_file('support_tickets.json', $base . 'support_tickets.json');
+$fingerprints = app_storage_migrate_file('fingerprints.json', $base . 'fingerprints.json');
 $courses = $base . 'courses/course.json';
 $activeCourse = $base . 'courses/active_course.json';
-$statusFile = $base . 'status.json';
+$statusFile = app_storage_migrate_file('status.json', $base . 'status.json');
 $viewTicketsPage = $base . 'view_tickets.php';
 $unlinkPage = $base . 'unlink_fingerprint.php';
 $addCoursePage = $base . 'courses/add.php';

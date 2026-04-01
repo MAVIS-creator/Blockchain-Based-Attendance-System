@@ -15,7 +15,7 @@ In local `.env` (never commit this file):
 - `HYBRID_ADMIN_READ=true`
 - `SUPABASE_URL=https://<your-project-ref>.supabase.co`
 - `SUPABASE_SERVICE_ROLE_KEY=<service-role-key>`
-- `STORAGE_PATH=` (optional, defaults to `admin/logs`)
+- `STORAGE_PATH=` (optional, defaults to `./storage`)
 
 ## 3) Verify dual-write
 
@@ -28,7 +28,7 @@ In local `.env` (never commit this file):
 ## 4) Failure behavior (important)
 
 - If Supabase is down, app **still succeeds** using local files.
-- Failed DB writes are queued to `admin/logs/hybrid_outbox.jsonl`.
+- Failed DB writes are queued to `STORAGE_PATH/logs/hybrid_outbox.jsonl`.
 
 ## 5) Replay failed writes
 

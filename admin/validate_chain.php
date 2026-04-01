@@ -1,5 +1,7 @@
 <?php
-$chainFile = dirname(__DIR__) . '/secure_logs/attendance_chain.json';
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+$chainFile = app_storage_migrate_file('secure_logs/attendance_chain.json', dirname(__DIR__) . '/secure_logs/attendance_chain.json');
 $chain = [];
 $valid = true;
 $errorMsg = '';

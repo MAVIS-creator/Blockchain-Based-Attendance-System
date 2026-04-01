@@ -1,5 +1,7 @@
 <?php
-$chainFile = __DIR__ . '/secure_logs/attendance_chain.json';
+require_once __DIR__ . '/storage_helpers.php';
+app_storage_init();
+$chainFile = app_storage_migrate_file('secure_logs/attendance_chain.json', __DIR__ . '/secure_logs/attendance_chain.json');
 
 if (!file_exists($chainFile)) {
     die('❌ Chain file not found.');

@@ -1,5 +1,7 @@
 <?php
-$logDir = __DIR__ . "/../logs"; // adjust if needed
+require_once dirname(__DIR__, 2) . '/storage_helpers.php';
+app_storage_init();
+$logDir = app_storage_file('logs'); // adjust if needed
 
 $logDate = $_GET['date'] ?? date('Y-m-d');
 $course = $_GET['course'] ?? 'All';

@@ -11,6 +11,9 @@ $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
 if (function_exists('csrf_check_request') && !csrf_check_request()) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'csrf_failed']); exit; }
 
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+
 $tmp = $_FILES['backup']['tmp_name'];
 $name = basename($_FILES['backup']['name']);
 
@@ -18,9 +21,9 @@ $zip = new ZipArchive();
 if ($zip->open($tmp) !== TRUE) { echo json_encode(['ok'=>false,'message'=>'Invalid zip']); exit; }
 
 $admin = __DIR__;
-$logs = $admin . '/logs';
-$secure = dirname(__DIR__) . '/secure_logs';
-$fingerprints = $admin . '/fingerprints.json';
+$logs = app_storage_file('logs');
+$secure = app_storage_file('secure_logs');
+$fingerprints = app_storage_migrate_file('fingerprints.json', $admin . '/fingerprints.json');
 
 // extract files into a temp dir then move
 $tempDir = sys_get_temp_dir() . '/restore_' . time();

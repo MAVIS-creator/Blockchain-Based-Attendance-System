@@ -7,9 +7,11 @@ if (empty($_SESSION['admin_logged_in'])) {
 
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/hybrid_admin_read.php';
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
 $pageCsrfToken = csrf_token();
 
-$ticketsFile = __DIR__ . '/support_tickets.json';
+$ticketsFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/support_tickets.json');
 $tickets = [];
 $ticketsSource = 'file';
 
@@ -21,7 +23,7 @@ if (is_array($hybridTickets)) {
 }
 
 $today = date('Y-m-d');
-$logFile = __DIR__ . "/logs/{$today}.log";
+$logFile = app_storage_file("logs/{$today}.log");
 $logLines = file_exists($logFile) ? file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
 
 function checkLogMatch($logLines, $needle, $index)
@@ -99,12 +101,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
   $activeCourse = file_exists($activeCourseFile) ? json_decode(file_get_contents($activeCourseFile), true)['course'] ?? 'General' : 'General';
 
   $timestamp = date('Y-m-d H:i:s');
-  $logFile = __DIR__ . "/logs/{$today}.log";
+  $logFile = app_storage_file("logs/{$today}.log");
 
   // Standardized log format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
   $line = "{$name} | {$matric} | {$action} | MANUAL | ::1 | UNKNOWN | {$timestamp} | Web Ticket Panel | {$activeCourse} | {$reason}\n";
 
-  file_put_contents($logFile, $line, FILE_APPEND);
+  file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
   header("Location: index.php?page=support_tickets");
   exit;
 }

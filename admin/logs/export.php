@@ -3,11 +3,13 @@
 header('Content-Type: text/csv');
 header('Content-Disposition: attachment; filename="attendance_export.csv"');
 
+require_once dirname(__DIR__, 2) . '/storage_helpers.php';
+app_storage_init();
 // Paths
-$logDir = __DIR__;
+$logDir = app_storage_file('logs');
 $today = $_GET['logDate'] ?? date('Y-m-d');
 $logFile = $logDir . "/$today.log";
-$chainFile = dirname(__DIR__) . '/secure_logs/attendance_chain.json';
+$chainFile = app_storage_migrate_file('secure_logs/attendance_chain.json', dirname(__DIR__) . '/secure_logs/attendance_chain.json');
 
 // Validate chain
 $chainValid = true;

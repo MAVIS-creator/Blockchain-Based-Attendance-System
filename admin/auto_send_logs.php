@@ -1,6 +1,9 @@
 <?php
 // auto_send_logs.php
 // Helper script to be scheduled (cron / Task Scheduler) to send logs automatically.
+
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 $settingsFile = __DIR__ . '/settings.json';
@@ -35,7 +38,7 @@ $format = $settings['auto_send']['format'] ?? 'csv';
 
 // Build the groups that should exist for today
 // We'll need to scan all courses from logs and select groups for this date
-$logsDir = __DIR__ . '/logs';
+$logsDir = app_storage_file('logs');
 $selectedGroups = [];
 
 if (is_dir($logsDir)){

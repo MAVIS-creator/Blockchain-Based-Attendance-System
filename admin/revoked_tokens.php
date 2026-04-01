@@ -2,7 +2,9 @@
 // Public endpoint clients can poll to get revoked tokens list
 // Lightweight and cacheable
 header('Content-Type: application/json');
-$file = __DIR__ . '/revoked.json';
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+$file = app_storage_migrate_file('revoked.json', __DIR__ . '/revoked.json');
 $data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
 if (!is_array($data)) $data = ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
 

@@ -6,7 +6,9 @@ if (empty($_SESSION['admin_logged_in'])) {
 }
 
 // Gather tokens from blocked_tokens.log (generated when tab-fencing/inactivity fires)
-$blockedFile = __DIR__ . '/logs/blocked_tokens.log';
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+$blockedFile = app_storage_file('logs/blocked_tokens.log');
 $tokens = [];
 if (file_exists($blockedFile)) {
   $lines = file($blockedFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);

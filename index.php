@@ -1,5 +1,8 @@
 <?php
-$status = json_decode(file_get_contents("status.json"), true);
+require_once __DIR__ . '/storage_helpers.php';
+app_storage_init();
+$statusFile = app_storage_migrate_file('status.json', __DIR__ . '/status.json');
+$status = json_decode(file_get_contents($statusFile), true);
 $activeMode = $status["checkin"] ? "checkin" : ($status["checkout"] ? "checkout" : "");
 if (!$activeMode) {
   header('Location: attendance_closed.php');
@@ -689,7 +692,7 @@ if (file_exists($announcementFile)) {
 
     // Status auto-refresh
     function checkStatus() {
-      fetch('status.json')
+      fetch('status_api.php')
         .then(res => res.json())
         .then(data => {
           if (!data.checkin && !data.checkout) {

@@ -2,11 +2,14 @@
 session_start();
 if (empty($_SESSION['admin_logged_in'])) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'Not authorized']); exit; }
 
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+
 $admin = __DIR__;
-$logs = $admin . '/logs';
-$secure = dirname(__DIR__) . '/secure_logs';
-$fingerprints = $admin . '/fingerprints.json';
-$backupsDir = $admin . '/backups';
+$logs = app_storage_file('logs');
+$secure = app_storage_file('secure_logs');
+$fingerprints = app_storage_migrate_file('fingerprints.json', $admin . '/fingerprints.json');
+$backupsDir = app_storage_file('backups');
 if (!is_dir($backupsDir)) @mkdir($backupsDir,0755,true);
 // CSRF protection
 $csrfPath = __DIR__ . '/includes/csrf.php';

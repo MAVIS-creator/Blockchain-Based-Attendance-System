@@ -1,8 +1,10 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once dirname(__DIR__) . '/includes/hybrid_admin_read.php';
+require_once dirname(__DIR__, 2) . '/storage_helpers.php';
+app_storage_init();
 
-$logDir = __DIR__;
+$logDir = app_storage_file('logs');
 $courseFile = dirname(__DIR__) . "/courses/course.json";
 $activeCourseFile = dirname(__DIR__) . "/courses/active_course.json";
 

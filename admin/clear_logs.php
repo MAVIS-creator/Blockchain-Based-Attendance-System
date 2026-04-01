@@ -10,13 +10,16 @@ $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
 if (function_exists('csrf_check_request') && !csrf_check_request()) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'csrf_failed']); exit; }
 
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+
 // scope: logs|backups|chain|fingerprints|all (can be comma-separated)
 $scopeRaw = $_POST['scope'] ?? ($_GET['scope'] ?? 'all');
 $scopes = array_map('trim', explode(',', $scopeRaw));
 $adminDir = __DIR__;
-$logsDir = $adminDir . '/logs';
-$backupsDir = $adminDir . '/backups';
-$secureDir = dirname(__DIR__) . '/secure_logs';
+$logsDir = app_storage_file('logs');
+$backupsDir = app_storage_file('backups');
+$secureDir = app_storage_file('secure_logs');
 
 $result = ['deleted'=>[],'skipped'=>[],'errors'=>[]];
 
@@ -66,7 +69,7 @@ if (in_array('chain', $scopes) || in_array('all', $scopes)) {
 
 // fingerprints.json handling
 if (in_array('fingerprints', $scopes) || in_array('all', $scopes)) {
-  $fpFile = dirname(__DIR__) . '/admin/fingerprints.json';
+  $fpFile = app_storage_migrate_file('fingerprints.json', dirname(__DIR__) . '/admin/fingerprints.json');
   if (file_exists($fpFile)) {
     if (safe_unlink($fpFile)) $result['deleted'][] = $fpFile; else $result['errors'][] = $fpFile;
   }

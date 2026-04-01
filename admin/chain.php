@@ -5,7 +5,9 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
   exit;
 }
 
-$chainFile = __DIR__ . '/../secure_logs/attendance_chain.json';
+require_once __DIR__ . '/../storage_helpers.php';
+app_storage_init();
+$chainFile = app_storage_migrate_file('secure_logs/attendance_chain.json', __DIR__ . '/../secure_logs/attendance_chain.json');
 if (!file_exists($chainFile)) {
   $status = ['ok'=>false,'message'=>'Chain file not found.'];
 } else {
