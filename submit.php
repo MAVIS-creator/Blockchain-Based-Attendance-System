@@ -7,10 +7,6 @@ date_default_timezone_set('Africa/Lagos');
 $name = filter_var(trim($_POST['name']), FILTER_SANITIZE_STRING);
 $matric = filter_var(trim($_POST['matric']), FILTER_SANITIZE_STRING);
 $fingerprint = filter_var(trim($_POST['fingerprint']), FILTER_SANITIZE_STRING);
-$reason = trim($_POST['reason'] ?? '');
-$reasonSanitized = preg_replace('/\s+/', ' ', $reason);
-$reasonSanitized = trim((string)$reasonSanitized);
-$reasonSanitized = str_replace('|', '/', $reasonSanitized);
 $action = filter_var($_POST['action'], FILTER_SANITIZE_STRING);
 $course = isset($_POST['course']) ? filter_var($_POST['course'], FILTER_SANITIZE_STRING) : "General";
 
@@ -257,31 +253,6 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
 }
 
 // -----------------------
-// Reason keywords enforcement (optional, controlled from settings)
-// -----------------------
-if (!empty($settings['require_reason_keywords'])) {
-    $keywordsRaw = trim((string)($settings['reason_keywords'] ?? ''));
-    if ($keywordsRaw === '') {
-        fail('REASON_KEYWORDS_NOT_CONFIGURED', 'Reason keyword enforcement is enabled but no keywords are configured.');
-    }
-    if ($reasonSanitized === '') {
-        fail('REASON_REQUIRED', 'A reason is required for attendance right now.');
-    }
-
-    $keywords = array_values(array_filter(array_map('trim', preg_split('/[\r\n,]+/', $keywordsRaw))));
-    $matched = false;
-    foreach ($keywords as $kw) {
-        if ($kw !== '' && stripos($reasonSanitized, $kw) !== false) {
-            $matched = true;
-            break;
-        }
-    }
-    if (!$matched) {
-        fail('REASON_KEYWORD_MISSING', 'Your reason does not contain any allowed keyword.');
-    }
-}
-
-// -----------------------
 // Device identifier (prefer MAC)
 // -----------------------
 $deviceId = 'NOID';
@@ -445,7 +416,7 @@ if ($action === "checkout") {
     }
 }
 // ✅ Save to .log file (include MAC when available)
-$logReason = $reasonSanitized !== '' ? $reasonSanitized : '-';
+$logReason = '-';
 $logEntry = "$name | $matric | $action | $fingerprint | $ip | $mac | " . date("Y-m-d H:i:s") . " | $userAgent | $course | $logReason\n";
 file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
 

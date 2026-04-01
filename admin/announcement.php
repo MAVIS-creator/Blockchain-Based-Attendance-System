@@ -1,6 +1,14 @@
 <?php
 // This file can be rendered standalone or embedded inside the admin layout.
 if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['admin_logged_in'])) {
+  header('Location: login.php');
+  exit;
+}
+
+require_once __DIR__ . '/includes/csrf.php';
+csrf_token();
+
 $announcementFile = __DIR__ . '/announcement.json';
 $successMsg = "";
 $errorMsg = "";
@@ -15,16 +23,22 @@ if (file_exists($announcementFile)) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  if (!csrf_check_request()) {
+    $errorMsg = "Invalid CSRF token.";
+  }
+
     $message = trim($_POST['message'] ?? '');
     $enabled = isset($_POST['enabled']) && $_POST['enabled'] === 'on';
 
-    $announcement['message'] = $message;
-    $announcement['enabled'] = $enabled;
+  $announcement['message'] = $message;
+  $announcement['enabled'] = $enabled;
 
+  if (empty($errorMsg)) {
     if (file_put_contents($announcementFile, json_encode($announcement, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))) {
-        $successMsg = "Announcement updated successfully.";
+      $successMsg = "Announcement updated successfully.";
     } else {
-        $errorMsg = "Failed to save announcement.";
+      $errorMsg = "Failed to save announcement.";
+    }
     }
 }
 
@@ -66,6 +80,7 @@ function render_announcement_form($announcement, $successMsg, $errorMsg, $embedd
 
       <div class="st-card">
         <form method="post">
+          <?php csrf_field(); ?>
           <!-- Toggle -->
           <p style="font-weight:700;color:var(--on-surface);margin:0 0 12px;display:flex;align-items:center;gap:8px;">
             <span class="material-symbols-outlined" style="font-size:1.1rem;">toggle_on</span> Status

@@ -1,11 +1,5 @@
 {
-    "tokens": {
-        "test-token-123": {
-            "by": "Mavis",
-            "at": 1762515589,
-            "expiry": 1762601989
-        }
-    },
+    "tokens": [],
     "ips": [],
     "macs": []
 }

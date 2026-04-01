@@ -1,6 +1,13 @@
 <?php
 // Make this page friendly whether embedded or standalone.
 if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['admin_logged_in'])) {
+  header('Location: login.php');
+  exit;
+}
+
+require_once __DIR__ . '/includes/csrf.php';
+csrf_token();
 
 $fingerprintFile = __DIR__ . '/fingerprints.json';
 $fingerprintsData = file_exists($fingerprintFile) ? json_decode(file_get_contents($fingerprintFile), true) : [];
@@ -36,9 +43,14 @@ $paginatedData = array_slice($fingerprintsData, $offset, $entriesPerPage, true);
 
 $message = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  if (!csrf_check_request()) {
+    http_response_code(403);
+    $message = "Invalid CSRF token.";
+  }
+
     $matric = trim($_POST['matric'] ?? '');
 
-    if ($matric && isset($fingerprintsData[$matric])) {
+  if (empty($message) && $matric && isset($fingerprintsData[$matric])) {
         unset($fingerprintsData[$matric]);
         save_fingerprints_atomic($fingerprintFile, $fingerprintsData);
 
@@ -56,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         header("Location: " . $_SERVER['PHP_SELF'] . "?$queryString");
         exit;
-    } else {
+    } elseif (empty($message)) {
         $message = "No fingerprint found for Matric Number $matric.";
     }
 }
@@ -96,6 +108,7 @@ function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded
       <!-- Unlink Form -->
       <div class="st-card" style="margin-bottom:20px;">
         <form id="unlinkForm" method="POST" onsubmit="return confirmUnlink(event);" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+          <?php csrf_field(); ?>
           <div style="flex:1;min-width:200px;">
             <label style="display:block;font-weight:600;margin-bottom:6px;color:var(--on-surface-variant);font-size:0.85rem;">Matric Number</label>
             <input type="text" name="matric" id="matricInput" placeholder="Enter Matric Number" required>

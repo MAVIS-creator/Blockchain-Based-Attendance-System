@@ -314,11 +314,6 @@ if (file_exists($announcementFile)) {
         <input type="text" id="matric" name="matric" minlength="1" maxlength="10" placeholder="0000000000" required />
       </div>
 
-      <div class="input-group">
-        <label for="reason">Reason (optional unless required by admin policy)</label>
-        <textarea id="reason" name="reason" placeholder="Briefly state why you are checking in or checking out."></textarea>
-      </div>
-
       <input type="hidden" id="fingerprint" name="fingerprint">
       <input type="hidden" name="action" value="<?= $activeMode ?>">
       <input type="hidden" name="course" value="<?= htmlspecialchars($activeCourse) ?>">

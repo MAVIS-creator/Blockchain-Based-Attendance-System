@@ -2,6 +2,13 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+if (empty($_SESSION['admin_logged_in'])) {
+    header('Location: login.php');
+    exit;
+}
+
+require_once __DIR__ . '/includes/csrf.php';
+csrf_token();
 
 date_default_timezone_set('Africa/Lagos');
 
@@ -27,12 +34,16 @@ $name = '';
 $errorMessage = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_check_request()) {
+        $errorMessage = 'Invalid CSRF token.';
+    }
+
     $name = trim($_POST['name'] ?? '');
     $matric = trim($_POST['matric'] ?? '');
     $reason = trim($_POST['reason'] ?? '');
     $action = 'checkin'; // You can change to checkout if needed
 
-    if ($name && $matric && $reason) {
+    if (empty($errorMessage) && $name && $matric && $reason) {
         // ✅ Load allowed keywords
         $allowedFile = __DIR__ . '/allowed_reasons.json';
         $allowedKeywords = [];
@@ -402,6 +413,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <button class="palette-btn" onclick="togglePalette()"><i class='bx bx-adjust'></i> Switch Palette</button>
 
     <form class="manual-form" method="post">
+        <?php csrf_field(); ?>
         <h2><i class='bx bx-edit'></i> Manual Attendance</h2>
 
         <label for="name">Full Name:</label>

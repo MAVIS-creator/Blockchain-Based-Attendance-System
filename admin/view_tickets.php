@@ -1,4 +1,13 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['admin_logged_in'])) {
+  header('Location: login.php');
+  exit;
+}
+
+require_once __DIR__ . '/includes/csrf.php';
+$pageCsrfToken = csrf_token();
+
 $ticketsFile = __DIR__ . '/support_tickets.json';
 $tickets = [];
 
@@ -53,6 +62,12 @@ function resolve_ticket_atomic($ticketsFile, $resolveTime) {
 
 // Handle resolve
 if (isset($_GET['resolve'])) {
+  $csrfOk = isset($_GET['csrf_token']) && hash_equals((string)($_SESSION['_csrf']['token'] ?? ''), (string)$_GET['csrf_token']);
+  if (!$csrfOk) {
+    http_response_code(403);
+    echo 'Invalid CSRF token.';
+    exit;
+  }
     $resolveTime = $_GET['resolve'];
   resolve_ticket_atomic($ticketsFile, $resolveTime);
     header("Location: index.php?page=support_tickets");
@@ -61,6 +76,12 @@ if (isset($_GET['resolve'])) {
 
 // Handle manual check-in/out
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_POST['name'], $_POST['matric'], $_POST['reason'])) {
+  if (!csrf_check_request()) {
+    http_response_code(403);
+    echo 'Invalid CSRF token.';
+    exit;
+  }
+
     $action = $_POST['manual_action'];
     $name = trim($_POST['name']);
     $matric = trim($_POST['matric']);
@@ -131,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
           <!-- Footer -->
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--surface-container-high);font-size:0.85rem;color:var(--on-surface-variant);flex-wrap:wrap;gap:8px;">
             <span><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;">schedule</span> <?= htmlspecialchars($ticket['timestamp']) ?></span>
-            <a class="st-btn st-btn-success st-btn-sm resolve-btn" href="index.php?page=support_tickets&resolve=<?= urlencode($ticket['timestamp']) ?>" onclick="return confirmResolve(event)">
+            <a class="st-btn st-btn-success st-btn-sm resolve-btn" href="index.php?page=support_tickets&resolve=<?= urlencode($ticket['timestamp']) ?>&csrf_token=<?= urlencode($pageCsrfToken) ?>" onclick="return confirmResolve(event)">
               <span class="material-symbols-outlined" style="font-size:1rem;">check_circle</span> Resolve
             </a>
           </div>
@@ -142,6 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
               <span class="material-symbols-outlined" style="font-size:1rem;color:var(--on-surface-variant);">more_vert</span>
             </button>
             <form method="post" class="action-menu-content" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:10px;box-shadow:var(--shadow-ambient);padding:4px;z-index:50;min-width:160px;">
+              <?php csrf_field(); ?>
               <input type="hidden" name="name" value="<?= htmlspecialchars($ticket['name']) ?>">
               <input type="hidden" name="matric" value="<?= htmlspecialchars($ticket['matric']) ?>">
               <input type="hidden" name="reason" value="<?= htmlspecialchars($ticket['message']) ?>">

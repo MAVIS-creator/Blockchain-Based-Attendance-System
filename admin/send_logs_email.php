@@ -1,6 +1,8 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; }
+require_once __DIR__ . '/includes/csrf.php';
+csrf_token();
 
 // send_logs_email.php - redesigned to show selectable log files grouped by date+course
 
@@ -66,15 +68,19 @@ $error = '';
 $exportPath = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
+  if (!csrf_check_request()) {
+    $error = 'Invalid CSRF token.';
+  }
+
     // Get selected groups
     $selectedKeys = isset($_POST['selected_groups']) && is_array($_POST['selected_groups']) ? $_POST['selected_groups'] : [];
     $recipient = trim($_POST['recipient'] ?? '');
     $format = $_POST['format'] ?? 'csv';
     $cols = isset($_POST['cols']) && is_array($_POST['cols']) ? $_POST['cols'] : ['name','matric','action','datetime','course'];
 
-    if (empty($selectedKeys)) {
+    if (empty($error) && empty($selectedKeys)) {
         $error = 'Please select at least one log group to send.';
-    } elseif (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+    } elseif (empty($error) && !filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid recipient email address.';
     } else {
         // collect all rows from selected groups
@@ -245,6 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
 
   <div class="st-card" style="padding:24px;">
     <form method="post">
+      <?php csrf_field(); ?>
 
       <!-- Delivery Settings -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-bottom:24px;">

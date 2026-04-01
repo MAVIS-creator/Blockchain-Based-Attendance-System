@@ -628,6 +628,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     for (i = 0; i < tabcontent.length; i++) {
       tabcontent[i].classList.remove('active');
       tabcontent[i].classList.add('hidden');
+      tabcontent[i].style.display = 'none';
     }
     tablinks = document.getElementsByClassName('st-tab');
     for (i = 0; i < tablinks.length; i++) {
@@ -639,6 +640,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (activeTab) {
       activeTab.classList.add('active');
       activeTab.classList.remove('hidden');
+      activeTab.style.display = activeTab.classList.contains('grid') ? 'grid' : 'block';
     }
     if (evt && evt.currentTarget) {
       evt.currentTarget.classList.add('active');
@@ -659,6 +661,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     var hash = window.location.hash.substring(1);
     if (hash && document.getElementById(hash)) {
       openTab(null, hash);
+    } else {
+      openTab(null, 'tab-general');
     }
   });
 </script>

@@ -1,72 +1,85 @@
 <?php
- $statusFile = __DIR__ . '/../status.json';
- // load status
- $status = file_exists($statusFile) ? json_decode(file_get_contents($statusFile), true) : ['checkin' => false, 'checkout' => false, 'end_time' => null];
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['admin_logged_in'])) {
+  header('Location: login.php');
+  exit;
+}
+
+require_once __DIR__ . '/includes/csrf.php';
+csrf_token();
+
+$statusFile = __DIR__ . '/../status.json';
+// load status
+$status = file_exists($statusFile) ? json_decode(file_get_contents($statusFile), true) : ['checkin' => false, 'checkout' => false, 'end_time' => null];
 if (!isset($status['end_time'])) {
-    $status['end_time'] = null;
+  $status['end_time'] = null;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $duration = isset($_POST['duration']) && is_numeric($_POST['duration']) ? (int)$_POST['duration'] * 60 : 600; // default 10 minutes
+  if (!csrf_check_request()) {
+    $errorMessage = 'Invalid CSRF token.';
+  }
 
-    // try to load admin settings to enforce check windows
-    $settingsPath = __DIR__ . '/settings.json';
-    $settings = [];
-    if (file_exists($settingsPath)) {
-        $raw = file_get_contents($settingsPath);
-        $decoded = json_decode($raw, true);
-        if (is_array($decoded)) $settings = $decoded;
-        else {
-          // try decrypt if starts with ENC:
-          if (strpos($raw, 'ENC:') === 0) {
-            $keyFile = __DIR__ . '/.settings_key';
-            if (file_exists($keyFile)) {
-              $key = trim(file_get_contents($keyFile));
-              $blob = base64_decode(substr($raw,4));
-              $iv = substr($blob,0,16);
-              $ct = substr($blob,16);
-              $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
-              $decoded = json_decode($plain, true);
-              if (is_array($decoded)) $settings = $decoded;
-            }
-          }
+  $duration = isset($_POST['duration']) && is_numeric($_POST['duration']) ? (int)$_POST['duration'] * 60 : 600; // default 10 minutes
+
+  // try to load admin settings to enforce check windows
+  $settingsPath = __DIR__ . '/settings.json';
+  $settings = [];
+  if (file_exists($settingsPath)) {
+    $raw = file_get_contents($settingsPath);
+    $decoded = json_decode($raw, true);
+    if (is_array($decoded)) $settings = $decoded;
+    else {
+      // try decrypt if starts with ENC:
+      if (strpos($raw, 'ENC:') === 0) {
+        $keyFile = __DIR__ . '/.settings_key';
+        if (file_exists($keyFile)) {
+          $key = trim(file_get_contents($keyFile));
+          $blob = base64_decode(substr($raw, 4));
+          $iv = substr($blob, 0, 16);
+          $ct = substr($blob, 16);
+          $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+          $decoded = json_decode($plain, true);
+          if (is_array($decoded)) $settings = $decoded;
         }
-    }
-
-    $errorMessage = null;
-
-    // helper: check time window
-    $nowHM = date('H:i');
-    $withinCheckinWindow = true;
-    if (!empty($settings['checkin_time_start']) && !empty($settings['checkin_time_end'])) {
-      $start = $settings['checkin_time_start'];
-      $end = $settings['checkin_time_end'];
-      if ($start <= $end) {
-        $withinCheckinWindow = ($nowHM >= $start && $nowHM <= $end);
-      } else {
-        // overnight window
-        $withinCheckinWindow = ($nowHM >= $start || $nowHM <= $end);
       }
     }
+  }
 
-    if (isset($_POST['enable_checkin'])) {
-        if (!$withinCheckinWindow) {
-          $errorMessage = 'Cannot enable Check-In: current time is outside the configured check-in window.';
-        } else {
-          $status = ['checkin' => true, 'checkout' => false, 'end_time' => time() + $duration];
-        }
-    } elseif (isset($_POST['enable_checkout'])) {
-        $status = ['checkin' => false, 'checkout' => true, 'end_time' => time() + $duration];
-    } elseif (isset($_POST['disable'])) {
-        $status = ['checkin' => false, 'checkout' => false, 'end_time' => null];
-    }
+  $errorMessage = null;
 
-    if (empty($errorMessage)) {
-      file_put_contents($statusFile, json_encode($status, JSON_PRETTY_PRINT));
-      header("Location: index.php?page=status");
-      exit;
+  // helper: check time window
+  $nowHM = date('H:i');
+  $withinCheckinWindow = true;
+  if (!empty($settings['checkin_time_start']) && !empty($settings['checkin_time_end'])) {
+    $start = $settings['checkin_time_start'];
+    $end = $settings['checkin_time_end'];
+    if ($start <= $end) {
+      $withinCheckinWindow = ($nowHM >= $start && $nowHM <= $end);
+    } else {
+      // overnight window
+      $withinCheckinWindow = ($nowHM >= $start || $nowHM <= $end);
     }
-    // if there was an error, fall through and render it below
+  }
+
+  if (empty($errorMessage) && isset($_POST['enable_checkin'])) {
+    if (!$withinCheckinWindow) {
+      $errorMessage = 'Cannot enable Check-In: current time is outside the configured check-in window.';
+    } else {
+      $status = ['checkin' => true, 'checkout' => false, 'end_time' => time() + $duration];
+    }
+  } elseif (empty($errorMessage) && isset($_POST['enable_checkout'])) {
+    $status = ['checkin' => false, 'checkout' => true, 'end_time' => time() + $duration];
+  } elseif (empty($errorMessage) && isset($_POST['disable'])) {
+    $status = ['checkin' => false, 'checkout' => false, 'end_time' => null];
+  }
+
+  if (empty($errorMessage)) {
+    file_put_contents($statusFile, json_encode($status, JSON_PRETTY_PRINT));
+    header("Location: index.php?page=status");
+    exit;
+  }
+  // if there was an error, fall through and render it below
 }
 ?>
 
@@ -123,8 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <p class="st-label" style="margin-bottom:12px;">Session Countdown</p>
       <div class="progress-wrapper">
         <svg class="progress-ring" width="120" height="120">
-          <circle class="progress-ring__background" stroke="var(--surface-container-high)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
-          <circle class="progress-ring__circle" stroke="var(--primary)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60"/>
+          <circle class="progress-ring__background" stroke="var(--surface-container-high)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60" />
+          <circle class="progress-ring__circle" stroke="var(--primary)" stroke-width="10" fill="transparent" r="50" cx="60" cy="60" />
         </svg>
         <div id="countdown-timer" class="timer-text" style="color:var(--primary);"></div>
       </div>
@@ -137,6 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:6px;font-size:1.1rem;">settings_remote</span>Controls
     </p>
     <form method="POST" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+      <?php csrf_field(); ?>
       <input type="number" name="duration" placeholder="Duration (min)" min="1" style="max-width:160px;padding:10px 14px;">
       <button type="submit" name="enable_checkin" class="st-btn st-btn-primary">
         <span class="material-symbols-outlined" style="font-size:16px;">login</span> Enable Check-In
@@ -152,55 +166,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
-const endTime = <?= isset($status['end_time']) ? $status['end_time'] : 'null' ?>;
+  const endTime = <?= isset($status['end_time']) ? $status['end_time'] : 'null' ?>;
 
-function formatCountdown(seconds) {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-  const s = (seconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
-}
-
-if (endTime !== null) {
-  const timerEl = document.getElementById('countdown-timer');
-  const circle = document.querySelector('.progress-ring__circle');
-  if (circle) {
-    const radius = circle.r.baseVal.value;
-    const circumference = 2 * Math.PI * radius;
-
-    circle.style.strokeDasharray = `${circumference} ${circumference}`;
-    circle.style.strokeDashoffset = `${circumference}`;
-
-    const total = endTime - Math.floor(Date.now() / 1000);
-
-    const interval = setInterval(() => {
-      const now = Math.floor(Date.now() / 1000);
-      const remaining = endTime - now;
-
-      if (remaining > 0) {
-        timerEl.textContent = formatCountdown(remaining);
-        const percent = remaining / total;
-        const offset = circumference * (1 - percent);
-        circle.style.strokeDashoffset = offset;
-      } else {
-        clearInterval(interval);
-        timerEl.textContent = "00:00";
-
-        fetch(window.location.href, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-          body: 'disable=1'
-        }).then(() => {
-          Swal.fire({
-            icon: 'info',
-            title: 'Mode Disabled!',
-            text: 'The attendance mode has been automatically disabled after the countdown.',
-            confirmButtonColor: 'var(--primary)'
-          }).then(() => {
-            location.reload();
-          });
-        });
-      }
-    }, 1000);
+  function formatCountdown(seconds) {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
   }
-}
+
+  if (endTime !== null) {
+    const timerEl = document.getElementById('countdown-timer');
+    const circle = document.querySelector('.progress-ring__circle');
+    if (circle) {
+      const radius = circle.r.baseVal.value;
+      const circumference = 2 * Math.PI * radius;
+
+      circle.style.strokeDasharray = `${circumference} ${circumference}`;
+      circle.style.strokeDashoffset = `${circumference}`;
+
+      const total = endTime - Math.floor(Date.now() / 1000);
+
+      const interval = setInterval(() => {
+        const now = Math.floor(Date.now() / 1000);
+        const remaining = endTime - now;
+
+        if (remaining > 0) {
+          timerEl.textContent = formatCountdown(remaining);
+          const percent = remaining / total;
+          const offset = circumference * (1 - percent);
+          circle.style.strokeDashoffset = offset;
+        } else {
+          clearInterval(interval);
+          timerEl.textContent = "00:00";
+
+          fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRF-Token': window.ADMIN_CSRF_TOKEN || ''
+            },
+            body: 'disable=1&csrf_token=' + encodeURIComponent(window.ADMIN_CSRF_TOKEN || '')
+          }).then(() => {
+            Swal.fire({
+              icon: 'info',
+              title: 'Mode Disabled!',
+              text: 'The attendance mode has been automatically disabled after the countdown.',
+              confirmButtonColor: 'var(--primary)'
+            }).then(() => {
+              location.reload();
+            });
+          });
+        }
+      }, 1000);
+    }
+  }
 </script>
