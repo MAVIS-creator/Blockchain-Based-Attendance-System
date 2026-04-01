@@ -357,327 +357,297 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 ?>
 
-<div style="padding:20px;">
-  <style>
-.st-tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 18px;
-  padding: 8px;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.st-tabs::-webkit-scrollbar { display: none; }
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "surface": "#f6faff",
+          "surface-container-lowest": "#ffffff",
+          "surface-container-low": "#f0f4f9",
+          "surface-container": "#eaeef3",
+          "surface-container-high": "#e4e9ed",
+          "surface-container-highest": "#dfe3e8",
+          "on-surface": "#171c20",
+          "on-surface-variant": "#424750",
+          "outline-variant": "#c2c7d1",
+          "primary": "#00457b",
+          "primary-container": "#1f5d99",
+          "secondary-fixed": "#cfe5ff",
+          "error": "#ba1a1a",
+          "error-container": "#ffdad6"
+        },
+        fontFamily: {
+          body: ["Inter", "sans-serif"]
+        }
+      }
+    }
+  }
+</script>
 
-.st-tab {
-  appearance: none;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 16px;
-  cursor: pointer;
-  font-weight: 600;
-  color: #475569;
-  background: transparent;
-  transition: all .2s ease;
-  white-space: nowrap;
-}
-.st-tab:hover {
-  background: #eef2ff;
-  color: #1d4ed8;
-}
-.st-tab.active {
-  color: #ffffff;
-  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-}
-
-.st-tab-content {
-  display: none;
-  animation: fadeIn 0.22s ease;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-  padding: 16px;
-}
-.st-tab-content.active { display: block; }
-
-.st-tab-content h3 {
-  margin: 0 0 14px;
-  font-size: 1.05rem;
-  color: #0f172a;
-}
-
-.st-tab-content hr {
-  border: 0;
-  border-top: 1px solid #eef2f7;
-  margin: 6px 0 14px;
-}
-
-.st-tab-content form[method="POST"] {
-  background: #ffffff;
-  border-radius: 12px;
-}
-
-.st-tab-content input[type="text"],
-.st-tab-content input[type="email"],
-.st-tab-content input[type="number"],
-.st-tab-content input[type="password"],
-.st-tab-content input[type="time"],
-.st-tab-content select,
-.st-tab-content textarea {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  outline: none;
-  transition: border-color .15s ease, box-shadow .15s ease;
-}
-
-.st-tab-content input:focus,
-.st-tab-content select:focus,
-.st-tab-content textarea:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.22);
-}
-
-.st-tab-content fieldset {
-  border: 1px solid #dbeafe !important;
-  border-radius: 10px !important;
-  background: #f8fbff;
-}
-
-.st-tab-content legend {
-  color: #1e3a8a;
-}
-
-.st-tab-content button[type="submit"] {
-  font-weight: 600;
-  transition: transform .12s ease, box-shadow .18s ease;
-}
-
-.st-tab-content button[type="submit"]:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-</style>
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;"><h2 style="margin:0;">System Settings</h2></div>
-  <?php if ($message): ?><div style="background:#dff0d8;padding:10px;border-radius:6px;margin-bottom:12px;color:#2d6a2d;"><?= htmlspecialchars($message) ?></div><?php endif; ?>
-  <?php if ($errors): ?><div style="background:#ffe6e6;padding:10px;border-radius:6px;margin-bottom:12px;color:#8a1f1f;">
-      <ul><?php foreach ($errors as $e) echo '<li>' . htmlspecialchars($e) . '</li>'; ?></ul>
-    </div><?php endif; ?>
-
-  
-  <div class="st-tabs">
-      <button type="button" class="st-tab active" onclick="openTab(event, 'tab-general')">General</button>
-      <button type="button" class="st-tab" onclick="openTab(event, 'tab-templates')">Templates</button>
-      <button type="button" class="st-tab" onclick="openTab(event, 'tab-advanced')">Advanced & Security</button>
-      <button type="button" class="st-tab" onclick="openTab(event, 'tab-email')">Email & Auto-send</button>
-      <button type="button" class="st-tab" onclick="openTab(event, 'tab-overview')">System Overview</button>
+<div class="font-body text-on-surface bg-surface p-6 rounded-xl">
+  <div class="mb-8">
+    <h1 class="text-[1.75rem] font-bold tracking-tight">System Settings</h1>
+    <p class="text-on-surface-variant mt-1">Exact Stitch screen structure mapped to live settings endpoints.</p>
   </div>
-<div id="tab-general" class="st-tab-content active">
-<form method="POST" style="max-width:900px;margin-top:16px;">
-    <?php csrf_field(); ?>
-    <div style="margin-bottom:12px;">
-      <label style="display:block;font-weight:600;margin-bottom:6px;">Device matching preference</label>
-      <label style="display:block;margin-bottom:6px;"><input type="radio" name="prefer_mac" value="1" <?= ($settings['prefer_mac'] ?? true) ? 'checked' : '' ?>> Prefer MAC (if available)</label>
-      <label style="display:block;margin-bottom:6px;"><input type="radio" name="prefer_mac" value="0" <?= !($settings['prefer_mac'] ?? true) ? 'checked' : '' ?>> Prefer IP</label>
+
+  <?php if ($message): ?>
+    <div class="mb-4 rounded-lg px-4 py-3 bg-green-100 text-green-800 border border-green-200"><?= htmlspecialchars($message) ?></div>
+  <?php endif; ?>
+  <?php if ($errors): ?>
+    <div class="mb-4 rounded-lg px-4 py-3 bg-error-container text-error border border-red-200">
+      <ul class="list-disc list-inside"><?php foreach ($errors as $e) echo '<li>' . htmlspecialchars($e) . '</li>'; ?></ul>
     </div>
+  <?php endif; ?>
 
-    <div style="margin-bottom:12px;">
-      <label style="display:block;font-weight:600;margin-bottom:6px;">Max admins</label>
-      <input type="number" name="max_admins" value="<?= htmlspecialchars($settings['max_admins'] ?? 5) ?>" min="1" max="50" style="padding:8px;width:120px;" <?= ($currentRole !== 'superadmin') ? 'disabled' : '' ?>>
-      <p style="color:#6b7280;font-size:0.9rem;margin-top:6px;">Limit how many admin accounts can be created. (Only super-admin can change this)</p>
-    </div>
-
-    <fieldset style="margin-bottom:12px;padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
-      <legend style="font-weight:600;padding:0 6px;">Attendance enforcement</legend>
-      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="require_fingerprint_match" value="1" <?= ($settings['require_fingerprint_match'] ?? false) ? 'checked' : '' ?>> Require fingerprint match for a valid attendance</label>
-      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="require_reason_keywords" value="1" <?= ($settings['require_reason_keywords'] ?? false) ? 'checked' : '' ?>> Require reason to contain specific keywords</label>
-      <div style="margin-bottom:8px;"><input type="text" name="reason_keywords" placeholder="comma separated keywords" value="<?= htmlspecialchars($settings['reason_keywords'] ?? '') ?>" style="padding:8px;width:100%;"></div>
-      <label style="display:block;margin-bottom:8px;">Check-in window (optional)</label>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><input type="time" name="checkin_time_start" value="<?= htmlspecialchars($settings['checkin_time_start'] ?? '') ?>"> <span style="color:#6b7280">to</span> <input type="time" name="checkin_time_end" value="<?= htmlspecialchars($settings['checkin_time_end'] ?? '') ?>"></div>
-      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="enforce_one_device_per_day" value="1" <?= ($settings['enforce_one_device_per_day'] ?? false) ? 'checked' : '' ?>> Enforce one device per student per day</label>
-    </fieldset>
-
-    <div style="display:flex;gap:12px;align-items:center;margin-top:12px;">
-      <div style="flex:1">
-        <button type="submit" name="save_settings" style="padding:8px 12px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Save Settings</button>
-      </div>
-      <div style="flex:1">
-        <label style="font-weight:600;display:block;margin-bottom:6px;">Re-authenticate (enter password for critical changes)</label>
-        <input type="password" name="reauth_password" placeholder="Your password" style="padding:8px;width:100%;">
-      </div>
-    </div>
-  </form>
-
+  <div class="bg-surface-container-low p-1.5 rounded-xl flex gap-1 mb-8 overflow-x-auto whitespace-nowrap">
+    <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-semibold transition-all bg-white text-primary shadow-sm" onclick="openTab(event, 'tab-general')">General</button>
+    <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-templates')">Templates</button>
+    <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-advanced')">Advanced &amp; Security</button>
+    <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-email')">Email &amp; Auto-send</button>
+    <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-overview')">System Overview</button>
   </div>
-<div id="tab-templates" class="st-tab-content">
 
-  <form method="POST" style="display:flex;gap:8px;align-items:center;max-width:700px;">
-    <?php csrf_field(); ?>
-    <input type="text" name="template_name" placeholder="Template name" style="padding:8px;">
-    <button type="submit" name="save_template" style="padding:8px;background:#10b981;color:#fff;border:none;border-radius:6px;">Save Template</button>
-    <select name="apply_template_name" style="padding:8px;">
-      <option value="">-- Apply template --</option>
-      <?php $tpls = json_decode(file_get_contents($templatesFile), true) ?: [];
-      foreach ($tpls as $tn => $tv): ?>
-        <option value="<?= htmlspecialchars($tn) ?>"><?= htmlspecialchars($tn) ?></option>
-      <?php endforeach; ?>
-    </select>
-    <button type="submit" name="apply_template" style="padding:8px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Apply</button>
-  </form>
+  <div id="tab-general" class="st-tab-content grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div class="lg:col-span-8 space-y-8">
+      <form method="POST" class="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/20 space-y-6">
+        <?php csrf_field(); ?>
+        <div class="flex items-center gap-3 mb-2"><span class="material-symbols-outlined text-primary">verified_user</span><h3 class="text-lg font-bold">Attendance Policy</h3></div>
 
-</div>
-
-<div id="tab-advanced" class="st-tab-content">
-
-  <hr style="margin:18px 0;">
-
-  <h3>Advanced Controls & Utilities</h3>
-  <form method="POST" style="max-width:900px;display:flex;flex-direction:column;gap:12px;">
-    <?php csrf_field(); ?>
-    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
-      <legend style="font-weight:600;padding:0 6px;">Network & Security</legend>
-      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="encrypted_settings" value="1" <?= ($settings['encrypted_settings'] ?? false) ? 'checked' : '' ?>> Store settings encrypted on disk</label>
-      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="encrypt_logs" value="1" <?= ($settings['encrypt_logs'] ?? false) ? 'checked' : '' ?>> Encrypt per-day enforcement/log stores</label>
-      <label style="display:block;margin-bottom:8px;">IP whitelist (one per line or comma separated)</label>
-      <textarea name="ip_whitelist" style="width:100%;padding:8px;min-height:80px;"><?= htmlspecialchars(implode("\n", $settings['ip_whitelist'] ?? [])) ?></textarea>
-    </fieldset>
-
-    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
-      <legend style="font-weight:600;padding:0 6px;">Device & Anti-spam</legend>
-      <label style="display:block;margin-bottom:8px;">Device cooldown (seconds): <input type="number" name="device_cooldown_seconds" value="<?= htmlspecialchars($settings['device_cooldown_seconds'] ?? 0) ?>" style="width:120px;margin-left:8px;padding:6px;"></label>
-      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="user_agent_lock" value="1" <?= ($settings['user_agent_lock'] ?? false) ? 'checked' : '' ?>> Lock attendance to the first user-agent seen (detect device switching)</label>
-    </fieldset>
-
-    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
-      <legend style="font-weight:600;padding:0 6px;">Geo-fencing</legend>
-      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="geo_fence_enabled" value="1" <?= ($settings['geo_fence_enabled'] ?? false) ? 'checked' : '' ?>> Enable geo-fencing enforcement (optional)</label>
-      <div style="display:flex;gap:8px;align-items:center;"><input type="text" name="geo_lat" placeholder="Latitude" value="<?= htmlspecialchars($settings['geo_fence']['lat'] ?? '') ?>" style="padding:8px;width:160px;"><input type="text" name="geo_lng" placeholder="Longitude" value="<?= htmlspecialchars($settings['geo_fence']['lng'] ?? '') ?>" style="padding:8px;width:160px;"><input type="number" name="geo_radius_m" placeholder="Radius (m)" value="<?= htmlspecialchars($settings['geo_fence']['radius_m'] ?? 0) ?>" style="padding:8px;width:120px;"></div>
-      <p style="color:#6b7280;font-size:0.9rem;margin:8px 0 0;">When disabled, location checks are skipped even if coordinates are saved.</p>
-
-      <div style="margin-top:12px;padding:10px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;">
-        <label style="display:block;font-weight:600;margin-bottom:8px;">Geo-fence tester (safe check)</label>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input id="geo_test_lat" type="text" placeholder="Test latitude" style="padding:8px;width:160px;">
-          <input id="geo_test_lng" type="text" placeholder="Test longitude" style="padding:8px;width:160px;">
-          <button id="geo_test_btn" type="button" style="padding:8px 12px;background:#0ea5e9;color:#fff;border:none;border-radius:6px;cursor:pointer;">Run Geo Test</button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Device Preference</label>
+            <div class="flex gap-4 p-1 bg-surface-container-low rounded-lg mt-2">
+              <label class="flex-1 flex items-center justify-center py-2 px-4 rounded-md cursor-pointer <?= ($settings['prefer_mac'] ?? true) ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant' ?>">
+                <input class="hidden" type="radio" name="prefer_mac" value="1" <?= ($settings['prefer_mac'] ?? true) ? 'checked' : '' ?>><span class="text-sm font-semibold">Prefer MAC</span>
+              </label>
+              <label class="flex-1 flex items-center justify-center py-2 px-4 rounded-md cursor-pointer <?= !($settings['prefer_mac'] ?? true) ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant' ?>">
+                <input class="hidden" type="radio" name="prefer_mac" value="0" <?= !($settings['prefer_mac'] ?? true) ? 'checked' : '' ?>><span class="text-sm font-semibold">Prefer IP</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Max Admins</label>
+            <input class="mt-2 w-full bg-surface-container-low border-none rounded-lg text-sm py-2.5" type="number" name="max_admins" min="1" max="50" value="<?= htmlspecialchars($settings['max_admins'] ?? 5) ?>" <?= ($currentRole !== 'superadmin') ? 'disabled' : '' ?>>
+          </div>
         </div>
-        <div id="geo_test_result" style="margin-top:8px;color:#334155;font-size:0.9rem;"></div>
+
+        <div class="space-y-4 pt-4 border-t border-outline-variant/20">
+          <label class="flex items-center gap-3"><input class="w-5 h-5 rounded border-outline-variant text-primary" type="checkbox" name="require_fingerprint_match" value="1" <?= ($settings['require_fingerprint_match'] ?? false) ? 'checked' : '' ?>><span class="text-sm">Require biometric fingerprint verification</span></label>
+          <label class="flex items-center gap-3"><input class="w-5 h-5 rounded border-outline-variant text-primary" type="checkbox" name="require_reason_keywords" value="1" <?= ($settings['require_reason_keywords'] ?? false) ? 'checked' : '' ?>><span class="text-sm">Require mandatory reason keywords</span></label>
+          <label class="flex items-center gap-3"><input class="w-5 h-5 rounded border-outline-variant text-primary" type="checkbox" name="enforce_one_device_per_day" value="1" <?= ($settings['enforce_one_device_per_day'] ?? false) ? 'checked' : '' ?>><span class="text-sm">Enforce single device association per day</span></label>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Reason Keywords</label>
+          <input class="mt-2 w-full bg-surface-container-low border-none rounded-lg text-sm py-2.5" type="text" name="reason_keywords" value="<?= htmlspecialchars($settings['reason_keywords'] ?? '') ?>" placeholder="Medical, Emergency, Transport">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div><label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Check-in Start</label><input class="mt-2 w-full bg-surface-container-low border-none rounded-lg text-sm py-2.5" type="time" name="checkin_time_start" value="<?= htmlspecialchars($settings['checkin_time_start'] ?? '') ?>"></div>
+          <div><label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Check-in End</label><input class="mt-2 w-full bg-surface-container-low border-none rounded-lg text-sm py-2.5" type="time" name="checkin_time_end" value="<?= htmlspecialchars($settings['checkin_time_end'] ?? '') ?>"></div>
+        </div>
+
+        <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/20">
+          <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
+            <div>
+              <label class="text-sm font-semibold">Confirm critical changes</label>
+              <input class="mt-2 w-full bg-white border-none rounded-lg text-sm py-2.5" type="password" name="reauth_password" placeholder="Confirm password">
+            </div>
+            <button class="bg-primary hover:bg-primary-container text-white px-8 py-2.5 rounded-lg font-bold text-sm" type="submit" name="save_settings">Save General Settings</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="lg:col-span-4 space-y-6">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-outline-variant/20">
+        <?php $acct = json_decode(file_get_contents(__DIR__ . '/accounts.json'), true) ?: []; ?>
+        <p class="text-xs text-on-surface-variant">Admin Accounts</p>
+        <p class="font-bold text-2xl"><?= count($acct) ?> / <?= htmlspecialchars($settings['max_admins'] ?? 5) ?></p>
       </div>
-    </fieldset>
-
-    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
-      <legend style="font-weight:600;padding:0 6px;">Backups & retention</legend>
-      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="auto_backup" value="1" <?= ($settings['auto_backup'] ?? true) ? 'checked' : '' ?>> Keep automatic backups on each save</label>
-      <label style="display:block;margin-bottom:8px;">Backup retention (number of backups to keep) <input type="number" name="backup_retention" value="<?= htmlspecialchars($settings['backup_retention'] ?? 10) ?>" style="width:120px;margin-left:8px;padding:6px;"></label>
-      <label style="display:block;margin-bottom:8px;">Blocked token log retention (days) <input type="number" name="blocked_tokens_retention_days" min="1" max="3650" value="<?= htmlspecialchars($settings['blocked_tokens_retention_days'] ?? 30) ?>" style="width:120px;margin-left:8px;padding:6px;"></label>
-    </fieldset>
-
-    <div style="display:flex;gap:12px;align-items:center;">
-      <button type="submit" name="save_settings" style="padding:8px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Save Advanced</button>
-      <div style="flex:1;color:#6b7280;font-size:0.95rem;">Use these controls to protect and manage system-wide behavior. Note: enabling encryption will store settings encrypted on disk (a key file will be created).</div>
     </div>
-  </form>
+  </div>
 
-</div>
-
-<div id="tab-email" class="st-tab-content">
-
-  <hr style="margin:18px 0;">
-
-  <h3>Email & Auto-send</h3>
-  <form method="POST" style="max-width:900px;display:flex;flex-direction:column;gap:12px;">
-    <?php csrf_field(); ?>
-    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
-      <legend style="font-weight:600;padding:0 6px;">Email Settings</legend>
-      <p style="color:#6b7280;font-size:0.9rem;margin-bottom:12px;">SMTP connection details (host, port, credentials, security) are managed via <code>.env</code> file. Required keys: <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>, <code>SMTP_SECURE</code>, <code>FROM_EMAIL</code></p>
-      <label style="display:block;margin-bottom:8px;">From name (display name for outgoing emails)
-        <input type="text" name="smtp_from_name" value="<?= htmlspecialchars($settings['smtp']['from_name'] ?? ($ENV['FROM_NAME'] ?? 'Attendance System')) ?>" style="padding:8px;width:100%;margin-top:4px;">
-      </label>
-    </fieldset>
-
-    <fieldset style="padding:12px;border:1px solid #e5e7eb;border-radius:6px;">
-      <legend style="font-weight:600;padding:0 6px;">Auto-send logs</legend>
-      <label style="display:block;margin-bottom:8px;"><input type="checkbox" name="auto_send_enabled" value="1" <?= ($settings['auto_send']['enabled'] ?? false) ? 'checked' : '' ?>> Enable automatic sending of logs after a class window ends</label>
-      <label style="display:block;margin-bottom:8px;">Recipient email
-        <input type="email" name="auto_send_recipient" value="<?= htmlspecialchars($settings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? '')) ?>" style="padding:8px;width:100%;margin-top:4px;">
-      </label>
-      <label style="display:block;margin-bottom:8px;">Default format <select name="auto_send_format" style="padding:8px;">
-          <option value="csv" <?= ($settings['auto_send']['format'] ?? 'csv') === 'csv' ? 'selected' : '' ?>>CSV</option>
-          <option value="pdf" <?= ($settings['auto_send']['format'] ?? '') === 'pdf' ? 'selected' : '' ?>>PDF</option>
-        </select></label>
-      <p style="color:#6b7280;font-size:0.9rem;">Schedule the helper script (<code>auto_send_logs.php</code>) to run after class windows using your OS scheduler (Task Scheduler on Windows or cron on Linux).</p>
-    </fieldset>
-
-    <div style="display:flex;gap:12px;align-items:center;">
-      <button type="submit" name="save_settings" style="padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;">Save Email Settings</button>
+  <div id="tab-templates" class="st-tab-content hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <section class="lg:col-span-4 bg-surface-container-lowest rounded-xl p-8 shadow-sm border border-outline-variant/20">
+        <h3 class="text-lg font-semibold mb-4">Create Snapshot</h3>
+        <form method="POST" class="space-y-4">
+          <?php csrf_field(); ?>
+          <input class="w-full bg-surface-container-low rounded-lg border border-outline-variant/20 px-4 py-3" type="text" name="template_name" placeholder="Template name">
+          <button class="w-full bg-primary text-white font-semibold py-3 rounded-lg" type="submit" name="save_template">Save Template Snapshot</button>
+        </form>
+      </section>
+      <section class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-8 shadow-sm border border-outline-variant/20">
+        <h3 class="text-lg font-semibold mb-4">Apply Template</h3>
+        <form method="POST" class="flex gap-3 flex-wrap items-center">
+          <?php csrf_field(); ?>
+          <select class="bg-surface-container-low rounded-lg border border-outline-variant/20 px-4 py-3 min-w-[260px]" name="apply_template_name">
+            <option value="">Select template...</option>
+            <?php $tpls = json_decode(file_get_contents($templatesFile), true) ?: []; foreach ($tpls as $tn => $tv): ?>
+              <option value="<?= htmlspecialchars($tn) ?>"><?= htmlspecialchars($tn) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <button class="bg-primary hover:bg-primary-container text-white px-6 py-3 rounded-lg font-semibold" type="submit" name="apply_template">Apply Template</button>
+        </form>
+      </section>
     </div>
-  </form>
+  </div>
 
-</div>
+  <div id="tab-advanced" class="st-tab-content hidden">
+    <form method="POST" class="grid grid-cols-1 md:grid-cols-12 gap-8">
+      <?php csrf_field(); ?>
+      <section class="md:col-span-8 bg-surface-container-lowest p-8 rounded-xl shadow-sm space-y-6 border border-outline-variant/20">
+        <h3 class="text-lg font-semibold">Network &amp; Security</h3>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="encrypted_settings" value="1" <?= ($settings['encrypted_settings'] ?? false) ? 'checked' : '' ?>> encrypted_settings</label>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="encrypt_logs" value="1" <?= ($settings['encrypt_logs'] ?? false) ? 'checked' : '' ?>> encrypt_logs</label>
+        <div>
+          <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">ip_whitelist</label>
+          <textarea class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" name="ip_whitelist" rows="4"><?= htmlspecialchars(implode("\n", $settings['ip_whitelist'] ?? [])) ?></textarea>
+        </div>
+      </section>
 
-<div id="tab-overview" class="st-tab-content">
+      <section class="md:col-span-4 bg-surface-container-low p-8 rounded-xl space-y-4">
+        <h3 class="text-lg font-semibold">Device &amp; Anti-spam</h3>
+        <div>
+          <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">device_cooldown_seconds</label>
+          <input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="device_cooldown_seconds" value="<?= htmlspecialchars($settings['device_cooldown_seconds'] ?? 0) ?>">
+        </div>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="user_agent_lock" value="1" <?= ($settings['user_agent_lock'] ?? false) ? 'checked' : '' ?>> user_agent_lock</label>
+      </section>
 
-  <div style="max-width:900px;background:#fff;padding:12px;border-radius:8px;">
+      <section class="md:col-span-7 bg-surface-container-lowest p-8 rounded-xl shadow-sm space-y-4 border border-outline-variant/20">
+        <h3 class="text-lg font-semibold">Geo-fencing</h3>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="geo_fence_enabled" value="1" <?= ($settings['geo_fence_enabled'] ?? false) ? 'checked' : '' ?>> geo_fence_enabled</label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input class="bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="text" name="geo_lat" placeholder="geo_lat" value="<?= htmlspecialchars($settings['geo_fence']['lat'] ?? '') ?>">
+          <input class="bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="text" name="geo_lng" placeholder="geo_lng" value="<?= htmlspecialchars($settings['geo_fence']['lng'] ?? '') ?>">
+        </div>
+        <div class="flex items-end gap-4">
+          <div class="flex-1"><input class="w-full bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="geo_radius_m" placeholder="geo_radius_m" value="<?= htmlspecialchars($settings['geo_fence']['radius_m'] ?? 0) ?>"></div>
+          <button id="geo_test_btn" type="button" class="bg-primary hover:bg-primary-container text-white h-[46px] px-6 rounded-lg font-semibold text-sm">Test Geofence</button>
+        </div>
+        <div id="geo_test_result" class="text-sm text-on-surface-variant"></div>
+      </section>
+
+      <section class="md:col-span-5 bg-surface-container-low p-8 rounded-xl space-y-4">
+        <h3 class="text-lg font-semibold">Backups &amp; Retention</h3>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="auto_backup" value="1" <?= ($settings['auto_backup'] ?? true) ? 'checked' : '' ?>> auto_backup</label>
+        <div><label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">backup_retention</label><input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="backup_retention" value="<?= htmlspecialchars($settings['backup_retention'] ?? 10) ?>"></div>
+        <div><label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">blocked_tokens_retention_days</label><input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" min="1" max="3650" name="blocked_tokens_retention_days" value="<?= htmlspecialchars($settings['blocked_tokens_retention_days'] ?? 30) ?>"></div>
+      </section>
+
+      <div class="md:col-span-12 flex justify-end gap-4 border-t border-outline-variant/20 pt-6">
+        <button class="px-8 py-2.5 rounded-lg bg-gradient-to-br from-primary to-primary-container text-white font-semibold text-sm" type="submit" name="save_settings">Commit to Chain</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="tab-email" class="st-tab-content hidden">
+    <form method="POST" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <?php csrf_field(); ?>
+      <div class="lg:col-span-7 space-y-8">
+        <section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm">
+          <h2 class="text-lg font-semibold mb-4">Email Identity</h2>
+          <label class="block text-sm font-medium text-on-surface-variant mb-2">smtp_from_name</label>
+          <input class="w-full px-4 py-3 rounded-lg bg-surface-container-low border-0" type="text" name="smtp_from_name" value="<?= htmlspecialchars($settings['smtp']['from_name'] ?? ($ENV['FROM_NAME'] ?? 'Attendance System')) ?>">
+        </section>
+        <section class="bg-surface-container-lowest rounded-xl p-8 shadow-sm space-y-5">
+          <h2 class="text-lg font-semibold">Auto-send Configuration</h2>
+          <label class="flex items-center justify-between p-4 bg-surface-container rounded-lg"><span class="font-medium">auto_send_enabled</span><input class="w-5 h-5" type="checkbox" name="auto_send_enabled" value="1" <?= ($settings['auto_send']['enabled'] ?? false) ? 'checked' : '' ?>></label>
+          <div>
+            <label class="block text-sm font-medium text-on-surface-variant mb-2">auto_send_recipient</label>
+            <input class="w-full px-4 py-3 rounded-lg bg-surface-container-low border-0" type="email" name="auto_send_recipient" value="<?= htmlspecialchars($settings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? '')) ?>">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-on-surface-variant mb-2">auto_send_format</label>
+            <select class="w-full px-4 py-3 rounded-lg bg-surface-container-low border-0" name="auto_send_format">
+              <option value="pdf" <?= ($settings['auto_send']['format'] ?? '') === 'pdf' ? 'selected' : '' ?>>PDF (Verified Ledger Layout)</option>
+              <option value="csv" <?= ($settings['auto_send']['format'] ?? 'csv') === 'csv' ? 'selected' : '' ?>>CSV (Raw Immutable Data)</option>
+            </select>
+          </div>
+        </section>
+      </div>
+      <div class="lg:col-span-5 space-y-8">
+        <section class="bg-gradient-to-br from-primary to-primary-container text-white rounded-xl p-8 shadow-lg">
+          <h3 class="text-xl font-bold mb-2">SMTP Environment</h3>
+          <p class="text-sm opacity-90">SMTP transport credentials are managed strictly via <code>.env</code>.</p>
+        </section>
+        <div class="flex gap-4">
+          <button class="flex-1 bg-gradient-to-br from-primary to-primary-container text-white font-semibold py-4 rounded-xl" type="submit" name="save_settings">Save Configuration</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div id="tab-overview" class="st-tab-content hidden">
     <?php
     $acct = json_decode(file_get_contents(__DIR__ . '/accounts.json'), true) ?: [];
     $adminCount = count($acct);
     $status = @json_decode(file_get_contents(__DIR__ . '/../status.json'), true) ?: [];
     $lastAudit = file_exists(__DIR__ . '/settings_audit.log') ? array_slice(array_map('trim', file(__DIR__ . '/settings_audit.log')), -10) : [];
     $backups = glob(__DIR__ . '/backups/settings_*.json');
-    usort($backups, function ($a, $b) {
-      return filemtime($b) - filemtime($a);
-    });
+    usort($backups, function ($a, $b) { return filemtime($b) - filemtime($a); });
     ?>
-    <p><strong>Admins:</strong> <?= $adminCount ?></p>
-    <p><strong>Check-in enabled:</strong> <?= (!empty($status['checkin']) && $status['checkin']) ? 'Yes' : 'No' ?> &nbsp; <strong>Check-out enabled:</strong> <?= (!empty($status['checkout']) && $status['checkout']) ? 'Yes' : 'No' ?></p>
-    <p><strong>Active countdown ends at:</strong> <?= htmlspecialchars($status['end_time'] ?? 'N/A') ?></p>
-    <p><strong>Last backups:</strong></p>
-    <ul><?php foreach (array_slice($backups, 0, 5) as $b) {
-          echo '<li>' . basename($b) . ' - ' . date('c', filemtime($b)) . '</li>';
-        }
-        if (empty($backups)) echo '<li>No backups yet</li>'; ?></ul>
-    <p><strong>Recent settings audit entries:</strong></p>
-    <pre style="max-height:220px;overflow:auto;background:#f3f4f6;padding:8px;"><?php foreach ($lastAudit as $la) {
-                                                                                  echo htmlspecialchars($la) . "\n";
-                                                                                } ?></pre>
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+      <div class="md:col-span-8 bg-surface-container-low rounded-xl p-8">
+        <h3 class="text-sm font-medium text-on-surface-variant uppercase mb-4">Terminal Heartbeat</h3>
+        <p><strong>Check-in enabled:</strong> <?= (!empty($status['checkin']) && $status['checkin']) ? 'Yes' : 'No' ?></p>
+        <p><strong>Check-out enabled:</strong> <?= (!empty($status['checkout']) && $status['checkout']) ? 'Yes' : 'No' ?></p>
+        <p><strong>Active countdown ends at:</strong> <?= htmlspecialchars($status['end_time'] ?? 'N/A') ?></p>
+      </div>
+      <div class="md:col-span-4 bg-gradient-to-br from-primary to-primary-container rounded-xl p-8 text-white">
+        <h3 class="text-sm uppercase opacity-80">Admin Accounts</h3>
+        <div class="text-[2.2rem] font-extrabold"><?= $adminCount ?></div>
+      </div>
+      <div class="md:col-span-12 bg-surface-container-low rounded-xl p-8">
+        <h3 class="text-lg font-bold mb-4">Recent Backups</h3>
+        <ul class="list-disc list-inside text-sm mb-6">
+          <?php foreach (array_slice($backups, 0, 5) as $b) echo '<li>' . htmlspecialchars(basename($b)) . ' - ' . date('c', filemtime($b)) . '</li>'; ?>
+          <?php if (empty($backups)) echo '<li>No backups yet</li>'; ?>
+        </ul>
+        <h3 class="text-lg font-bold mb-3">Settings Audit Log</h3>
+        <pre class="max-h-72 overflow-auto bg-surface-container-lowest p-4 rounded-lg border border-outline-variant/20 text-xs"><?php foreach ($lastAudit as $la) echo htmlspecialchars($la) . "\n"; ?></pre>
+      </div>
+    </div>
   </div>
-</div>
-
 </div>
 <script>
 function openTab(evt, tabName) {
   var i, tabcontent, tablinks;
   tabcontent = document.getElementsByClassName('st-tab-content');
   for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = 'none';
     tabcontent[i].classList.remove('active');
+    tabcontent[i].classList.add('hidden');
   }
   tablinks = document.getElementsByClassName('st-tab');
   for (i = 0; i < tablinks.length; i++) {
     tablinks[i].classList.remove('active');
+    tablinks[i].classList.remove('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
+    tablinks[i].classList.add('text-on-surface-variant', 'font-medium');
   }
   var activeTab = document.getElementById(tabName);
   if(activeTab){
-    activeTab.style.display = 'block';
     activeTab.classList.add('active');
+    activeTab.classList.remove('hidden');
   }
   if(evt && evt.currentTarget){
     evt.currentTarget.classList.add('active');
+    evt.currentTarget.classList.add('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
+    evt.currentTarget.classList.remove('text-on-surface-variant', 'font-medium');
   } else {
     var targetBtn = document.querySelector('button[onclick*="' + tabName + '"]');
-    if(targetBtn) targetBtn.classList.add('active');
+    if(targetBtn){
+      targetBtn.classList.add('active');
+      targetBtn.classList.add('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
+      targetBtn.classList.remove('text-on-surface-variant', 'font-medium');
+    }
   }
-  history.replaceState(null, null, ' #' + tabName);
+  history.replaceState(null, null, '#' + tabName);
 }
 
 document.addEventListener('DOMContentLoaded', function() {

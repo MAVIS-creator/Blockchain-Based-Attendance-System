@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($status['checkin']): ?>
           background:#ecfdf5;
         <?php else: ?>
-          background:#fef2f2;
+          background:#fef2f2; 
         <?php endif; ?>
       ">
         <span class="material-symbols-outlined" style="font-size:1.5rem;font-variation-settings:'FILL' 1;
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($status['checkout']): ?>
           background:#ecfdf5;
         <?php else: ?>
-          background:#fef2f2;
+          background:#fef2f2; {
         <?php endif; ?>
       ">
         <span class="material-symbols-outlined" style="font-size:1.5rem;font-variation-settings:'FILL' 1;

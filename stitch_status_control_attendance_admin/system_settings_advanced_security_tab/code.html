@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Advanced &amp; Security Settings | Immutable Ledger</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-fixed-dim": "#99cbff",
+              "on-primary": "#ffffff",
+              "surface-container-high": "#e4e9ed",
+              "inverse-primary": "#a1c9ff",
+              "surface-variant": "#dfe3e8",
+              "on-tertiary": "#ffffff",
+              "tertiary-fixed": "#d3e4ff",
+              "surface-container-highest": "#dfe3e8",
+              "primary-fixed": "#d2e4ff",
+              "on-surface": "#171c20",
+              "secondary": "#15629a",
+              "on-secondary-fixed-variant": "#004a78",
+              "primary-container": "#1f5d99",
+              "on-surface-variant": "#424750",
+              "tertiary-fixed-dim": "#b2c8e9",
+              "surface": "#f6faff",
+              "secondary-container": "#83c1fe",
+              "outline-variant": "#c2c7d1",
+              "error-container": "#ffdad6",
+              "error": "#ba1a1a",
+              "on-primary-fixed-variant": "#004880",
+              "surface-container-lowest": "#ffffff",
+              "on-error": "#ffffff",
+              "on-tertiary-fixed": "#031c36",
+              "outline": "#727781",
+              "on-tertiary-container": "#bed4f6",
+              "on-secondary-container": "#004e7f",
+              "surface-container": "#eaeef3",
+              "primary": "#00457b",
+              "inverse-on-surface": "#edf1f6",
+              "surface-bright": "#f6faff",
+              "on-error-container": "#93000a",
+              "secondary-fixed": "#cfe5ff",
+              "surface-container-low": "#f0f4f9",
+              "tertiary": "#2f4560",
+              "on-background": "#171c20",
+              "tertiary-container": "#475c79",
+              "surface-tint": "#24609d",
+              "surface-dim": "#d6dadf",
+              "on-tertiary-fixed-variant": "#334863",
+              "on-secondary": "#ffffff",
+              "on-secondary-fixed": "#001d34",
+              "background": "#f6faff",
+              "inverse-surface": "#2c3135",
+              "primary-fixed-dim": "#a1c9ff",
+              "on-primary-container": "#b8d5ff",
+              "on-primary-fixed": "#001c37"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface antialiased">
+<!-- TopNavBar Shell -->
+<header class="w-full sticky top-0 z-50 bg-[#f6faff] dark:bg-slate-900/60 backdrop-blur-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)] font-['Inter'] antialiased">
+<div class="flex justify-between items-center px-8 h-16 w-full">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tight text-[#171c20] dark:text-[#f0f4f9]">Immutable Ledger</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-[#424750] dark:text-[#c2c7d1] hover:text-[#171c20] transition-all duration-200" href="#">General</a>
+<a class="text-[#424750] dark:text-[#c2c7d1] hover:text-[#171c20] transition-all duration-200" href="#">Templates</a>
+<a class="text-[#00457b] dark:text-[#cfe5ff] border-b-2 border-[#00457b] pb-1 font-semibold transition-all duration-200" href="#">Advanced</a>
+<a class="text-[#424750] dark:text-[#c2c7d1] hover:text-[#171c20] transition-all duration-200" href="#">Email</a>
+<a class="text-[#424750] dark:text-[#c2c7d1] hover:text-[#171c20] transition-all duration-200" href="#">Overview</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-[#424750] hover:bg-[#e4e9ed] rounded-lg transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-[#424750] hover:bg-[#e4e9ed] rounded-lg transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+<img alt="Superadmin Avatar" data-alt="minimalist professional avatar portrait of a corporate executive in soft studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCz5QIuxpmSY83V8pmFQ2mSearlknC2x8dMsYjnSWjeoEsnJA9V5d_6jK7GQWBad-zExlS975C1cHA7SqmqtOM3pN9WL_d0l0IgyhEJp_9JQYQHo84lvHaBF5AvJgkEVBD-7V6SEDHcxgPCofv45INg4cL5jDsQVD-SmvHu4C5NABq0-HlPcjwXAp55_Z64GEXu5LTSdU37sta8C9Pz8niS6dMWKNxN7w42XLWmc23jRlj_RCcMpNScwhayxankZmmefoo8v2Uwqw"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex min-h-[calc(100vh-64px)]">
+<!-- SideNavBar Shell -->
+<aside class="h-full w-64 fixed left-0 top-16 bg-[#f0f4f9] dark:bg-slate-900 flex flex-col p-4 gap-2 font-['Inter'] text-sm hidden md:flex">
+<div class="mb-6 px-3">
+<h2 class="font-bold text-[#171c20] dark:text-white">Admin Panel</h2>
+<p class="text-xs text-on-surface-variant opacity-70">v2.4.0-Stable</p>
+</div>
+<a class="flex items-center gap-3 text-[#424750] dark:text-[#c2c7d1] p-3 hover:bg-[#e4e9ed] dark:hover:bg-slate-700 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>General</span>
+</a>
+<a class="flex items-center gap-3 text-[#424750] dark:text-[#c2c7d1] p-3 hover:bg-[#e4e9ed] dark:hover:bg-slate-700 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="Description">description</span>
+<span>Templates</span>
+</a>
+<a class="flex items-center gap-3 bg-[#ffffff] dark:bg-slate-800 text-[#00457b] dark:text-[#cfe5ff] font-bold rounded-lg shadow-sm p-3 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
+<span>Security</span>
+</a>
+<a class="flex items-center gap-3 text-[#424750] dark:text-[#c2c7d1] p-3 hover:bg-[#e4e9ed] dark:hover:bg-slate-700 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+<span>Email</span>
+</a>
+<a class="flex items-center gap-3 text-[#424750] dark:text-[#c2c7d1] p-3 hover:bg-[#e4e9ed] dark:hover:bg-slate-700 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Overview</span>
+</a>
+<div class="mt-auto flex flex-col gap-1 border-t border-outline-variant/20 pt-4">
+<a class="flex items-center gap-3 text-[#424750] dark:text-[#c2c7d1] p-3 hover:bg-[#e4e9ed] dark:hover:bg-slate-700 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span>Support</span>
+</a>
+<a class="flex items-center gap-3 text-[#424750] dark:text-[#c2c7d1] p-3 hover:bg-[#e4e9ed] dark:hover:bg-slate-700 rounded-lg transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 p-8">
+<div class="max-w-6xl mx-auto">
+<header class="mb-10">
+<h1 class="text-[1.75rem] font-bold text-on-surface tracking-tight mb-2">Advanced Security Configurations</h1>
+<p class="text-on-surface-variant font-medium">Manage immutable encryption protocols, geofencing parameters, and retention policies.</p>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+<!-- Network & Security Section -->
+<section class="md:col-span-8 bg-surface-container-lowest p-8 rounded-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)] flex flex-col gap-6">
+<div class="flex items-center gap-3 text-primary mb-2">
+<span class="material-symbols-outlined" data-icon="shield">shield</span>
+<h3 class="text-lg font-semibold text-on-surface">Network &amp; Security</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<label class="flex items-start gap-4 p-4 rounded-lg bg-surface hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="relative flex items-center pt-0.5">
+<input class="w-5 h-5 rounded border-outline-variant/50 text-primary focus:ring-primary-fixed" id="encrypted_settings" type="checkbox"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-on-surface">encrypted_settings</span>
+<span class="text-xs text-on-surface-variant">Enable AES-256 at-rest encryption for all configuration values.</span>
+</div>
+</label>
+<label class="flex items-start gap-4 p-4 rounded-lg bg-surface hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="relative flex items-center pt-0.5">
+<input class="w-5 h-5 rounded border-outline-variant/50 text-primary focus:ring-primary-fixed" id="encrypt_logs" type="checkbox"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-on-surface">encrypt_logs</span>
+<span class="text-xs text-on-surface-variant">Salt and hash all system activity logs before blockchain submission.</span>
+</div>
+</label>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant" for="ip_whitelist">ip_whitelist</label>
+<textarea class="w-full bg-surface-container-lowest border-outline-variant/20 border rounded-lg p-3 text-sm focus:border-primary focus:ring-4 focus:ring-primary-fixed/30 transition-all outline-none" id="ip_whitelist" placeholder="192.168.1.1, 10.0.0.1/24..." rows="4"></textarea>
+<p class="text-[10px] text-on-surface-variant">Comma-separated list of IPv4/IPv6 addresses permitted to bypass multi-factor checks.</p>
+</div>
+</section>
+<!-- Device & Anti-spam Section -->
+<section class="md:col-span-4 bg-surface-container-low p-8 rounded-xl flex flex-col gap-6">
+<div class="flex items-center gap-3 text-tertiary mb-2">
+<span class="material-symbols-outlined" data-icon="phonelink_lock">phonelink_lock</span>
+<h3 class="text-lg font-semibold text-on-surface">Device &amp; Anti-spam</h3>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant" for="device_cooldown_seconds">device_cooldown_seconds</label>
+<input class="bg-surface-container-lowest border-outline-variant/20 border rounded-lg p-3 text-sm focus:border-primary focus:ring-4 focus:ring-primary-fixed/30 outline-none" id="device_cooldown_seconds" type="number" value="3600"/>
+<p class="text-[10px] text-on-surface-variant">Seconds required between consecutive attendance pings from the same hardware ID.</p>
+</div>
+<label class="flex items-start gap-4 p-4 rounded-lg bg-surface-container-lowest hover:bg-white transition-colors cursor-pointer border border-transparent hover:border-outline-variant/20">
+<div class="relative flex items-center pt-0.5">
+<input class="w-5 h-5 rounded border-outline-variant/50 text-primary focus:ring-primary-fixed" id="user_agent_lock" type="checkbox"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-on-surface">user_agent_lock</span>
+<span class="text-xs text-on-surface-variant">Reject requests from spoofed or unknown browsers.</span>
+</div>
+</label>
+</section>
+<!-- Geo-fencing Section -->
+<section class="md:col-span-7 bg-surface-container-lowest p-8 rounded-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)] flex flex-col gap-6">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3 text-secondary">
+<span class="material-symbols-outlined" data-icon="location_on">location_on</span>
+<h3 class="text-lg font-semibold text-on-surface">Geo-fencing</h3>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-bold uppercase text-on-surface-variant">Active Status</span>
+<input class="hidden peer" id="geo_fence_enabled" type="checkbox"/>
+<label class="w-10 h-5 bg-outline-variant rounded-full relative cursor-pointer transition-colors peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5" for="geo_fence_enabled"></label>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="flex flex-col gap-2">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant" for="geo_lat">geo_lat</label>
+<input class="bg-surface border-outline-variant/20 border rounded-lg p-3 text-sm focus:border-primary outline-none" id="geo_lat" placeholder="40.7128" type="text"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant" for="geo_lng">geo_lng</label>
+<input class="bg-surface border-outline-variant/20 border rounded-lg p-3 text-sm focus:border-primary outline-none" id="geo_lng" placeholder="-74.0060" type="text"/>
+</div>
+</div>
+<div class="flex items-end gap-4">
+<div class="flex-1 flex flex-col gap-2">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant" for="geo_radius_m">geo_radius_m</label>
+<div class="relative">
+<input class="w-full bg-surface border-outline-variant/20 border rounded-lg p-3 pr-10 text-sm focus:border-primary outline-none" id="geo_radius_m" placeholder="500" type="number"/>
+<span class="absolute right-3 top-3 text-xs text-on-surface-variant">meters</span>
+</div>
+</div>
+<button class="bg-primary hover:bg-primary-container text-white h-[46px] px-6 rounded-lg font-semibold text-sm transition-all shadow-sm hover:shadow-[0_16px_36px_rgba(0,69,123,0.15)] flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="radar">radar</span>
+                                Test Geofence
+                            </button>
+</div>
+<div class="h-32 rounded-lg bg-surface-container overflow-hidden relative border border-outline-variant/10">
+<img alt="Map View" class="w-full h-full object-cover grayscale opacity-60" data-location="New York" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwTv6BzrTgLx7SZwsChf-ned0k8NDFhbMyxOQ9WxMJPPGKMotOS5G0ZQYe7Y95gEdkQUs_y32J0zmohVtz5T-7UhJiBMCBLHym9JBqJEbcKtbbLBW3qY_RW1g6Ll-IhpdxpAcmlpAEnFrQERx3Jb4rUSg1aczQvOyvl25i6evMfVX3Sw75WyL4wv8HkjpLYekUxpC7GIktdcQUlDkj-1090mowJtr5i3ZGaXl_BaWQ3Mk5Iq5YG13KuvbjqhixWvs7tku6C6kv0g"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-16 h-16 bg-primary/10 rounded-full border-2 border-primary/40 animate-pulse flex items-center justify-center">
+<div class="w-2 h-2 bg-primary rounded-full"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Backups & Retention Section -->
+<section class="md:col-span-5 bg-surface-container-low p-8 rounded-xl flex flex-col gap-6">
+<div class="flex items-center gap-3 text-tertiary-container mb-2">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<h3 class="text-lg font-semibold text-on-surface">Backups &amp; Retention</h3>
+</div>
+<label class="flex items-center justify-between p-4 rounded-lg bg-surface-container-lowest shadow-sm">
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-on-surface">auto_backup</span>
+<span class="text-xs text-on-surface-variant">Daily ledger snapshots</span>
+</div>
+<input checked="" class="w-5 h-5 rounded border-outline-variant/50 text-primary focus:ring-primary-fixed" id="auto_backup" type="checkbox"/>
+</label>
+<div class="space-y-4 pt-2">
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant" for="backup_retention">backup_retention</label>
+<span class="text-xs font-bold text-primary">365 Days</span>
+</div>
+<input class="w-full h-2 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-primary" id="backup_retention" max="730" min="30" type="range" value="365"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant" for="blocked_tokens_retention_days">blocked_tokens_retention_days</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-outline-variant/20 border rounded-lg p-3 text-sm focus:border-primary outline-none" id="blocked_tokens_retention_days" type="number" value="90"/>
+<span class="absolute right-3 top-3 material-symbols-outlined text-outline" data-icon="block">block</span>
+</div>
+</div>
+</div>
+<div class="mt-auto p-4 bg-tertiary-fixed rounded-lg flex gap-3">
+<span class="material-symbols-outlined text-on-tertiary-fixed" data-icon="info">info</span>
+<p class="text-xs text-on-tertiary-fixed-variant leading-tight">Retention policies are immutable once written to the block. Changes take 24 hours to propagate across all nodes.</p>
+</div>
+</section>
+</div>
+<!-- Footer Actions -->
+<div class="mt-10 flex items-center justify-between pt-8 border-t border-outline-variant/10">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="text-xs font-medium">Ledger Heartbeat: Optimized &amp; Synchronized</span>
+</div>
+<div class="flex gap-4">
+<button class="px-6 py-2.5 rounded-lg text-on-surface-variant font-semibold text-sm hover:bg-surface-container-high transition-colors">Discard Changes</button>
+<button class="px-8 py-2.5 rounded-lg bg-gradient-to-br from-primary to-primary-container text-white font-semibold text-sm shadow-sm hover:shadow-[0_16px_36px_rgba(24,39,75,0.12)] active:scale-95 transition-all">Commit to Chain</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Mobile Bottom Navigation Shell -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-outline-variant/20 flex justify-around items-center px-4 z-50">
+<button class="flex flex-col items-center gap-1 text-[#424750]">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-[10px]">General</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-[#00457b]">
+<span class="material-symbols-outlined" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="text-[10px] font-bold">Security</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-[#424750]">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+<span class="text-[10px]">Email</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-[#424750]">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="text-[10px]">Stats</span>
+</button>
+</nav>
+</body></html>
