@@ -110,8 +110,6 @@ if (!file_exists($settingsFile)) {
     'prefer_mac' => true,
     'max_admins' => 5,
     'require_fingerprint_match' => false,
-    'require_reason_keywords' => false,
-    'reason_keywords' => '',
     'checkin_time_start' => '',
     'checkin_time_end' => '',
     'enforce_one_device_per_day' => false,
@@ -152,8 +150,6 @@ $settings = array_replace([
   'prefer_mac' => true,
   'max_admins' => 5,
   'require_fingerprint_match' => false,
-  'require_reason_keywords' => false,
-  'reason_keywords' => '',
   'checkin_time_start' => '',
   'checkin_time_end' => '',
   'enforce_one_device_per_day' => false,
@@ -247,8 +243,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $preferMac = isset($_POST['prefer_mac']) && $_POST['prefer_mac'] === '1';
     $maxAdmins = intval($_POST['max_admins'] ?? $settings['max_admins']);
     $requireFingerprint = isset($_POST['require_fingerprint_match']) && $_POST['require_fingerprint_match'] === '1';
-    $requireReasonKeywords = isset($_POST['require_reason_keywords']) && $_POST['require_reason_keywords'] === '1';
-    $reasonKeywords = trim($_POST['reason_keywords'] ?? '');
     $checkinStart = trim($_POST['checkin_time_start'] ?? '');
     $checkinEnd = trim($_POST['checkin_time_end'] ?? '');
     $enforceOneDevice = isset($_POST['enforce_one_device_per_day']) && $_POST['enforce_one_device_per_day'] === '1';
@@ -268,7 +262,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $blockedTokensRetention = intval($_POST['blocked_tokens_retention_days'] ?? ($settings['blocked_tokens_retention_days'] ?? 30));
 
     if ($maxAdmins < 1 || $maxAdmins > 50) $errors[] = 'Max admins must be between 1 and 50.';
-    if ($requireReasonKeywords && $reasonKeywords === '') $errors[] = 'Provide at least one reason keyword when requiring reason keywords.';
     // validate time format HH:MM optional
     if ($checkinStart !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $checkinStart)) $errors[] = 'Check-in start must be in HH:MM format.';
     if ($checkinEnd !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $checkinEnd)) $errors[] = 'Check-in end must be in HH:MM format.';
@@ -293,8 +286,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $settings['prefer_mac'] = $preferMac;
       if ($currentRole === 'superadmin') $settings['max_admins'] = $maxAdmins;
       $settings['require_fingerprint_match'] = $requireFingerprint;
-      $settings['require_reason_keywords'] = $requireReasonKeywords;
-      $settings['reason_keywords'] = $reasonKeywords;
       $settings['checkin_time_start'] = $checkinStart;
       $settings['checkin_time_end'] = $checkinEnd;
       $settings['enforce_one_device_per_day'] = $enforceOneDevice;
@@ -440,13 +431,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="space-y-4 pt-4 border-t border-outline-variant/20">
           <label class="flex items-center gap-3"><input class="w-5 h-5 rounded border-outline-variant text-primary" type="checkbox" name="require_fingerprint_match" value="1" <?= ($settings['require_fingerprint_match'] ?? false) ? 'checked' : '' ?>><span class="text-sm">Require biometric fingerprint verification</span></label>
-          <label class="flex items-center gap-3"><input class="w-5 h-5 rounded border-outline-variant text-primary" type="checkbox" name="require_reason_keywords" value="1" <?= ($settings['require_reason_keywords'] ?? false) ? 'checked' : '' ?>><span class="text-sm">Require mandatory reason keywords</span></label>
           <label class="flex items-center gap-3"><input class="w-5 h-5 rounded border-outline-variant text-primary" type="checkbox" name="enforce_one_device_per_day" value="1" <?= ($settings['enforce_one_device_per_day'] ?? false) ? 'checked' : '' ?>><span class="text-sm">Enforce single device association per day</span></label>
-        </div>
-
-        <div>
-          <label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Reason Keywords</label>
-          <input class="mt-2 w-full bg-surface-container-low border-none rounded-lg text-sm py-2.5" type="text" name="reason_keywords" value="<?= htmlspecialchars($settings['reason_keywords'] ?? '') ?>" placeholder="Medical, Emergency, Transport">
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

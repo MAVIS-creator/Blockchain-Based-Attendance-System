@@ -1,5 +1,15 @@
 <?php
 session_start();
+
+$announcementFile = __DIR__ . '/admin/announcement.json';
+$announcement = ['enabled' => false, 'message' => ''];
+if (file_exists($announcementFile)) {
+  $json = json_decode(file_get_contents($announcementFile), true);
+  if (is_array($json)) {
+    $announcement['enabled'] = !empty($json['enabled']);
+    $announcement['message'] = trim((string)($json['message'] ?? ''));
+  }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -58,6 +68,25 @@ session_start();
       width: 100%;
       padding: 28px;
       animation: rise-in 0.45s ease;
+    }
+
+    .announcement-panel {
+      display: none;
+      margin: 0 auto 14px;
+      background: #eef6ff;
+      border: 1px solid #cfe1f5;
+      color: #1d4f80;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 0.93rem;
+      line-height: 1.35;
+      text-align: left;
+      max-width: 560px;
+    }
+
+    .announcement-title {
+      font-weight: 700;
+      margin-right: 6px;
     }
 
     @keyframes rise-in {
@@ -173,6 +202,11 @@ session_start();
 
 <body>
   <div class="card">
+    <div id="announcementPanel" class="announcement-panel" style="<?= !empty($announcement['enabled']) ? 'display:block;' : 'display:none;' ?>">
+      <span class="announcement-title"><i class='bx bx-bell'></i> Announcement:</span>
+      <span id="announcementText"><?= htmlspecialchars($announcement['message'] !== '' ? $announcement['message'] : 'An important announcement is currently active.') ?></span>
+    </div>
+
     <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
     <h1>Attendance Closed</h1>
     <p>Your session was interrupted due to inactivity or tab changes. Attendance is now closed for fairness and exam integrity.</p>
@@ -181,6 +215,33 @@ session_start();
       <a class="btn btn-primary" href="support.php"><i class='bx bx-message'></i> Contact Support</a>
     </div>
   </div>
+
+  <script>
+    const announcementPanel = document.getElementById('announcementPanel');
+    const announcementText = document.getElementById('announcementText');
+
+    function fetchAnnouncement() {
+      fetch('get_announcement.php', {
+          cache: 'no-store'
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.enabled) {
+            const msg = (data.message || '').trim();
+            announcementText.textContent = msg || 'An important announcement is currently active.';
+            announcementPanel.style.display = 'block';
+          } else {
+            announcementPanel.style.display = 'none';
+          }
+        })
+        .catch(() => {
+          // keep current state quietly on fetch errors
+        });
+    }
+
+    fetchAnnouncement();
+    setInterval(fetchAnnouncement, 10000);
+  </script>
 </body>
 
 </html>

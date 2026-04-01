@@ -12,24 +12,26 @@ $ticketsFile = __DIR__ . '/support_tickets.json';
 $tickets = [];
 
 if (file_exists($ticketsFile)) {
-    $tickets = json_decode(file_get_contents($ticketsFile), true);
+  $tickets = json_decode(file_get_contents($ticketsFile), true);
 }
 
 $today = date('Y-m-d');
 $logFile = __DIR__ . "/logs/{$today}.log";
 $logLines = file_exists($logFile) ? file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
 
-function checkLogMatch($logLines, $needle, $index) {
-    foreach ($logLines as $line) {
-        $fields = array_map('trim', explode('|', $line));
-        if (isset($fields[$index]) && $fields[$index] === $needle) {
-            return true;
-        }
+function checkLogMatch($logLines, $needle, $index)
+{
+  foreach ($logLines as $line) {
+    $fields = array_map('trim', explode('|', $line));
+    if (isset($fields[$index]) && $fields[$index] === $needle) {
+      return true;
     }
-    return false;
+  }
+  return false;
 }
 
-function resolve_ticket_atomic($ticketsFile, $resolveTime) {
+function resolve_ticket_atomic($ticketsFile, $resolveTime)
+{
   $fp = fopen($ticketsFile, 'c+');
   if (!$fp) return false;
   if (!flock($fp, LOCK_EX)) {
@@ -68,10 +70,10 @@ if (isset($_GET['resolve'])) {
     echo 'Invalid CSRF token.';
     exit;
   }
-    $resolveTime = $_GET['resolve'];
+  $resolveTime = $_GET['resolve'];
   resolve_ticket_atomic($ticketsFile, $resolveTime);
-    header("Location: index.php?page=support_tickets");
-    exit;
+  header("Location: index.php?page=support_tickets");
+  exit;
 }
 
 // Handle manual check-in/out
@@ -82,23 +84,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
     exit;
   }
 
-    $action = $_POST['manual_action'];
-    $name = trim($_POST['name']);
-    $matric = trim($_POST['matric']);
-    $reason = trim($_POST['reason']);
+  $action = $_POST['manual_action'];
+  $name = trim($_POST['name']);
+  $matric = trim($_POST['matric']);
+  $reason = trim($_POST['reason']);
 
-    $activeCourseFile = __DIR__ . '/course/active_course.json';
-    $activeCourse = file_exists($activeCourseFile) ? json_decode(file_get_contents($activeCourseFile), true)['course'] ?? 'General' : 'General';
+  $activeCourseFile = __DIR__ . '/course/active_course.json';
+  $activeCourse = file_exists($activeCourseFile) ? json_decode(file_get_contents($activeCourseFile), true)['course'] ?? 'General' : 'General';
 
-    $timestamp = date('Y-m-d H:i:s');
-    $logFile = __DIR__ . "/logs/{$today}.log";
+  $timestamp = date('Y-m-d H:i:s');
+  $logFile = __DIR__ . "/logs/{$today}.log";
 
   // Standardized log format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
   $line = "{$name} | {$matric} | {$action} | MANUAL | ::1 | UNKNOWN | {$timestamp} | Web Ticket Panel | {$activeCourse} | {$reason}\n";
 
-    file_put_contents($logFile, $line, FILE_APPEND);
-    header("Location: index.php?page=support_tickets");
-    exit;
+  file_put_contents($logFile, $line, FILE_APPEND);
+  header("Location: index.php?page=support_tickets");
+  exit;
 }
 ?>
 
@@ -119,10 +121,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
         <?php $hasUnresolved = true; ?>
 
         <?php
-          $fp = $ticket['fingerprint'] ?? '';
-          $ip = $ticket['ip'] ?? '';
-          $fpMatch = $fp ? checkLogMatch($logLines, $fp, 3) : false;
-          $ipMatch = $ip ? checkLogMatch($logLines, $ip, 4) : false;
+        $fp = $ticket['fingerprint'] ?? '';
+        $ip = $ticket['ip'] ?? '';
+        $fpMatch = $fp ? checkLogMatch($logLines, $fp, 3) : false;
+        $ipMatch = $ip ? checkLogMatch($logLines, $ip, 4) : false;
         ?>
 
         <div class="ticket-card">
@@ -193,33 +195,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
 </div>
 
 <script>
-function confirmResolve(e) {
-  e.preventDefault();
-  const url = e.currentTarget.href;
-  Swal.fire({
-    title: 'Mark as Resolved?',
-    text: "This ticket will be marked as resolved.",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#059669',
-    cancelButtonColor: '#6b7280',
-    confirmButtonText: 'Yes, resolve it'
-  }).then((result) => {
-    if (result.isConfirmed) window.location.href = url;
-  });
-}
-
-function toggleActionMenu(trigger) {
-  document.querySelectorAll('.action-menu-content').forEach(menu => {
-    if (menu !== trigger.nextElementSibling) menu.style.display = 'none';
-  });
-  var menu = trigger.nextElementSibling;
-  if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-}
-
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.action-menu')) {
-    document.querySelectorAll('.action-menu-content').forEach(m => m.style.display = 'none');
+  function confirmResolve(e) {
+    e.preventDefault();
+    const url = e.currentTarget.href;
+    Swal.fire({
+      title: 'Mark as Resolved?',
+      text: "This ticket will be marked as resolved.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, resolve it'
+    }).then((result) => {
+      if (result.isConfirmed) window.location.href = url;
+    });
   }
-});
+
+  function toggleActionMenu(trigger) {
+    document.querySelectorAll('.action-menu-content').forEach(menu => {
+      if (menu !== trigger.nextElementSibling) menu.style.display = 'none';
+    });
+    var menu = trigger.nextElementSibling;
+    if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.action-menu')) {
+      document.querySelectorAll('.action-menu-content').forEach(m => m.style.display = 'none');
+    }
+  });
 </script>

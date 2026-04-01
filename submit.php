@@ -19,6 +19,13 @@ require_once __DIR__ . '/admin/includes/get_mac.php';
 $mac = get_mac_from_ip($ip);
 $today = date("Y-m-d");
 
+// Extract client token from fingerprint payload format: visitorId_token
+$clientToken = '';
+if (strpos($fingerprint, '_') !== false) {
+    $parts = explode('_', $fingerprint);
+    $clientToken = trim((string)end($parts));
+}
+
 // ✅ Check attendance status
 $statusFile = "status.json";
 if (!file_exists($statusFile)) {
@@ -71,6 +78,16 @@ function fail($code, $message)
     header('Content-Type: application/json');
     echo json_encode(['ok' => false, 'code' => $code, 'message' => $message]);
     exit;
+}
+
+function is_revoked_value($bucket, $value, $now)
+{
+    if ($value === '' || !is_array($bucket)) return false;
+    if (!isset($bucket[$value])) return false;
+    $meta = $bucket[$value];
+    $expiry = is_array($meta) ? intval($meta['expiry'] ?? 0) : 0;
+    if ($expiry !== 0 && $expiry < $now) return false;
+    return true;
 }
 
 // Helper: read/write store with optional encryption using settings key
@@ -183,6 +200,30 @@ function link_fingerprint_if_missing_atomic($file, $matric, $hashedFingerprint)
     flock($fp, LOCK_UN);
     fclose($fp);
     return true;
+}
+
+// -----------------------
+// Revocation enforcement (token / IP / MAC)
+// -----------------------
+$revokedFile = __DIR__ . '/admin/revoked.json';
+if (file_exists($revokedFile)) {
+    $revokedData = json_decode(file_get_contents($revokedFile), true);
+    if (is_array($revokedData)) {
+        $nowTs = time();
+        $tokensBucket = is_array($revokedData['tokens'] ?? null) ? $revokedData['tokens'] : [];
+        $ipsBucket = is_array($revokedData['ips'] ?? null) ? $revokedData['ips'] : [];
+        $macsBucket = is_array($revokedData['macs'] ?? null) ? $revokedData['macs'] : [];
+
+        if (is_revoked_value($tokensBucket, $clientToken, $nowTs)) {
+            fail('TOKEN_REVOKED', 'This client token has been revoked by an administrator.');
+        }
+        if (is_revoked_value($ipsBucket, $ip, $nowTs)) {
+            fail('IP_REVOKED', 'Your IP address has been revoked by an administrator.');
+        }
+        if ($mac !== 'UNKNOWN' && is_revoked_value($macsBucket, $mac, $nowTs)) {
+            fail('MAC_REVOKED', 'Your device MAC has been revoked by an administrator.');
+        }
+    }
 }
 
 // -----------------------

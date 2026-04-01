@@ -164,7 +164,8 @@ document.getElementById('revokeBtn')?.addEventListener('click', function(){
     if (window.ADMIN_CSRF_TOKEN) body.append('csrf_token', window.ADMIN_CSRF_TOKEN);
 
     fetch('revoke_entry.php', { method:'POST', body: body }).then(r=>r.json()).then(j=>{
-      window.adminAlert('Done','Revoked added.','success');
+      if (j && j.ok) window.adminAlert('Done','Revoked added.','success');
+      else window.adminAlert('Failed', (j && j.message) ? j.message : 'Could not revoke', 'error');
     }).catch(e=>window.adminAlert('Error','Could not revoke','error'));
   });
 });
@@ -172,13 +173,23 @@ document.getElementById('revokeBtn')?.addEventListener('click', function(){
 document.getElementById('searchClearBtn')?.addEventListener('click', function(){
   var v = document.getElementById('searchKey').value.trim();
   if (!v) { Toast.fire({icon: 'warning', title: 'Enter search key'}); return; }
+  var t = detectType(v);
 
   window.adminConfirm('Confirm Clear', 'Clear any entries matching this fingerprint/matric/ip?', 'warning').then(function(ok){
     if (!ok) return;
-    var p = new URLSearchParams(); p.append('matric', v); p.append('fingerprint', v);
+    var p = new URLSearchParams();
+    if (t === 'ip') p.append('ip', v);
+    else if (t === 'mac') p.append('mac', v);
+    else {
+      // For unknown values, try token and legacy fields so admin can clear mixed stores.
+      p.append('token', v);
+      p.append('fingerprint', v);
+      p.append('matric', v);
+    }
     if (window.ADMIN_CSRF_TOKEN) p.append('csrf_token', window.ADMIN_CSRF_TOKEN);
     fetch('clear_device.php', { method:'POST', body: p }).then(r=>r.json()).then(j=>{
-      window.adminAlert('Cleared', 'Device block removed','success');
+      if (j && j.ok) window.adminAlert('Cleared', 'Device block removed','success');
+      else window.adminAlert('Failed', (j && j.message) ? j.message : 'Could not clear', 'error');
     }).catch(e=>window.adminAlert('Error','Could not clear','error'));
   });
 });
@@ -191,7 +202,7 @@ document.querySelectorAll('.clear-token').forEach(function(b){
       if (!ok) return;
       var p1 = new URLSearchParams(); p1.append('token', t); p1.append('days', 7); if (window.ADMIN_CSRF_TOKEN) p1.append('csrf_token', window.ADMIN_CSRF_TOKEN);
       fetch('revoke_entry.php', { method:'POST', body: p1 }).then(function(){
-        var p2 = new URLSearchParams(); p2.append('fingerprint', t); if (window.ADMIN_CSRF_TOKEN) p2.append('csrf_token', window.ADMIN_CSRF_TOKEN);
+        var p2 = new URLSearchParams(); p2.append('token', t); if (window.ADMIN_CSRF_TOKEN) p2.append('csrf_token', window.ADMIN_CSRF_TOKEN);
         return fetch('clear_device.php', { method:'POST', body: p2 });
       }).then(r=>r.json()).then(j=>{
         window.adminAlert('Done','Cleared & Revoked','success').then(()=>location.reload());
@@ -208,7 +219,8 @@ document.querySelectorAll('.revoke-token').forEach(function(b){
       var days = parseInt(res,10)||7;
       var p = new URLSearchParams(); p.append('token', t); p.append('days', days); if (window.ADMIN_CSRF_TOKEN) p.append('csrf_token', window.ADMIN_CSRF_TOKEN);
       fetch('revoke_entry.php', { method:'POST', body: p }).then(r=>r.json()).then(j=>{
-        Toast.fire({icon: 'success', title: 'Revocation added'});
+        if (j && j.ok) Toast.fire({icon: 'success', title: 'Revocation added'});
+        else window.adminAlert('Failed', (j && j.message) ? j.message : 'Could not revoke', 'error');
       }).catch(e=>window.adminAlert('Error','Could not revoke','error'));
     });
   });
@@ -223,7 +235,7 @@ document.getElementById('clearAllTokens')?.addEventListener('click', function(){
     var promises = tokens.map(function(t){
       var p1 = new URLSearchParams(); p1.append('token', t); p1.append('days', 7); if (window.ADMIN_CSRF_TOKEN) p1.append('csrf_token', window.ADMIN_CSRF_TOKEN);
       return fetch('revoke_entry.php', { method:'POST', body: p1 }).then(function(){
-        var p2 = new URLSearchParams(); p2.append('fingerprint', t); if (window.ADMIN_CSRF_TOKEN) p2.append('csrf_token', window.ADMIN_CSRF_TOKEN);
+        var p2 = new URLSearchParams(); p2.append('token', t); if (window.ADMIN_CSRF_TOKEN) p2.append('csrf_token', window.ADMIN_CSRF_TOKEN);
         return fetch('clear_device.php', { method:'POST', body: p2 });
       }).then(r=>r.json());
     });
@@ -241,7 +253,11 @@ document.getElementById('revokeAllTokens')?.addEventListener('click', function()
       var p = new URLSearchParams(); p.append('token', t); p.append('days', days); if (window.ADMIN_CSRF_TOKEN) p.append('csrf_token', window.ADMIN_CSRF_TOKEN);
       return fetch('revoke_entry.php', { method:'POST', body: p }).then(r=>r.json());
     });
-    Promise.all(promises).then(results=>{ window.adminAlert('Done','Revoked all','success'); }).catch(e=>window.adminAlert('Error','Failed','error'));
+    Promise.all(promises).then(results=>{
+      var failed = results.filter(function(x){ return !x || !x.ok; });
+      if (failed.length) window.adminAlert('Partial failure', 'Some tokens could not be revoked.', 'warning');
+      else window.adminAlert('Done','Revoked all','success');
+    }).catch(e=>window.adminAlert('Error','Failed','error'));
   });
 });
 

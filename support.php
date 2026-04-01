@@ -36,7 +36,7 @@ function append_support_ticket_atomic($ticketsFile, $ticket)
 
 $success = false;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   $name = trim($_POST['name'] ?? '');
   $matric = trim($_POST['matric'] ?? '');
   $message = trim($_POST['message'] ?? '');
@@ -296,12 +296,10 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 <body>
 
   <div class="container">
-    <?php if ($announcement['enabled'] && $announcement['message']): ?>
-      <div class="announcement-panel" style="display:block;">
-        <span class="announcement-title"><i class='bx bx-bell'></i> Announcement:</span>
-        <span><?= htmlspecialchars($announcement['message']) ?></span>
-      </div>
-    <?php endif; ?>
+    <div id="announcementPanel" class="announcement-panel" style="<?= !empty($announcement['enabled']) ? 'display:block;' : 'display:none;' ?>">
+      <span class="announcement-title"><i class='bx bx-bell'></i> Announcement:</span>
+      <span id="announcementText"><?= htmlspecialchars(trim((string)($announcement['message'] ?? '')) !== '' ? (string)$announcement['message'] : 'An important announcement is currently active.') ?></span>
+    </div>
 
     <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
     <h2><i class='bx bx-ticket'></i> Submit Support Ticket</h2>
@@ -351,6 +349,32 @@ if (isset($_COOKIE['attendanceBlocked'])) {
         console.error('Fingerprint error:', err);
       });
     });
+
+    // Keep announcement in sync with admin updates
+    const announcementPanel = document.getElementById('announcementPanel');
+    const announcementText = document.getElementById('announcementText');
+
+    function fetchAnnouncement() {
+      fetch('get_announcement.php', {
+          cache: 'no-store'
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.enabled) {
+            const msg = (data.message || '').trim();
+            announcementText.textContent = msg || 'An important announcement is currently active.';
+            announcementPanel.style.display = 'block';
+          } else {
+            announcementPanel.style.display = 'none';
+          }
+        })
+        .catch(err => {
+          console.error('Announcement fetch error:', err);
+        });
+    }
+
+    fetchAnnouncement();
+    setInterval(fetchAnnouncement, 10000);
   </script>
 </body>
 

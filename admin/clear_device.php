@@ -13,25 +13,67 @@ if (function_exists('csrf_check_request') && !csrf_check_request()) { header('HT
 // Accept fingerprint or matric to clear device-blocking state for today
 $fingerprint = trim($_POST['fingerprint'] ?? '');
 $matric = trim($_POST['matric'] ?? '');
+$token = trim($_POST['token'] ?? '');
+$ip = trim($_POST['ip'] ?? '');
+$mac = trim($_POST['mac'] ?? '');
 $today = date('Y-m-d');
 $adminLogs = __DIR__ . '/logs';
 $responses = ['cleared'=>[], 'skipped'=>[], 'errors'=>[]];
 
-if ($fingerprint === '' && $matric === '') {
+if ($fingerprint === '' && $matric === '' && $token === '' && $ip === '' && $mac === '') {
   header('Content-Type: application/json');
-  echo json_encode(['ok'=>false,'message'=>'fingerprint or matric required']);
+  echo json_encode(['ok'=>false,'message'=>'fingerprint, matric, token, ip, or mac required']);
   exit;
 }
 
-// Helper to read/write JSON stores (no encryption here)
-function read_json($file){ if (!file_exists($file)) return []; $c = @file_get_contents($file); $d = json_decode($c, true); return is_array($d) ? $d : []; }
-function write_json($file, $data){ @file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX); }
+// Helper to read/write JSON stores (supports ENC: encrypted files)
+function read_json($file){
+  if (!file_exists($file)) return [];
+  $c = @file_get_contents($file);
+  if (!is_string($c) || $c === '') return [];
+
+  if (strpos($c, 'ENC:') === 0) {
+    $keyFile = __DIR__ . '/.settings_key';
+    if (!file_exists($keyFile)) return [];
+    $key = trim((string)@file_get_contents($keyFile));
+    $blob = base64_decode(substr($c, 4));
+    if ($blob === false) return [];
+    $iv = substr($blob, 0, 16);
+    $ct = substr($blob, 16);
+    $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+    $d = json_decode((string)$plain, true);
+    return is_array($d) ? $d : [];
+  }
+
+  $d = json_decode($c, true);
+  return is_array($d) ? $d : [];
+}
+
+function write_json($file, $data){
+  $payload = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+  $current = file_exists($file) ? (string)@file_get_contents($file) : '';
+  $shouldEncrypt = (strpos($current, 'ENC:') === 0);
+
+  if (!$shouldEncrypt) {
+    @file_put_contents($file, $payload, LOCK_EX);
+    return;
+  }
+
+  $keyFile = __DIR__ . '/.settings_key';
+  if (!file_exists($keyFile)) {
+    @file_put_contents($file, $payload, LOCK_EX);
+    return;
+  }
+  $key = trim((string)@file_get_contents($keyFile));
+  $iv = random_bytes(16);
+  $ct = openssl_encrypt($payload, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+  @file_put_contents($file, 'ENC:' . base64_encode($iv . $ct), LOCK_EX);
+}
 
 // Target files for clearing
 $targets = [
   $adminLogs . "/fp_useragent_{$today}.json",
   $adminLogs . "/device_cooldowns_{$today}.json",
-  $adminLogs . "/fp_devices_{$today}.json",
   $adminLogs . "/fp_devices_{$today}.json",
 ];
 
@@ -44,6 +86,21 @@ foreach ($targets as $file) {
     // some files may use concatenated keys
     foreach ($data as $k => $v) {
       if (strpos($k, $fingerprint) !== false) { unset($data[$k]); $changed = true; }
+    }
+  }
+  if ($token !== '') {
+    foreach ($data as $k => $v) {
+      if (strpos($k, $token) !== false) { unset($data[$k]); $changed = true; }
+    }
+  }
+  if ($ip !== '') {
+    foreach ($data as $k => $v) {
+      if (strpos($k, $ip) !== false) { unset($data[$k]); $changed = true; }
+    }
+  }
+  if ($mac !== '') {
+    foreach ($data as $k => $v) {
+      if (strpos($k, $mac) !== false) { unset($data[$k]); $changed = true; }
     }
   }
   if ($matric !== '') {
@@ -59,6 +116,37 @@ foreach ($targets as $file) {
     }
   }
   if ($changed) { write_json($file, $data); $responses['cleared'][] = $file; }
+}
+
+// Also remove matching entries from blocked_tokens.log
+$blockedLog = $adminLogs . '/blocked_tokens.log';
+if (file_exists($blockedLog)) {
+  $lines = @file($blockedLog, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+  $kept = [];
+  $removed = 0;
+  foreach ($lines as $ln) {
+    $parts = array_map('trim', explode('|', $ln));
+    $lineToken = $parts[1] ?? '';
+    $lineFingerprint = $parts[2] ?? '';
+    $lineIp = $parts[3] ?? '';
+    $lineMac = $parts[4] ?? '';
+
+    $match = false;
+    if ($token !== '' && $lineToken !== '' && $lineToken === $token) $match = true;
+    if ($fingerprint !== '' && $lineFingerprint !== '' && $lineFingerprint === $fingerprint) $match = true;
+    if ($ip !== '' && $lineIp !== '' && $lineIp === $ip) $match = true;
+    if ($mac !== '' && $lineMac !== '' && $lineMac === $mac) $match = true;
+
+    if ($match) {
+      $removed++;
+      continue;
+    }
+    $kept[] = $ln;
+  }
+  if ($removed > 0) {
+    @file_put_contents($blockedLog, implode(PHP_EOL, $kept) . (empty($kept) ? '' : PHP_EOL), LOCK_EX);
+    $responses['cleared'][] = "blocked_tokens.log: {$removed} line(s) removed";
+  }
 }
 
 // Also remove cooldown entries that use composite keys
@@ -82,7 +170,7 @@ $remoteIp = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
 if (!empty($responses['cleared'])) {
     $timeStr = date('Y-m-d H:i:s');
     foreach ($responses['cleared'] as $f) {
-        $line = "$timeStr | clear_device | $adminUser | file:$f | key:" . ($fingerprint ?: $matric) . " | from:$remoteIp" . PHP_EOL;
+    $line = "$timeStr | clear_device | $adminUser | file:$f | key:" . ($fingerprint ?: ($matric ?: ($token ?: ($ip ?: $mac)))) . " | from:$remoteIp" . PHP_EOL;
         file_put_contents($auditFile, $line, FILE_APPEND | LOCK_EX);
     }
 }
