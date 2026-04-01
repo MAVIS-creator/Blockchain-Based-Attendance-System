@@ -89,6 +89,28 @@ if (file_exists($announcementFile)) {
       margin-right: 6px;
     }
 
+    .announcement-toast {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 9999;
+      background: #1f5d99;
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      box-shadow: 0 10px 24px rgba(24, 39, 75, 0.25);
+      font-size: 0.9rem;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+    }
+
+    .announcement-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
     @keyframes rise-in {
       from {
         opacity: 0;
@@ -219,6 +241,44 @@ if (file_exists($announcementFile)) {
   <script>
     const announcementPanel = document.getElementById('announcementPanel');
     const announcementText = document.getElementById('announcementText');
+    let announcementInitialized = false;
+    let lastAnnouncementSignature = JSON.stringify({
+      enabled: <?= !empty($announcement['enabled']) ? 'true' : 'false' ?>,
+      message: <?= json_encode((string)$announcement['message']) ?>
+    });
+
+    function playAnnouncementBeep() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.value = 0.0001;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.28);
+        osc.stop(ctx.currentTime + 0.3);
+      } catch (e) {
+        // ignore audio restrictions
+      }
+    }
+
+    function showAnnouncementChangedNotice() {
+      const toast = document.createElement('div');
+      toast.className = 'announcement-toast';
+      toast.textContent = '🔔 Announcement updated';
+      document.body.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add('show'));
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 220);
+      }, 2600);
+    }
 
     function fetchAnnouncement() {
       fetch('get_announcement.php', {
@@ -226,13 +286,23 @@ if (file_exists($announcementFile)) {
         })
         .then(res => res.json())
         .then(data => {
-          if (data && data.enabled) {
-            const msg = (data.message || '').trim();
+          const enabled = !!(data && data.enabled);
+          const msg = (data && data.message ? String(data.message) : '').trim();
+          const signature = JSON.stringify({ enabled, message: msg });
+
+          if (enabled) {
             announcementText.textContent = msg || 'An important announcement is currently active.';
             announcementPanel.style.display = 'block';
           } else {
             announcementPanel.style.display = 'none';
           }
+
+          if (announcementInitialized && signature !== lastAnnouncementSignature) {
+            showAnnouncementChangedNotice();
+            playAnnouncementBeep();
+          }
+          lastAnnouncementSignature = signature;
+          announcementInitialized = true;
         })
         .catch(() => {
           // keep current state quietly on fetch errors

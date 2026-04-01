@@ -8,6 +8,23 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Local secret keys
+admin/.settings_key
+
+# Mutable runtime data (do not version)
+admin/sessions.json
+admin/revoked.json
+admin/support_tickets.json
+admin/chat.json
+admin/backups/*.zip
+secure_logs/attendance_chain.json
+admin/logs/*.log
+admin/logs/*_failed_attempts.log
+admin/logs/device_cooldowns_*.json
+admin/logs/fp_devices_*.json
+admin/logs/fp_useragent_*.json
+admin/logs/hybrid_outbox.jsonl
+
 # Composer dependencies
 /vendor/
 vendor/

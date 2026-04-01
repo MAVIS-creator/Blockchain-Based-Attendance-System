@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/hybrid_dual_write.php';
+
 // ✅ Set timezone to Nigeria
 date_default_timezone_set('Africa/Lagos');
 
@@ -490,6 +492,21 @@ $block['hash'] = hash('sha256', json_encode($blockDataForHash, JSON_UNESCAPED_SL
 
 $chain[] = $block;
 file_put_contents($chainFile, json_encode($chain, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+
+// ✅ Optional hybrid dual-write (file remains source of truth)
+hybrid_dual_write('attendance', 'attendance_logs', [
+    'timestamp' => date('c'),
+    'name' => $name,
+    'matric' => $matric,
+    'action' => $action,
+    'fingerprint' => $fingerprint,
+    'ip' => $ip,
+    'mac' => $mac,
+    'user_agent' => $userAgent,
+    'course' => $course,
+    'reason' => $logReason,
+    'chain_hash' => $block['hash'],
+]);
 
 // ⚡ Optional: Polygon integration
 require_once __DIR__ . '/polygon_hash.php';
