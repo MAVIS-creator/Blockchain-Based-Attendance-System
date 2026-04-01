@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   $action = $_POST['action'] ?? '';
-  $privileged = in_array($action, ['create','delete','set_password'], true);
+  $privileged = in_array($action, ['create', 'delete', 'set_password'], true);
   if ($privileged && $currentRole !== 'superadmin') {
     $errors[] = 'Only super-admins can perform that action.';
   }
@@ -68,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = "Admin account '{$username}' created.";
       }
     }
-
   } elseif ($action === 'delete') {
     $target = trim($_POST['target'] ?? '');
     if ($target === '') {
@@ -93,7 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
       }
     }
-
   } elseif ($action === 'change_self') {
     $currentUser = $_SESSION['admin_user'] ?? '';
     $old = $_POST['current_password'] ?? '';
@@ -116,7 +114,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Your password has been changed.';
       }
     }
-
   } elseif ($action === 'set_password') {
     $target = trim($_POST['target'] ?? '');
     $new = $_POST['new_password'] ?? '';
@@ -143,7 +140,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <?php if ($message): ?><div class="alert alert-success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
-  <?php if ($errors): ?><div class="alert alert-danger"><ul style="margin:0;padding-left:18px;"><?php foreach($errors as $e) echo '<li>'.htmlspecialchars($e).'</li>'; ?></ul></div><?php endif; ?>
+  <?php if ($errors): ?><div class="alert alert-danger">
+      <ul style="margin:0;padding-left:18px;"><?php foreach ($errors as $e) echo '<li>' . htmlspecialchars($e) . '</li>'; ?></ul>
+    </div><?php endif; ?>
 
   <!-- Accounts Table -->
   <div class="st-card" style="padding:0;margin-bottom:20px;overflow-x:auto;">
@@ -159,49 +158,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </thead>
       <tbody>
         <?php foreach ($accounts as $u => $info): ?>
-        <tr>
-          <td style="font-weight:600;"><?= htmlspecialchars($u) ?></td>
-          <td><?= htmlspecialchars($info['name'] ?? '') ?></td>
-          <td>
-            <?php if (!empty($info['email'])): ?>
+          <tr>
+            <td style="font-weight:600;"><?= htmlspecialchars($u) ?></td>
+            <td><?= htmlspecialchars($info['name'] ?? '') ?></td>
+            <td>
+              <?php if (!empty($info['email'])): ?>
                 <a href="mailto:<?= htmlspecialchars($info['email']) ?>?subject=Smart Attendance System Invitation&body=You have been invited as an admin. Username: <?= htmlspecialchars($u) ?>" style="color:var(--primary);text-decoration:none;"><?= htmlspecialchars($info['email']) ?></a>
-            <?php else: ?>
-                <span style="color:var(--outline);">—</span>
-            <?php endif; ?>
-          </td>
-          <td>
-            <span class="st-chip <?= ($info['role'] ?? 'admin') === 'superadmin' ? 'st-chip-info' : 'st-chip-neutral' ?>">
-              <?= htmlspecialchars($info['role'] ?? 'admin') ?>
-            </span>
-          </td>
-          <td style="text-align:right;">
-            <?php if ($currentRole === 'superadmin'): ?>
-              <?php if ($u !== ($_SESSION['admin_user'] ?? '')): ?>
-                <div style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
-                  <form method="POST" style="display:inline;margin:0;">
-                    <?php csrf_field(); ?>
-                    <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="target" value="<?= htmlspecialchars($u) ?>">
-                    <button type="submit" class="st-btn st-btn-danger st-btn-sm">
-                      <span class="material-symbols-outlined" style="font-size:0.9rem;">delete</span>
-                    </button>
-                  </form>
-                  <form method="POST" style="display:inline-flex;gap:4px;margin:0;align-items:center;">
-                    <?php csrf_field(); ?>
-                    <input type="hidden" name="action" value="set_password">
-                    <input type="hidden" name="target" value="<?= htmlspecialchars($u) ?>">
-                    <input type="password" name="new_password" placeholder="New pwd" style="width:120px;padding:6px 8px;font-size:0.85rem;">
-                    <button type="submit" class="st-btn st-btn-sm" style="background:#f59e0b;color:#fff;">Set</button>
-                  </form>
-                </div>
               <?php else: ?>
-                <span class="st-chip st-chip-neutral">(you)</span>
+                <span style="color:var(--outline);">—</span>
               <?php endif; ?>
-            <?php else: ?>
-              <span style="color:var(--outline);">—</span>
-            <?php endif; ?>
-          </td>
-        </tr>
+            </td>
+            <td>
+              <span class="st-chip <?= ($info['role'] ?? 'admin') === 'superadmin' ? 'st-chip-info' : 'st-chip-neutral' ?>">
+                <?= htmlspecialchars($info['role'] ?? 'admin') ?>
+              </span>
+            </td>
+            <td style="text-align:right;">
+              <?php if ($currentRole === 'superadmin'): ?>
+                <?php if ($u !== ($_SESSION['admin_user'] ?? '')): ?>
+                  <div style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+                    <form method="POST" style="display:inline;margin:0;">
+                      <?php csrf_field(); ?>
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="target" value="<?= htmlspecialchars($u) ?>">
+                      <button type="submit" class="st-btn st-btn-danger st-btn-sm">
+                        <span class="material-symbols-outlined" style="font-size:0.9rem;">delete</span>
+                      </button>
+                    </form>
+                    <form method="POST" style="display:inline-flex;gap:4px;margin:0;align-items:center;">
+                      <?php csrf_field(); ?>
+                      <input type="hidden" name="action" value="set_password">
+                      <input type="hidden" name="target" value="<?= htmlspecialchars($u) ?>">
+                      <input type="password" name="new_password" placeholder="New pwd" style="width:120px;padding:6px 8px;font-size:0.85rem;">
+                      <button type="submit" class="st-btn st-btn-sm" style="background:#f59e0b;color:#fff;">Set</button>
+                    </form>
+                  </div>
+                <?php else: ?>
+                  <span class="st-chip st-chip-neutral">(you)</span>
+                <?php endif; ?>
+              <?php else: ?>
+                <span style="color:var(--outline);">—</span>
+              <?php endif; ?>
+            </td>
+          </tr>
         <?php endforeach; ?>
       </tbody>
     </table>
@@ -209,34 +208,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <!-- Create Admin -->
   <?php if ($currentRole === 'superadmin'): ?>
-  <div class="st-card" style="margin-bottom:20px;">
-    <p style="font-weight:700;color:var(--on-surface);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
-      <span class="material-symbols-outlined" style="font-size:1.1rem;">person_add</span> Create Admin
-    </p>
-    <form method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
-      <?php csrf_field(); ?>
-      <input name="action" type="hidden" value="create">
-      <div>
-        <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Username</label>
-        <input name="username" placeholder="username" required>
-      </div>
-      <div>
-        <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Full Name</label>
-        <input name="fullname" placeholder="Full Name">
-      </div>
-      <div>
-        <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Email</label>
-        <input name="email" type="email" placeholder="admin@domain.com">
-      </div>
-      <div>
-        <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Password</label>
-        <input name="password" type="password" placeholder="password" required>
-      </div>
-      <button type="submit" class="st-btn st-btn-success">
-        <span class="material-symbols-outlined" style="font-size:1rem;">add</span> Create
-      </button>
-    </form>
-  </div>
+    <div class="st-card" style="margin-bottom:20px;">
+      <p style="font-weight:700;color:var(--on-surface);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+        <span class="material-symbols-outlined" style="font-size:1.1rem;">person_add</span> Create Admin
+      </p>
+      <form method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+        <?php csrf_field(); ?>
+        <input name="action" type="hidden" value="create">
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Username</label>
+          <input name="username" placeholder="username" required>
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Full Name</label>
+          <input name="fullname" placeholder="Full Name">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Email</label>
+          <input name="email" type="email" placeholder="admin@domain.com">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Password</label>
+          <input name="password" type="password" placeholder="password" required>
+        </div>
+        <button type="submit" class="st-btn st-btn-success">
+          <span class="material-symbols-outlined" style="font-size:1rem;">add</span> Create
+        </button>
+      </form>
+    </div>
   <?php else: ?>
     <p style="color:var(--outline);font-style:italic;">Only super-admins can create new admin accounts.</p>
   <?php endif; ?>

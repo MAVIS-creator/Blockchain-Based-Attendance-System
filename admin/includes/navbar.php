@@ -54,23 +54,23 @@
           <li><a href="index.php?page=announcement" class="<?= $page == 'announcement' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">campaign</span>Announcement</a></li>
           <li><a href="index.php?page=unlink_fingerprint" class="<?= $page == 'unlink_fingerprint' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">link_off</span>Unlink Fingerprint</a></li>
           <li><a href="index.php?page=support_tickets" class="<?= $page == 'support_tickets' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">confirmation_number</span>Support Tickets
-            <?php
-            $ticketCount = 0;
-            $ticketsFile = __DIR__ . '/../support_tickets.json';
-            if (file_exists($ticketsFile)) {
-              $tickets = json_decode(file_get_contents($ticketsFile), true);
-              if (is_array($tickets)) {
-                foreach ($tickets as $t) {
-                  if (!($t['resolved'] ?? false)) {
-                    $ticketCount++;
+              <?php
+              $ticketCount = 0;
+              $ticketsFile = __DIR__ . '/../support_tickets.json';
+              if (file_exists($ticketsFile)) {
+                $tickets = json_decode(file_get_contents($ticketsFile), true);
+                if (is_array($tickets)) {
+                  foreach ($tickets as $t) {
+                    if (!($t['resolved'] ?? false)) {
+                      $ticketCount++;
+                    }
                   }
                 }
               }
-            }
-            if ($ticketCount > 0): ?>
-              <span class="nav-badge" style="margin-left:auto;background:var(--error);color:#fff;border-radius:10px;padding:2px 6px;font-size:0.7rem;font-weight:700;"><?= $ticketCount ?></span>
-            <?php endif; ?>
-          </a></li>
+              if ($ticketCount > 0): ?>
+                <span class="nav-badge" style="margin-left:auto;background:var(--error);color:#fff;border-radius:10px;padding:2px 6px;font-size:0.7rem;font-weight:700;"><?= $ticketCount ?></span>
+              <?php endif; ?>
+            </a></li>
         </ul>
       </li>
     </ul>
@@ -191,11 +191,41 @@
 
   // Theme Manager
   const themes = {
-    blue: { p: '#00457b', op: '#ffffff', pc: '#005699', sf: '#002340', st: '#003766' },
-    emerald: { p: '#059669', op: '#ffffff', pc: '#047857', sf: '#064e3b', st: '#065f46' },
-    crimson: { p: '#dc2626', op: '#ffffff', pc: '#b91c1c', sf: '#450a0a', st: '#7f1d1d' },
-    violet: { p: '#7c3aed', op: '#ffffff', pc: '#6d28d9', sf: '#2e1065', st: '#4c1d95' },
-    slate: { p: '#334155', op: '#ffffff', pc: '#1e293b', sf: '#0f172a', st: '#1e293b' }
+    blue: {
+      p: '#00457b',
+      op: '#ffffff',
+      pc: '#005699',
+      sf: '#002340',
+      st: '#003766'
+    },
+    emerald: {
+      p: '#059669',
+      op: '#ffffff',
+      pc: '#047857',
+      sf: '#064e3b',
+      st: '#065f46'
+    },
+    crimson: {
+      p: '#dc2626',
+      op: '#ffffff',
+      pc: '#b91c1c',
+      sf: '#450a0a',
+      st: '#7f1d1d'
+    },
+    violet: {
+      p: '#7c3aed',
+      op: '#ffffff',
+      pc: '#6d28d9',
+      sf: '#2e1065',
+      st: '#4c1d95'
+    },
+    slate: {
+      p: '#334155',
+      op: '#ffffff',
+      pc: '#1e293b',
+      sf: '#0f172a',
+      st: '#1e293b'
+    }
   };
 
   function applyTheme(name) {
@@ -222,5 +252,4 @@
 
   const savedTheme = localStorage.getItem('stitch_theme');
   if (savedTheme) applyTheme(savedTheme);
-
 </script>

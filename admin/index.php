@@ -11,21 +11,21 @@ if (!isset($_SESSION['admin_logged_in'])) {
 $sessionsFile = __DIR__ . '/sessions.json';
 $currentSessionId = session_id();
 if (file_exists($sessionsFile)) {
-    $activeSessions = json_decode(file_get_contents($sessionsFile), true);
-    if (!is_array($activeSessions)) $activeSessions = [];
-    
-    // If tracking is active but our session isn't in it, we were terminated
-    if (!isset($activeSessions[$currentSessionId])) {
-        // Destroy PHP session and logout
-        session_unset();
-        session_destroy();
-        header('Location: login.php?msg=session_terminated');
-        exit;
-    } else {
-        // Update last activity
-        $activeSessions[$currentSessionId]['last_activity'] = time();
-        file_put_contents($sessionsFile, json_encode($activeSessions, JSON_PRETTY_PRINT));
-    }
+  $activeSessions = json_decode(file_get_contents($sessionsFile), true);
+  if (!is_array($activeSessions)) $activeSessions = [];
+
+  // If tracking is active but our session isn't in it, we were terminated
+  if (!isset($activeSessions[$currentSessionId])) {
+    // Destroy PHP session and logout
+    session_unset();
+    session_destroy();
+    header('Location: login.php?msg=session_terminated');
+    exit;
+  } else {
+    // Update last activity
+    $activeSessions[$currentSessionId]['last_activity'] = time();
+    file_put_contents($sessionsFile, json_encode($activeSessions, JSON_PRETTY_PRINT));
+  }
 }
 
 $page = $_GET['page'] ?? 'dashboard';
@@ -45,15 +45,16 @@ $routes = [
   'manual_attendance'  => 'manual_attendance.php',
   'support_tickets'    => 'view_tickets.php',
   'unlink_fingerprint' => 'unlink_fingerprint.php',
-  'announcement'       => 'announcement.php'
-  ,'send_logs_email'   => 'send_logs_email.php'
-  ,'profile_settings'  => 'profile_settings.php'
+  'announcement'       => 'announcement.php',
+  'send_logs_email'   => 'send_logs_email.php',
+  'profile_settings'  => 'profile_settings.php'
 ];
 $view = $routes[$page] ?? 'dashboard.php';
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -75,38 +76,42 @@ $view = $routes[$page] ?? 'dashboard.php';
   <link rel="icon" type="image/png" sizes="16x16" href="../asset/favicon-16x16.png">
   <link rel="manifest" href="../asset/site.webmanifest">
 </head>
+
 <body class="admin-page-<?= htmlspecialchars($page) ?>">
 
-<div class="layout">
+  <div class="layout">
 
-  <?php include 'includes/navbar.php'; ?>
-  <?php include 'includes/sidebar.php'; ?>
+    <?php include 'includes/navbar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
 
-  <div class="main-content">
-    <?php include 'includes/header.php'; ?>
-    <div class="content-wrapper">
-      <?php include $view; ?>
+    <div class="main-content">
+      <?php include 'includes/header.php'; ?>
+      <div class="content-wrapper">
+        <?php include $view; ?>
+      </div>
+      <?php include 'includes/footer.php'; ?>
     </div>
-    <?php include 'includes/footer.php'; ?>
+
   </div>
 
-</div>
-
-<script>
-function toggleSidebar() {
-  const sidebar = document.querySelector('.sidebar');
-  const body = document.body;
-  if (sidebar.classList.contains('open')) {
-    sidebar.classList.remove('open');
-    body.classList.remove('sidebar-open');
-    body.style.overflow = '';
-  } else {
-    sidebar.classList.add('open');
-    body.classList.add('sidebar-open');
-    body.style.overflow = 'hidden';
-  }
-}
-</script>
-<?php if (function_exists('ob_end_flush')) { @ob_end_flush(); } ?>
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      const body = document.body;
+      if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        body.classList.remove('sidebar-open');
+        body.style.overflow = '';
+      } else {
+        sidebar.classList.add('open');
+        body.classList.add('sidebar-open');
+        body.style.overflow = 'hidden';
+      }
+    }
+  </script>
+  <?php if (function_exists('ob_end_flush')) {
+    @ob_end_flush();
+  } ?>
 </body>
+
 </html>
