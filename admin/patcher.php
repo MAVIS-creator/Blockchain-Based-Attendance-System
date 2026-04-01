@@ -235,7 +235,8 @@ if (isset($_GET['api'])) {
 ?>
 
 <style>
-  html, body.admin-page-patcher {
+  html,
+  body.admin-page-patcher {
     height: 100% !important;
   }
 
@@ -254,9 +255,9 @@ if (isset($_GET['api'])) {
 
   body.admin-page-patcher .navbar,
   body.admin-page-patcher .sidebar,
-  body.admin-page-patcher .main-content > .header,
-  body.admin-page-patcher .main-content > footer,
-  body.admin-page-patcher .main-content > .footer {
+  body.admin-page-patcher .main-content>.header,
+  body.admin-page-patcher .main-content>footer,
+  body.admin-page-patcher .main-content>.footer {
     display: none !important;
   }
 
@@ -313,10 +314,12 @@ if (isset($_GET['api'])) {
   #cmdOutput {
     overflow: auto;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y pan-x;
   }
 
   #editor {
     min-width: 0;
+    touch-action: pan-y pan-x;
   }
 
   @media (max-width: 1100px) {
@@ -398,457 +401,525 @@ if (isset($_GET['api'])) {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"></script>
 <script>
-(function(){
-  var csrfToken = <?= json_encode($csrf) ?>;
-  var editor = null;
-  var currentFile = '';
-  var allFiles = [];
-  var expandedDirs = {};
-  var lastSavedContent = '';
-  var isDirty = false;
-  var outputCollapsed = false;
-  var apiBaseUrl = null;
+  (function() {
+    var csrfToken = <?= json_encode($csrf) ?>;
+    var editor = null;
+    var currentFile = '';
+    var allFiles = [];
+    var expandedDirs = {};
+    var lastSavedContent = '';
+    var isDirty = false;
+    var outputCollapsed = false;
+    var apiBaseUrl = null;
 
-  function getApiBaseUrl(){
-    if (apiBaseUrl) return apiBaseUrl;
-    var path = window.location.pathname || '';
-    var dir = path.replace(/\/[^\/]*$/, '/');
-    apiBaseUrl = dir + 'patcher.php';
-    return apiBaseUrl;
-  }
-
-  function labelForLang(path){
-    var p = (path || '').toLowerCase();
-    if (p === '.env' || p.endsWith('.env')) return 'ENV';
-    if (p.endsWith('.sql')) return 'SQL';
-    if (p.endsWith('.php')) return 'PHP';
-    if (p.endsWith('.json')) return 'JSON';
-    if (p.endsWith('.js')) return 'JavaScript';
-    if (p.endsWith('.css')) return 'CSS';
-    if (p.endsWith('.html')) return 'HTML';
-    if (p.endsWith('.md')) return 'Markdown';
-    if (p.endsWith('.txt')) return 'Plain Text';
-    return 'Plain Text';
-  }
-
-  function updateStatusBar(){
-    var sbFile = document.getElementById('sbFile');
-    var sbDirty = document.getElementById('sbDirty');
-    var sbLang = document.getElementById('sbLang');
-    if (sbFile) sbFile.textContent = currentFile || 'No file';
-    if (sbDirty) {
-      sbDirty.textContent = isDirty ? 'Unsaved changes' : 'Saved';
-      sbDirty.style.color = isDirty ? '#fca5a5' : '#86efac';
+    function getApiBaseUrl() {
+      if (apiBaseUrl) return apiBaseUrl;
+      var path = window.location.pathname || '';
+      var dir = path.replace(/\/[^\/]*$/, '/');
+      apiBaseUrl = dir + 'patcher.php';
+      return apiBaseUrl;
     }
-    if (sbLang) sbLang.textContent = labelForLang(currentFile);
-  }
 
-  function updateCursorStatus(){
-    var sbCursor = document.getElementById('sbCursor');
-    if (!sbCursor || !editor) return;
-    var pos = editor.getPosition();
-    var line = (pos && pos.lineNumber) ? pos.lineNumber : 1;
-    var col = (pos && pos.column) ? pos.column : 1;
-    sbCursor.textContent = 'Ln ' + line + ', Col ' + col;
-  }
-
-  function setStatus(msg, isErr){
-    var el = document.getElementById('statusText');
-    if (!el) return;
-    el.textContent = msg || '';
-    el.style.color = isErr ? '#fca5a5' : '#93c5fd';
-  }
-
-  function setOutput(text){
-    var out = document.getElementById('cmdOutput');
-    if (!out) return;
-    out.textContent = text || '';
-  }
-
-  function setCurrentFile(path){
-    currentFile = path || '';
-    var lbl = document.getElementById('currentFileLabel');
-    if (lbl) lbl.textContent = (currentFile || 'No file selected') + (isDirty ? ' • unsaved' : '');
-    updateStatusBar();
-  }
-
-  function updateDirtyState(nextDirty){
-    isDirty = !!nextDirty;
-    setCurrentFile(currentFile);
-    updateStatusBar();
-  }
-
-  function ensureCanLeave(message){
-    if (!isDirty) return true;
-    return window.confirm(message || 'You have unsaved changes. Save before leaving this page?');
-  }
-
-  function updateTerminalCollapsedState(){
-    var wrap = document.getElementById('cmdOutputWrap');
-    var btn = document.getElementById('btnToggleOutput');
-    if (!wrap || !btn) return;
-    wrap.classList.toggle('collapsed', outputCollapsed);
-    btn.textContent = outputCollapsed ? 'Terminal ▸' : 'Terminal ▾';
-  }
-
-  function encodeForm(data){
-    var p = new URLSearchParams();
-    Object.keys(data || {}).forEach(function(k){ p.append(k, data[k] == null ? '' : String(data[k])); });
-    return p.toString();
-  }
-
-  function api(action, method, data){
-    method = method || 'GET';
-    var opts = { method: method, credentials: 'same-origin', headers: { 'Cache-Control':'no-store' } };
-    if (method !== 'GET') {
-      opts.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
-      opts.headers['X-CSRF-Token'] = csrfToken;
-      opts.body = encodeForm(data || {});
+    function labelForLang(path) {
+      var p = (path || '').toLowerCase();
+      if (p === '.env' || p.endsWith('.env')) return 'ENV';
+      if (p.endsWith('.sql')) return 'SQL';
+      if (p.endsWith('.php')) return 'PHP';
+      if (p.endsWith('.json')) return 'JSON';
+      if (p.endsWith('.js')) return 'JavaScript';
+      if (p.endsWith('.css')) return 'CSS';
+      if (p.endsWith('.html')) return 'HTML';
+      if (p.endsWith('.md')) return 'Markdown';
+      if (p.endsWith('.txt')) return 'Plain Text';
+      return 'Plain Text';
     }
-    var url = getApiBaseUrl() + '?api=' + encodeURIComponent(action) + '&_ts=' + Date.now();
-    return fetch(url, opts).then(async function(r){
-      var text = await r.text();
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        var preview = String(text || '').replace(/\s+/g, ' ').slice(0, 220);
-        throw new Error('Server returned non-JSON response. Preview: ' + preview);
+
+    function updateStatusBar() {
+      var sbFile = document.getElementById('sbFile');
+      var sbDirty = document.getElementById('sbDirty');
+      var sbLang = document.getElementById('sbLang');
+      if (sbFile) sbFile.textContent = currentFile || 'No file';
+      if (sbDirty) {
+        sbDirty.textContent = isDirty ? 'Unsaved changes' : 'Saved';
+        sbDirty.style.color = isDirty ? '#fca5a5' : '#86efac';
       }
-    });
-  }
+      if (sbLang) sbLang.textContent = labelForLang(currentFile);
+    }
 
-  function guessLang(path){
-    var p = (path || '').toLowerCase();
-    if (p.endsWith('.php')) return 'php';
-    if (p.endsWith('.json')) return 'json';
-    if (p.endsWith('.js')) return 'javascript';
-    if (p.endsWith('.css')) return 'css';
-    if (p.endsWith('.html')) return 'html';
-    if (p.endsWith('.md')) return 'markdown';
-    return 'plaintext';
-  }
+    function updateCursorStatus() {
+      var sbCursor = document.getElementById('sbCursor');
+      if (!sbCursor || !editor) return;
+      var pos = editor.getPosition();
+      var line = (pos && pos.lineNumber) ? pos.lineNumber : 1;
+      var col = (pos && pos.column) ? pos.column : 1;
+      sbCursor.textContent = 'Ln ' + line + ', Col ' + col;
+    }
 
-  function createTree(files){
-    var root = { type: 'dir', name: '', path: '', dirs: {}, files: [] };
-    (files || []).forEach(function(item){
-      var fullPath = String(item.path || '');
-      if (!fullPath) return;
-      var parts = fullPath.split('/');
-      var node = root;
-      var walk = '';
-      for (var i = 0; i < parts.length; i++) {
-        var name = parts[i];
-        if (!name) continue;
-        walk = walk ? (walk + '/' + name) : name;
-        var isFile = i === parts.length - 1;
-        if (isFile) {
-          node.files.push({ name: name, path: fullPath });
-        } else {
-          if (!node.dirs[name]) {
-            node.dirs[name] = { type: 'dir', name: name, path: walk, dirs: {}, files: [] };
-            if (walk.indexOf('/') === -1 && expandedDirs[walk] === undefined) {
-              expandedDirs[walk] = true;
+    function setStatus(msg, isErr) {
+      var el = document.getElementById('statusText');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.style.color = isErr ? '#fca5a5' : '#93c5fd';
+    }
+
+    function setOutput(text) {
+      var out = document.getElementById('cmdOutput');
+      if (!out) return;
+      out.textContent = text || '';
+    }
+
+    function setCurrentFile(path) {
+      currentFile = path || '';
+      var lbl = document.getElementById('currentFileLabel');
+      if (lbl) lbl.textContent = (currentFile || 'No file selected') + (isDirty ? ' • unsaved' : '');
+      updateStatusBar();
+    }
+
+    function updateDirtyState(nextDirty) {
+      isDirty = !!nextDirty;
+      setCurrentFile(currentFile);
+      updateStatusBar();
+    }
+
+    function ensureCanLeave(message) {
+      if (!isDirty) return true;
+      return window.confirm(message || 'You have unsaved changes. Save before leaving this page?');
+    }
+
+    function updateTerminalCollapsedState() {
+      var wrap = document.getElementById('cmdOutputWrap');
+      var btn = document.getElementById('btnToggleOutput');
+      if (!wrap || !btn) return;
+      wrap.classList.toggle('collapsed', outputCollapsed);
+      btn.textContent = outputCollapsed ? 'Terminal ▸' : 'Terminal ▾';
+    }
+
+    function encodeForm(data) {
+      var p = new URLSearchParams();
+      Object.keys(data || {}).forEach(function(k) {
+        p.append(k, data[k] == null ? '' : String(data[k]));
+      });
+      return p.toString();
+    }
+
+    function api(action, method, data) {
+      method = method || 'GET';
+      var opts = {
+        method: method,
+        credentials: 'same-origin',
+        headers: {
+          'Cache-Control': 'no-store'
+        }
+      };
+      if (method !== 'GET') {
+        opts.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+        opts.headers['X-CSRF-Token'] = csrfToken;
+        opts.body = encodeForm(data || {});
+      }
+      var url = getApiBaseUrl() + '?api=' + encodeURIComponent(action) + '&_ts=' + Date.now();
+      return fetch(url, opts).then(async function(r) {
+        var text = await r.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          var preview = String(text || '').replace(/\s+/g, ' ').slice(0, 220);
+          throw new Error('Server returned non-JSON response. Preview: ' + preview);
+        }
+      });
+    }
+
+    function guessLang(path) {
+      var p = (path || '').toLowerCase();
+      if (p.endsWith('.php')) return 'php';
+      if (p.endsWith('.json')) return 'json';
+      if (p.endsWith('.js')) return 'javascript';
+      if (p.endsWith('.css')) return 'css';
+      if (p.endsWith('.html')) return 'html';
+      if (p.endsWith('.md')) return 'markdown';
+      return 'plaintext';
+    }
+
+    function createTree(files) {
+      var root = {
+        type: 'dir',
+        name: '',
+        path: '',
+        dirs: {},
+        files: []
+      };
+      (files || []).forEach(function(item) {
+        var fullPath = String(item.path || '');
+        if (!fullPath) return;
+        var parts = fullPath.split('/');
+        var node = root;
+        var walk = '';
+        for (var i = 0; i < parts.length; i++) {
+          var name = parts[i];
+          if (!name) continue;
+          walk = walk ? (walk + '/' + name) : name;
+          var isFile = i === parts.length - 1;
+          if (isFile) {
+            node.files.push({
+              name: name,
+              path: fullPath
+            });
+          } else {
+            if (!node.dirs[name]) {
+              node.dirs[name] = {
+                type: 'dir',
+                name: name,
+                path: walk,
+                dirs: {},
+                files: []
+              };
+              if (walk.indexOf('/') === -1 && expandedDirs[walk] === undefined) {
+                expandedDirs[walk] = true;
+              }
             }
+            node = node.dirs[name];
           }
-          node = node.dirs[name];
+        }
+      });
+      return root;
+    }
+
+    function dirMatches(node, query) {
+      if (!query) return true;
+      var dirNames = Object.keys(node.dirs || {});
+      for (var i = 0; i < dirNames.length; i++) {
+        var d = node.dirs[dirNames[i]];
+        if (d.path.toLowerCase().indexOf(query) !== -1) return true;
+        if (dirMatches(d, query)) return true;
+      }
+      for (var j = 0; j < (node.files || []).length; j++) {
+        if ((node.files[j].path || '').toLowerCase().indexOf(query) !== -1) return true;
+      }
+      return false;
+    }
+
+    function renderDir(node, depth, query) {
+      var html = '';
+      var dirNames = Object.keys(node.dirs || {}).sort();
+
+      for (var i = 0; i < dirNames.length; i++) {
+        var d = node.dirs[dirNames[i]];
+        if (!dirMatches(d, query)) continue;
+
+        var isExpanded = query ? true : (expandedDirs[d.path] !== false);
+        var chevron = isExpanded ? '▾' : '▸';
+        var pad = 8 + depth * 14;
+
+        html += '<div class="tree-row dir" data-dir="' + escapeHtml(d.path) + '" style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px ' + pad + 'px;color:#cbd5e1;font-size:0.8rem;cursor:pointer;border-radius:6px;">';
+        html += '<span data-toggle-dir="' + escapeHtml(d.path) + '" style="width:14px;display:inline-block;color:#94a3b8;">' + chevron + '</span>';
+        html += '<span style="color:#fbbf24;">📁</span>';
+        html += '<span>' + escapeHtml(d.name) + '</span>';
+        html += '</div>';
+
+        if (isExpanded) {
+          html += renderDir(d, depth + 1, query);
         }
       }
-    });
-    return root;
-  }
 
-  function dirMatches(node, query){
-    if (!query) return true;
-    var dirNames = Object.keys(node.dirs || {});
-    for (var i = 0; i < dirNames.length; i++) {
-      var d = node.dirs[dirNames[i]];
-      if (d.path.toLowerCase().indexOf(query) !== -1) return true;
-      if (dirMatches(d, query)) return true;
-    }
-    for (var j = 0; j < (node.files || []).length; j++) {
-      if ((node.files[j].path || '').toLowerCase().indexOf(query) !== -1) return true;
-    }
-    return false;
-  }
-
-  function renderDir(node, depth, query){
-    var html = '';
-    var dirNames = Object.keys(node.dirs || {}).sort();
-
-    for (var i = 0; i < dirNames.length; i++) {
-      var d = node.dirs[dirNames[i]];
-      if (!dirMatches(d, query)) continue;
-
-      var isExpanded = query ? true : (expandedDirs[d.path] !== false);
-      var chevron = isExpanded ? '▾' : '▸';
-      var pad = 8 + depth * 14;
-
-      html += '<div class="tree-row dir" data-dir="' + escapeHtml(d.path) + '" style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px ' + pad + 'px;color:#cbd5e1;font-size:0.8rem;cursor:pointer;border-radius:6px;">';
-      html += '<span data-toggle-dir="' + escapeHtml(d.path) + '" style="width:14px;display:inline-block;color:#94a3b8;">' + chevron + '</span>';
-      html += '<span style="color:#fbbf24;">📁</span>';
-      html += '<span>' + escapeHtml(d.name) + '</span>';
-      html += '</div>';
-
-      if (isExpanded) {
-        html += renderDir(d, depth + 1, query);
+      var files = (node.files || []).slice().sort(function(a, b) {
+        return a.name.localeCompare(b.name);
+      });
+      for (var k = 0; k < files.length; k++) {
+        var f = files[k];
+        if (query && (f.path || '').toLowerCase().indexOf(query) === -1) continue;
+        var fPad = 8 + depth * 14 + 18;
+        var isActive = currentFile === f.path;
+        html += '<div class="tree-row file" data-open-file="' + escapeHtml(f.path) + '" style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px ' + fPad + 'px;color:' + (isActive ? '#bfdbfe' : '#e2e8f0') + ';font-size:0.8rem;cursor:pointer;border-radius:6px;' + (isActive ? 'background:#1e3a8a55;' : '') + '">';
+        html += '<span style="width:14px;display:inline-block;"></span>';
+        html += '<span style="color:#60a5fa;">📄</span>';
+        html += '<span>' + escapeHtml(f.name) + '</span>';
+        html += '</div>';
       }
+
+      return html;
     }
 
-    var files = (node.files || []).slice().sort(function(a, b){ return a.name.localeCompare(b.name); });
-    for (var k = 0; k < files.length; k++) {
-      var f = files[k];
-      if (query && (f.path || '').toLowerCase().indexOf(query) === -1) continue;
-      var fPad = 8 + depth * 14 + 18;
-      var isActive = currentFile === f.path;
-      html += '<div class="tree-row file" data-open-file="' + escapeHtml(f.path) + '" style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px ' + fPad + 'px;color:' + (isActive ? '#bfdbfe' : '#e2e8f0') + ';font-size:0.8rem;cursor:pointer;border-radius:6px;' + (isActive ? 'background:#1e3a8a55;' : '') + '">';
-      html += '<span style="width:14px;display:inline-block;"></span>';
-      html += '<span style="color:#60a5fa;">📄</span>';
-      html += '<span>' + escapeHtml(f.name) + '</span>';
-      html += '</div>';
-    }
+    function wireTreeEvents() {
+      var wrap = document.getElementById('fileList');
+      if (!wrap) return;
 
-    return html;
-  }
-
-  function wireTreeEvents(){
-    var wrap = document.getElementById('fileList');
-    if (!wrap) return;
-
-    Array.from(wrap.querySelectorAll('[data-toggle-dir]')).forEach(function(el){
-      el.addEventListener('click', function(e){
-        e.stopPropagation();
-        var dir = this.getAttribute('data-toggle-dir') || '';
-        expandedDirs[dir] = !(expandedDirs[dir] !== false);
-        renderFiles(allFiles);
+      Array.from(wrap.querySelectorAll('[data-toggle-dir]')).forEach(function(el) {
+        el.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var dir = this.getAttribute('data-toggle-dir') || '';
+          expandedDirs[dir] = !(expandedDirs[dir] !== false);
+          renderFiles(allFiles);
+        });
       });
-    });
 
-    Array.from(wrap.querySelectorAll('.tree-row.dir')).forEach(function(el){
-      el.addEventListener('click', function(){
-        var dir = this.getAttribute('data-dir') || '';
-        expandedDirs[dir] = !(expandedDirs[dir] !== false);
-        renderFiles(allFiles);
+      Array.from(wrap.querySelectorAll('.tree-row.dir')).forEach(function(el) {
+        el.addEventListener('click', function() {
+          var dir = this.getAttribute('data-dir') || '';
+          expandedDirs[dir] = !(expandedDirs[dir] !== false);
+          renderFiles(allFiles);
+        });
+        el.addEventListener('mouseenter', function() {
+          this.style.background = '#1e293b';
+        });
+        el.addEventListener('mouseleave', function() {
+          this.style.background = 'transparent';
+        });
       });
-      el.addEventListener('mouseenter', function(){ this.style.background = '#1e293b'; });
-      el.addEventListener('mouseleave', function(){ this.style.background = 'transparent'; });
-    });
 
-    Array.from(wrap.querySelectorAll('[data-open-file]')).forEach(function(el){
-      el.addEventListener('click', function(){
-        openFile(this.getAttribute('data-open-file') || '');
+      Array.from(wrap.querySelectorAll('[data-open-file]')).forEach(function(el) {
+        el.addEventListener('click', function() {
+          openFile(this.getAttribute('data-open-file') || '');
+        });
+        el.addEventListener('mouseenter', function() {
+          this.style.background = '#1e293b';
+        });
+        el.addEventListener('mouseleave', function() {
+          var fp = this.getAttribute('data-open-file') || '';
+          this.style.background = (fp === currentFile) ? '#1e3a8a55' : 'transparent';
+        });
       });
-      el.addEventListener('mouseenter', function(){ this.style.background = '#1e293b'; });
-      el.addEventListener('mouseleave', function(){
-        var fp = this.getAttribute('data-open-file') || '';
-        this.style.background = (fp === currentFile) ? '#1e3a8a55' : 'transparent';
+    }
+
+    function renderFiles(list) {
+      allFiles = list || [];
+      var wrap = document.getElementById('fileList');
+      if (!wrap) return;
+
+      var query = (document.getElementById('fileSearch').value || '').toLowerCase().trim();
+      var tree = createTree(allFiles);
+      var html = renderDir(tree, 0, query);
+      wrap.innerHTML = html || '<div style="padding:8px;color:#94a3b8;font-size:0.8rem;">No files found.</div>';
+      wireTreeEvents();
+    }
+
+    function refreshFiles() {
+      setStatus('Refreshing files...');
+      api('list_files', 'GET').then(function(res) {
+        if (!res || !res.ok) throw new Error((res && res.message) || 'Failed to list files.');
+        renderFiles(res.files || []);
+        setStatus('Files refreshed.');
+      }).catch(function(err) {
+        setStatus(err.message || 'Failed to list files.', true);
       });
-    });
-  }
-
-  function renderFiles(list){
-    allFiles = list || [];
-    var wrap = document.getElementById('fileList');
-    if (!wrap) return;
-
-    var query = (document.getElementById('fileSearch').value || '').toLowerCase().trim();
-    var tree = createTree(allFiles);
-    var html = renderDir(tree, 0, query);
-    wrap.innerHTML = html || '<div style="padding:8px;color:#94a3b8;font-size:0.8rem;">No files found.</div>';
-    wireTreeEvents();
-  }
-
-  function refreshFiles(){
-    setStatus('Refreshing files...');
-    api('list_files', 'GET').then(function(res){
-      if (!res || !res.ok) throw new Error((res && res.message) || 'Failed to list files.');
-      renderFiles(res.files || []);
-      setStatus('Files refreshed.');
-    }).catch(function(err){
-      setStatus(err.message || 'Failed to list files.', true);
-    });
-  }
-
-  function quickOpenFile(){
-    if (!allFiles || !allFiles.length) {
-      setStatus('No files available yet.', true);
-      return;
     }
-    var guess = currentFile || (allFiles[0] && allFiles[0].path) || '';
-    var path = window.prompt('Quick Open (relative file path):', guess);
-    if (!path) return;
-    var normalized = String(path).trim();
-    var exists = allFiles.some(function(f){ return (f.path || '') === normalized; });
-    if (!exists) {
-      setStatus('File not found in explorer list: ' + normalized, true);
-      return;
-    }
-    openFile(normalized);
-  }
 
-  function openFile(path){
-    if (!path) return;
-    if (path !== currentFile && !ensureCanLeave('You have unsaved changes. Continue and discard them?')) {
-      return;
-    }
-    setStatus('Opening ' + path + '...');
-    api('read_file', 'POST', { path: path }).then(function(res){
-      if (!res || !res.ok) throw new Error((res && res.message) || 'Failed to read file.');
-      if (!editor) return;
-      var oldModel = editor.getModel();
-      var model = monaco.editor.createModel(res.content || '', guessLang(path));
-      editor.setModel(model);
-      if (oldModel) oldModel.dispose();
-      setCurrentFile(path);
-      lastSavedContent = res.content || '';
-      updateDirtyState(false);
-      setStatus('Opened: ' + path);
-    }).catch(function(err){
-      setStatus(err.message || 'Read failed.', true);
-    });
-  }
-
-  function saveCurrent(){
-    if (!currentFile) {
-      setStatus('Select a file first.', true);
-      return;
-    }
-    setStatus('Saving ' + currentFile + '...');
-    api('save_file', 'POST', { path: currentFile, content: editor ? editor.getValue() : '' }).then(function(res){
-      if (!res || !res.ok) throw new Error((res && res.message) || 'Save failed.');
-      lastSavedContent = editor ? editor.getValue() : '';
-      updateDirtyState(false);
-      setStatus(res.message || 'Saved.');
-    }).catch(function(err){
-      setStatus(err.message || 'Save failed.', true);
-    });
-  }
-
-  function createFile(){
-    var path = window.prompt('New file path (relative):', 'docs/new-note.md');
-    if (!path) return;
-    var content = window.prompt('Initial content (optional):', '') || '';
-    setStatus('Creating file...');
-    api('create_file', 'POST', { path: path, content: content }).then(function(res){
-      if (!res || !res.ok) throw new Error((res && res.message) || 'Create file failed.');
-      setStatus(res.message || 'File created.');
-      refreshFiles();
-      openFile(path);
-    }).catch(function(err){
-      setStatus(err.message || 'Create file failed.', true);
-    });
-  }
-
-  function createFolder(){
-    var path = window.prompt('New folder path (relative):', 'modules/new-feature');
-    if (!path) return;
-    setStatus('Creating folder...');
-    api('create_folder', 'POST', { path: path }).then(function(res){
-      if (!res || !res.ok) throw new Error((res && res.message) || 'Create folder failed.');
-      setStatus(res.message || 'Folder created.');
-      refreshFiles();
-    }).catch(function(err){
-      setStatus(err.message || 'Create folder failed.', true);
-    });
-  }
-
-  function runGitStatus(){
-    setStatus('Running git status...');
-    api('git_status', 'POST', {}).then(function(res){
-      if (!res || !res.ok) throw new Error((res && res.message) || 'git status failed.');
-      setOutput(res.output || '(no output)');
-      setStatus(res.message || 'Git status done.');
-    }).catch(function(err){
-      setStatus(err.message || 'git status failed.', true);
-    });
-  }
-
-  function runGitPull(){
-    var branch = window.prompt('Branch to pull:', 'main') || 'main';
-    setStatus('Running git pull...');
-    api('git_pull', 'POST', { branch: branch }).then(function(res){
-      if (!res || !res.ok) {
-        setOutput((res && res.output) || '');
-        throw new Error((res && res.message) || 'git pull failed.');
-      }
-      setOutput(res.output || '(no output)');
-      setStatus(res.message || 'Git pull done.');
-      refreshFiles();
-    }).catch(function(err){
-      setStatus(err.message || 'git pull failed.', true);
-    });
-  }
-
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; });
-  }
-
-  require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs' }});
-  require(['vs/editor/editor.main'], function () {
-    editor = monaco.editor.create(document.getElementById('editor'), {
-      value: '// Select a file from Explorer to start editing\n',
-      language: 'plaintext',
-      theme: 'vs-dark',
-      automaticLayout: true,
-      fontSize: 14,
-      minimap: { enabled: true },
-      scrollBeyondLastLine: false,
-    });
-
-    editor.onDidChangeModelContent(function(){
-      if (!editor) return;
-      updateDirtyState(editor.getValue() !== lastSavedContent);
-    });
-    editor.onDidChangeCursorPosition(function(){
-      updateCursorStatus();
-    });
-
-    refreshFiles();
-    updateTerminalCollapsedState();
-    updateStatusBar();
-    updateCursorStatus();
-
-    document.getElementById('btnRefreshFiles').addEventListener('click', refreshFiles);
-    document.getElementById('btnNewFile').addEventListener('click', createFile);
-    document.getElementById('btnNewFolder').addEventListener('click', createFolder);
-    document.getElementById('btnSaveFile').addEventListener('click', saveCurrent);
-    document.getElementById('btnGitStatus').addEventListener('click', runGitStatus);
-    document.getElementById('btnGitPull').addEventListener('click', runGitPull);
-    document.getElementById('btnBackDashboard').addEventListener('click', function(){
-      if (!ensureCanLeave('You have unsaved changes. Leave patcher and discard them?')) return;
-      window.location.href = 'index.php?page=dashboard';
-    });
-    document.getElementById('btnClearOutput').addEventListener('click', function(){ setOutput(''); });
-    document.getElementById('btnToggleOutput').addEventListener('click', function(){
-      outputCollapsed = !outputCollapsed;
-      updateTerminalCollapsedState();
-    });
-
-    document.getElementById('fileSearch').addEventListener('input', function(){ renderFiles(allFiles); });
-
-    Array.from(document.querySelectorAll('[data-hybrid-open]')).forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var fp = this.getAttribute('data-hybrid-open') || '';
-        if (fp) openFile(fp);
-      });
-    });
-
-    window.addEventListener('keydown', function(e){
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        saveCurrent();
+    function quickOpenFile() {
+      if (!allFiles || !allFiles.length) {
+        setStatus('No files available yet.', true);
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
-        e.preventDefault();
-        quickOpenFile();
+      var guess = currentFile || (allFiles[0] && allFiles[0].path) || '';
+      var path = window.prompt('Quick Open (relative file path):', guess);
+      if (!path) return;
+      var normalized = String(path).trim();
+      var exists = allFiles.some(function(f) {
+        return (f.path || '') === normalized;
+      });
+      if (!exists) {
+        setStatus('File not found in explorer list: ' + normalized, true);
+        return;
+      }
+      openFile(normalized);
+    }
+
+    function openFile(path) {
+      if (!path) return;
+      if (path !== currentFile && !ensureCanLeave('You have unsaved changes. Continue and discard them?')) {
+        return;
+      }
+      setStatus('Opening ' + path + '...');
+      api('read_file', 'POST', {
+        path: path
+      }).then(function(res) {
+        if (!res || !res.ok) throw new Error((res && res.message) || 'Failed to read file.');
+        if (!editor) return;
+        var oldModel = editor.getModel();
+        var model = monaco.editor.createModel(res.content || '', guessLang(path));
+        editor.setModel(model);
+        if (oldModel) oldModel.dispose();
+        setCurrentFile(path);
+        lastSavedContent = res.content || '';
+        updateDirtyState(false);
+        setStatus('Opened: ' + path);
+      }).catch(function(err) {
+        setStatus(err.message || 'Read failed.', true);
+      });
+    }
+
+    function saveCurrent() {
+      if (!currentFile) {
+        setStatus('Select a file first.', true);
+        return;
+      }
+      setStatus('Saving ' + currentFile + '...');
+      api('save_file', 'POST', {
+        path: currentFile,
+        content: editor ? editor.getValue() : ''
+      }).then(function(res) {
+        if (!res || !res.ok) throw new Error((res && res.message) || 'Save failed.');
+        lastSavedContent = editor ? editor.getValue() : '';
+        updateDirtyState(false);
+        setStatus(res.message || 'Saved.');
+      }).catch(function(err) {
+        setStatus(err.message || 'Save failed.', true);
+      });
+    }
+
+    function createFile() {
+      var path = window.prompt('New file path (relative):', 'docs/new-note.md');
+      if (!path) return;
+      var content = window.prompt('Initial content (optional):', '') || '';
+      setStatus('Creating file...');
+      api('create_file', 'POST', {
+        path: path,
+        content: content
+      }).then(function(res) {
+        if (!res || !res.ok) throw new Error((res && res.message) || 'Create file failed.');
+        setStatus(res.message || 'File created.');
+        refreshFiles();
+        openFile(path);
+      }).catch(function(err) {
+        setStatus(err.message || 'Create file failed.', true);
+      });
+    }
+
+    function createFolder() {
+      var path = window.prompt('New folder path (relative):', 'modules/new-feature');
+      if (!path) return;
+      setStatus('Creating folder...');
+      api('create_folder', 'POST', {
+        path: path
+      }).then(function(res) {
+        if (!res || !res.ok) throw new Error((res && res.message) || 'Create folder failed.');
+        setStatus(res.message || 'Folder created.');
+        refreshFiles();
+      }).catch(function(err) {
+        setStatus(err.message || 'Create folder failed.', true);
+      });
+    }
+
+    function runGitStatus() {
+      setStatus('Running git status...');
+      api('git_status', 'POST', {}).then(function(res) {
+        if (!res || !res.ok) throw new Error((res && res.message) || 'git status failed.');
+        setOutput(res.output || '(no output)');
+        setStatus(res.message || 'Git status done.');
+      }).catch(function(err) {
+        setStatus(err.message || 'git status failed.', true);
+      });
+    }
+
+    function runGitPull() {
+      var branch = window.prompt('Branch to pull:', 'main') || 'main';
+      setStatus('Running git pull...');
+      api('git_pull', 'POST', {
+        branch: branch
+      }).then(function(res) {
+        if (!res || !res.ok) {
+          setOutput((res && res.output) || '');
+          throw new Error((res && res.message) || 'git pull failed.');
+        }
+        setOutput(res.output || '(no output)');
+        setStatus(res.message || 'Git pull done.');
+        refreshFiles();
+      }).catch(function(err) {
+        setStatus(err.message || 'git pull failed.', true);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function(c) {
+        return ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        })[c];
+      });
+    }
+
+    require.config({
+      paths: {
+        'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs'
       }
     });
+    require(['vs/editor/editor.main'], function() {
+      editor = monaco.editor.create(document.getElementById('editor'), {
+        value: '// Select a file from Explorer to start editing\n',
+        language: 'plaintext',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        fontSize: 14,
+        minimap: {
+          enabled: true
+        },
+        mouseWheelScrollSensitivity: 1,
+        fastScrollSensitivity: 5,
+        scrollbar: {
+          alwaysConsumeMouseWheel: false,
+        },
+        scrollBeyondLastLine: false,
+      });
 
-    window.addEventListener('beforeunload', function(e){
-      if (!isDirty) return;
-      e.preventDefault();
-      e.returnValue = '';
+      editor.onDidChangeModelContent(function() {
+        if (!editor) return;
+        updateDirtyState(editor.getValue() !== lastSavedContent);
+      });
+      editor.onDidChangeCursorPosition(function() {
+        updateCursorStatus();
+      });
+
+      refreshFiles();
+      updateTerminalCollapsedState();
+      updateStatusBar();
+      updateCursorStatus();
+
+      document.getElementById('btnRefreshFiles').addEventListener('click', refreshFiles);
+      document.getElementById('btnNewFile').addEventListener('click', createFile);
+      document.getElementById('btnNewFolder').addEventListener('click', createFolder);
+      document.getElementById('btnSaveFile').addEventListener('click', saveCurrent);
+      document.getElementById('btnGitStatus').addEventListener('click', runGitStatus);
+      document.getElementById('btnGitPull').addEventListener('click', runGitPull);
+      document.getElementById('btnBackDashboard').addEventListener('click', function() {
+        if (!ensureCanLeave('You have unsaved changes. Leave patcher and discard them?')) return;
+        window.location.href = 'index.php?page=dashboard';
+      });
+      document.getElementById('btnClearOutput').addEventListener('click', function() {
+        setOutput('');
+      });
+      document.getElementById('btnToggleOutput').addEventListener('click', function() {
+        outputCollapsed = !outputCollapsed;
+        updateTerminalCollapsedState();
+      });
+
+      document.getElementById('fileSearch').addEventListener('input', function() {
+        renderFiles(allFiles);
+      });
+
+      Array.from(document.querySelectorAll('[data-hybrid-open]')).forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var fp = this.getAttribute('data-hybrid-open') || '';
+          if (fp) openFile(fp);
+        });
+      });
+
+      window.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          saveCurrent();
+          return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+          e.preventDefault();
+          quickOpenFile();
+        }
+      });
+
+      window.addEventListener('beforeunload', function(e) {
+        if (!isDirty) return;
+        e.preventDefault();
+        e.returnValue = '';
+      });
     });
-  });
-})();
+  })();
 </script>

@@ -7,13 +7,18 @@ if (session_status() === PHP_SESSION_NONE) session_start();
  * Tokens expire after a short TTL.
  */
 if (!function_exists('csrf_token')) {
-    function csrf_token($regenerate = false) {
+    function csrf_token($regenerate = false)
+    {
         $ttl = 60 * 60 * 4; // 4 hours
         if (!isset($_SESSION['_csrf'])) $_SESSION['_csrf'] = [];
         if (!$regenerate && !empty($_SESSION['_csrf']['token']) && !empty($_SESSION['_csrf']['expires']) && $_SESSION['_csrf']['expires'] > time()) {
             return $_SESSION['_csrf']['token'];
         }
-        try { $tok = bin2hex(random_bytes(24)); } catch (Exception $e) { $tok = bin2hex(openssl_random_pseudo_bytes(24)); }
+        try {
+            $tok = bin2hex(random_bytes(24));
+        } catch (Exception $e) {
+            $tok = bin2hex(openssl_random_pseudo_bytes(24));
+        }
         $_SESSION['_csrf']['token'] = $tok;
         $_SESSION['_csrf']['expires'] = time() + $ttl;
         // Backwards-compatible alias used by some pages
@@ -26,7 +31,8 @@ if (!function_exists('csrf_token')) {
  * Echo a hidden input field for forms
  */
 if (!function_exists('csrf_field')) {
-    function csrf_field() {
+    function csrf_field()
+    {
         echo '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrf_token()) . '">';
     }
 }
@@ -38,7 +44,8 @@ if (!function_exists('csrf_field')) {
  * Returns the hidden input HTML string.
  */
 if (!function_exists('csrf_input_field')) {
-    function csrf_input_field() {
+    function csrf_input_field()
+    {
         return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrf_token()) . '">';
     }
 }
@@ -48,7 +55,8 @@ if (!function_exists('csrf_input_field')) {
  * Accepts token from header X-CSRF-Token, POST field csrf_token or JSON body {csrf_token:...}
  */
 if (!function_exists('csrf_check_request')) {
-    function csrf_check_request() {
+    function csrf_check_request()
+    {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         if ($method === 'GET' || $method === 'HEAD' || $method === 'OPTIONS') return true;
 
