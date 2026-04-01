@@ -26,7 +26,7 @@ $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 's
       </div>
       <div>
         <h2>Attendance Admin</h2>
-        <span style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(178,200,233,0.6);font-weight:600;">Blockchain Ledger</span>
+        <span style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(178,200,233,0.6);font-weight:600;">Smart Attendance</span>
       </div>
     </div>
     <button class="sidebar-close-btn" onclick="toggleSidebar()">

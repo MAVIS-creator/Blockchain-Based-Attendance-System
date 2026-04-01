@@ -35,10 +35,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($action === 'create') {
     $username = trim($_POST['username'] ?? '');
     $fullname = trim($_POST['fullname'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
     if ($username === '' || !preg_match('/^[a-zA-Z0-9_\-]{3,30}$/', $username)) {
       $errors[] = 'Username must be 3-30 chars, letters/numbers/_/- only.';
+    }
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      $errors[] = 'Invalid email address.';
     }
     if ($password === '' || strlen($password) < 6) {
       $errors[] = 'Password must be at least 6 characters.';
@@ -56,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $accounts[$username] = [
           'password' => password_hash($password, PASSWORD_DEFAULT),
           'name' => $fullname ?: $username,
+          'email' => $email,
           'avatar' => null,
           'role' => 'admin'
         ];
@@ -147,6 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <tr>
           <th>Username</th>
           <th>Name</th>
+          <th>Email</th>
           <th>Role</th>
           <th style="text-align:right;">Actions</th>
         </tr>
@@ -156,6 +162,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <tr>
           <td style="font-weight:600;"><?= htmlspecialchars($u) ?></td>
           <td><?= htmlspecialchars($info['name'] ?? '') ?></td>
+          <td>
+            <?php if (!empty($info['email'])): ?>
+                <a href="mailto:<?= htmlspecialchars($info['email']) ?>?subject=Smart Attendance System Invitation&body=You have been invited as an admin. Username: <?= htmlspecialchars($u) ?>" style="color:var(--primary);text-decoration:none;"><?= htmlspecialchars($info['email']) ?></a>
+            <?php else: ?>
+                <span style="color:var(--outline);">—</span>
+            <?php endif; ?>
+          </td>
           <td>
             <span class="st-chip <?= ($info['role'] ?? 'admin') === 'superadmin' ? 'st-chip-info' : 'st-chip-neutral' ?>">
               <?= htmlspecialchars($info['role'] ?? 'admin') ?>
@@ -210,6 +223,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div>
         <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Full Name</label>
         <input name="fullname" placeholder="Full Name">
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Email</label>
+        <input name="email" type="email" placeholder="admin@domain.com">
       </div>
       <div>
         <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Password</label>

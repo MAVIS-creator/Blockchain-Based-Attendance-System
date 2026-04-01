@@ -85,6 +85,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_name'] = $accounts[$usernameToUse]['name'] ?? $usernameToUse;
         $_SESSION['admin_avatar'] = $accounts[$usernameToUse]['avatar'] ?? null;
         $_SESSION['admin_role'] = $accounts[$usernameToUse]['role'] ?? 'admin';
+        // Track session
+        $sessionsFile = __DIR__ . '/sessions.json';
+        $activeSessions = file_exists($sessionsFile) ? json_decode(file_get_contents($sessionsFile), true) : [];
+        if (!is_array($activeSessions)) $activeSessions = [];
+        $activeSessions[session_id()] = [
+            'user' => $usernameToUse,
+            'ip' => $_SERVER['REMOTE_ADDR'],
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'],
+            'login_time' => time(),
+            'last_activity' => time()
+        ];
+        file_put_contents($sessionsFile, json_encode($activeSessions, JSON_PRETTY_PRINT));
         header('Location: index.php');
         exit;
     } else {

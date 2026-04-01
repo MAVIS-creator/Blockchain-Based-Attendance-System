@@ -167,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?= csrf_field() ?>
             <div class="st-input-group">
                 <label for="email">Account Email</label>
-                <input class="st-input" id="email" type="email" name="email" placeholder="admin@immutableledger.io" required>
+                <input class="st-input" id="email" type="email" name="email" placeholder="admin@smartattendance.com" required>
             </div>
 
             <button class="submit-btn" type="submit">

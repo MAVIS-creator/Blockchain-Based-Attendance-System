@@ -108,8 +108,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    if (isset($_POST['check_sessions'])) {
+        $sessionsFile = __DIR__ . '/sessions.json';
+        $activeCount = 0;
+        if (file_exists($sessionsFile)) {
+            $activeSessions = json_decode(file_get_contents($sessionsFile), true);
+            if (is_array($activeSessions)) {
+                foreach ($activeSessions as $sid => $sessData) {
+                    if ($sessData['user'] === $user) {
+                        $activeCount++;
+                    }
+                }
+            }
+        }
+        echo json_encode(['status' => 'success', 'count' => $activeCount]);
+        exit;
+    }
+
     if (isset($_POST['terminate_sessions'])) {
-        // Here we'd typically clear tokens from DB, but we just return success
+        $sessionsFile = __DIR__ . '/sessions.json';
+        if (file_exists($sessionsFile)) {
+            $activeSessions = json_decode(file_get_contents($sessionsFile), true);
+            if (is_array($activeSessions)) {
+                $currentSessionId = session_id();
+                foreach ($activeSessions as $sid => $sessData) {
+                    if ($sid !== $currentSessionId && $sessData['user'] === $user) {
+                        unset($activeSessions[$sid]);
+                    }
+                }
+                file_put_contents($sessionsFile, json_encode($activeSessions, JSON_PRETTY_PRINT));
+            }
+        }
         echo json_encode(['status' => 'success', 'message' => 'Other sessions terminated.']);
         exit;
     }
@@ -234,12 +263,37 @@ $emailAddr = $currentUser['email'] ?? '';
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
               <h3 style="margin:0; font-size:0.95rem; font-weight:800; letter-spacing:0.05em; text-transform:uppercase; display:flex; align-items:center; gap:8px; color:var(--on-surface-variant);">
                    <span class="material-symbols-outlined" style="font-size:1.2rem;">history</span> ACTIVE SESSIONS
+                   <span class="material-symbols-outlined" style="font-size:1.2rem; cursor:pointer;" onclick="window.location.href='mailto:<?= htmlspecialchars($emailAddr) ?>'">mail</span>
               </h3>
           </div>
 
           <div style="display:flex; flex-direction:column; gap:16px; flex:1;">
-             <!-- Active Session -->
-             <div style="display:flex; align-items:center; gap:16px; padding:16px; border-radius:12px; background:var(--surface-container-high); border:1px solid var(--primary-container);">
+             <?php
+             $sessionsFile = __DIR__ . '/sessions.json';
+             $mySessions = [];
+             if (file_exists($sessionsFile)) {
+                 $allSess = json_decode(file_get_contents($sessionsFile), true);
+                 if (is_array($allSess)) {
+                     foreach ($allSess as $sid => $sessData) {
+                         if (isset($sessData['user']) && $sessData['user'] === $user) {
+                             $sessData['is_current'] = ($sid === session_id());
+                             $mySessions[] = $sessData;
+                         }
+                     }
+                 }
+             }
+             // Sort: current first, then newest
+             usort($mySessions, function($a, $b) {
+                 if ($a['is_current']) return -1;
+                 if ($b['is_current']) return 1;
+                 return $b['last_activity'] <=> $a['last_activity'];
+             });
+
+             if (empty($mySessions)):
+                 // Fallback if session file missing/empty
+             ?>
+             <!-- Active Session Fallback -->
+             <div class="session-item" style="display:flex; align-items:center; gap:16px; padding:16px; border-radius:12px; background:var(--surface-container-high); border:1px solid var(--primary-container);">
                 <div style="width:40px; height:40px; flex-shrink: 0; border-radius:10px; background:var(--primary-container); color:var(--on-primary-container); display:flex; align-items:center; justify-content:center;">
                    <span class="material-symbols-outlined" style="font-size:1.2rem;"><?= strpos($_SERVER['HTTP_USER_AGENT'], 'Mobile') !== false ? 'smartphone' : 'laptop_mac' ?></span>
                 </div>
@@ -249,18 +303,36 @@ $emailAddr = $currentUser['email'] ?? '';
                 </div>
                 <div style="font-size:0.65rem; font-weight:800; color:var(--primary); letter-spacing:0.05em; background:var(--surface); padding: 4px 8px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">ACTIVE</div>
              </div>
-
-             <!-- Previous Session 1 -->
-             <div style="display:flex; align-items:center; gap:16px; padding:16px; border-radius:12px; background:transparent; border:1px solid var(--outline-variant);">
-                <div style="width:40px; height:40px; flex-shrink: 0; border-radius:10px; background:var(--surface-container); color:var(--on-surface-variant); display:flex; align-items:center; justify-content:center;">
-                   <span class="material-symbols-outlined" style="font-size:1.2rem;">public</span>
-                </div>
-                <div style="flex:1;">
-                   <div style="font-size:0.95rem; font-weight:700; color:var(--on-surface);">System Access</div>
-                   <div style="font-size:0.8rem; color:var(--on-surface-variant); margin-top:2px;">Last recorded IP via login</div>
-                </div>
-                <div style="font-size:0.65rem; font-weight:700; color:var(--on-surface-variant);">PREV</div>
-             </div>
+             <?php else: 
+                 foreach ($mySessions as $s): 
+                     $isMobile = strpos($s['user_agent'] ?? '', 'Mobile') !== false;
+                     $icon = $isMobile ? 'smartphone' : 'laptop_mac';
+                     if ($s['is_current']):
+             ?>
+                 <!-- Active Session -->
+                 <div class="session-item" style="display:flex; align-items:center; gap:16px; padding:16px; border-radius:12px; background:var(--surface-container-high); border:1px solid var(--primary-container);">
+                    <div style="width:40px; height:40px; flex-shrink: 0; border-radius:10px; background:var(--primary-container); color:var(--on-primary-container); display:flex; align-items:center; justify-content:center;">
+                       <span class="material-symbols-outlined" style="font-size:1.2rem;"><?= $icon ?></span>
+                    </div>
+                    <div style="flex:1;">
+                       <div style="font-size:0.95rem; font-weight:700; color:var(--on-surface);">Current Session</div>
+                       <div style="font-size:0.8rem; color:var(--on-surface-variant); margin-top:2px;">Browser &bull; <?= htmlspecialchars($s['ip'] ?? 'Unknown IP') ?></div>
+                    </div>
+                    <div style="font-size:0.65rem; font-weight:800; color:var(--primary); letter-spacing:0.05em; background:var(--surface); padding: 4px 8px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">ACTIVE</div>
+                 </div>
+             <?php else: ?>
+                 <!-- Previous Session -->
+                 <div class="session-item" style="display:flex; align-items:center; gap:16px; padding:16px; border-radius:12px; background:transparent; border:1px solid var(--outline-variant);">
+                    <div style="width:40px; height:40px; flex-shrink: 0; border-radius:10px; background:var(--surface-container); color:var(--on-surface-variant); display:flex; align-items:center; justify-content:center;">
+                       <span class="material-symbols-outlined" style="font-size:1.2rem;"><?= $icon ?></span>
+                    </div>
+                    <div style="flex:1;">
+                       <div style="font-size:0.95rem; font-weight:700; color:var(--on-surface);">System Access</div>
+                       <div style="font-size:0.8rem; color:var(--on-surface-variant); margin-top:2px;">IP: <?= htmlspecialchars($s['ip'] ?? 'Unknown IP') ?> &bull; <?= date('M j, Y g:i A', $s['last_activity']) ?></div>
+                    </div>
+                    <div style="font-size:0.65rem; font-weight:700; color:var(--on-surface-variant);">PREV</div>
+                 </div>
+             <?php endif; endforeach; endif; ?>
           </div>
 
           <button class="st-btn st-btn-text" id="terminateSessionsBtn" style="width:100%; color:var(--error); font-weight:700; justify-content:center; text-transform:uppercase; letter-spacing:0.05em; margin-top:24px; padding:12px; border-radius:12px; background:var(--error-container);" onclick="terminateSessions()">TERMINATE ALL OTHER SESSIONS</button>
@@ -373,6 +445,7 @@ function terminateSessions() {
         btn.innerText = 'TERMINATE ALL OTHER SESSIONS';
         if(d.status === 'success'){
             alert(d.message);
+            window.location.reload();
         } else {
             alert(d.message || "Error terminating sessions");
         }
@@ -383,4 +456,25 @@ function terminateSessions() {
         alert("Server Error.");
     });
 }
+
+function checkActiveSessions() {
+    const formData = new FormData();
+    formData.append('check_sessions', '1');
+    formData.append('csrf_token', csrfToken);
+    
+    fetch('profile_settings.php', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(d => {
+        if(d.status === 'success') {
+            const currentCount = document.querySelectorAll('.session-item').length;
+            if (d.count !== currentCount) {
+                // If count changed, reload the page to show accurate session data
+                window.location.reload();
+            }
+        }
+    }).catch(err => {});
+}
+
+// Poll every 10 seconds for live checking
+setInterval(checkActiveSessions, 10000);
 </script>
