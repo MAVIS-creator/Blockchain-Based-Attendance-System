@@ -1,5 +1,6 @@
 <?php
-$announcementFile = __DIR__ . '/admin/announcement.json';
+require_once __DIR__ . '/admin/runtime_storage.php';
+$announcementFile = admin_storage_migrate_file('announcement.json');
 
 $announcement = [
     'enabled' => false,

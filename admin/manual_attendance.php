@@ -10,12 +10,13 @@ if (empty($_SESSION['admin_logged_in'])) {
 require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 
 date_default_timezone_set('Africa/Lagos');
 
 $logDir = app_storage_file('logs');
-$activeCourseFile = __DIR__ . '/courses/active_course.json';
+$activeCourseFile = admin_course_storage_migrate_file('active_course.json');
 $today = date('Y-m-d');
 $logFile = "{$logDir}/{$today}.log";
 
@@ -76,14 +77,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fingerprint = 'MANUAL_' . strtoupper($matric);
 
             // Load settings (try JSON then decrypt)
-            $settingsPath = __DIR__ . '/settings.json';
+            $settingsPath = admin_storage_migrate_file('settings.json');
             $settings = [];
             if (file_exists($settingsPath)) {
                 $raw = file_get_contents($settingsPath);
                 $decoded = json_decode($raw, true);
                 if (is_array($decoded)) $settings = $decoded;
                 else if (strpos($raw, 'ENC:') === 0) {
-                    $keyFile = __DIR__ . '/.settings_key';
+                    $keyFile = admin_storage_migrate_file('.settings_key');
                     if (file_exists($keyFile)) {
                         $key = trim(file_get_contents($keyFile));
                         $blob = base64_decode(substr($raw, 4));
@@ -151,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (file_exists($cdFile)) {
                         $raw = file_get_contents($cdFile);
                         if ($encryptLogs && strpos($raw, 'ENC:') === 0) {
-                            $kfile = __DIR__ . '/.settings_key';
+                            $kfile = admin_storage_migrate_file('.settings_key');
                             if (file_exists($kfile)) {
                                 $key = trim(file_get_contents($kfile));
                                 $blob = base64_decode(substr($raw, 4));
@@ -188,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (file_exists($uaFile)) {
                         $raw = file_get_contents($uaFile);
                         if ($encryptLogs && strpos($raw, 'ENC:') === 0) {
-                            $kfile = __DIR__ . '/.settings_key';
+                            $kfile = admin_storage_migrate_file('.settings_key');
                             if (file_exists($kfile)) {
                                 $key = trim(file_get_contents($kfile));
                                 $blob = base64_decode(substr($raw, 4));
@@ -223,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (file_exists($mapFile)) {
                         $raw = file_get_contents($mapFile);
                         if ($encryptLogs && strpos($raw, 'ENC:') === 0) {
-                            $kfile = __DIR__ . '/.settings_key';
+                            $kfile = admin_storage_migrate_file('.settings_key');
                             if (file_exists($kfile)) {
                                 $key = trim(file_get_contents($kfile));
                                 $blob = base64_decode(substr($raw, 4));

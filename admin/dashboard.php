@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/hybrid_admin_read.php';
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 $logDir = app_storage_file('logs');
 $failedDir = $logDir;
@@ -71,12 +72,12 @@ if (is_array($supportTickets)) {
   }
 }
 
-$fingerprintFile = __DIR__ . '/fingerprints.json';
+$fingerprintFile = app_storage_migrate_file('fingerprints.json', __DIR__ . '/fingerprints.json');
 $fingerprintsData = file_exists($fingerprintFile) ? json_decode(file_get_contents($fingerprintFile), true) : [];
 $fingerprintCount = is_array($fingerprintsData) ? count($fingerprintsData) : 0;
 
 $activeCourse = "General";
-$activeFile = __DIR__ . "/courses/active_course.json";
+$activeFile = admin_course_storage_migrate_file('active_course.json');
 if (file_exists($activeFile)) {
   $activeData = json_decode(file_get_contents($activeFile), true);
   if (is_array($activeData)) {

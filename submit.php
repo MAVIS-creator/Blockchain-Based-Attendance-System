@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/hybrid_dual_write.php';
 require_once __DIR__ . '/storage_helpers.php';
+require_once __DIR__ . '/admin/runtime_storage.php';
 app_storage_init();
 
 // ✅ Set timezone to Nigeria
@@ -55,7 +56,7 @@ if (!isset($status[$action]) || !$status[$action]) {
 // -----------------------
 // Load admin settings (try JSON, else decrypt ENC:)
 // -----------------------
-$settingsPath = __DIR__ . '/admin/settings.json';
+$settingsPath = admin_storage_migrate_file('settings.json', __DIR__ . '/admin/settings.json');
 $settings = [];
 if (file_exists($settingsPath)) {
     $raw = file_get_contents($settingsPath);
@@ -63,7 +64,7 @@ if (file_exists($settingsPath)) {
     if (is_array($decoded)) {
         $settings = $decoded;
     } else if (strpos($raw, 'ENC:') === 0) {
-        $keyFile = __DIR__ . '/admin/.settings_key';
+        $keyFile = admin_storage_migrate_file('.settings_key', __DIR__ . '/admin/.settings_key');
         if (file_exists($keyFile)) {
             $key = trim(file_get_contents($keyFile));
             $blob = base64_decode(substr($raw, 4));
@@ -105,7 +106,7 @@ function read_store($file, $encrypt = false)
     }
     // decrypt
     if (strpos($raw, 'ENC:') !== 0) return [];
-    $keyFile = __DIR__ . '/admin/.settings_key';
+    $keyFile = admin_storage_migrate_file('.settings_key', __DIR__ . '/admin/.settings_key');
     if (!file_exists($keyFile)) return [];
     $key = trim(file_get_contents($keyFile));
     $blob = base64_decode(substr($raw, 4));
@@ -123,7 +124,7 @@ function write_store($file, $data, $encrypt = false)
         file_put_contents($file, $payload, LOCK_EX);
         return;
     }
-    $keyFile = __DIR__ . '/admin/.settings_key';
+    $keyFile = admin_storage_migrate_file('.settings_key', __DIR__ . '/admin/.settings_key');
     if (!file_exists($keyFile)) {
         // try to create key
         $k = base64_encode(random_bytes(32));
@@ -410,7 +411,7 @@ foreach ($lines as $line) {
     }
 
     // Consult admin setting for preference: prefer_mac true = check MAC first, else check IP first
-    $settingsFile = __DIR__ . '/admin/settings.json';
+    $settingsFile = admin_storage_migrate_file('settings.json', __DIR__ . '/admin/settings.json');
     $preferMac = true;
     if (file_exists($settingsFile)) {
         $s = json_decode(file_get_contents($settingsFile), true);

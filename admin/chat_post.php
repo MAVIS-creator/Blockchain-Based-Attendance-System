@@ -11,14 +11,16 @@ $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
 if (function_exists('csrf_check_request') && !csrf_check_request()) { echo json_encode(['error'=>'csrf_failed']); exit; }
 
+require_once __DIR__ . '/runtime_storage.php';
+
 // parse and validate
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $msg = trim($data['message'] ?? '');
 if ($msg === '') { echo json_encode(['error'=>'empty']); exit; }
 if (mb_strlen($msg) > 2000) { echo json_encode(['error'=>'too_long']); exit; }
 
-$chatFile = __DIR__ . '/chat.json';
-if (!file_exists($chatFile)) file_put_contents($chatFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+$chatFile = admin_storage_migrate_file('chat.json');
+if (!file_exists($chatFile)) file_put_contents($chatFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
 
 $entry = [
     'user' => $_SESSION['admin_user'] ?? 'unknown',

@@ -1,12 +1,13 @@
 <?php
 session_start();
 require_once __DIR__ . '/storage_helpers.php';
+require_once __DIR__ . '/admin/runtime_storage.php';
 app_storage_init();
 
 function load_admin_settings_for_retention()
 {
-	$settingsFile = __DIR__ . '/admin/settings.json';
-	$keyFile = __DIR__ . '/admin/.settings_key';
+	$settingsFile = admin_storage_migrate_file('settings.json', __DIR__ . '/admin/settings.json');
+	$keyFile = admin_storage_migrate_file('.settings_key', __DIR__ . '/admin/.settings_key');
 	if (!file_exists($settingsFile)) return [];
 	$raw = file_get_contents($settingsFile);
 	$decoded = json_decode($raw, true);

@@ -8,8 +8,9 @@ if (empty($_SESSION['admin_logged_in'])) {
 
 require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
+require_once __DIR__ . '/runtime_storage.php';
 
-$announcementFile = __DIR__ . '/announcement.json';
+$announcementFile = admin_storage_migrate_file('announcement.json');
 $successMsg = "";
 $errorMsg = "";
 
@@ -34,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $announcement['enabled'] = $enabled;
 
   if (empty($errorMsg)) {
-    if (file_put_contents($announcementFile, json_encode($announcement, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))) {
+    if (file_put_contents($announcementFile, json_encode($announcement, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX)) {
       $successMsg = "Announcement updated successfully.";
     } else {
       $errorMsg = "Failed to save announcement.";

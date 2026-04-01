@@ -8,8 +8,9 @@ if (empty($_SESSION['admin_logged_in'])) {
 
 require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
+require_once __DIR__ . '/runtime_storage.php';
 
-$fingerprintFile = __DIR__ . '/fingerprints.json';
+$fingerprintFile = app_storage_migrate_file('fingerprints.json', __DIR__ . '/fingerprints.json');
 $fingerprintsData = file_exists($fingerprintFile) ? json_decode(file_get_contents($fingerprintFile), true) : [];
 if (!is_array($fingerprintsData)) $fingerprintsData = [];
 
@@ -56,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     save_fingerprints_atomic($fingerprintFile, $fingerprintsData);
 
     // Audit log
-    $auditFile = __DIR__ . '/fingerprint_audit.log';
+    $auditFile = admin_storage_migrate_file('fingerprint_audit.log');
     $logEntry = "[" . date('Y-m-d H:i:s') . "] Matric $matric fingerprint unlinked by admin IP: " . ($_SERVER['REMOTE_ADDR'] ?? '') . "\n";
     file_put_contents($auditFile, $logEntry, FILE_APPEND | LOCK_EX);
 

@@ -7,8 +7,10 @@ if (!isset($_SESSION['admin_logged_in'])) {
   exit;
 }
 
+require_once __DIR__ . '/runtime_storage.php';
+
 // Session Tracking & Validity Check
-$sessionsFile = __DIR__ . '/sessions.json';
+$sessionsFile = admin_storage_migrate_file('sessions.json');
 $currentSessionId = session_id();
 if (file_exists($sessionsFile)) {
   $activeSessions = json_decode(file_get_contents($sessionsFile), true);

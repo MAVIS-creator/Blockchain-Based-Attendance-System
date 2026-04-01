@@ -14,11 +14,13 @@ $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
 if (function_exists('csrf_check_request') && !csrf_check_request()) { echo json_encode(['error'=>'csrf_failed']); exit; }
 
+require_once __DIR__ . '/runtime_storage.php';
+
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $time = $data['time'] ?? null;
 if (!$time) { echo json_encode(['error'=>'missing_time']); exit; }
 
-$chatFile = __DIR__ . '/chat.json';
+$chatFile = admin_storage_migrate_file('chat.json');
 if (!file_exists($chatFile)) { echo json_encode(['error'=>'not_found']); exit; }
 
 $fp = fopen($chatFile, 'c+');

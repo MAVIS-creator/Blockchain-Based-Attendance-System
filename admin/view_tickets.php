@@ -8,6 +8,7 @@ if (empty($_SESSION['admin_logged_in'])) {
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/hybrid_admin_read.php';
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 $pageCsrfToken = csrf_token();
 
@@ -97,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
   $matric = trim($_POST['matric']);
   $reason = trim($_POST['reason']);
 
-  $activeCourseFile = __DIR__ . '/course/active_course.json';
+  $activeCourseFile = admin_course_storage_migrate_file('active_course.json', __DIR__ . '/courses/active_course.json');
   $activeCourse = file_exists($activeCourseFile) ? json_decode(file_get_contents($activeCourseFile), true)['course'] ?? 'General' : 'General';
 
   $timestamp = date('Y-m-d H:i:s');

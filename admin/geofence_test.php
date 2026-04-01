@@ -1,5 +1,6 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/runtime_storage.php';
 header('Content-Type: application/json');
 
 if (empty($_SESSION['admin_logged_in'])) {
@@ -21,8 +22,8 @@ if (!csrf_check_request()) {
   exit;
 }
 
-$settingsFile = __DIR__ . '/settings.json';
-$keyFile = __DIR__ . '/.settings_key';
+$settingsFile = admin_storage_migrate_file('settings.json');
+$keyFile = admin_storage_migrate_file('.settings_key');
 
 function load_settings_maybe_decrypt($settingsFile, $keyFile)
 {

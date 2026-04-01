@@ -5,8 +5,10 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
   exit;
 }
 
-$accountsFile = __DIR__ . '/accounts.json';
-$settingsFile = __DIR__ . '/settings.json';
+require_once __DIR__ . '/runtime_storage.php';
+
+$accountsFile = admin_storage_migrate_file('accounts.json');
+$settingsFile = admin_storage_migrate_file('settings.json');
 if (!file_exists($accountsFile)) file_put_contents($accountsFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 if (!file_exists($settingsFile)) file_put_contents($settingsFile, json_encode(['prefer_mac' => true, 'max_admins' => 5], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 

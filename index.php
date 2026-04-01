@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/storage_helpers.php';
+require_once __DIR__ . '/admin/runtime_storage.php';
 app_storage_init();
 $statusFile = app_storage_migrate_file('status.json', __DIR__ . '/status.json');
 $status = json_decode(file_get_contents($statusFile), true);
@@ -11,7 +12,7 @@ if (!$activeMode) {
 
 // Read active course
 $activeCourse = "General";
-$activeFile = __DIR__ . "/admin/courses/active_course.json";
+$activeFile = admin_course_storage_migrate_file('active_course.json');
 if (file_exists($activeFile)) {
   $activeData = json_decode(file_get_contents($activeFile), true);
   if (is_array($activeData)) {
@@ -20,7 +21,7 @@ if (file_exists($activeFile)) {
 }
 
 // Announcement logic
-$announcementFile = __DIR__ . '/admin/announcement.json';
+$announcementFile = admin_storage_migrate_file('announcement.json');
 $announcement = ['enabled' => false, 'message' => ''];
 if (file_exists($announcementFile)) {
   $json = json_decode(file_get_contents($announcementFile), true);

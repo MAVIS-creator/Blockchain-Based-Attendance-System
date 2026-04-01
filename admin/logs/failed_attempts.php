@@ -2,9 +2,10 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 require_once dirname(__DIR__, 2) . '/storage_helpers.php';
+require_once dirname(__DIR__) . '/runtime_storage.php';
 app_storage_init();
 $logDir = app_storage_file('logs');
-$courseFile = dirname(__DIR__) . "/courses/course.json";
+$courseFile = admin_course_storage_migrate_file('course.json');
 
 // Load courses safely
 $courses = file_exists($courseFile) ? json_decode(file_get_contents($courseFile), true) : ['General'];

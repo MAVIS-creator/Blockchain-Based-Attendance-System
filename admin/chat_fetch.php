@@ -6,9 +6,10 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit;
 }
 
-$chatFile = __DIR__ . '/chat.json';
+require_once __DIR__ . '/runtime_storage.php';
+$chatFile = admin_storage_migrate_file('chat.json');
 if (!file_exists($chatFile)) {
-    file_put_contents($chatFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    file_put_contents($chatFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
 }
 $messages = json_decode(file_get_contents($chatFile), true) ?: [];
 // Return last 200 messages

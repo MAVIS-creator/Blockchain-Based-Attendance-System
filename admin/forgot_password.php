@@ -1,6 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/runtime_storage.php';
 
 $error = '';
 $success = '';
@@ -13,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Valid email address is required.';
         } else {
-            $accountsFile = __DIR__ . '/accounts.json';
+            $accountsFile = admin_storage_migrate_file('accounts.json');
             $accounts = file_exists($accountsFile) ? json_decode(file_get_contents($accountsFile), true) : [];
 
             $foundUser = null;
@@ -48,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $token = bin2hex(random_bytes(16));
                     $expiry = time() + 3600; // 1 hour
 
-                    $resetsFile = __DIR__ . '/password_resets.json';
+                    $resetsFile = admin_storage_migrate_file('password_resets.json');
                     $resets = file_exists($resetsFile) ? json_decode(file_get_contents($resetsFile), true) : [];
                     if (!is_array($resets)) $resets = [];
 
@@ -63,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'token' => password_hash($token, PASSWORD_DEFAULT),
                         'expires' => $expiry
                     ];
-                    file_put_contents($resetsFile, json_encode($resets, JSON_PRETTY_PRINT));
+                    file_put_contents($resetsFile, json_encode($resets, JSON_PRETTY_PRINT), LOCK_EX);
 
                     // Send Email using PHPMailer
                     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';

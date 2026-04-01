@@ -7,10 +7,11 @@ $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
 
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 
 // settings for retention (default fallback)
-$settingsFileAdmin = __DIR__ . '/settings.json';
+$settingsFileAdmin = admin_storage_migrate_file('settings.json');
 $defaults = ['audit_retention_days' => 90];
 $settings = $defaults;
 if (file_exists($settingsFileAdmin)) {

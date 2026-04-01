@@ -15,6 +15,7 @@ if (function_exists('csrf_check_request') && !csrf_check_request()) {
 }
 
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 
 // Accept fingerprint or matric to clear device-blocking state for today
@@ -41,7 +42,7 @@ function read_json($file)
   if (!is_string($c) || $c === '') return [];
 
   if (strpos($c, 'ENC:') === 0) {
-    $keyFile = __DIR__ . '/.settings_key';
+    $keyFile = admin_storage_migrate_file('.settings_key');
     if (!file_exists($keyFile)) return [];
     $key = trim((string)@file_get_contents($keyFile));
     $blob = base64_decode(substr($c, 4));
@@ -68,7 +69,7 @@ function write_json($file, $data)
     return;
   }
 
-  $keyFile = __DIR__ . '/.settings_key';
+  $keyFile = admin_storage_migrate_file('.settings_key');
   if (!file_exists($keyFile)) {
     @file_put_contents($file, $payload, LOCK_EX);
     return;

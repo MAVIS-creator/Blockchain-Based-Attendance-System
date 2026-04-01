@@ -1,6 +1,7 @@
 <?php
-$courseFile = __DIR__ . '/course.json';
-$activeFile = __DIR__ . '/active_course.json';
+require_once __DIR__ . '/../runtime_storage.php';
+$courseFile = admin_course_storage_migrate_file('course.json');
+$activeFile = admin_course_storage_migrate_file('active_course.json');
 $csrfPath = __DIR__ . '/../includes/csrf.php';
 if (file_exists($csrfPath)) {
   require_once $csrfPath;
@@ -29,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newCourse = trim($_POST['course_name']);
     if ($newCourse !== '' && !in_array($newCourse, $courses, true)) {
       $courses[] = $newCourse;
-      file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT));
+      file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT), LOCK_EX);
     }
     header("Location: " . $_SERVER['REQUEST_URI']);
     exit;
@@ -38,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (isset($_POST['remove_course'])) {
     $removeCourse = $_POST['remove_course'];
     $courses = array_values(array_filter($courses, fn($course) => $course !== $removeCourse));
-    file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT));
+    file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT), LOCK_EX);
     header("Location: " . $_SERVER['REQUEST_URI']);
     exit;
   }
@@ -51,10 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }));
 
     if ($activeCourse !== '' && isset($selectedSet[$activeCourse])) {
-      file_put_contents($activeFile, json_encode(['course' => ''], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+      file_put_contents($activeFile, json_encode(['course' => ''], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
     }
 
-    file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT));
+    file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT), LOCK_EX);
     header("Location: " . $_SERVER['REQUEST_URI']);
     exit;
   }
@@ -62,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (isset($_POST['batch_set_active']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
     $selected = array_values(array_filter(array_map('strval', $_POST['selected_courses'])));
     if (count($selected) === 1 && in_array($selected[0], $courses, true)) {
-      file_put_contents($activeFile, json_encode(['course' => $selected[0]], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+      file_put_contents($activeFile, json_encode(['course' => $selected[0]], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
     }
     header("Location: " . $_SERVER['REQUEST_URI']);
     exit;

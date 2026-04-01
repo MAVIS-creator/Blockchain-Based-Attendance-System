@@ -1,6 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/runtime_storage.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
@@ -14,8 +15,20 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 $user = $_SESSION['admin_user'] ?? '';
-$accountsFile = __DIR__ . '/accounts.json';
+$accountsFile = admin_storage_migrate_file('accounts.json');
 $accounts = file_exists($accountsFile) ? json_decode(file_get_contents($accountsFile), true) : [];
+
+function admin_avatar_url($storedValue)
+{
+    $storedValue = trim((string)$storedValue);
+    if ($storedValue === '') {
+        return null;
+    }
+    if (strpos($storedValue, 'asset/') === 0 || strpos($storedValue, 'http') === 0 || strpos($storedValue, 'admin/avatar.php') === 0) {
+        return $storedValue;
+    }
+    return 'avatar.php?file=' . rawurlencode($storedValue);
+}
 
 // ==========================================
 // API ENDPOINT LOGIC (POST REQUESTS)
@@ -60,17 +73,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (in_array($file['type'], $allowedTypes)) {
                 $maxSize = 5 * 1024 * 1024;
                 if ($file['size'] <= $maxSize) {
-                    $fileName = 'avatar_' . $user . '_' . time() . '.jpg';
-                    $uploadPath = __DIR__ . '/../asset/avatars/';
-                    if (!file_exists($uploadPath)) mkdir($uploadPath, 0777, true);
+                    $fileName = 'avatar_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $user) . '_' . time() . '.jpg';
+                    $uploadPath = admin_storage_file('avatars');
+                    if (!file_exists($uploadPath)) mkdir($uploadPath, 0775, true);
 
-                    if (move_uploaded_file($file['tmp_name'], $uploadPath . $fileName)) {
+                    if (move_uploaded_file($file['tmp_name'], $uploadPath . DIRECTORY_SEPARATOR . $fileName)) {
                         if (!empty($accounts[$user]['avatar'])) {
-                            $oldAvatarAbs = realpath(__DIR__ . '/../' . $accounts[$user]['avatar']);
+                            $oldAvatar = (string)$accounts[$user]['avatar'];
+                            if (strpos($oldAvatar, 'asset/avatars/') === 0) {
+                                $oldAvatarAbs = realpath(__DIR__ . '/../' . $oldAvatar);
+                            } else {
+                                $oldAvatarAbs = admin_storage_file('avatars/' . basename($oldAvatar));
+                            }
                             if ($oldAvatarAbs && file_exists($oldAvatarAbs)) unlink($oldAvatarAbs);
                         }
-                        $accounts[$user]['avatar'] = 'asset/avatars/' . $fileName;
-                        $_SESSION['admin_avatar'] = 'asset/avatars/' . $fileName;
+                        $accounts[$user]['avatar'] = $fileName;
+                        $_SESSION['admin_avatar'] = admin_avatar_url($fileName);
                     }
                 } else {
                     echo json_encode(['status' => 'error', 'message' => 'File is too large (max 5MB)']);
@@ -109,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (isset($_POST['check_sessions'])) {
-        $sessionsFile = __DIR__ . '/sessions.json';
+        $sessionsFile = admin_storage_migrate_file('sessions.json');
         $activeCount = 0;
         if (file_exists($sessionsFile)) {
             $activeSessions = json_decode(file_get_contents($sessionsFile), true);
@@ -126,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (isset($_POST['terminate_sessions'])) {
-        $sessionsFile = __DIR__ . '/sessions.json';
+        $sessionsFile = admin_storage_migrate_file('sessions.json');
         if (file_exists($sessionsFile)) {
             $activeSessions = json_decode(file_get_contents($sessionsFile), true);
             if (is_array($activeSessions)) {
@@ -153,6 +171,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // We're included within index.php, so just render the markup!
 $currentUser = $accounts[$user] ?? [];
 $emailAddr = $currentUser['email'] ?? '';
+if (!empty($currentUser['avatar'])) {
+    $_SESSION['admin_avatar'] = admin_avatar_url($currentUser['avatar']);
+}
 ?>
 
 <div class="page-header" style="margin-bottom: 24px;">
@@ -181,7 +202,7 @@ $emailAddr = $currentUser['email'] ?? '';
                 <!-- Avatar -->
                 <div style="display:flex; flex-direction:column; align-items:center; gap:12px; flex-shrink: 0;">
                     <?php
-                    $avatarUrl = $_SESSION['admin_avatar'] ?? null;
+                    $avatarUrl = $_SESSION['admin_avatar'] ?? admin_avatar_url($currentUser['avatar'] ?? '');
                     $bgClass = $avatarUrl ? 'transparent' : 'var(--primary-container)';
                     ?>
                     <div style="width: 110px; height: 110px; background: <?= $bgClass ?>; border-radius: 16px; position:relative; display:flex; align-items:center; justify-content:center;">
@@ -269,7 +290,7 @@ $emailAddr = $currentUser['email'] ?? '';
 
             <div style="display:flex; flex-direction:column; gap:16px; flex:1;">
                 <?php
-                $sessionsFile = __DIR__ . '/sessions.json';
+                $sessionsFile = admin_storage_migrate_file('sessions.json');
                 $mySessions = [];
                 if (file_exists($sessionsFile)) {
                     $allSess = json_decode(file_get_contents($sessionsFile), true);

@@ -6,21 +6,22 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     exit;
 }
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 $base = __DIR__ . '/';
-$accounts = $base . 'accounts.json';
-$settings = $base . 'settings.json';
+$accounts = admin_storage_migrate_file('accounts.json');
+$settings = admin_storage_migrate_file('settings.json');
 $chain = app_storage_migrate_file('secure_logs/attendance_chain.json', __DIR__ . '/../secure_logs/attendance_chain.json');
 // additional watched files/pages/data
 $ticketsFile = app_storage_migrate_file('support_tickets.json', $base . 'support_tickets.json');
 $fingerprints = app_storage_migrate_file('fingerprints.json', $base . 'fingerprints.json');
-$courses = $base . 'courses/course.json';
-$activeCourse = $base . 'courses/active_course.json';
+$courses = admin_course_storage_migrate_file('course.json');
+$activeCourse = admin_course_storage_migrate_file('active_course.json');
 $statusFile = app_storage_migrate_file('status.json', $base . 'status.json');
 $viewTicketsPage = $base . 'view_tickets.php';
 $unlinkPage = $base . 'unlink_fingerprint.php';
 $addCoursePage = $base . 'courses/add.php';
-$chatFile = $base . 'chat.json';
+$chatFile = admin_storage_migrate_file('chat.json');
 
 $out = [
     'accounts' => @filemtime($accounts) ?: 0,

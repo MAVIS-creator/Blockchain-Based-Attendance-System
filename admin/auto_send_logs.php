@@ -3,11 +3,12 @@
 // Helper script to be scheduled (cron / Task Scheduler) to send logs automatically.
 
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-$settingsFile = __DIR__ . '/settings.json';
-$keyFile = __DIR__ . '/.settings_key';
+$settingsFile = admin_storage_migrate_file('settings.json');
+$keyFile = admin_storage_migrate_file('.settings_key');
 
 function load_settings_file($settingsFile,$keyFile){
   if (!file_exists($settingsFile)) return null;

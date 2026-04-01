@@ -1,6 +1,7 @@
 <?php
-$courseFile = __DIR__ . '/course.json';
-$activeFile = __DIR__ . '/active_course.json';
+require_once __DIR__ . '/../runtime_storage.php';
+$courseFile = admin_course_storage_migrate_file('course.json');
+$activeFile = admin_course_storage_migrate_file('active_course.json');
 
 // Load courses
 $courses = file_exists($courseFile) ? json_decode(file_get_contents($courseFile), true) : [];
@@ -19,14 +20,14 @@ if (file_exists($activeFile)) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['disable'])) {
         // Disable active course by saving empty JSON
-        file_put_contents($activeFile, json_encode(['course' => ''], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        file_put_contents($activeFile, json_encode(['course' => ''], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;
     }
 
     $selected = $_POST['active_course'] ?? '';
     if (in_array($selected, $courses)) {
-        file_put_contents($activeFile, json_encode(['course' => $selected], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        file_put_contents($activeFile, json_encode(['course' => $selected], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;
     }

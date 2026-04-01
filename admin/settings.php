@@ -6,10 +6,11 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 
-$settingsFile = __DIR__ . '/settings.json';
-$keyFile = __DIR__ . '/.settings_key';
+$settingsFile = admin_storage_migrate_file('settings.json');
+$keyFile = admin_storage_migrate_file('.settings_key');
 $backupDir = app_storage_file('backups');
 if (!is_dir($backupDir)) @mkdir($backupDir, 0700, true);
 
@@ -75,7 +76,7 @@ function save_settings($settingsFile, $keyFile, $settings, $encrypt = false)
 // audit
 function audit_settings_change($adminUser, $changes)
 {
-  $log = __DIR__ . '/settings_audit.log';
+  $log = admin_storage_migrate_file('settings_audit.log');
   $entry = [
     'time' => date('c'),
     'user' => $adminUser,
@@ -85,7 +86,7 @@ function audit_settings_change($adminUser, $changes)
 }
 
 // templates file
-$templatesFile = __DIR__ . '/settings_templates.json';
+$templatesFile = admin_storage_migrate_file('settings_templates.json');
 if (!file_exists($templatesFile)) file_put_contents($templatesFile, json_encode(new stdClass(), JSON_PRETTY_PRINT));
 
 // Load .env (simple parser – avoids extra dependency)
@@ -433,7 +434,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   // load accounts for re-auth
-  $accounts = @json_decode(file_get_contents(__DIR__ . '/accounts.json'), true) ?: [];
+  $accountsFile = admin_storage_migrate_file('accounts.json');
+  $accounts = @json_decode(file_get_contents($accountsFile), true) ?: [];
   $currentUser = $_SESSION['admin_user'] ?? '';
 
   // helper: require re-auth for critical changes
@@ -752,7 +754,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div class="lg:col-span-4 space-y-6">
       <div class="bg-white p-6 rounded-xl shadow-sm border border-outline-variant/20">
-        <?php $acct = json_decode(file_get_contents(__DIR__ . '/accounts.json'), true) ?: []; ?>
+        <?php $accountsFile = admin_storage_migrate_file('accounts.json'); $acct = json_decode(file_get_contents($accountsFile), true) ?: []; ?>
         <p class="text-xs text-on-surface-variant">Admin Accounts</p>
         <p class="font-bold text-2xl"><?= count($acct) ?> / <?= htmlspecialchars($settings['max_admins'] ?? 5) ?></p>
       </div>
@@ -985,11 +987,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <div id="tab-overview" class="st-tab-content hidden">
     <?php
-    $acct = json_decode(file_get_contents(__DIR__ . '/accounts.json'), true) ?: [];
+    $accountsFile = admin_storage_migrate_file('accounts.json');
+    $acct = json_decode(file_get_contents($accountsFile), true) ?: [];
     $adminCount = count($acct);
     $statusFile = app_storage_migrate_file('status.json', __DIR__ . '/../status.json');
     $status = @json_decode(file_get_contents($statusFile), true) ?: [];
-    $lastAudit = file_exists(__DIR__ . '/settings_audit.log') ? array_slice(array_map('trim', file(__DIR__ . '/settings_audit.log')), -10) : [];
+    $settingsAuditFile = admin_storage_migrate_file('settings_audit.log');
+    $lastAudit = file_exists($settingsAuditFile) ? array_slice(array_map('trim', file($settingsAuditFile)), -10) : [];
     $backups = glob(app_storage_file('backups') . '/settings_*.json');
     usort($backups, function ($a, $b) {
       return filemtime($b) - filemtime($a);

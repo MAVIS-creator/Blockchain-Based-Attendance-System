@@ -3,6 +3,7 @@ session_start();
 date_default_timezone_set('Africa/Lagos');
 require_once __DIR__ . '/hybrid_dual_write.php';
 require_once __DIR__ . '/storage_helpers.php';
+require_once __DIR__ . '/admin/runtime_storage.php';
 app_storage_init();
 
 $ticketsFile = app_storage_file('support_tickets.json');
@@ -82,7 +83,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 }
 
 // ✅ Announcement logic
-$announcementFile = __DIR__ . '/admin/announcement.json';
+$announcementFile = admin_storage_migrate_file('announcement.json');
 $announcement = ['enabled' => false, 'message' => ''];
 if (file_exists($announcementFile)) {
   $json = json_decode(file_get_contents($announcementFile), true);

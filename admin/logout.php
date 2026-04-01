@@ -1,6 +1,7 @@
 <?php
 session_start();
-$sessionsFile = __DIR__ . '/sessions.json';
+require_once __DIR__ . '/runtime_storage.php';
+$sessionsFile = admin_storage_migrate_file('sessions.json');
 if (file_exists($sessionsFile)) {
   $activeSessions = json_decode(file_get_contents($sessionsFile), true);
   if (isset($activeSessions[session_id()])) {

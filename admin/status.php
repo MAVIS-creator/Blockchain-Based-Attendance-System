@@ -9,6 +9,7 @@ require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
 
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 $statusFile = app_storage_migrate_file('status.json', __DIR__ . '/../status.json');
 // load status
@@ -25,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $duration = isset($_POST['duration']) && is_numeric($_POST['duration']) ? (int)$_POST['duration'] * 60 : 600; // default 10 minutes
 
   // try to load admin settings to enforce check windows
-  $settingsPath = __DIR__ . '/settings.json';
+  $settingsPath = admin_storage_migrate_file('settings.json');
   $settings = [];
   if (file_exists($settingsPath)) {
     $raw = file_get_contents($settingsPath);
@@ -34,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     else {
       // try decrypt if starts with ENC:
       if (strpos($raw, 'ENC:') === 0) {
-        $keyFile = __DIR__ . '/.settings_key';
+        $keyFile = admin_storage_migrate_file('.settings_key');
         if (file_exists($keyFile)) {
           $key = trim(file_get_contents($keyFile));
           $blob = base64_decode(substr($raw, 4));

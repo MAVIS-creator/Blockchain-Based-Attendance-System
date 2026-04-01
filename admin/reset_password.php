@@ -1,6 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/runtime_storage.php';
 
 $error = '';
 $success = '';
@@ -10,7 +11,7 @@ $userAccount = '';
 $email = $_GET['email'] ?? ($_POST['email'] ?? '');
 $token = $_GET['token'] ?? ($_POST['token'] ?? '');
 
-$resetsFile = __DIR__ . '/password_resets.json';
+$resetsFile = admin_storage_migrate_file('password_resets.json');
 $resets = file_exists($resetsFile) ? json_decode(file_get_contents($resetsFile), true) : [];
 
 if (empty($email) || empty($token)) {
@@ -45,18 +46,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
         } elseif ($newPass !== $confPass) {
             $error = 'Passwords do not match.';
         } else {
-            $accountsFile = __DIR__ . '/accounts.json';
+            $accountsFile = admin_storage_migrate_file('accounts.json');
             $accounts = json_decode(file_get_contents($accountsFile), true);
 
             if (isset($accounts[$userAccount])) {
                 $accounts[$userAccount]['password'] = password_hash($newPass, PASSWORD_DEFAULT);
-                file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT));
+                file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT), LOCK_EX);
 
                 // Invalidate the token
                 $resets = array_filter($resets, function($r) use ($email) {
                     return $r['email'] !== $email;
                 });
-                file_put_contents($resetsFile, json_encode($resets, JSON_PRETTY_PRINT));
+                file_put_contents($resetsFile, json_encode($resets, JSON_PRETTY_PRINT), LOCK_EX);
 
                 $success = 'Your password has been reset successfully! You can now log in.';
                 $validToken = false; // hiding the form

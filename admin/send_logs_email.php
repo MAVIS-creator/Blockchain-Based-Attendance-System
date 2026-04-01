@@ -8,6 +8,7 @@ require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
 
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 
 // send_logs_email.php - redesigned to show selectable log files grouped by date+course
@@ -36,7 +37,8 @@ $ENV = load_env_vars(__DIR__ . '/../.env');
 // Get default recipient from settings
 $defaultRecipient = '';
 try {
-  $adminSettings = file_exists(__DIR__ . '/settings.json') ? (json_decode(file_get_contents(__DIR__ . '/settings.json'), true) ?: []) : [];
+  $settingsFile = admin_storage_migrate_file('settings.json');
+  $adminSettings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?: []) : [];
   $defaultRecipient = $adminSettings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? '');
 } catch (\Throwable $e) { /* ignore */
 }
@@ -210,8 +212,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])) {
 
               // From address from .env, from name from settings
               $settings = [];
-              if (file_exists(__DIR__ . '/settings.json')) {
-                $settings = json_decode(file_get_contents(__DIR__ . '/settings.json'), true) ?: [];
+              $settingsFile = admin_storage_migrate_file('settings.json');
+              if (file_exists($settingsFile)) {
+                $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
               }
               $fromEmail = $ENV['FROM_EMAIL'] ?? 'no-reply@example.com';
               $fromName = $settings['smtp']['from_name'] ?? ($ENV['FROM_NAME'] ?? 'Attendance System');
