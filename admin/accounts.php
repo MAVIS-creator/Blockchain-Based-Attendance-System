@@ -5,9 +5,6 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
   exit;
 }
 
-// include header and sidebar provided by index.php layout when loaded via index.php route
-// This page can also be accessed directly; include header/footer if not included by index
-
 $accountsFile = __DIR__ . '/accounts.json';
 $settingsFile = __DIR__ . '/settings.json';
 if (!file_exists($accountsFile)) file_put_contents($accountsFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -16,38 +13,30 @@ if (!file_exists($settingsFile)) file_put_contents($settingsFile, json_encode(['
 $accounts = json_decode(file_get_contents($accountsFile), true) ?: [];
 $settings = json_decode(file_get_contents($settingsFile), true) ?: ['prefer_mac' => true, 'max_admins' => 5];
 
-// CSRF helper
 require_once __DIR__ . '/includes/csrf.php';
-// ensure token exists
 csrf_token();
 
-// determine current user role
 $currentRole = $_SESSION['admin_role'] ?? 'admin';
 
 $message = '';
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  // validate CSRF centrally
   if (!csrf_check_request()) {
     $errors[] = 'Invalid CSRF token.';
   }
 
   $action = $_POST['action'] ?? '';
-
-  // Helper: require superadmin for privileged actions
   $privileged = in_array($action, ['create','delete','set_password'], true);
   if ($privileged && $currentRole !== 'superadmin') {
     $errors[] = 'Only super-admins can perform that action.';
   }
 
-  // Create new admin (superadmin only)
   if ($action === 'create') {
     $username = trim($_POST['username'] ?? '');
     $fullname = trim($_POST['fullname'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    // Basic validation
     if ($username === '' || !preg_match('/^[a-zA-Z0-9_\-]{3,30}$/', $username)) {
       $errors[] = 'Username must be 3-30 chars, letters/numbers/_/- only.';
     }
@@ -55,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $errors[] = 'Password must be at least 6 characters.';
     }
 
-    // enforce max admins
     $maxAdmins = intval($settings['max_admins'] ?? 5);
     if (count($accounts) >= $maxAdmins) {
       $errors[] = "Maximum number of admins reached ({$maxAdmins}).";
@@ -76,7 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
-  // Delete admin (superadmin only)
   } elseif ($action === 'delete') {
     $target = trim($_POST['target'] ?? '');
     if ($target === '') {
@@ -84,12 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!isset($accounts[$target])) {
       $errors[] = 'Target user does not exist.';
     } else {
-      // prevent deleting self
       $currentUser = $_SESSION['admin_user'] ?? '';
       if ($currentUser === $target) {
         $errors[] = 'You cannot delete your own account.';
       } else {
-        // prevent removing last superadmin
         $superCount = 0;
         foreach ($accounts as $u => $a) {
           if (($a['role'] ?? 'admin') === 'superadmin') $superCount++;
@@ -104,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
-  // Change own password (any admin)
   } elseif ($action === 'change_self') {
     $currentUser = $_SESSION['admin_user'] ?? '';
     $old = $_POST['current_password'] ?? '';
@@ -128,7 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
-  // Superadmin: set password for another user without old password
   } elseif ($action === 'set_password') {
     $target = trim($_POST['target'] ?? '');
     $new = $_POST['new_password'] ?? '';
@@ -143,77 +126,118 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 }
-
-// Render page (when included via index.php, header/footer/sidebar are already present)
 ?>
 
-<div class="admin-page" style="padding:20px;background:transparent;">
-  <h2>Admin Accounts</h2>
-  <?php if ($message): ?>
-    <div style="background:#dff0d8;padding:10px;border-radius:6px;margin-bottom:12px;color:#2d6a2d;"><?=htmlspecialchars($message)?></div>
-  <?php endif; ?>
-  <?php if ($errors): ?>
-    <div style="background:#ffe6e6;padding:10px;border-radius:6px;margin-bottom:12px;color:#8a1f1f;"><ul><?php foreach($errors as $e) echo '<li>'.htmlspecialchars($e).'</li>'; ?></ul></div>
-  <?php endif; ?>
+<!-- Admin Accounts — Stitch UI -->
+<div style="max-width:900px;margin:0 auto;">
+  <div style="margin-bottom:24px;">
+    <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">
+      <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">group</span>Admin Accounts
+    </h2>
+    <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Manage admin users. Max: <?= intval($settings['max_admins'] ?? 5) ?> accounts.</p>
+  </div>
 
-  <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
-    <thead><tr style="background:#f4f6f8;"><th style="padding:8px;text-align:left;">Username</th><th style="padding:8px;text-align:left;">Name</th><th style="padding:8px;text-align:left;">Role</th><th style="padding:8px;text-align:right;">Actions</th></tr></thead>
-    <tbody>
-      <?php foreach ($accounts as $u => $info): ?>
-      <tr>
-        <td style="padding:8px;border-bottom:1px solid #eee;"><?=htmlspecialchars($u)?></td>
-        <td style="padding:8px;border-bottom:1px solid #eee;"><?=htmlspecialchars($info['name']??'')?></td>
-        <td style="padding:8px;border-bottom:1px solid #eee;"><?=htmlspecialchars($info['role']??'admin')?></td>
-        <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">
+  <?php if ($message): ?><div class="alert alert-success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
+  <?php if ($errors): ?><div class="alert alert-danger"><ul style="margin:0;padding-left:18px;"><?php foreach($errors as $e) echo '<li>'.htmlspecialchars($e).'</li>'; ?></ul></div><?php endif; ?>
+
+  <!-- Accounts Table -->
+  <div class="st-card" style="padding:0;margin-bottom:20px;overflow-x:auto;">
+    <table class="st-table" style="width:100%;">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Name</th>
+          <th>Role</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($accounts as $u => $info): ?>
+        <tr>
+          <td style="font-weight:600;"><?= htmlspecialchars($u) ?></td>
+          <td><?= htmlspecialchars($info['name'] ?? '') ?></td>
+          <td>
+            <span class="st-chip <?= ($info['role'] ?? 'admin') === 'superadmin' ? 'st-chip-info' : 'st-chip-neutral' ?>">
+              <?= htmlspecialchars($info['role'] ?? 'admin') ?>
+            </span>
+          </td>
+          <td style="text-align:right;">
             <?php if ($currentRole === 'superadmin'): ?>
-              <?php if (($u !== ($_SESSION['admin_user'] ?? ''))): ?>
-                <form method="POST" style="display:inline-block;margin:0 6px 0 0;">
-                  <?php csrf_field(); ?>
-                  <input type="hidden" name="action" value="delete">
-                  <input type="hidden" name="target" value="<?=htmlspecialchars($u)?>">
-                  <button type="submit" style="padding:6px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;">Delete</button>
-                </form>
-                <form method="POST" style="display:inline-block;margin:0 0 0 6px;">
-                  <?php csrf_field(); ?>
-                  <input type="hidden" name="action" value="set_password">
-                  <input type="hidden" name="target" value="<?=htmlspecialchars($u)?>">
-                  <input type="password" name="new_password" placeholder="New password" style="padding:6px;border-radius:4px;border:1px solid #ddd;">
-                  <button type="submit" style="padding:6px 10px;background:#f59e0b;color:#fff;border:none;border-radius:4px;margin-left:6px;">Set</button>
-                </form>
+              <?php if ($u !== ($_SESSION['admin_user'] ?? '')): ?>
+                <div style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+                  <form method="POST" style="display:inline;margin:0;">
+                    <?php csrf_field(); ?>
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="target" value="<?= htmlspecialchars($u) ?>">
+                    <button type="submit" class="st-btn st-btn-danger st-btn-sm">
+                      <span class="material-symbols-outlined" style="font-size:0.9rem;">delete</span>
+                    </button>
+                  </form>
+                  <form method="POST" style="display:inline-flex;gap:4px;margin:0;align-items:center;">
+                    <?php csrf_field(); ?>
+                    <input type="hidden" name="action" value="set_password">
+                    <input type="hidden" name="target" value="<?= htmlspecialchars($u) ?>">
+                    <input type="password" name="new_password" placeholder="New pwd" style="width:120px;padding:6px 8px;font-size:0.85rem;">
+                    <button type="submit" class="st-btn st-btn-sm" style="background:#f59e0b;color:#fff;">Set</button>
+                  </form>
+                </div>
               <?php else: ?>
-                <em style="color:#666;">(you)</em>
+                <span class="st-chip st-chip-neutral">(you)</span>
               <?php endif; ?>
             <?php else: ?>
-              <em style="color:#666;">-</em>
+              <span style="color:var(--outline);">—</span>
             <?php endif; ?>
-        </td>
-      </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
 
+  <!-- Create Admin -->
   <?php if ($currentRole === 'superadmin'): ?>
-  <form method="POST" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <?php csrf_field(); ?>
-    <input name="action" type="hidden" value="create">
-    <input name="username" placeholder="username" style="padding:8px;min-width:160px;" required>
-    <input name="fullname" placeholder="full name" style="padding:8px;min-width:200px;">
-    <input name="password" type="password" placeholder="password" style="padding:8px;min-width:160px;" required>
-    <button type="submit" style="padding:8px;background:#10b981;color:#fff;border:none;border-radius:6px;">Create Admin</button>
-  </form>
+  <div class="st-card" style="margin-bottom:20px;">
+    <p style="font-weight:700;color:var(--on-surface);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+      <span class="material-symbols-outlined" style="font-size:1.1rem;">person_add</span> Create Admin
+    </p>
+    <form method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+      <?php csrf_field(); ?>
+      <input name="action" type="hidden" value="create">
+      <div>
+        <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Username</label>
+        <input name="username" placeholder="username" required>
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Full Name</label>
+        <input name="fullname" placeholder="Full Name">
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Password</label>
+        <input name="password" type="password" placeholder="password" required>
+      </div>
+      <button type="submit" class="st-btn st-btn-success">
+        <span class="material-symbols-outlined" style="font-size:1rem;">add</span> Create
+      </button>
+    </form>
+  </div>
   <?php else: ?>
-    <div style="color:#6b7280;margin-top:8px;">Only super-admins can create new admin accounts.</div>
+    <p style="color:var(--outline);font-style:italic;">Only super-admins can create new admin accounts.</p>
   <?php endif; ?>
 
-  <hr style="margin:18px 0;border:none;border-top:1px solid #eee;">
-
-  <h3>Change your password</h3>
-  <form method="POST" style="max-width:560px;display:flex;flex-direction:column;gap:8px;">
-    <?php csrf_field(); ?>
-    <input type="hidden" name="action" value="change_self">
-    <input type="password" name="current_password" placeholder="Current password" style="padding:8px;">
-    <input type="password" name="new_password" placeholder="New password" style="padding:8px;">
-    <input type="password" name="confirm_password" placeholder="Confirm new password" style="padding:8px;">
-    <div><button type="submit" style="padding:8px 12px;background:#3b82f6;color:#fff;border:none;border-radius:6px;">Change password</button></div>
-  </form>
+  <!-- Change Own Password -->
+  <div class="st-card">
+    <p style="font-weight:700;color:var(--on-surface);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+      <span class="material-symbols-outlined" style="font-size:1.1rem;">lock</span> Change Your Password
+    </p>
+    <form method="POST" style="max-width:400px;display:flex;flex-direction:column;gap:10px;">
+      <?php csrf_field(); ?>
+      <input type="hidden" name="action" value="change_self">
+      <input type="password" name="current_password" placeholder="Current password">
+      <input type="password" name="new_password" placeholder="New password">
+      <input type="password" name="confirm_password" placeholder="Confirm new password">
+      <button type="submit" class="st-btn st-btn-primary">
+        <span class="material-symbols-outlined" style="font-size:1rem;">lock_reset</span> Change Password
+      </button>
+    </form>
+  </div>
 </div>

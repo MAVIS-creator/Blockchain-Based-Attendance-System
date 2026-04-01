@@ -1,57 +1,56 @@
 <?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
-<header class="page-header" style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#fff;border-bottom:1px solid #eee;">
+<!-- Mobile Page Header (visible <1024px only, hidden on desktop) -->
+<header class="page-header">
   <div style="display:flex;align-items:center;gap:12px;">
-    <img src="../asset/lautech_logo.png" alt="logo" style="height:40px;width:auto;background:#fff;padding:6px;border-radius:6px;box-shadow:0 6px 18px rgba(16,24,40,0.06)">
-    <h1 style="margin:0;font-size:1.2rem;color:#333;">Attendance Admin Panel</h1>
+    <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+    <img src="../asset/lautech_logo.png" alt="logo" style="height:32px;width:auto;border-radius:6px;" onerror="this.style.display='none'">
+    <h1>Attendance Admin</h1>
   </div>
 
-  <div style="display:flex;align-items:center;gap:12px;">
+  <div style="display:flex;align-items:center;gap:10px;">
     <?php
-      // ensure admin name and role variables exist to avoid undefined notices
       $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'superadmin';
-      if (!empty($_SESSION['admin_name'])): ?>
-      <?php
+      if (!empty($_SESSION['admin_name'])):
         $adminName = htmlspecialchars($_SESSION['admin_name']);
         $adminAvatar = $_SESSION['admin_avatar'] ?? null;
-        // Build initials avatar if no avatar set
         $initials = trim(array_reduce(explode(' ', $adminName), function($carry, $part){ return $carry . ($part[0] ?? ''); }, ''));
         $initials = strtoupper(substr($initials, 0, 2));
-      ?>
-      <div style="display:flex;align-items:center;gap:10px;position:relative;">
-         <img src="../asset/lautech_logo.png" alt="logo" style="height:40px;width:auto;background:#fff;padding:6px;border-radius:6px;">
-         <button class="avatar-btn" aria-haspopup="true" aria-expanded="false" id="avatarToggle" style="background:transparent;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
+    ?>
+      <div style="position:relative;">
+         <button class="avatar-btn" aria-haspopup="true" aria-expanded="false" id="avatarToggle">
            <?php if ($adminAvatar): ?>
              <img class="admin-avatar" src="<?= htmlspecialchars($adminAvatar) ?>" alt="avatar">
            <?php else: ?>
              <span class="admin-initials"><?= $initials ?></span>
            <?php endif; ?>
-           <span style="font-weight:600;color:#333;"><?= $adminName ?></span>
          </button>
 
-         <div id="avatarMenu" class="avatar-menu" style="display:none;position:absolute;right:0;top:56px;background:#fff;border-radius:12px;box-shadow:0 12px 30px rgba(2,6,23,0.12);overflow:hidden;z-index:10002;">
-          <a href="index.php?page=profile_settings">
-             <i class="bx bx-user"></i>
+         <div id="avatarMenu" class="avatar-menu" style="display:none;">
+          <a href="#" onclick="openProfileModal(); return false;">
+             <span class="material-symbols-outlined" style="font-size:1.1rem;">person</span>
              Profile Settings
            </a>
            <?php if ($isSuperAdmin): ?>
           <a href="index.php?page=accounts">
-             <i class="bx bx-group"></i>
+             <span class="material-symbols-outlined" style="font-size:1.1rem;">group</span>
              Manage Accounts
            </a>
           <a href="index.php?page=settings">
-             <i class="bx bx-cog"></i>
+             <span class="material-symbols-outlined" style="font-size:1.1rem;">settings</span>
              System Settings
            </a>
            <?php endif; ?>
            <div class="menu-divider"></div>
            <a href="logout.php" class="menu-danger">
-             <i class="bx bx-log-out"></i>
+             <span class="material-symbols-outlined" style="font-size:1.1rem;">logout</span>
              Logout
            </a>
          </div>
       </div>
     <?php else: ?>
-  <a href="login.php" style="color:#333;text-decoration:none;font-weight:600;">Login</a>
+  <a href="login.php" style="color:var(--on-surface);font-weight:600;">Login</a>
     <?php endif; ?>
   </div>
 </header>
@@ -64,11 +63,6 @@
 <!-- SweetAlert2 (CDN) and local theme -->
 <link rel="stylesheet" href="<?= htmlspecialchars($adminRoot) ?>/swal-theme.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        <link rel="icon" type="image/x-icon" href=".../asset/favicon.ico">
-  <link rel="apple-touch-icon" sizes="180x180" href=".../asset/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href=".../asset/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href=".../asset/favicon-16x16.png">
-  <link rel="manifest" href=".../asset/site.webmanifest">
 <link rel="stylesheet" href="<?= htmlspecialchars($adminRoot) ?>/admin-theme.css">
 <?php
   // expose CSRF token to JS by including the helper
@@ -162,11 +156,11 @@
   // detect whether icon fonts loaded; if not, enable fallback CSS
   (function(){
     try{
-      var span = document.createElement('span'); span.className='fa'; span.style.display='none'; document.body.appendChild(span);
+      var span = document.createElement('span'); span.className='material-symbols-outlined'; span.style.display='none'; document.body.appendChild(span);
       var ff = window.getComputedStyle(span).getPropertyValue('font-family') || '';
       document.body.removeChild(span);
       ff = ff.toLowerCase();
-      if (ff.indexOf('fontawesome') === -1 && ff.indexOf('boxicons') === -1) {
+      if (ff.indexOf('material') === -1 && ff.indexOf('boxicons') === -1) {
         document.body.classList.add('icons-fallback');
       }
     }catch(e){ document.body.classList.add('icons-fallback'); }
@@ -181,13 +175,11 @@
       safeFetch('_last_updates.php').then(function(data){
         if (!lastKnown.accounts) { lastKnown = data; return; }
         var changed = false;
-        // list of keys to check. If current page matches any key name we attempt to refresh.
         var keys = ['accounts','settings','chain','tickets','fingerprints','courses','active_course','status','view_tickets_page','unlink_page','add_course_page','chat'];
         keys.forEach(function(k){
           if ((data[k]||0) !== (lastKnown[k]||0)) {
             lastKnown[k] = data[k];
             changed = true;
-            // if the user is viewing a page that corresponds to this key, refresh it
             if (currentPage === 'accounts' && k === 'accounts') refreshCurrent();
             if (currentPage === 'settings' && k === 'settings') refreshCurrent();
             if (currentPage === 'chain' && k === 'chain') refreshCurrent();
@@ -196,11 +188,9 @@
             if (currentPage === 'add_course' && k === 'add_course_page') refreshCurrent();
             if (currentPage === 'set_active' && (k === 'active_course' || k === 'courses')) refreshCurrent();
             if (currentPage === 'status' && k === 'status') refreshCurrent();
-            // chat handled separately
             if (k === 'chat') fetchChat();
           }
         });
-        // small global refresh if something changed and not on a named page
         if (changed && currentPage === '') {
           location.reload();
         }
@@ -234,54 +224,46 @@
       if (window.ADMIN_CSRF_TOKEN) payload.csrf_token = window.ADMIN_CSRF_TOKEN;
       return fetch('chat_post.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)}).then(function(r){ if(!r.ok) throw new Error('Network'); return r.json(); }).catch(function(){ return {ok:false}; });
     }
-    function escapeHtml(s){ return String(s).replace(/[&<>\"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-    // expose to global scope so other scripts can call
+    function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
     window.fetchChat = fetchChat;
     window.postChat = postChat;
     window.escapeHtml = escapeHtml;
-    // initial load
     checkUpdates();
     setInterval(checkUpdates, 5000);
-
-    // chat polling handled by the chat UI which will call window.fetchChat
   })();
 </script>
-<!-- Chat UI: replaced with user-provided style and behavior -->
+<!-- Chat UI -->
 <?php if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in']===true): ?>
 <style>
-  /* Chat button */
-  .chat_button{ position:fixed; right:24px; bottom:24px; height:64px; width:64px; border-radius:50%; background:#fff; border:none; box-shadow:0 6px 20px rgba(0,0,0,0.12); cursor:pointer; display:flex;align-items:center;justify-content:center; z-index:10001; }
-  .chat_button i { color: #3b82f6; font-size:22px; }
-  .chat_button:hover { transform:translateY(-3px); }
+  .chat_button{ position:fixed; right:24px; bottom:24px; height:56px; width:56px; border-radius:50%; background:linear-gradient(135deg, var(--primary), var(--primary-container)); border:none; box-shadow:0 6px 20px rgba(0,69,123,0.2); cursor:pointer; display:flex;align-items:center;justify-content:center; z-index:10001; transition:transform 0.2s,box-shadow 0.2s; }
+  .chat_button:hover { transform:translateY(-3px); box-shadow:0 10px 30px rgba(0,69,123,0.3); }
+  .chat_button .material-symbols-outlined { color: #fff; font-size:22px; }
 
-  /* Chat box */
-  #chatbar.chat_box { position:fixed; right:24px; bottom:100px; width:360px; max-height:520px; background:#fff; border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,0.12); overflow:hidden; z-index:10000; display:none; flex-direction:column; }
-  .chat_box_header { padding:14px 16px; background:linear-gradient(90deg,#6366f1,#3b82f6); color:#fff; font-weight:700; letter-spacing:1px; }
-  .chat_box_body { padding:12px; max-height:360px; overflow:auto; background: #f8fafc; }
-  .chat_box_body .msg { clear:both; margin:8px 0; max-width:80%; padding:10px 12px; border-radius:14px; font-size:0.95rem; }
-  .chat_box_body .msg.self { background: linear-gradient(90deg,#10b981,#059669); color:#fff; float:right; }
-  .chat_box_body .msg.other { background:#eef2ff; color:#0f172a; float:left; }
-  .chat_box_footer { padding:10px; display:flex; gap:8px; align-items:center; border-top:1px solid #eef2ff; background:#fff; }
-  .chat_box_footer input { flex:1; padding:10px 12px; border-radius:10px; border:1px solid #e6eef9; }
-  .chat_box_footer button { background:#3b82f6; color:#fff; border:none; padding:9px 12px; border-radius:8px; cursor:pointer; }
+  #chatbar.chat_box { position:fixed; right:24px; bottom:92px; width:360px; max-height:520px; background:var(--surface-container-lowest); border-radius:var(--radius-xl); box-shadow:var(--shadow-elevated); overflow:hidden; z-index:10000; display:none; flex-direction:column; border:1px solid var(--outline-variant); }
+  .chat_box_header { padding:14px 16px; background:var(--primary); color:#fff; font-weight:700; letter-spacing:0.05em; font-size:0.85rem; }
+  .chat_box_body { padding:16px; max-height:360px; overflow-y:auto; background:var(--surface-container-low); display:flex; flex-direction:column; gap:12px; }
+  .chat_box_body .msg { position:relative; max-width:85%; padding:10px 14px; border-radius:12px; font-size:0.9rem; }
+  .chat_box_body .msg.self { align-self:flex-end; background:#059669; color:#fff; border-bottom-right-radius:4px; }
+  .chat_box_body .msg.other { align-self:flex-start; background:var(--surface-container-lowest); color:var(--on-surface); border:1px solid var(--outline-variant); border-bottom-left-radius:4px; }
+  .chat_box_footer { padding:10px; display:flex; gap:8px; align-items:center; border-top:1px solid var(--outline-variant); background:var(--surface-container-lowest); }
+  .chat_box_footer input { flex:1; padding:10px 12px; border-radius:var(--radius-md); border:1px solid var(--outline-variant); font-family:inherit; }
+  .chat_box_footer button { background:var(--primary); color:#fff; border:none; padding:9px 16px; border-radius:var(--radius-md); cursor:pointer; }
 
-  /* small screens */
   @media (max-width:480px){ #chatbar.chat_box{ right:12px; left:12px; bottom:90px; width:auto; } }
 </style>
 
-<!-- Chat button and box HTML -->
 <div id="chatPage" class="chat_page">
   <button id="chatToggle" class="chat_button" aria-label="Open chat">
-    <i id="chatOpen" class="bx bx-message-rounded"></i>
-    <span id="chatBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;border-radius:999px;padding:2px 6px;font-size:0.75rem;">0</span>
+    <span id="chatOpen" class="material-symbols-outlined">chat</span>
+    <span id="chatBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--error);color:#fff;border-radius:999px;padding:2px 6px;font-size:0.7rem;font-weight:700;">0</span>
   </button>
 
-  <div id="chatbar" class="chat_box animated fadeInUp">
+  <div id="chatbar" class="chat_box">
     <div class="chat_box_header">MESSAGES</div>
     <div id="chatBody" class="chat_box_body"></div>
     <div class="chat_box_footer">
       <input type="text" id="MsgInput" placeholder="Enter Message">
-      <button id="MsgSend" aria-label="Send message"><i class="bx bx-send"></i></button>
+      <button id="MsgSend" aria-label="Send message"><span class="material-symbols-outlined" style="font-size:18px;">send</span></button>
     </div>
   </div>
 </div>
@@ -300,8 +282,8 @@
   var currentRole = <?= json_encode($_SESSION['admin_role'] ?? 'admin') ?>;
 
     function openChatBox(){
-      if(!isOpen){ chatbar.style.display='flex'; isOpen = true; icon.classList.remove('fa-comments'); icon.classList.add('fa-times'); fetchAndRender(); startPolling(); }
-      else { chatbar.style.display='none'; isOpen = false; icon.classList.add('fa-comments'); icon.classList.remove('fa-times'); stopPolling(); }
+      if(!isOpen){ chatbar.style.display='flex'; isOpen = true; icon.textContent='close'; fetchAndRender(); startPolling(); }
+      else { chatbar.style.display='none'; isOpen = false; icon.textContent='chat'; stopPolling(); }
     }
 
     toggle.addEventListener('click', openChatBox);
@@ -317,11 +299,12 @@
         var rel = d.toLocaleTimeString();
         var iso = d.toISOString();
         var title = d.toString();
-        // message container with timestamp title and optional delete for superadmin
-        var content = '<strong>'+escapeHtml(m.name)+'</strong> <span title="'+escapeHtml(title)+'" style="font-size:0.75rem;color:#475569;margin-left:8px;">'+escapeHtml(rel)+'</span>';
-        content += '<div style="margin-top:6px;">'+escapeHtml(m.message)+'</div>';
+        var content = '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">';
+        content += '<strong style="font-size:0.95rem;">'+escapeHtml(m.name)+'</strong> <span title="'+escapeHtml(title)+'" style="font-size:0.75rem;opacity:0.75;margin-left:8px;">'+escapeHtml(rel)+'</span>';
+        content += '</div>';
+        content += '<div style="margin-bottom:4px;line-height:1.4;">'+escapeHtml(m.message)+'</div>';
         if (currentRole === 'superadmin') {
-          content += '<div style="margin-top:6px;text-align:right;"><button data-time="'+escapeHtml(m.time)+'" class="delete-msg" style="background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:0.85rem;">Delete</button></div>';
+          content += '<div style="text-align:right;margin-top:4px;"><button data-time="'+escapeHtml(m.time)+'" class="delete-msg" style="background:none;border:none;cursor:pointer;font-size:0.75rem;padding:0;text-decoration:none;font-weight:600;'+(cls.indexOf('self')>-1?'color:#ffcfcf;':'color:var(--error);')+'">Delete</button></div>';
         }
         div.innerHTML = content;
         chatBody.appendChild(div);
@@ -333,7 +316,6 @@
     function fetchAndRender(){
       window.fetchChat().then(function(messages){
         messages = messages || [];
-        // update unread badge if closed
         if (!isOpen) {
           if (messages.length > lastCount) {
             var diff = messages.length - lastCount;
@@ -345,13 +327,11 @@
           lastCount = messages.length;
         }
         renderMessages(messages);
-        // attach delete handlers
         if (currentRole === 'superadmin') {
           Array.from(document.getElementsByClassName('delete-msg')).forEach(function(btn){
             btn.addEventListener('click', function(){
               var t = this.getAttribute('data-time');
               if (!t) return;
-              // use the SweetAlert2-based helper
               window.adminConfirm('Delete message', 'Delete this message?').then(function(ok){
                 if (!ok) return;
                 var payload = { time: t };
@@ -367,18 +347,15 @@
       });
     }
 
-    // send message
     function send(){ var v = msgInput.value.trim(); if(!v) return; msgInput.value=''; window.postChat(v).then(function(res){ if(res && res.ok){ fetchAndRender(); } }); }
 
     msgSend.addEventListener('click', send);
     msgInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); send(); } });
 
-  // poll for new messages every 2s when open; also refresh when file changes via header's checkUpdates
   var pollTimer = null;
   function startPolling(){ if(pollTimer) return; pollTimer = setInterval(fetchAndRender, 2000); }
   function stopPolling(){ if(!pollTimer) return; clearInterval(pollTimer); pollTimer = null; }
 
-    // expose functions for other scripts
     window.openChatBox = openChatBox;
     window.sendChatMessage = send;
 

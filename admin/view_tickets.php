@@ -81,24 +81,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
 }
 ?>
 
-<h1 class="page-title"><i class='bx bx-envelope'></i> Support Tickets</h1>
-
-<div class="theme-toggle">
-  <i class='bx bxs-color' id="palette-icon"></i>
-  <div id="palette-options">
-    <button onclick="setTheme(0)" style="background: linear-gradient(135deg, #00eaff, #00c5cc);"></button>
-    <button onclick="setTheme(1)" style="background: linear-gradient(135deg, #ff7e5f, #feb47b);"></button>
-    <button onclick="setTheme(2)" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);"></button>
-    <button onclick="setTheme(3)" style="background: linear-gradient(135deg, #10b981, #22d3ee);"></button>
-    <button onclick="setTheme(4)" style="background: linear-gradient(135deg, #a855f7, #3b82f6);"></button>
-    <button onclick="setTheme(5)" style="background: linear-gradient(135deg, #ec4899, #f59e0b);"></button>
-    <button onclick="setTheme(6)" style="background: linear-gradient(135deg, #14b8a6, #0ea5e9);"></button>
-  </div>
+<!-- Support Tickets — Stitch UI -->
+<div style="margin-bottom:24px;">
+  <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">
+    <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">confirmation_number</span>Support Tickets
+  </h2>
+  <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Review and resolve student support requests.</p>
 </div>
 
-
-<div class="tickets-wrapper">
-  <?php 
+<div class="tickets-wrapper" style="grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));">
+  <?php
   $hasUnresolved = false;
   if (!empty($tickets)): ?>
     <?php foreach (array_reverse($tickets) as $ticket): ?>
@@ -108,51 +100,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
         <?php
           $fp = $ticket['fingerprint'] ?? '';
           $ip = $ticket['ip'] ?? '';
-
           $fpMatch = $fp ? checkLogMatch($logLines, $fp, 3) : false;
           $ipMatch = $ip ? checkLogMatch($logLines, $ip, 4) : false;
         ?>
 
         <div class="ticket-card">
-          <div class="ticket-header">
-            <strong><?= htmlspecialchars($ticket['name']) ?></strong> 
-            <span class="ticket-matric"><?= htmlspecialchars($ticket['matric']) ?></span>
+          <!-- Header -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--surface-container-high);">
+            <strong style="color:var(--on-surface);font-size:1rem;"><?= htmlspecialchars($ticket['name']) ?></strong>
+            <span class="st-chip st-chip-info"><?= htmlspecialchars($ticket['matric']) ?></span>
           </div>
-          <div class="ticket-message">
+
+          <!-- Message -->
+          <p style="color:var(--on-surface);line-height:1.6;margin-bottom:16px;font-size:0.9rem;">
             <?= nl2br(htmlspecialchars($ticket['message'])) ?>
+          </p>
+
+          <!-- Fingerprint & IP matches -->
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+            <div style="font-size:0.85rem;background:var(--surface-container-low);padding:10px 14px;border-radius:8px;word-break:break-all;color:<?= $fpMatch ? '#059669' : 'var(--error)' ?>;">
+              <strong>Fingerprint:</strong> <?= htmlspecialchars($fp ?: 'Not submitted') ?>
+              <?= $fpMatch ? '<span class="st-chip st-chip-success" style="margin-left:8px;">Matched ✓</span>' : '<span class="st-chip st-chip-danger" style="margin-left:8px;">No match</span>' ?>
+            </div>
+            <div style="font-size:0.85rem;background:var(--surface-container-low);padding:10px 14px;border-radius:8px;word-break:break-all;color:<?= $ipMatch ? '#059669' : 'var(--error)' ?>;">
+              <strong>IP:</strong> <?= htmlspecialchars($ip ?: 'Not submitted') ?>
+              <?= $ipMatch ? '<span class="st-chip st-chip-success" style="margin-left:8px;">Matched ✓</span>' : '<span class="st-chip st-chip-danger" style="margin-left:8px;">No match</span>' ?>
+            </div>
           </div>
 
-          <div class="ticket-fingerprint" style="color: <?= $fpMatch ? '#28a745' : '#dc3545' ?>;">
-            <strong>Fingerprint:</strong> <?= htmlspecialchars($fp ?: 'Not submitted') ?>
-            <?= $fpMatch ? '(Matched in logs ✅)' : '(No match ❌)' ?>
-          </div>
-
-          <div class="ticket-ip" style="color: <?= $ipMatch ? '#28a745' : '#dc3545' ?>;">
-            <strong>IP:</strong> <?= htmlspecialchars($ip ?: 'Not submitted') ?>
-            <?= $ipMatch ? '(Matched in logs ✅)' : '(No match ❌)' ?>
-          </div>
-
-          <div class="ticket-footer">
-            <i class='bx bx-time-five'></i> <?= htmlspecialchars($ticket['timestamp']) ?>
-            <a class="resolve-btn" href="index.php?page=support_tickets&resolve=<?= urlencode($ticket['timestamp']) ?>" onclick="return confirmResolve(event)">
-              <i class='bx bx-check-circle'></i> Mark as Resolved
+          <!-- Footer -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--surface-container-high);font-size:0.85rem;color:var(--on-surface-variant);flex-wrap:wrap;gap:8px;">
+            <span><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;">schedule</span> <?= htmlspecialchars($ticket['timestamp']) ?></span>
+            <a class="st-btn st-btn-success st-btn-sm resolve-btn" href="index.php?page=support_tickets&resolve=<?= urlencode($ticket['timestamp']) ?>" onclick="return confirmResolve(event)">
+              <span class="material-symbols-outlined" style="font-size:1rem;">check_circle</span> Resolve
             </a>
           </div>
 
-          <div class="action-menu">
-            <button class="action-trigger" onclick="toggleActionMenu(this)">
-              <i class='bx bx-dots-vertical-rounded'></i>
+          <!-- Action Menu -->
+          <div style="position:absolute;top:16px;right:16px;" class="action-menu">
+            <button type="button" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;" onclick="toggleActionMenu(this)">
+              <span class="material-symbols-outlined" style="font-size:1rem;color:var(--on-surface-variant);">more_vert</span>
             </button>
-            <form method="post" class="action-menu-content">
+            <form method="post" class="action-menu-content" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:10px;box-shadow:var(--shadow-ambient);padding:4px;z-index:50;min-width:160px;">
               <input type="hidden" name="name" value="<?= htmlspecialchars($ticket['name']) ?>">
               <input type="hidden" name="matric" value="<?= htmlspecialchars($ticket['matric']) ?>">
               <input type="hidden" name="reason" value="<?= htmlspecialchars($ticket['message']) ?>">
-              
-              <button type="submit" name="manual_action" value="checkin" class="action-menu-item">
-                <i class='bx bx-log-in'></i> Check-In
+              <button type="submit" name="manual_action" value="checkin" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;border-radius:6px;font-family:inherit;font-size:0.88rem;color:var(--on-surface);transition:background 0.15s;">
+                <span class="material-symbols-outlined" style="font-size:1rem;">login</span> Check-In
               </button>
-              <button type="submit" name="manual_action" value="checkout" class="action-menu-item">
-                <i class='bx bx-log-out'></i> Check-Out
+              <button type="submit" name="manual_action" value="checkout" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;border-radius:6px;font-family:inherit;font-size:0.88rem;color:var(--on-surface);transition:background 0.15s;">
+                <span class="material-symbols-outlined" style="font-size:1rem;">logout</span> Check-Out
               </button>
             </form>
           </div>
@@ -160,306 +157,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
       <?php endif; ?>
     <?php endforeach; ?>
     <?php if (!$hasUnresolved): ?>
-      <p class="empty-tickets">All support tickets have been resolved <i class='bx bx-party'></i></p>
+      <div style="text-align:center;padding:48px 24px;color:var(--on-surface-variant);grid-column:1/-1;">
+        <span class="material-symbols-outlined" style="font-size:3rem;color:var(--outline-variant);display:block;margin-bottom:12px;">celebration</span>
+        <p style="font-size:1.1rem;font-weight:600;">All support tickets have been resolved!</p>
+      </div>
     <?php endif; ?>
   <?php else: ?>
-    <p class="empty-tickets">No support tickets submitted yet.</p>
+    <div style="text-align:center;padding:48px 24px;color:var(--on-surface-variant);grid-column:1/-1;">
+      <span class="material-symbols-outlined" style="font-size:3rem;color:var(--outline-variant);display:block;margin-bottom:12px;">inbox</span>
+      <p style="font-size:1.1rem;font-weight:600;">No support tickets submitted yet.</p>
+    </div>
   <?php endif; ?>
 </div>
-
-<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<style>
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--light);
-}
-
-.page-title i {
-  color: var(--primary);
-  font-size: 1.75rem;
-}
-
-.tickets-wrapper {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 1.5rem;
-  padding: 1.5rem;
-}
-
-.ticket-card {
-  background: var(--white);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow);
-  padding: 1.5rem;
-  position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
-  border: 1px solid var(--light);
-}
-
-.ticket-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-.ticket-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--light);
-}
-
-.ticket-matric {
-  background: var(--bg-gradient);
-  color: var(--white);
-  padding: 0.35rem 0.75rem;
-  border-radius: var(--border-radius);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.ticket-message {
-  margin-bottom: 1.25rem;
-  color: var(--dark);
-  line-height: 1.6;
-}
-
-.ticket-fingerprint, .ticket-ip {
-  font-size: 0.875rem;
-  background: var(--light);
-  padding: 0.75rem;
-  border-radius: var(--border-radius);
-  margin-bottom: 0.75rem;
-  word-break: break-all;
-}
-
-.ticket-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--light);
-  font-size: 0.875rem;
-  color: var(--secondary);
-}
-
-.ticket-footer i {
-  margin-right: 0.5rem;
-}
-
-.resolve-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: var(--bg-gradient);
-  color: var(--white);
-  border-radius: var(--border-radius);
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.resolve-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
-}
-
-.empty-tickets {
-  text-align: center;
-  padding: 3rem;
-  color: var(--secondary);
-  font-size: 1.1rem;
-}
-
-.theme-toggle {
-  position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  z-index: 999;
-}
-
-#palette-icon {
-  font-size: 1.5rem;
-  color: var(--primary);
-  cursor: pointer;
-  transition: transform 0.2s;
-  padding: 0.5rem;
-  border-radius: var(--border-radius);
-  background: var(--white);
-  box-shadow: var(--shadow);
-}
-
-#palette-icon:hover {
-  transform: scale(1.1);
-}
-
-#palette-options {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 0.5rem;
-  background: var(--white);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-lg);
-  padding: 0.75rem;
-  display: none;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-
-#palette-options button {
-  width: 2rem;
-  height: 2rem;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: transform 0.2s;
-  box-shadow: var(--shadow-sm);
-}
-
-#palette-options button:hover {
-  transform: scale(1.15);
-}
-
-</style>
 
 <script>
 function confirmResolve(e) {
   e.preventDefault();
   const url = e.currentTarget.href;
   Swal.fire({
-    title: 'Are you sure?',
+    title: 'Mark as Resolved?',
     text: "This ticket will be marked as resolved.",
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#00eaff',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Yes, mark it!'
+    confirmButtonColor: '#059669',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Yes, resolve it'
   }).then((result) => {
-    if (result.isConfirmed) {
-      window.location.href = url;
-    }
+    if (result.isConfirmed) window.location.href = url;
   });
-}
-// Handle action menu toggles
-function toggleActionMenu(trigger) {
-  // Close any other open menus first
-  document.querySelectorAll('.action-menu.active').forEach(menu => {
-    if (menu !== trigger.parentElement) {
-      menu.classList.remove('active');
-    }
-  });
-  
-  // Toggle the clicked menu
-  trigger.parentElement.classList.toggle('active');
 }
 
-// Close action menus when clicking outside
+function toggleActionMenu(trigger) {
+  document.querySelectorAll('.action-menu-content').forEach(menu => {
+    if (menu !== trigger.nextElementSibling) menu.style.display = 'none';
+  });
+  var menu = trigger.nextElementSibling;
+  if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.action-menu')) {
-    document.querySelectorAll('.action-menu.active').forEach(menu => {
-      menu.classList.remove('active');
-    });
+    document.querySelectorAll('.action-menu-content').forEach(m => m.style.display = 'none');
   }
 });
-
-// Theme management
-const themes = [
-  {
-    name: 'Blue Ocean',
-    colors: {
-      primary: '#3b82f6',
-      info: '#0ea5e9',
-      bg: '#f8fafc'
-    }
-  },
-  {
-    name: 'Sunset',
-    colors: {
-      primary: '#f97316',
-      info: '#f59e0b',
-      bg: '#fff7ed'
-    }
-  },
-  {
-    name: 'Forest',
-    colors: {
-      primary: '#10b981',
-      info: '#059669',
-      bg: '#f0fdf4'
-    }
-  },
-  {
-    name: 'Royal',
-    colors: {
-      primary: '#8b5cf6',
-      info: '#6366f1',
-      bg: '#f5f3ff'
-    }
-  },
-  {
-    name: 'Ruby',
-    colors: {
-      primary: '#e11d48',
-      info: '#be123c',
-      bg: '#fff1f2'
-    }
-  },
-  {
-    name: 'Emerald',
-    colors: {
-      primary: '#059669',
-      info: '#0d9488',
-      bg: '#ecfdf5'
-    }
-  }
-];
-
-function setTheme(index) {
-  const theme = themes[index];
-  document.documentElement.style.setProperty('--primary', theme.colors.primary);
-  document.documentElement.style.setProperty('--info', theme.colors.info);
-  document.documentElement.style.setProperty('--bg-gradient', `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.info})`);
-  document.body.style.background = theme.colors.bg;
-  localStorage.setItem('selectedTheme', index);
-}
-
-// Theme switcher toggle
-document.getElementById('palette-icon').addEventListener('click', (e) => {
-  e.stopPropagation();
-  const options = document.getElementById('palette-options');
-  options.style.display = options.style.display === 'grid' ? 'none' : 'grid';
-});
-
-// Close theme options when clicking outside
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('#palette-options')) {
-    document.getElementById('palette-options').style.display = 'none';
-  }
-});
-
-// Load saved theme
-const savedTheme = localStorage.getItem('selectedTheme');
-if (savedTheme !== null) {
-  setTheme(parseInt(savedTheme));
-}
-
-// SweetAlert2 Theme
-const Toast = Swal.mixin({
-  toast: true,
-  position: 'top-end',
-  showConfirmButton: false,
-  timer: 3000,
-  timerProgressBar: true
-});
-
 </script>

@@ -40,55 +40,63 @@ function render_announcement_form($announcement, $successMsg, $errorMsg, $embedd
         <html>
         <head>
             <title>Manage Announcement</title>
-            <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-            <style>
-                /* minimal standalone styles - embedded pages use admin/style.css */
-                body{font-family: 'Segoe UI',sans-serif;background:#f4f7fb;margin:0;padding:24px}
-                .container{max-width:760px;margin:0 auto;background:#fff;padding:28px;border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.06)}
-            </style>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+            <link rel="stylesheet" href="style.css">
         </head>
         <body>
-        <div class="container">
+        <div style="max-width:760px;margin:32px auto;padding:0 16px;">
         <?php
-    } else {
-        echo '<div class="card">';
-        echo '<div class="card-header"><h3>Manage Announcement</h3></div><div class="card-body">';
     }
-
-    if ($successMsg){
-        echo '<div class="msg success">'.htmlspecialchars($successMsg).'</div>';
-    } elseif ($errorMsg){
-        echo '<div class="msg error">'.htmlspecialchars($errorMsg).'</div>';
-    }
-
     ?>
-    <form method="post">
-        <label for="message"><i class='bx bx-message-square-detail'></i> Announcement Message</label>
-        <textarea id="message" name="message" class="announcement-textarea" placeholder="Enter your announcement here..."><?= htmlspecialchars($announcement['message']) ?></textarea>
 
-        <div class="toggle-buttons" style="margin:18px 0;display:flex;gap:12px;">
+    <div style="max-width:760px;margin:0 auto;">
+      <div style="margin-bottom:24px;">
+        <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">
+          <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">campaign</span>Manage Announcement
+        </h2>
+        <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Toggle and update the student-facing announcement banner.</p>
+      </div>
+
+      <?php if ($successMsg): ?>
+        <div class="alert alert-success"><?= htmlspecialchars($successMsg) ?></div>
+      <?php elseif ($errorMsg): ?>
+        <div class="alert alert-danger"><?= htmlspecialchars($errorMsg) ?></div>
+      <?php endif; ?>
+
+      <div class="st-card">
+        <form method="post">
+          <!-- Toggle -->
+          <p style="font-weight:700;color:var(--on-surface);margin:0 0 12px;display:flex;align-items:center;gap:8px;">
+            <span class="material-symbols-outlined" style="font-size:1.1rem;">toggle_on</span> Status
+          </p>
+          <div style="display:flex;gap:12px;margin-bottom:20px;">
             <button type="button" id="enableBtn" class="btn-announcement btn-enable <?= $announcement['enabled'] ? 'active' : '' ?>">
-                <i class='bx bx-check-circle'></i> Enable
+              <span class="material-symbols-outlined" style="font-size:1rem;">check_circle</span> Enable
             </button>
             <button type="button" id="disableBtn" class="btn-announcement btn-disable <?= !$announcement['enabled'] ? 'active' : '' ?>">
-                <i class='bx bx-x-circle'></i> Disable
+              <span class="material-symbols-outlined" style="font-size:1rem;">cancel</span> Disable
             </button>
-        </div>
+          </div>
+          <input type="checkbox" id="enabled" name="enabled" style="display:none;" <?= $announcement['enabled'] ? 'checked' : '' ?>>
 
-        <input type="checkbox" id="enabled" name="enabled" style="display:none;" <?= $announcement['enabled'] ? 'checked' : '' ?>>
+          <!-- Message -->
+          <p style="font-weight:700;color:var(--on-surface);margin:0 0 8px;display:flex;align-items:center;gap:8px;">
+            <span class="material-symbols-outlined" style="font-size:1.1rem;">edit_note</span> Message
+          </p>
+          <textarea id="message" name="message" class="announcement-textarea" placeholder="Enter your announcement here..."><?= htmlspecialchars($announcement['message']) ?></textarea>
 
-    <button type="submit" class="btn btn-primary btn-save-announcement"><i class='bx bx-save'></i> Save Announcement</button>
-    </form>
+          <button type="submit" class="btn-save-announcement">
+            <span class="material-symbols-outlined" style="font-size:1.1rem;">save</span> Save Announcement
+          </button>
+        </form>
+      </div>
+    </div>
 
     <?php
     if (!$embedded) {
-        echo '</div></div></body></html>';
-    } else {
-        echo '</div></div>'; // close card-body and card
+        echo '</div></body></html>';
     }
-
-    // small script
     ?>
     <script>
     (function(){
@@ -108,4 +116,3 @@ function render_announcement_form($announcement, $successMsg, $errorMsg, $embedd
 }
 
 echo render_announcement_form($announcement, $successMsg, $errorMsg, $embedded);
-

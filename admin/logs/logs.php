@@ -24,7 +24,7 @@ if (isset($_GET['course']) && trim($_GET['course']) !== '') {
 $searchName = trim($_GET['search'] ?? '');
 $filterType = $_GET['filterType'] ?? 'both';
 
-$page = max(1, intval($_GET['page'] ?? 1));
+$page = max(1, intval($_GET['page_num'] ?? 1)); // changed from intval($_GET['page'] ?? 1) to avoid collision with router page=logs
 $perPage = 15;
 
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
@@ -42,7 +42,6 @@ if (file_exists($logFile)) {
 
     // If there are 9 or more parts we assume the new format (including MAC at index 5)
     if (count($parts) >= 9) {
-      // New format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent/device | course | reason
       $entry = [
         'name'        => $parts[0] ?? '',
         'matric'      => $parts[1] ?? '',
@@ -56,7 +55,6 @@ if (file_exists($logFile)) {
         'reason'      => $parts[9] ?? '-'
       ];
     } else {
-      // Old format fallback
       $entry = [
         'name'        => $parts[0] ?? '',
         'matric'      => $parts[1] ?? '',
@@ -71,7 +69,6 @@ if (file_exists($logFile)) {
       ];
     }
 
-    // 🔍 Filter by name, IP, MAC, and course
     if (
       $searchName !== '' &&
       stripos($entry['name'], $searchName) === false &&
@@ -81,7 +78,6 @@ if (file_exists($logFile)) {
 
     if ($entry['course'] !== $selectedCourse) continue;
 
-    // 💡 Apply MAC/IP filter type
     if ($filterType === 'ip' && ($entry['ip'] === '' || $entry['ip'] === 'UNKNOWN')) continue;
     if ($filterType === 'mac' && ($entry['mac'] === '' || $entry['mac'] === 'UNKNOWN')) continue;
 
@@ -116,317 +112,144 @@ foreach ($entries as $entry) {
   }
 }
 
-// Show only users who have both check-in and check-out
 $combined = array_filter($combined, fn($e) => $e['check_in'] && $e['check_out']);
 $total = count($combined);
 $totalPages = ceil($total / $perPage);
 $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
 ?>
 
-<!-- 👇 Frontend -->
-<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-<style>
-  :root {
-    --accent-color: #3b82f6;
-  }
+<!-- Attendance Logs — Stitch UI -->
+<div style="margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
+  <div>
+    <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">
+      <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">receipt_long</span>Attendance Logs
+    </h2>
+    <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Review, filter, and export student attendance records.</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="../admin/logs/export.php?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>" class="st-btn st-btn-success st-btn-sm">
+      <span class="material-symbols-outlined" style="font-size:1.1rem;">download</span> Export CSV
+    </a>
+    <a href="../admin/logs/export_simple.php?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>" class="st-btn st-btn-secondary st-btn-sm">
+      <span class="material-symbols-outlined" style="font-size:1.1rem;">description</span> Export Simple
+    </a>
+  </div>
+</div>
 
-  body {
-    background: linear-gradient(135deg, rgb(64, 66, 68), #ffffff);
-    font-family: 'Segoe UI', sans-serif;
-    margin: 0;
-    overflow-x: hidden;
-  }
-
-  .logs-container {
-    max-width: 1200px;
-    margin: 60px auto;
-    padding: 2rem;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    backdrop-filter: blur(25px);
-    border: 2px solid var(--accent-color);
-    animation: fadeIn 1s ease forwards;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .logs-title {
-    font-size: 2rem;
-    color: #1f2937;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .logs-title i {
-    font-size: 1.6rem;
-    color: var(--accent-color);
-  }
-
-  .logs-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    align-items: center;
-  }
-
-  .logs-controls label {
-    font-weight: 600;
-    color: #374151;
-  }
-
-  .logs-controls input,
-  .logs-controls select {
-    padding: 0.55rem 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    font-size: 0.95rem;
-  }
-
-  .logs-controls button,
-  .logs-controls .btn {
-    background: linear-gradient(135deg, var(--accent-color), #0056b3);
-    color: white;
-    border: none;
-    padding: 0.6rem 1.4rem;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    text-decoration: none;
-  }
-
-  .logs-controls button:hover,
-  .logs-controls .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  }
-
-  .logs-table-wrapper {
-    overflow-x: auto;
-    margin-top: 1rem;
-  }
-
-  .logs-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .logs-table th,
-  .logs-table td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid #e5e7eb;
-    font-size: 0.95rem;
-  }
-
-  .logs-table th {
-    background: rgba(0, 0, 0, 0.05);
-    font-weight: 700;
-    color: #374151;
-  }
-
-  .logs-table tr:hover {
-    background: rgba(59, 130, 246, 0.1);
-    transition: all 0.3s ease;
-  }
-
-  .no-logs {
-    text-align: center;
-    padding: 2rem;
-    color: #6b7280;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 10px;
-    margin-top: 1rem;
-  }
-
-  .pagination {
-    text-align: center;
-    margin-top: 20px;
-  }
-
-  .pagination a {
-    padding: 8px 14px;
-    margin: 0 4px;
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--accent-color);
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: bold;
-    transition: all 0.3s;
-  }
-
-  .pagination a.active {
-    background: var(--accent-color);
-    color: #fff;
-  }
-
-  .pagination a:hover {
-    background: #0056b3;
-    color: #fff;
-  }
-
-  .palette-toggle {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    padding: 10px 15px;
-    border-radius: 50px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 100;
-    color: #1f2937;
-  }
-
-  .palette-toggle:hover {
-    backdrop-filter: blur(10px);
-    transform: scale(1.05);
-  }
-
-  .logs-table th:nth-child(7),
-  .logs-table td:nth-child(7) {
-    color: #1e40af;
-    font-weight: 600;
-  }
-
-  .logs-controls select#filterType {
-    border: 1px solid var(--accent-color);
-  }
-</style>
-
-<button class="palette-toggle"><i class='bx bx-palette'></i></button>
-
-<div class="logs-container">
-  <h2 class="logs-title"><i class='bx bx-calendar-check'></i> Attendance Logs</h2>
-
-  <form class="logs-controls" method="get" autocomplete="off">
+<div class="st-card" style="margin-bottom:24px;">
+  <!-- Filters -->
+  <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:16px;">
     <input type="hidden" name="page" value="logs">
 
-    <label for="logDate">Date:</label>
-    <input type="date" id="logDate" name="logDate" value="<?= htmlspecialchars($selectedDate) ?>" max="<?= date('Y-m-d') ?>" onchange="this.form.submit()">
+    <div>
+      <label style="display:block;font-weight:600;margin-bottom:6px;color:var(--on-surface-variant);font-size:0.85rem;">Date</label>
+      <input type="date" name="logDate" value="<?= htmlspecialchars($selectedDate) ?>" max="<?= date('Y-m-d') ?>" onchange="this.form.submit()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--outline-variant);background:var(--surface-container-low);color:var(--on-surface);font-family:inherit;">
+    </div>
 
-    <label for="course">Course:</label>
-    <select id="course" name="course" onchange="this.form.submit()">
-      <?php foreach ($courses as $course): ?>
-        <option value="<?= htmlspecialchars($course) ?>" <?= $course === $selectedCourse ? 'selected' : '' ?>>
-          <?= htmlspecialchars($course) ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
+    <div>
+      <label style="display:block;font-weight:600;margin-bottom:6px;color:var(--on-surface-variant);font-size:0.85rem;">Course</label>
+      <select name="course" onchange="this.form.submit()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--outline-variant);background:var(--surface-container-low);color:var(--on-surface);font-family:inherit;">
+        <?php foreach ($courses as $course): ?>
+          <option value="<?= htmlspecialchars($course) ?>" <?= $course === $selectedCourse ? 'selected' : '' ?>>
+            <?= htmlspecialchars($course) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
 
-    <label for="filterType">Filter by:</label>
-    <select id="filterType" name="filterType" onchange="this.form.submit()">
-      <option value="both" <?= $filterType === 'both' ? 'selected' : '' ?>>IP & MAC</option>
-      <option value="ip" <?= $filterType === 'ip' ? 'selected' : '' ?>>IP Only</option>
-      <option value="mac" <?= $filterType === 'mac' ? 'selected' : '' ?>>MAC Only</option>
-    </select>
+    <div>
+      <label style="display:block;font-weight:600;margin-bottom:6px;color:var(--on-surface-variant);font-size:0.85rem;">Filter Network</label>
+      <select name="filterType" onchange="this.form.submit()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--outline-variant);background:var(--surface-container-low);color:var(--on-surface);font-family:inherit;">
+        <option value="both" <?= $filterType === 'both' ? 'selected' : '' ?>>IP & MAC</option>
+        <option value="ip" <?= $filterType === 'ip' ? 'selected' : '' ?>>IP Only</option>
+        <option value="mac" <?= $filterType === 'mac' ? 'selected' : '' ?>>MAC Only</option>
+      </select>
+    </div>
 
-    <label for="search">Search:</label>
-    <input type="text" id="search" name="search" placeholder="Search name, IP, or MAC..." value="<?= htmlspecialchars($searchName) ?>">
-
-    <button type="submit"><i class='bx bx-search-alt-2'></i> Filter</button>
-    <a href="../admin/logs/export.php?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>" class="btn"><i class='bx bx-download'></i> Export CSV</a>
-    <a href="../admin/logs/export_simple.php?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>" class="btn"><i class='bx bx-download'></i> Export Simple</a>
-    
-    <!-- Admin quick actions: clear logs and clear device-block -->
-    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
-      <button type="button" id="clearLogsBtn" class="btn" style="background:linear-gradient(135deg,#ef4444,#d97706);">Clear Logs</button>
+    <div style="flex:1;min-width:200px;">
+      <label style="display:block;font-weight:600;margin-bottom:6px;color:var(--on-surface-variant);font-size:0.85rem;">Search</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" name="search" placeholder="Name, IP, or MAC..." value="<?= htmlspecialchars($searchName) ?>" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--outline-variant);background:var(--surface-container-low);color:var(--on-surface);font-family:inherit;">
+        <button type="submit" class="st-btn st-btn-primary st-btn-sm"><span class="material-symbols-outlined" style="font-size:1.1rem;">search</span></button>
+      </div>
     </div>
   </form>
 
-  <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
-    <div style="display:flex; gap:8px; align-items:center;">
-      <input id="clearFingerprint" placeholder="Fingerprint or token" style="padding:8px;border-radius:8px;border:1px solid #d1d5db;">
-      <input id="clearMatric" placeholder="Matric (optional)" style="padding:8px;border-radius:8px;border:1px solid #d1d5db;">
-      <button id="clearDeviceBtn" class="btn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);">Clear Device</button>
+  <hr style="border:none;border-top:1px solid var(--surface-container-high);margin:0 -24px 16px;">
+
+  <!-- Quick Actions -->
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:end;">
+    <div style="flex:1;min-width:280px;background:var(--surface-container-lowest);padding:12px;border-radius:10px;border:1px solid var(--outline-variant);">
+      <label style="display:block;font-weight:600;margin-bottom:8px;color:var(--on-surface-variant);font-size:0.8rem;">Clear Device Ban</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <input type="text" id="clearFingerprint" placeholder="Fingerprint" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--outline-variant);font-size:0.85rem;min-width:120px;">
+        <input type="text" id="clearMatric" placeholder="Matric (opt)" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--outline-variant);font-size:0.85rem;min-width:100px;">
+        <button type="button" id="clearDeviceBtn" class="st-btn st-btn-secondary st-btn-sm" style="background:#6366f1;color:#fff;border-color:#4f46e5;">Clear</button>
+      </div>
+    </div>
+    <div>
+      <button type="button" id="clearLogsBtn" class="st-btn st-btn-danger">
+        <span class="material-symbols-outlined" style="font-size:1.1rem;">delete_sweep</span> Clear All Logs
+      </button>
     </div>
   </div>
-  </form>
+</div>
 
+<!-- Data Table -->
+<div class="st-card" style="padding:0;overflow-x:auto;">
   <?php if (count($pagedEntries)): ?>
-    <div class="logs-table-wrapper">
-      <table class="logs-table">
-        <thead>
+    <table class="st-table" style="width:100%;min-width:900px;">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Matric</th>
+          <th>Check-In</th>
+          <th>Check-Out</th>
+          <th>Fingerprint</th>
+          <th>IP</th>
+          <th>MAC</th>
+          <th>Device</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($pagedEntries as $row): ?>
           <tr>
-            <th>Name</th>
-            <th>Matric Number</th>
-            <th>Check-In</th>
-            <th>Check-Out</th>
-            <th>Fingerprint</th>
-            <th>IP</th>
-            <th>MAC</th>
-            <th>Device</th>
-            <th>Reason</th>
+            <td style="font-weight:600;"><?= htmlspecialchars($row['name']) ?></td>
+            <td><span class="st-chip st-chip-neutral"><?= htmlspecialchars($row['matric']) ?></span></td>
+            <td><?= htmlspecialchars(date('H:i:s', strtotime($row['check_in']))) ?></td>
+            <td><?= htmlspecialchars(date('H:i:s', strtotime($row['check_out']))) ?></td>
+            <td style="font-family:monospace;font-size:0.8rem;color:var(--on-surface-variant);"><?= htmlspecialchars(substr($row['fingerprint'], 0, 16)) ?>...</td>
+            <td style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['ip']) ?></td>
+            <td style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['mac']) ?></td>
+            <td style="font-size:0.8rem;color:var(--on-surface-variant);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<?= htmlspecialchars($row['device']) ?>"><?= htmlspecialchars($row['device']) ?></td>
           </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($pagedEntries as $row): ?>
-            <tr>
-              <td><?= htmlspecialchars($row['name']) ?></td>
-              <td><?= htmlspecialchars($row['matric']) ?></td>
-              <td><?= htmlspecialchars($row['check_in']) ?></td>
-              <td><?= htmlspecialchars($row['check_out']) ?></td>
-              <td><?= htmlspecialchars($row['fingerprint']) ?></td>
-              <td><?= htmlspecialchars($row['ip']) ?></td>
-              <td><?= htmlspecialchars($row['mac']) ?></td>
-              <td><?= htmlspecialchars($row['device']) ?></td>
-              <td><?= htmlspecialchars($row['reason'] ?? '-') ?></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
 
-    <div class="pagination">
+    <?php if ($totalPages > 1): ?>
+    <div style="padding:16px 24px;border-top:1px solid var(--surface-container-high);display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
       <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-        <a href="?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>&filterType=<?= urlencode($filterType) ?>&page=<?= $i ?>" class="<?= $i === $page ? 'active' : '' ?>">
+        <a href="?page=logs&logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>&filterType=<?= urlencode($filterType) ?>&page_num=<?= $i ?>"
+           style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:6px;font-weight:600;font-size:0.85rem;text-decoration:none;<?= $i === $page ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);' ?>">
           <?= $i ?>
         </a>
       <?php endfor; ?>
     </div>
+    <?php endif; ?>
+
   <?php else: ?>
-    <div class="no-logs">No valid logs found for the selected filters.</div>
+    <div style="text-align:center;padding:48px 24px;">
+      <span class="material-symbols-outlined" style="font-size:3rem;color:var(--outline-variant);display:block;margin-bottom:12px;">search_off</span>
+      <p style="font-weight:600;color:var(--on-surface-variant);margin:0;">No matching attendance logs found.</p>
+    </div>
   <?php endif; ?>
 </div>
 
 <script>
-  const palettes = ['#3b82f6', '#22c55e', '#facc15', '#8b5cf6', '#ef4444'];
-  let current = 0;
-  document.querySelector('.palette-toggle').addEventListener('click', () => {
-    current = (current + 1) % palettes.length;
-    document.documentElement.style.setProperty('--accent-color', palettes[current]);
-    localStorage.setItem('logsPalette', current);
-  });
-  document.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('logsPalette');
-    if (saved !== null) {
-      current = parseInt(saved);
-      document.documentElement.style.setProperty('--accent-color', palettes[current]);
-    }
-  });
-
-  // Clear logs button (uses adminConfirm + includes CSRF token)
+  // Clear logs button
   document.getElementById('clearLogsBtn')?.addEventListener('click', function(){
-    window.adminConfirm('Delete logs', 'Are you sure you want to delete logs and backups? This action cannot be undone.').then(function(ok){
+    window.adminConfirm('Clear all logs', 'Are you sure you want to delete logs and backups? This action cannot be undone.', 'warning').then(function(ok){
       if (!ok) return;
       var body = new URLSearchParams(); body.append('scope','all');
       fetch('../clear_logs.php', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN }, body: body.toString() })
@@ -435,12 +258,12 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
     });
   });
 
-  // Clear device button (uses adminConfirm + CSRF)
+  // Clear device button
   document.getElementById('clearDeviceBtn')?.addEventListener('click', function(){
     var fp = document.getElementById('clearFingerprint').value.trim();
     var mt = document.getElementById('clearMatric').value.trim();
     if (!fp && !mt) { window.adminAlert('Input required','Enter a fingerprint or matric to clear','warning'); return; }
-    window.adminConfirm('Clear device', 'Clear device entries for this fingerprint/matric?').then(function(ok){
+    window.adminConfirm('Clear device ban', 'Clear device entries for this fingerprint/matric?').then(function(ok){
       if (!ok) return;
       var body = new URLSearchParams(); if (fp) body.append('fingerprint', fp); if (mt) body.append('matric', mt); body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
       fetch('../clear_device.php', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN }, body: body.toString() })

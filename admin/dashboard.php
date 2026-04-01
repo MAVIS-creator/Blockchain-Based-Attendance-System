@@ -26,7 +26,7 @@ foreach (glob($logDir . '/*.log') as $file) {
             }
 
             // detect course index depending on whether MAC field exists
-            $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
+            $macRegex = '/([0-9a-f]{2}[:\\\\-]){5}[0-9a-f]{2}/i';
             if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
                 // new format: course likely at index 8
                 $course = isset($parts[8]) ? trim($parts[8]) : 'General';
@@ -76,494 +76,245 @@ if (file_exists($activeFile)) {
         $activeCourse = $activeData['course'] ?? "General";
     }
 }
+
+$todayStr = $today->format('Y-m-d');
+$todayCount = $dailyCounts[$todayStr] ?? 0;
+$todayFailed = $failedCounts[$todayStr] ?? 0;
 ?>
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --accent-color: #3b82f6;
-            --bg-gradient: linear-gradient(135deg, #f0f4ff, #ffffff);
-        }
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        body {
-            font-family: "Segoe UI", sans-serif;
-            margin: 0;
-            padding: 0;
-            background: var(--bg-gradient);
-            transition: background 0.5s ease;
-        }
+<!-- Page Title & Quick Actions -->
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;">
+  <div>
+    <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">System Overview</h2>
+    <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Blockchain-verified attendance records for current semester.</p>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;">
+    <a href="index.php?page=settings" class="st-btn st-btn-ghost st-btn-sm">
+      <span class="material-symbols-outlined" style="font-size:16px;">settings</span> Settings
+    </a>
+    <a href="index.php?page=logs" class="st-btn st-btn-secondary st-btn-sm">
+      <span class="material-symbols-outlined" style="font-size:16px;">history</span> Logs
+    </a>
+    <a href="index.php?page=manual_attendance" class="st-btn st-btn-primary st-btn-sm">
+      <span class="material-symbols-outlined" style="font-size:16px;">touch_app</span> Manual Attendance
+    </a>
+  </div>
+</div>
 
-        header {
-            text-align: center;
-            padding: 30px 20px;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 2em;
-            color: var(--accent-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin: 30px auto;
-            max-width: 1200px;
-            padding: 0 20px;
-        }
-
-        .stat {
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
-            text-align: center;
-            backdrop-filter: blur(12px);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            opacity: 0;
-            animation: fadeSlideUp 0.8s forwards;
-        }
-
-        .stat:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.1);
-        }
-
-        .stat:nth-child(1) {
-            animation-delay: 0.1s;
-            border-top: 4px solid var(--accent-color);
-        }
-
-        .stat:nth-child(2) {
-            animation-delay: 0.2s;
-            border-top: 4px solid var(--accent-color);
-        }
-
-        .stat:nth-child(3) {
-            animation-delay: 0.3s;
-            border-top: 4px solid var(--accent-color);
-        }
-
-        .stat:nth-child(4) {
-            animation-delay: 0.4s;
-            border-top: 4px solid var(--accent-color);
-        }
-
-        .stat:nth-child(5) {
-            animation-delay: 0.5s;
-            border-top: 4px solid var(--accent-color);
-        }
-
-        .stat:nth-child(6) {
-            animation-delay: 0.6s;
-            border-top: 4px solid var(--accent-color);
-        }
-
-        .stat:nth-child(7) {
-            animation-delay: 0.7s;
-            border-top: 4px solid var(--accent-color);
-        }
-
-        .stat h3 {
-            margin: 0 0 10px;
-            font-size: 1em;
-            color: #555;
-        }
-
-        .stat span {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #111827;
-        }
-
-        @keyframes fadeSlideUp {
-            0% {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .charts {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 30px;
-            margin: 50px auto;
-            max-width: 1200px;
-            padding: 0 20px;
-        }
-
-        @media (max-width: 1000px) {
-            .charts {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .chart-wrapper {
-            background: rgba(255, 255, 255, 0.85);
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
-            backdrop-filter: blur(12px);
-            animation: fadeSlideUp 1s forwards;
-            opacity: 0;
-        }
-
-        .recent-logs ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .recent-logs li {
-            border-bottom: 1px solid #eee;
-            padding: 6px 0;
-            opacity: 0;
-            animation: fadeSlideUp 0.7s forwards;
-        }
-
-        .quick-actions a {
-            display: inline-block;
-            margin: 10px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: transform 0.3s ease, background 0.3s ease;
-        }
-
-        .quick-actions a:hover {
-            transform: translateY(-3px) scale(1.05);
-            background: linear-gradient(135deg, var(--accent-color), #1e40af);
-        }
-
-        .palette-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.3);
-            border: none;
-            padding: 10px 15px;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 100;
-        }
-
-        .palette-toggle:hover {
-            backdrop-filter: blur(10px);
-            transform: scale(1.05);
-        }
-
-        .recent-logs {
-            margin: 60px auto;
-            max-width: 700px;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(14px);
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-            transition: all 0.4s ease;
-        }
-
-        .recent-logs h3 {
-            text-align: center;
-            color: #1f2937;
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-
-        .log-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .log-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.8);
-            margin-bottom: 12px;
-            padding: 14px 20px;
-            border-radius: 12px;
-            color: #1f2937;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .log-list li:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .log-list li:last-child {
-            margin-bottom: 0;
-        }
-
-        .log-list .log-name {
-            flex: 1;
-            font-weight: 700;
-            color: #374151;
-        }
-
-        .log-list .log-matric {
-            font-weight: 500;
-            color: #6366f1;
-        }
-
-        .empty-log {
-            text-align: center;
-            color: #6b7280;
-            font-style: italic;
-        }
-        .log-list li {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    background: rgba(255, 255, 255, 0.8);
-    margin-bottom: 12px;
-    padding: 14px 20px;
-    border-radius: 12px;
-    color: #1f2937;
-    font-weight: 600;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.log-list li:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-}
-
-.log-main {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-}
-
-.log-name {
-    font-weight: 700;
-    color: #374151;
-}
-
-.log-matric {
-    font-weight: 500;
-    color: #6366f1;
-}
-
-.log-course {
-    margin-top: 4px;
-    font-size: 14px;
-    color: #6b7280;
-    font-style: italic;
-}
-
-.empty-log {
-    text-align: center;
-    color: #6b7280;
-    font-style: italic;
-}
-
-    </style>
-</head>
-
-<body>
-    <button class="palette-toggle"><i class='bx bx-palette'></i></button>
-
-    <header>
-        <h1><i class='bx bxs-dashboard'></i> Admin Dashboard</h1>
-    </header>
-
-    <div class="stats">
-        <div class="stat">
-            <h3><i class='bx bx-calendar'></i> Total Attendance</h3><span><?= array_sum($dailyCounts) ?></span>
-        </div>
-        <div class="stat">
-            <h3><i class='bx bx-book'></i> Courses</h3><span><?= count($courseCounts) ?></span>
-        </div>
-        <div class="stat">
-            <h3><i class='bx bx-error'></i> Failed</h3><span><?= array_sum($failedCounts) ?></span>
-        </div>
-        <div class="stat">
-            <h3><i class='bx bx-pin'></i> Active Course</h3><span><?= htmlspecialchars($activeCourse) ?></span>
-        </div>
-        <div class="stat">
-            <h3><i class='bx bx-support'></i> Tickets</h3><span><?= $newSupportCount ?></span>
-        </div>
-        <div class="stat">
-            <h3><i class='bx bx-link'></i> Fingerprints</h3><span><?= $fingerprintCount ?></span>
-        </div>
-        <div class="stat">
-            <h3><i class='bx bx-user'></i> Students</h3><span><?= count($uniqueStudents) ?></span>
-        </div>
+<!-- Stats Grid (Primary) -->
+<div class="stats" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+  <!-- Today's Attendance -->
+  <div class="stat" style="text-align:left;border-top:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="st-stat-icon primary">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">person_check</span>
+      </div>
+      <?php if ($todayCount > 0): ?>
+        <span class="st-stat-badge success">Today</span>
+      <?php endif; ?>
     </div>
+    <p class="st-stat-label">Attendance (Today)</p>
+    <p class="st-stat-value"><?= number_format($todayCount) ?></p>
+  </div>
 
-    <div class="charts">
-        <div class="chart-wrapper"><canvas id="attendanceChart"></canvas></div>
-        <div class="chart-wrapper"><canvas id="coursePieChart"></canvas></div>
-        <div class="chart-wrapper"><canvas id="failedChart"></canvas></div>
+  <!-- Total Students -->
+  <div class="stat" style="text-align:left;border-top:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="st-stat-icon secondary">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">groups</span>
+      </div>
+      <span class="st-stat-badge info">Active</span>
     </div>
+    <p class="st-stat-label">Total Students</p>
+    <p class="st-stat-value"><?= number_format(count($uniqueStudents)) ?></p>
+  </div>
 
-    <div class="recent-logs">
-        <h3><i class='bx bx-time'></i> Recent Activity (Last 2 Days)</h3>
-        <ul class="log-list">
-            <?php if (!empty($recentLogs)): ?>
-                    <?php foreach ($recentLogs as $log): ?>
-                        <?php
-                        $parts = array_map('trim', explode('|', $log));
-                        $name = isset($parts[0]) ? strtoupper($parts[0]) : 'Unknown';
-                        $matric = isset($parts[1]) ? $parts[1] : 'N/A';
-                        $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
-                        if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
-                            $course = isset($parts[8]) ? $parts[8] : 'General';
-                        } else {
-                            $course = isset($parts[7]) ? $parts[7] : 'General';
-                        }
-                        ?>
-                    <li>
-                        <div class="log-main">
-                            <span class="log-name"><?= htmlspecialchars($name) ?></span>
-                            <span class="log-matric"><?= htmlspecialchars($matric) ?></span>
-                        </div>
-                        <div class="log-course"><?= htmlspecialchars($course) ?></div>
-                    </li>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <li class="empty-log">No recent logs.</li>
-            <?php endif; ?>
-        </ul>
+  <!-- Failed Attempts -->
+  <div class="stat" style="text-align:left;border-top:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="st-stat-icon error">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">warning</span>
+      </div>
+      <?php if (array_sum($failedCounts) > 0): ?>
+        <span class="st-stat-badge danger">Attention</span>
+      <?php endif; ?>
     </div>
+    <p class="st-stat-label">Failed Attempts</p>
+    <p class="st-stat-value"><?= number_format(array_sum($failedCounts)) ?></p>
+  </div>
 
-
-
-
-    <div class="quick-actions" style="margin: 50px auto; max-width: 900px; text-align: center;">
-        <h3><i class='bx bx-cog'></i> Quick Actions</h3>
-        <a href="index.php?page=logs" style="background: #3b82f6; color: white;"><i class='bx bx-file'></i> Logs</a>
-        <a href="index.php?page=support_tickets" style="background: #10b981; color: white;"><i class='bx bx-support'></i> Support</a>
-        <a href="index.php?page=unlink_fingerprint" style="background: #f59e0b; color: white;"><i class='bx bx-link'></i> Fingerprints</a>
-        <a href="./logs/export_simple.php" style="background: #ef4444; color: white;"><i class='bx bx-download'></i> Export</a>
+  <!-- Active Course -->
+  <div class="stat" style="text-align:left;border-top:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="st-stat-icon tertiary">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">book</span>
+      </div>
+      <span class="st-stat-badge info">Live</span>
     </div>
+    <p class="st-stat-label">Active Course</p>
+    <p style="font-size:1.1rem;font-weight:800;color:var(--on-surface);margin-top:4px;word-break:break-word;"><?= htmlspecialchars($activeCourse) ?></p>
+  </div>
+</div>
 
-    <script>
-        const palettes = [{
-                color: '#3b82f6',
-                bg: 'linear-gradient(135deg, #3b82f6, #ef4444)'
-            },
-            {
-                color: '#10b981',
-                bg: 'linear-gradient(135deg, #10b981, #f59e0b)'
-            },
-            {
-                color: '#facc15',
-                bg: 'linear-gradient(135deg, #facc15, #8b5cf6)'
-            },
-            {
-                color: '#06b6d4',
-                bg: 'linear-gradient(135deg, #06b6d4, #f97316)'
-            },
-            {
-                color: '#ec4899',
-                bg: 'linear-gradient(135deg, #ec4899, #6366f1)'
-            },
-            {
-                color: '#000000',
-                bg: 'linear-gradient(135deg, #000000, #f59e0b)'
-            },
-            {
-                color: '#84cc16',
-                bg: 'linear-gradient(135deg, #84cc16, #3b82f6)'
+<!-- Secondary Stats Row -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:24px;">
+  <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <p class="st-label" style="margin-bottom:4px;">Total Attendance</p>
+      <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= number_format(array_sum($dailyCounts)) ?></p>
+    </div>
+    <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">calendar_month</span>
+  </div>
+  <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <p class="st-label" style="margin-bottom:4px;">Courses</p>
+      <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= count($courseCounts) ?></p>
+    </div>
+    <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">school</span>
+  </div>
+  <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <p class="st-label" style="margin-bottom:4px;">Linked Fingerprints</p>
+      <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= number_format($fingerprintCount) ?></p>
+    </div>
+    <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">fingerprint</span>
+  </div>
+  <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <p class="st-label" style="margin-bottom:4px;">Open Support Tickets</p>
+      <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= str_pad($newSupportCount, 2, '0', STR_PAD_LEFT) ?></p>
+    </div>
+    <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">confirmation_number</span>
+  </div>
+</div>
+
+<!-- Charts Section -->
+<div class="charts">
+  <div class="chart-wrapper"><canvas id="attendanceChart"></canvas></div>
+  <div class="chart-wrapper"><canvas id="coursePieChart"></canvas></div>
+  <div class="chart-wrapper"><canvas id="failedChart"></canvas></div>
+</div>
+
+<!-- Recent Activity Logs -->
+<div class="recent-logs">
+  <h3><span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">schedule</span>Recent Activity (Last 2 Days)</h3>
+  <ul class="log-list">
+    <?php if (!empty($recentLogs)): ?>
+        <?php foreach (array_slice($recentLogs, 0, 20) as $log): ?>
+            <?php
+            $parts = array_map('trim', explode('|', $log));
+            $name = isset($parts[0]) ? strtoupper($parts[0]) : 'Unknown';
+            $matric = isset($parts[1]) ? $parts[1] : 'N/A';
+            $macRegex = '/([0-9a-f]{2}[:\\\\-]){5}[0-9a-f]{2}/i';
+            if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
+                $course = isset($parts[8]) ? $parts[8] : 'General';
+            } else {
+                $course = isset($parts[7]) ? $parts[7] : 'General';
             }
-        ];
+            ?>
+        <li>
+            <div class="log-main">
+                <span class="log-name"><?= htmlspecialchars($name) ?></span>
+                <span class="log-matric"><?= htmlspecialchars($matric) ?></span>
+            </div>
+            <div class="log-course"><?= htmlspecialchars($course) ?></div>
+        </li>
+        <?php endforeach; ?>
+    <?php else: ?>
+        <li class="empty-log">No recent logs.</li>
+    <?php endif; ?>
+  </ul>
+</div>
 
-        let current = 0;
-        document.querySelector('.palette-toggle').addEventListener('click', () => {
-            current = (current + 1) % palettes.length;
-            document.documentElement.style.setProperty('--accent-color', palettes[current].color);
-            document.documentElement.style.setProperty('--bg-gradient', palettes[current].bg);
-            localStorage.setItem('adminPalette', current);
-        });
-        document.addEventListener('DOMContentLoaded', () => {
-            const saved = localStorage.getItem('adminPalette');
-            if (saved !== null) {
-                current = parseInt(saved);
-                document.documentElement.style.setProperty('--accent-color', palettes[current].color);
-                document.documentElement.style.setProperty('--bg-gradient', palettes[current].bg);
+<!-- Quick Actions -->
+<div class="quick-actions">
+  <h3><span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">bolt</span>Quick Actions</h3>
+  <a href="index.php?page=logs" class="st-btn st-btn-primary st-btn-sm">
+    <span class="material-symbols-outlined" style="font-size:16px;">description</span> Logs
+  </a>
+  <a href="index.php?page=support_tickets" class="st-btn st-btn-success st-btn-sm">
+    <span class="material-symbols-outlined" style="font-size:16px;">confirmation_number</span> Support
+  </a>
+  <a href="index.php?page=unlink_fingerprint" style="background:#f59e0b;color:#fff;" class="st-btn st-btn-sm">
+    <span class="material-symbols-outlined" style="font-size:16px;">link_off</span> Fingerprints
+  </a>
+  <a href="./logs/export_simple.php" class="st-btn st-btn-danger st-btn-sm">
+    <span class="material-symbols-outlined" style="font-size:16px;">download</span> Export
+  </a>
+</div>
+
+<script>
+    new Chart(document.getElementById('attendanceChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: <?= json_encode(array_keys($dailyCounts)) ?>,
+            datasets: [{
+                label: 'Attendance',
+                data: <?= json_encode(array_values($dailyCounts)) ?>,
+                backgroundColor: 'rgba(0, 69, 123, 0.1)',
+                borderColor: '#00457b',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#00457b',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true, labels: { font: { family: 'Inter', weight: '600' }, color: '#424750' } } },
+            scales: {
+              x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#727781' } },
+              y: { grid: { color: 'rgba(194,199,209,0.15)' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#727781' } }
             }
-        });
+        }
+    });
 
-        new Chart(document.getElementById('attendanceChart').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: <?= json_encode(array_keys($dailyCounts)) ?>,
-                datasets: [{
-                    label: 'Attendance',
-                    data: <?= json_encode(array_values($dailyCounts)) ?>,
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    tension: 0.3,
-                    fill: true,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
+    new Chart(document.getElementById('coursePieChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: <?= json_encode(array_keys($courseCounts)) ?>,
+            datasets: [{
+                label: 'Courses',
+                data: <?= json_encode(array_values($courseCounts)) ?>,
+                backgroundColor: ['#00457b', '#15629a', '#1f5d99', '#2f4560', '#475c79', '#83c1fe', '#a1c9ff'],
+                borderWidth: 2,
+                borderColor: '#fff',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 }, color: '#424750', padding: 12 } } },
+            cutout: '60%',
+        }
+    });
+
+    new Chart(document.getElementById('failedChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: <?= json_encode(array_keys($failedCounts)) ?>,
+            datasets: [{
+                label: 'Failed Attempts',
+                data: <?= json_encode(array_values($failedCounts)) ?>,
+                backgroundColor: 'rgba(186, 26, 26, 0.15)',
+                borderColor: '#ba1a1a',
+                borderWidth: 2,
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: true, labels: { font: { family: 'Inter', weight: '600' }, color: '#424750' } } },
+            scales: {
+              x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#727781' } },
+              y: { grid: { color: 'rgba(194,199,209,0.15)' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#727781' } }
             }
-        });
-
-        new Chart(document.getElementById('coursePieChart').getContext('2d'), {
-            type: 'pie',
-            data: {
-                labels: <?= json_encode(array_keys($courseCounts)) ?>,
-                datasets: [{
-                    label: 'Courses',
-                    data: <?= json_encode(array_values($courseCounts)) ?>,
-                    backgroundColor: ['#3b82f6', '#ef4444', '#facc15', '#10b981', '#8b5cf6', '#06b6d4', '#f472b6']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-
-        new Chart(document.getElementById('failedChart').getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: <?= json_encode(array_keys($failedCounts)) ?>,
-                datasets: [{
-                    label: 'Failed',
-                    data: <?= json_encode(array_values($failedCounts)) ?>,
-                    backgroundColor: 'rgba(239, 68, 68, 0.7)'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    </script>
-</body>
-
-</html>
+        }
+    });
+</script>

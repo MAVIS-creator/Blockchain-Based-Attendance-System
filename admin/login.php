@@ -99,214 +99,191 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Admin Login</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
-    <link rel="apple-touch-icon" sizes="180x180" href="../asset/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="../asset/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="../asset/favicon-16x16.png">
-    <link rel="manifest" href="../asset/site.webmanifest">
+    <link rel="stylesheet" href="style.css">
     <style>
-        :root {
-            --primary-color: #1f5d99;
-            --primary-dark: #174b7f;
-            --primary-darker: #103a64;
-            --error-color: #b42318;
-            --text-color: #1b2d42;
-            --muted-color: #5f6d7d;
-            --line-color: #d7e0ea;
-            --bg-gradient: linear-gradient(180deg, #f4f8fc, #eaf0f6);
-        }
-
-        * {
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        html,
         body {
-            height: 100%;
+            background: var(--surface-container-lowest);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
             margin: 0;
-            background: var(--bg-gradient);
+            padding: 24px;
+        }
+
+        .login-card {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 12px 32px rgba(11, 23, 41, 0.08);
+            border: 1px solid var(--outline-variant);
+        }
+
+        .login-card h1 {
+            color: var(--on-surface);
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin: 0 0 8px;
+            text-align: center;
+            letter-spacing: -0.03em;
+        }
+
+        .login-card p.subtitle {
+            color: var(--on-surface-variant);
+            text-align: center;
+            margin: 0 0 32px;
+            font-size: 0.95rem;
+        }
+
+        .st-input-group {
+            margin-bottom: 20px;
+        }
+
+        .st-input-group label {
+            display: block;
+            font-weight: 600;
+            color: var(--on-surface-variant);
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .st-input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--outline-variant);
+            background: var(--surface-container-low);
+            color: var(--on-surface);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .st-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(31, 93, 153, 0.15);
+            background: var(--surface);
+        }
+
+        /* Password Wrapper for eye icon */
+        .pwd-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .pwd-wrapper .st-input {
+            padding-right: 44px;
+        }
+
+        .pwd-toggle {
+            position: absolute;
+            right: 12px;
+            color: var(--on-surface-variant);
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .pwd-toggle:hover {
+            color: var(--primary);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: var(--text-color);
-            padding: 16px;
+            gap: 8px;
+            margin-top: 12px;
         }
 
-        .container {
-            width: 100%;
-            max-width: 420px;
-            background: #fff;
-            border-radius: 14px;
-            border: 1px solid var(--line-color);
-            padding: 28px;
-            box-shadow: 0 16px 34px rgba(24, 39, 75, 0.08);
-        }
-
-        .login-box h1 {
-            text-align: center;
-            font-size: 1.6rem;
-            color: var(--primary-color);
-            margin: 0 0 8px;
-            user-select: none;
-        }
-
-        .subtitle {
-            text-align: center;
-            color: var(--muted-color);
-            margin: 0 0 18px;
-            font-size: 0.92rem;
-        }
-
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .input-label {
-            display: block;
-            color: var(--muted-color);
-            font-size: 0.86rem;
-            margin-bottom: 6px;
-        }
-
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: 8px;
-            border: 1px solid var(--line-color);
-            font-size: 0.96rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        input[type="text"]:focus,
-        input[type="password"]:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(31, 93, 153, 0.14);
-            outline: none;
-        }
-
-        .password-container {
-            position: relative;
-        }
-
-        .password-container .toggle-password {
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #888;
-            font-size: 1rem;
-            transition: color 0.2s ease;
-        }
-
-        .password-container .toggle-password:hover {
-            color: var(--primary-color);
-        }
-
-        button[type="submit"] {
-            padding: 12px 0;
-            border: none;
-            background: var(--primary-color);
-            color: #fff;
-            font-size: 0.98rem;
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
-
-        button[type="submit"]:hover {
+        .submit-btn:hover {
             background: var(--primary-dark);
+            transform: translateY(-1px);
         }
 
-        button[type="submit"]:active {
-            background: var(--primary-darker);
-        }
-
-        p.error-message {
-            color: var(--error-color);
-            text-align: center;
+        .error-msg {
+            background: var(--error-container);
+            color: var(--error);
+            padding: 12px 16px;
+            border-radius: 12px;
             font-weight: 600;
-            background: #fef3f2;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 0;
-            animation: shake 0.3s;
-            border: 1px solid #fecdca;
             font-size: 0.9rem;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: shake 0.4s ease-in-out;
         }
 
         @keyframes shake {
-            0% {
-                transform: translateX(0);
-            }
-
-            25% {
-                transform: translateX(-5px);
-            }
-
-            50% {
-                transform: translateX(5px);
-            }
-
-            75% {
-                transform: translateX(-5px);
-            }
-
-            100% {
-                transform: translateX(0);
-            }
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
         }
 
-        .footer-container {
-            margin-top: 18px;
+        .footer {
             text-align: center;
-            font-size: 0.8rem;
-            color: #8a97a8;
-            user-select: none;
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                margin: 8px;
-                padding: 20px;
-            }
+            margin-top: 32px;
+            color: var(--outline);
+            font-size: 0.85rem;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="login-box">
-            <h1>Admin Login</h1>
+    <div>
+        <div class="login-card">
+            <h1>Admin Panel</h1>
             <p class="subtitle">Sign in to manage attendance settings</p>
 
             <?php if ($error): ?>
-                <p class="error-message"><?= htmlspecialchars($error) ?></p>
+                <div class="error-msg">
+                    <span class="material-symbols-outlined" style="font-size:1.2rem;">error</span>
+                    <?= htmlspecialchars($error) ?>
+                </div>
             <?php endif; ?>
 
             <form method="POST">
-                <div>
-                    <label class="input-label" for="username">Username</label>
-                    <input id="username" type="text" name="username" placeholder="Enter username" required>
+                <div class="st-input-group">
+                    <label for="username">Username</label>
+                    <input class="st-input" id="username" type="text" name="username" placeholder="Enter username" required>
                 </div>
 
-                <div class="password-container">
-                    <label class="input-label" for="password-field">Password</label>
-                    <input type="password" name="password" placeholder="Enter password" id="password-field" required>
-                    <i class="fa fa-eye toggle-password" onclick="togglePassword(this)"></i>
+                <div class="st-input-group">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <label for="password-field" style="margin-bottom:0;">Password</label>
+                        <a href="forgot_password.php" style="font-size:0.75rem; font-weight:700; color:var(--primary); text-decoration:none;">Forgot Password?</a>
+                    </div>
+                    <div class="pwd-wrapper">
+                        <input class="st-input" type="password" name="password" placeholder="Enter password" id="password-field" required>
+                        <span class="material-symbols-outlined pwd-toggle" onclick="togglePassword(this)">visibility</span>
+                    </div>
                 </div>
 
-                <button type="submit"><i class="fa fa-sign-in-alt"></i> Login</button>
+                <button class="submit-btn" type="submit">
+                    <span class="material-symbols-outlined" style="font-size:1.2rem;">login</span> Sign In
+                </button>
             </form>
         </div>
 
-        <div class="footer-container">
+        <div class="footer">
             &copy; <?= date('Y') ?> Admin Panel. All rights reserved.
         </div>
     </div>
@@ -314,10 +291,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         function togglePassword(icon) {
             const input = document.getElementById('password-field');
-            const isPassword = input.type === 'password';
-            input.type = isPassword ? 'text' : 'password';
-            icon.classList.toggle('fa-eye');
-            icon.classList.toggle('fa-eye-slash');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.textContent = 'visibility_off';
+            } else {
+                input.type = 'password';
+                icon.textContent = 'visibility';
+            }
         }
     </script>
 </body>

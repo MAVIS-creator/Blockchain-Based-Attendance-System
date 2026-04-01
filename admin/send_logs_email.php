@@ -1,5 +1,6 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; }
 
 // send_logs_email.php - redesigned to show selectable log files grouped by date+course
 
@@ -70,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
     $recipient = trim($_POST['recipient'] ?? '');
     $format = $_POST['format'] ?? 'csv';
     $cols = isset($_POST['cols']) && is_array($_POST['cols']) ? $_POST['cols'] : ['name','matric','action','datetime','course'];
-    
+
     if (empty($selectedKeys)) {
         $error = 'Please select at least one log group to send.';
     } elseif (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
@@ -104,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
                 }
             }
         }
-        
+
         if (empty($allRows)){
             $error = 'No log entries found for the selected groups.';
         } else {
@@ -114,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
             $multiTag = count($selectedKeys) > 1 ? '_multi' : '';
             $baseName = "attendance_{$safeCourse}_{$dateForName}{$multiTag}";
             $csvPath = $exportDir . '/' . $baseName . '.csv';
-            
+
             $fh = fopen($csvPath,'w');
             if (!$fh){
                 $error = 'Server cannot create export file.';
@@ -127,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
                 }
                 fclose($fh);
                 $exportPath = $csvPath;
-                
+
                 // PDF generation if requested
                 if ($format === 'pdf'){
                     if (file_exists(__DIR__ . '/../vendor/autoload.php')){
@@ -138,10 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
                                 $html = '<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ddd;padding:4px;font-size:10px;}th{background:#f3f4f6;text-align:left;}</style></head><body>';
                                 $html .= '<h2>Attendance Export</h2><p>Groups: '.count($selectedKeys).' | Entries: '.count($allRows).'</p>';
                                 $html .= '<table><thead><tr>'; foreach ($header as $h) $html .= '<th>'.htmlspecialchars($h).'</th>'; $html .= '</tr></thead><tbody>';
-                                foreach ($allRows as $r){ 
-                                    $html .= '<tr>'; 
-                                    foreach ($cols as $c) $html .= '<td>'.htmlspecialchars(mb_substr($r[$c] ?? '',0,500)).'</td>'; 
-                                    $html .= '</tr>'; 
+                                foreach ($allRows as $r){
+                                    $html .= '<tr>';
+                                    foreach ($cols as $c) $html .= '<td>'.htmlspecialchars(mb_substr($r[$c] ?? '',0,500)).'</td>';
+                                    $html .= '</tr>';
                                 }
                                 $html .= '</tbody></table></body></html>';
                                 $dompdf->setPaper('A4','landscape');
@@ -156,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
                         }
                     }
                 }
-                
+
                 // Send email via PHPMailer using .env for SMTP
                 $sent = false;
                 if (file_exists(__DIR__ . '/../vendor/autoload.php')){
@@ -164,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
                     if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')){
                         try {
                             $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-                            
+
                             // SMTP config from .env only
                             $smtpHost = $ENV['SMTP_HOST'] ?? '';
                             if ($smtpHost){
@@ -177,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
                                 $mail->Username = $ENV['SMTP_USER'] ?? '';
                                 $mail->Password = $ENV['SMTP_PASS'] ?? '';
                             }
-                            
+
                             // From address from .env, from name from settings
                             $settings = [];
                             if (file_exists(__DIR__ . '/settings.json')) {
@@ -185,16 +186,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
                             }
                             $fromEmail = $ENV['FROM_EMAIL'] ?? 'no-reply@example.com';
                             $fromName = $settings['smtp']['from_name'] ?? ($ENV['FROM_NAME'] ?? 'Attendance System');
-                            
+
                             $mail->setFrom($fromEmail, $fromName);
                             $mail->addAddress($recipient);
                             $mail->Subject = 'Attendance Export ' . $dateForName . (count($selectedKeys)>1 ? ' (multiple groups)' : '');
                             $mail->Body = 'Attached attendance export generated from ' . count($selectedKeys) . ' group(s) with '.count($allRows).' entries.';
-                            
+
                             if (file_exists($exportPath)) {
                                 $mail->addAttachment($exportPath, basename($exportPath));
                             }
-                            
+
                             $mail->send();
                             $sent = true;
                             $success = 'Email sent successfully with export attachment!';
@@ -203,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
                         }
                     }
                 }
-                
+
                 if (!$sent && !$error){
                     $success = 'Export created: '.basename($exportPath).'. Email sending not available (check .env SMTP settings or install PHPMailer).';
                 }
@@ -211,134 +212,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])){
         }
     }
 }
-
-// Minimal UI
 ?>
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Send Logs via Email</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    .log-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:12px; }
-    .log-table th, .log-table td { padding:8px; border:1px solid #ddd; }
-    .log-table th { background:#f3f4f6; font-weight:600; text-align:left; }
-    .log-table tr:hover { background:#f9fafb; }
-    .btn { padding:6px 12px; border-radius:6px; border:none; cursor:pointer; font-size:13px; }
-    .btn-primary { background:#3b82f6; color:#fff; }
-    .btn-success { background:#059669; color:#fff; }
-    .msg { padding:12px; border-radius:6px; margin-bottom:12px; }
-    .msg.error { background:#fee; color:#c00; }
-    .msg.success { background:#d1fae5; color:#065f46; }
-    .form-control { padding:8px; border:1px solid #d1d5db; border-radius:6px; width:100%; }
-    .card { max-width:1200px; margin:20px auto; background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
-    .card-header { padding:16px; border-bottom:1px solid #e5e7eb; }
-    .card-header h3 { margin:0; }
-    .card-body { padding:16px; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="card-header"><h3>Send Logs via Email</h3></div>
-    <div class="card-body">
-      <?php if ($error): ?>
-        <div class="msg error"><?php echo htmlspecialchars($error); ?></div>
-      <?php endif; ?>
-      <?php if ($success): ?>
-        <div class="msg success"><?php echo htmlspecialchars($success); ?></div>
-        <?php if ($exportPath && file_exists($exportPath)): ?>
-          <a href="backups/<?php echo basename($exportPath); ?>" download class="btn btn-primary">Download Export</a>
-        <?php endif; ?>
-      <?php endif; ?>
 
-      <form method="post">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:16px;">
-          <div>
-            <label style="display:block; font-weight:600; margin-bottom:4px;">Recipient Email</label>
-            <input type="email" name="recipient" required class="form-control" value="<?=htmlspecialchars($defaultRecipient)?>" />
-          </div>
-          <div>
-            <label style="display:block; font-weight:600; margin-bottom:4px;">Format</label>
-            <select name="format" class="form-control">
+<div style="max-width:1200px;margin:0 auto;">
+  <div style="margin-bottom:24px;">
+    <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">
+      <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">forward_to_inbox</span>Export & Email Logs
+    </h2>
+    <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Select log groups by date and course, choose columns, and send as CSV or PDF report.</p>
+  </div>
+
+  <?php if ($error): ?>
+    <div style="background:var(--error-container);color:var(--error);padding:12px 16px;border-radius:12px;font-weight:600;font-size:0.9rem;margin-bottom:24px;display:flex;align-items:center;gap:8px;">
+        <span class="material-symbols-outlined">error</span>
+        <?= htmlspecialchars($error) ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($success): ?>
+    <div style="background:var(--success-container);color:var(--success);padding:12px 16px;border-radius:12px;font-weight:600;font-size:0.9rem;margin-bottom:24px;display:flex;align-items:center;gap:8px;">
+        <span class="material-symbols-outlined">check_circle</span>
+        <?= htmlspecialchars($success) ?>
+    </div>
+    <?php if ($exportPath && file_exists($exportPath)): ?>
+      <div style="margin-bottom:24px;">
+        <a href="backups/<?php echo basename($exportPath); ?>" download class="st-btn st-btn-primary" style="text-decoration:none;display:inline-flex;">
+          <span class="material-symbols-outlined">download</span> Download Export
+        </a>
+      </div>
+    <?php endif; ?>
+  <?php endif; ?>
+
+  <div class="st-card" style="padding:24px;">
+    <form method="post">
+
+      <!-- Delivery Settings -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-bottom:24px;">
+        <div>
+          <label style="display:block;font-weight:600;color:var(--on-surface-variant);margin-bottom:8px;font-size:0.9rem;">Recipient Email</label>
+          <input type="email" name="recipient" required class="st-input" value="<?=htmlspecialchars($defaultRecipient)?>" placeholder="admin@example.com" />
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;color:var(--on-surface-variant);margin-bottom:8px;font-size:0.9rem;">Export Format</label>
+          <div style="position:relative;">
+            <select name="format" class="st-input" style="appearance:none;padding-right:36px;cursor:pointer;">
               <option value="csv">CSV (Spreadsheet)</option>
               <option value="pdf">PDF (Report)</option>
             </select>
+            <span class="material-symbols-outlined" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--on-surface-variant);pointer-events:none;">expand_more</span>
           </div>
         </div>
+      </div>
 
-        <fieldset style="margin-bottom:16px; padding:12px; border:1px solid #e5e7eb; border-radius:6px;">
-          <legend style="font-weight:600; font-size:14px;">Select Columns to Export</legend>
-          <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:13px;">
-            <label><input type="checkbox" name="cols[]" value="name" checked> Name</label>
-            <label><input type="checkbox" name="cols[]" value="matric" checked> Matric</label>
-            <label><input type="checkbox" name="cols[]" value="action" checked> Action</label>
-            <label><input type="checkbox" name="cols[]" value="datetime" checked> Datetime</label>
-            <label><input type="checkbox" name="cols[]" value="course" checked> Course</label>
-            <label><input type="checkbox" name="cols[]" value="user_agent"> User Agent</label>
-            <label><input type="checkbox" name="cols[]" value="ip"> IP</label>
-            <label><input type="checkbox" name="cols[]" value="reason"> Reason</label>
-            <label><input type="checkbox" name="cols[]" value="status"> Status</label>
-            <label><input type="checkbox" name="cols[]" value="token"> Token</label>
-          </div>
-        </fieldset>
-
-        <h4 style="margin-bottom:8px;">Available Log Groups (Date + Course)</h4>
-        <p style="color:#6b7280; font-size:13px; margin-bottom:12px;">
-          Select one or multiple groups to send. Each group represents all log entries for a specific date and course combination.
-        </p>
-
-        <table class="log-table">
-          <thead>
-            <tr>
-              <th style="width:40px;"><input type="checkbox" id="select-all" onclick="document.querySelectorAll('input[name=\'selected_groups[]\']').forEach(c=>c.checked=this.checked)"></th>
-              <th>Date</th>
-              <th>Course</th>
-              <th style="text-align:right;">Entries</th>
-              <th style="text-align:right;">Failed</th>
-              <th>Source Files</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (empty($groups)): ?>
-              <tr><td colspan="6" style="text-align:center; color:#6b7280; padding:20px;">No log groups found</td></tr>
-            <?php else: ?>
-              <?php foreach ($groups as $gkey => $g): ?>
-                <tr>
-                  <td style="text-align:center;">
-                    <input type="checkbox" name="selected_groups[]" value="<?=htmlspecialchars($gkey)?>">
-                  </td>
-                  <td><?=htmlspecialchars($g['date'])?></td>
-                  <td><?=htmlspecialchars($g['course'])?></td>
-                  <td style="text-align:right;"><?= (int)$g['entries'] ?></td>
-                  <td style="text-align:right; color:<?= $g['failed'] > 0 ? '#dc2626' : '#6b7280' ?>;">
-                    <?= (int)$g['failed'] ?>
-                  </td>
-                  <td style="font-size:11px; color:#6b7280;">
-                    <?=htmlspecialchars(implode(', ', array_slice($g['files'],0,3)))?>
-                    <?php if (count($g['files']) > 3): ?>
-                      <span>+<?= count($g['files']) - 3 ?> more</span>
-                    <?php endif; ?>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            <?php endif; ?>
-          </tbody>
-        </table>
-
-        <div style="margin-top:16px; display:flex; gap:10px; align-items:center;">
-          <button type="submit" name="send_logs" class="btn btn-primary">
-            Create & Send Selected Groups
-          </button>
+      <!-- Columns Selection -->
+      <div style="margin-bottom:32px;">
+        <label style="display:block;font-weight:600;color:var(--on-surface);margin-bottom:12px;font-size:0.95rem;padding-bottom:8px;border-bottom:1px solid var(--outline-variant);">Data Columns to Include</label>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--on-surface);cursor:pointer;background:var(--surface-container-low);padding:6px 12px;border-radius:20px;border:1px solid var(--outline-variant);"><input type="checkbox" name="cols[]" value="name" checked> Name</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--on-surface);cursor:pointer;background:var(--surface-container-low);padding:6px 12px;border-radius:20px;border:1px solid var(--outline-variant);"><input type="checkbox" name="cols[]" value="matric" checked> Matric</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--on-surface);cursor:pointer;background:var(--surface-container-low);padding:6px 12px;border-radius:20px;border:1px solid var(--outline-variant);"><input type="checkbox" name="cols[]" value="action" checked> Action</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--on-surface);cursor:pointer;background:var(--surface-container-low);padding:6px 12px;border-radius:20px;border:1px solid var(--outline-variant);"><input type="checkbox" name="cols[]" value="datetime" checked> Datetime</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--on-surface);cursor:pointer;background:var(--surface-container-low);padding:6px 12px;border-radius:20px;border:1px solid var(--outline-variant);"><input type="checkbox" name="cols[]" value="course" checked> Course</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--on-surface);cursor:pointer;background:var(--surface-container-low);padding:6px 12px;border-radius:20px;border:1px solid var(--outline-variant);"><input type="checkbox" name="cols[]" value="status"> Status</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--on-surface);cursor:pointer;background:var(--surface-container-low);padding:6px 12px;border-radius:20px;border:1px solid var(--outline-variant);"><input type="checkbox" name="cols[]" value="reason"> Reason</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--on-surface);cursor:pointer;background:var(--surface-container-low);padding:6px 12px;border-radius:20px;border:1px solid var(--outline-variant);"><input type="checkbox" name="cols[]" value="ip"> IP Address</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--on-surface);cursor:pointer;background:var(--surface-container-low);padding:6px 12px;border-radius:20px;border:1px solid var(--outline-variant);"><input type="checkbox" name="cols[]" value="token"> Token Hash</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--on-surface);cursor:pointer;background:var(--surface-container-low);padding:6px 12px;border-radius:20px;border:1px solid var(--outline-variant);"><input type="checkbox" name="cols[]" value="user_agent"> User Agent</label>
         </div>
+      </div>
 
-        <div style="margin-top:12px; padding:12px; background:#f9fafb; border-radius:6px; font-size:13px; color:#6b7280;">
-          <strong>Note:</strong> SMTP settings are configured in <code>.env</code> file. If email sending fails, the export will be created and you can download it manually.
-          To automate sending, use <code>auto_send_logs.php</code> scheduled via Task Scheduler or cron.
+      <!-- Log Groups Table -->
+      <div style="margin-bottom:24px;">
+        <label style="display:block;font-weight:600;color:var(--on-surface);margin-bottom:4px;font-size:0.95rem;">Available Log Groups</label>
+        <p style="color:var(--on-surface-variant);font-size:0.85rem;margin:0 0 12px;">Select one or multiple groups (date + course combination) to export.</p>
+
+        <div style="border:1px solid var(--outline-variant);border-radius:12px;overflow:hidden;">
+          <table class="st-table" style="width:100%;min-width:600px;margin:0;">
+            <thead>
+              <tr>
+                <th style="width:40px;text-align:center;"><input type="checkbox" id="select-all" onclick="document.querySelectorAll('input[name=\'selected_groups[]\']').forEach(c=>c.checked=this.checked)"></th>
+                <th>Date</th>
+                <th>Course</th>
+                <th style="text-align:right;">Entries</th>
+                <th style="text-align:right;">Failed</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($groups)): ?>
+                <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--on-surface-variant);">No log groups found</td></tr>
+              <?php else: ?>
+                <?php foreach ($groups as $gkey => $g): ?>
+                  <tr>
+                    <td style="text-align:center;">
+                      <input type="checkbox" name="selected_groups[]" value="<?=htmlspecialchars($gkey)?>">
+                    </td>
+                    <td style="font-weight:600;"><?=htmlspecialchars($g['date'])?></td>
+                    <td><span class="st-chip st-chip-primary"><?=htmlspecialchars($g['course'])?></span></td>
+                    <td style="text-align:right;;font-family:monospace;font-size:0.9rem;"><?= (int)$g['entries'] ?></td>
+                    <td style="text-align:right;;font-family:monospace;font-size:0.9rem;">
+                      <?php if ($g['failed'] > 0): ?>
+                        <span style="color:var(--error);font-weight:600;"><?= (int)$g['failed'] ?></span>
+                      <?php else: ?>
+                        <span style="color:var(--on-surface-variant);"><?= (int)$g['failed'] ?></span>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
         </div>
-      </form>
-    </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:16px;">
+        <button type="submit" name="send_logs" class="st-btn st-btn-primary" style="padding:12px 24px;">
+          <span class="material-symbols-outlined">send</span> Create & Send Export
+        </button>
+        <span style="font-size:0.8rem;color:var(--on-surface-variant);"><span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;">info</span> Ensure SMTP is configured in <code>.env</code></span>
+      </div>
+
+    </form>
   </div>
-</body>
-</html>
+</div>

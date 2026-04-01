@@ -33,183 +33,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Set Active Course</title>
-    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --accent-color: #3b82f6;
-            --accent-gradient: linear-gradient(135deg, #3b82f6, #1e40af);
-        }
+<div style="max-width:700px;margin:0 auto;">
+  <div style="margin-bottom:24px;">
+    <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">
+      <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">gps_fixed</span>Set Active Course
+    </h2>
+    <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Choose which course attendance logs are recorded against.</p>
+  </div>
 
-        body {
-            font-family: "Segoe UI", sans-serif;
-            background: linear-gradient(135deg, #f0f4f8, #e2e8f0);
-            margin: 0;
-            padding: 0;
-            transition: background 0.4s ease;
-        }
+  <!-- Current Status -->
+  <?php if ($activeCourse): ?>
+    <div class="st-card" style="border-left:4px solid #059669;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:#ecfdf5;">
+          <span class="material-symbols-outlined" style="color:#059669;font-variation-settings:'FILL' 1;">check_circle</span>
+        </div>
+        <div>
+          <p style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--on-surface-variant);margin:0;">Current Active Course</p>
+          <p style="font-weight:800;color:var(--on-surface);font-size:1.1rem;margin:4px 0 0;"><?= htmlspecialchars($activeCourse) ?></p>
+        </div>
+      </div>
+    </div>
+  <?php else: ?>
+    <div class="st-card" style="border-left:4px solid var(--error);margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:#fef2f2;">
+          <span class="material-symbols-outlined" style="color:var(--error);font-variation-settings:'FILL' 1;">error</span>
+        </div>
+        <div>
+          <p style="font-weight:600;color:var(--error);margin:0;">No active course selected — all courses disabled.</p>
+        </div>
+      </div>
+    </div>
+  <?php endif; ?>
 
-        .palette-switcher {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 8px;
-            z-index: 1000;
-        }
-
-        .palette-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 2px solid white;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .palette-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-
-        .set-active-form {
-            max-width: 520px;
-            margin: 80px auto;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(14px);
-            padding: 36px;
-            border-radius: 18px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-            border: 2px solid var(--accent-color);
-            transition: all 0.4s ease;
-        }
-
-        .set-active-form h2 {
-            text-align: center;
-            font-size: 1.7rem;
-            color: var(--accent-color);
-            margin-bottom: 1.8rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .set-active-form select,
-        .set-active-form button {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 18px;
-            font-size: 1rem;
-            border-radius: 10px;
-            border: 1px solid #cbd5e1;
-            background: #ffffff;
-            transition: all 0.3s ease;
-        }
-
-        .set-active-form select:focus {
-            border-color: var(--accent-color);
-            outline: none;
-            box-shadow: 0 0 6px var(--accent-color);
-        }
-
-        .set-active-form button {
-            background: var(--accent-gradient);
-            color: white;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            letter-spacing: 0.5px;
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
-        }
-
-        .set-active-form button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(30, 64, 175, 0.4);
-        }
-
-        .disable-btn {
-            background: linear-gradient(135deg, #dc3545, #b02a37) !important;
-            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3) !important;
-        }
-
-        .status-message {
-            text-align: center;
-            margin-top: 25px;
-            padding: 14px;
-            font-size: 1rem;
-            border-radius: 12px;
-            background: #ffffff;
-            backdrop-filter: blur(4px);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.05);
-            color: #1f2937;
-            transition: all 0.4s ease;
-        }
-
-        .status-message strong {
-            color: #111827;
-        }
-
-        .status-message.error {
-            background: #ffeaea;
-            color: #b91c1c;
-        }
-
-        label {
-            font-weight: 600;
-            margin-bottom: 6px;
-            display: block;
-            color: #374151;
-        }
-    </style>
-</head>
-<body>
-
-<!-- Palette Switcher -->
-<div class="palette-switcher">
-    <div class="palette-btn" style="background: #3b82f6;" onclick="changePalette('#3b82f6', 'linear-gradient(135deg, #3b82f6, #1e40af)')"></div>
-    <div class="palette-btn" style="background: #22c55e;" onclick="changePalette('#22c55e', 'linear-gradient(135deg, #22c55e, #15803d)')"></div>
-    <div class="palette-btn" style="background: #ec4899;" onclick="changePalette('#ec4899', 'linear-gradient(135deg, #ec4899, #be185d)')"></div>
-    <div class="palette-btn" style="background: #f97316;" onclick="changePalette('#f97316', 'linear-gradient(135deg, #f97316, #c2410c)')"></div>
-</div>
-
-<form method="post" class="set-active-form">
-    <h2><i class='bx bx-pin'></i> Set Active Course</h2>
-
-    <label for="active_course">Select a Course</label>
-    <select name="active_course" id="active_course" required>
-        <option value="">-- Choose Course --</option>
-        <?php foreach ($courses as $course): ?>
+  <!-- Selection Form -->
+  <div class="st-card">
+    <p style="font-weight:700;color:var(--on-surface);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+      <span class="material-symbols-outlined" style="font-size:1.1rem;">tune</span> Select Course
+    </p>
+    <form method="post">
+      <div style="margin-bottom:16px;">
+        <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--on-surface-variant);font-size:0.85rem;">Course</label>
+        <select name="active_course" id="active_course" required>
+          <option value="">— Choose Course —</option>
+          <?php foreach ($courses as $course): ?>
             <option value="<?= htmlspecialchars($course) ?>" <?= $course === $activeCourse ? 'selected' : '' ?>>
-                <?= htmlspecialchars($course) ?>
+              <?= htmlspecialchars($course) ?>
             </option>
-        <?php endforeach; ?>
-    </select>
+          <?php endforeach; ?>
+        </select>
+      </div>
 
-    <button type="submit"><i class='bx bx-check-shield'></i> Set Active</button>
-    <button type="submit" name="disable" value="1" class="disable-btn"><i class='bx bx-block'></i> Disable All Courses</button>
-</form>
-
-<?php if ($activeCourse): ?>
-    <div class="status-message">
-        <i class='bx bx-check-circle' style="color: green;"></i> Current Active Course: <strong><?= htmlspecialchars($activeCourse) ?></strong>
-    </div>
-<?php else: ?>
-    <div class="status-message error">
-        <i class='bx bx-error'></i> No active course selected (all are currently disabled).
-    </div>
-<?php endif; ?>
-
-<script>
-    function changePalette(accent, gradient) {
-        document.documentElement.style.setProperty('--accent-color', accent);
-        document.documentElement.style.setProperty('--accent-gradient', gradient);
-    }
-</script>
-
-</body>
-</html>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <button type="submit" class="st-btn st-btn-primary" style="flex:1;min-width:180px;">
+          <span class="material-symbols-outlined" style="font-size:1rem;">check</span> Set Active
+        </button>
+        <button type="submit" name="disable" value="1" class="st-btn st-btn-danger" style="flex:1;min-width:180px;">
+          <span class="material-symbols-outlined" style="font-size:1rem;">block</span> Disable All
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

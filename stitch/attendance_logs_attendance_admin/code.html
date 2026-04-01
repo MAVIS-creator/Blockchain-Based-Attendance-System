@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Attendance Logs | Immutable Ledger</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error": "#ffffff",
+                        "primary-container": "#1f5d99",
+                        "on-surface-variant": "#424750",
+                        "on-tertiary-fixed-variant": "#334863",
+                        "secondary": "#15629a",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f0f4f9",
+                        "on-secondary-fixed": "#001d34",
+                        "primary-fixed": "#d2e4ff",
+                        "primary-fixed-dim": "#a1c9ff",
+                        "on-background": "#171c20",
+                        "secondary-container": "#83c1fe",
+                        "inverse-on-surface": "#edf1f6",
+                        "surface-container-highest": "#dfe3e8",
+                        "on-surface": "#171c20",
+                        "on-tertiary-container": "#bed4f6",
+                        "tertiary-container": "#475c79",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#b8d5ff",
+                        "secondary-fixed": "#cfe5ff",
+                        "surface-container-high": "#e4e9ed",
+                        "outline-variant": "#c2c7d1",
+                        "secondary-fixed-dim": "#99cbff",
+                        "inverse-primary": "#a1c9ff",
+                        "inverse-surface": "#2c3135",
+                        "background": "#f6faff",
+                        "error": "#ba1a1a",
+                        "primary": "#00457b",
+                        "outline": "#727781",
+                        "surface-tint": "#24609d",
+                        "on-secondary-container": "#004e7f",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#b2c8e9",
+                        "on-tertiary-fixed": "#031c36",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#d6dadf",
+                        "surface": "#f6faff",
+                        "surface-variant": "#dfe3e8",
+                        "surface-container": "#eaeef3",
+                        "on-secondary-fixed-variant": "#004a78",
+                        "on-primary-fixed-variant": "#004880",
+                        "tertiary-fixed": "#d3e4ff",
+                        "surface-bright": "#f6faff",
+                        "tertiary": "#2f4560",
+                        "on-primary-fixed": "#001c37"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Mobile sidebar transition */
+        #mobile-sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        #mobile-sidebar.closed {
+            transform: translateX(-100%);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex">
+<!-- Mobile Sidebar (Toggleable) -->
+<div class="fixed inset-0 z-[60] lg:hidden closed" id="mobile-sidebar">
+<div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="toggleSidebar()"></div>
+<aside class="w-[280px] h-full relative bg-gradient-to-b from-[#163456] to-[#1f4b73] shadow-2xl flex flex-col p-4 space-y-2 text-white">
+<div class="flex items-center justify-between px-2 py-6 mb-4">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-white" data-icon="shield">shield</span>
+</div>
+<div>
+<h1 class="text-lg font-black text-white leading-none">Attendance Admin</h1>
+<p class="text-[10px] text-blue-100/60 uppercase tracking-widest mt-1">Blockchain Ledger</p>
+</div>
+</div>
+<button class="lg:hidden text-white/70 hover:text-white" onclick="toggleSidebar()">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<nav class="flex-1 space-y-1 overflow-y-auto no-scrollbar">
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="analytics">analytics</span>
+<span>Status</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white shadow-inner group" href="#">
+<span class="material-symbols-outlined translate-x-1 duration-200" data-icon="history_edu">history_edu</span>
+<span>Logs</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="menu_book">menu_book</span>
+<span>Courses</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="touch_app">touch_app</span>
+<span>Manual Attendance</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="campaign">campaign</span>
+<span>Announcement</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="confirmation_number">confirmation_number</span>
+<span>Support Tickets</span>
+</a>
+</nav>
+<div class="pt-4 mt-4 border-t border-white/10 space-y-1">
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="logout">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</aside>
+</div>
+<!-- Desktop SideNavBar (Hidden on Mobile) -->
+<aside class="hidden lg:flex w-[260px] h-screen fixed left-0 top-0 bg-gradient-to-b from-[#163456] to-[#1f4b73] shadow-2xl z-50 flex-col p-4 space-y-2 text-white">
+<div class="flex items-center space-x-3 px-2 py-6 mb-4">
+<div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
+<span class="material-symbols-outlined text-white" data-icon="shield">shield</span>
+</div>
+<div>
+<h1 class="text-lg font-black text-white leading-none">Attendance Admin</h1>
+<p class="text-[10px] text-blue-100/60 uppercase tracking-widest mt-1">Blockchain Ledger</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 overflow-y-auto no-scrollbar">
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="analytics">analytics</span>
+<span>Status</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white shadow-inner group" href="#">
+<span class="material-symbols-outlined translate-x-1 duration-200" data-icon="history_edu">history_edu</span>
+<span>Logs</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="menu_book">menu_book</span>
+<span>Courses</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="touch_app">touch_app</span>
+<span>Manual Attendance</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="campaign">campaign</span>
+<span>Announcement</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="confirmation_number">confirmation_number</span>
+<span>Support Tickets</span>
+</a>
+</nav>
+<div class="pt-4 mt-4 border-t border-white/10 space-y-1">
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 text-blue-100/70 hover:text-white hover:bg-white/5 transition-all duration-300 rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:translate-x-1 duration-200" data-icon="logout">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 lg:ml-[260px] flex flex-col min-h-screen relative">
+<!-- TopNavBar (Sticky) -->
+<header class="sticky top-0 w-full z-40 bg-surface/80 backdrop-blur-md flex justify-between items-center px-4 lg:px-8 h-16 shadow-[0_16px_36px_rgba(24,39,75,0.06)] border-b border-outline-variant/10">
+<div class="flex items-center space-x-4">
+<button class="lg:hidden p-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors" onclick="toggleSidebar()">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="relative group hidden sm:block">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center text-outline">
+<span class="material-symbols-outlined text-sm" data-icon="search">search</span>
+</span>
+<input class="bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm w-48 md:w-64 focus:ring-2 focus:ring-primary-container/20 transition-all outline-none" placeholder="Search hash, student, or ID..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-4 lg:space-x-6">
+<div class="hidden md:flex items-center space-x-2 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+<div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+<span class="text-[10px] font-bold text-green-700 uppercase tracking-tighter">Chain Syncing</span>
+</div>
+<div class="flex items-center space-x-2 lg:space-x-4">
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded-full transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded-full transition-all hidden sm:block">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="h-8 w-px bg-outline-variant/30 hidden sm:block"></div>
+<img alt="Admin User Profile" class="h-8 w-8 rounded-full border-2 border-primary-container/20 object-cover cursor-pointer hover:border-primary transition-all" data-alt="close-up portrait of professional male administrator in modern office setting with soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6w9RT3ifiTWYg_yerrImU9yJcA4szhD1NYuK9ERgszst6itZPpRcMoiWJPc6NDKR5jKqkJoDuD52Jg1fN0_R-9H_ZqdF4VfqMPpjjZPuGfx_R24xiSH3gYJ_U-wvJMMEqNAFANoPRYaUQAbFxCUjCF2aNDYu-ooMPxjHQn4e5Yo0IjS5SgK_R8ZRVwbGun0yjAvNDM4E4KCcDjxwmsJm9SsKT4iOpGt0ng5sKzGnqLFUCM_dHo1ElgQI-gcH6PHFG5qNegj-RLw"/>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="p-4 lg:p-8 space-y-8 flex-1">
+<!-- Page Title & Stats Row -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="space-y-1">
+<h2 class="text-2xl lg:text-3xl font-bold tracking-tight text-on-surface">General Attendance Logs</h2>
+<p class="text-on-surface-variant text-sm font-medium">Verified ledger records for Academic Year 2023-2024</p>
+</div>
+<div class="flex flex-wrap gap-2 sm:space-x-3">
+<button class="flex items-center space-x-2 px-4 py-2 bg-surface-container-lowest text-on-surface border border-outline-variant/20 rounded-lg hover:shadow-md transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]" data-icon="ios_share">ios_share</span>
+<span>Export CSV</span>
+</button>
+<button class="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]" data-icon="picture_as_pdf">picture_as_pdf</span>
+<span>Export PDF</span>
+</button>
+</div>
+</div>
+<!-- Filters Bento Grid -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-surface-container-low p-5 rounded-xl border border-outline-variant/10">
+<div class="flex flex-col space-y-1.5">
+<label class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest pl-1">Date Range</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center text-outline pointer-events-none">
+<span class="material-symbols-outlined text-sm" data-icon="calendar_today">calendar_today</span>
+</span>
+<input class="w-full bg-surface-container-lowest border-none rounded-lg py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none text-on-surface shadow-sm" type="text" value="Oct 01, 2023 - Oct 07, 2023"/>
+</div>
+</div>
+<div class="flex flex-col space-y-1.5">
+<label class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest pl-1">Course Stream</label>
+<select class="w-full bg-surface-container-lowest border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none text-on-surface shadow-sm appearance-none">
+<option>Computer Science 101</option>
+<option>Advanced Blockchain</option>
+<option>Cybersecurity Lab</option>
+</select>
+</div>
+<div class="flex flex-col space-y-1.5">
+<label class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest pl-1">Status Type</label>
+<div class="flex bg-surface-container-lowest p-1 rounded-lg shadow-sm">
+<button class="flex-1 py-1.5 text-xs font-bold bg-primary text-white rounded-md shadow-sm transition-all">All</button>
+<button class="flex-1 py-1.5 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors">In</button>
+<button class="flex-1 py-1.5 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors">Out</button>
+</div>
+</div>
+<div class="flex items-end">
+<button class="w-full bg-secondary-fixed text-on-secondary-fixed-variant font-bold py-2.5 rounded-lg text-sm hover:bg-secondary-container transition-all flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="filter_list">filter_list</span>
+<span>Apply Advanced Filters</span>
+</button>
+</div>
+</section>
+<!-- Table Section -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)] overflow-hidden border border-outline-variant/10">
+<div class="overflow-x-auto no-scrollbar">
+<table class="w-full text-left border-collapse min-w-[1000px]">
+<thead>
+<tr class="bg-surface-container-low/50 text-on-surface-variant border-b border-outline-variant/10">
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Timestamp</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Student / ID</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Course / Location</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-center">Biometric</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Device Hash</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Status</th>
+<th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Verification</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-on-surface">Oct 24, 08:42:12</span>
+<span class="text-[10px] text-tertiary-container font-mono">0x4F...3B92</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-xs shrink-0">JD</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">Jane Doe</span>
+<span class="text-[11px] text-on-surface-variant">CS-2023-0104</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-sm text-on-surface">Advanced Blockchain</span>
+<span class="text-[11px] text-tertiary-container">Main Hall - Gate 4</span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<span class="material-symbols-outlined text-green-500 bg-green-50 p-1.5 rounded-full text-sm" data-icon="fingerprint" data-weight="fill" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+</td>
+<td class="px-6 py-5">
+<span class="text-[11px] font-mono text-tertiary-container bg-surface-container-low px-2 py-1 rounded">iPhone 14 (ID: 442)</span>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-widest">Check-In</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center space-x-1 px-3 py-1 bg-primary-fixed/30 text-primary-container rounded-lg backdrop-blur-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="text-[10px] font-bold uppercase tracking-tight">On-Chain</span>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="bg-surface-container-low/20 hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-on-surface">Oct 24, 08:39:55</span>
+<span class="text-[10px] text-tertiary-container font-mono">0x2A...991C</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary font-bold text-xs shrink-0">MS</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">Mark Smith</span>
+<span class="text-[11px] text-on-surface-variant">CS-2023-0882</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-sm text-on-surface">Advanced Blockchain</span>
+<span class="text-[11px] text-tertiary-container">Main Hall - Gate 2</span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<span class="material-symbols-outlined text-red-400 bg-red-50 p-1.5 rounded-full text-sm" data-icon="fingerprint">fingerprint</span>
+</td>
+<td class="px-6 py-5">
+<span class="text-[11px] font-mono text-tertiary-container bg-surface-container-low px-2 py-1 rounded">Sams S23 (ID: 019)</span>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-widest">Check-In</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center space-x-1 px-3 py-1 bg-yellow-50 text-yellow-700 rounded-lg border border-yellow-100">
+<span class="material-symbols-outlined text-[14px]" data-icon="pending">pending</span>
+<span class="text-[10px] font-bold uppercase tracking-tight">Pending</span>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-on-surface">Oct 24, 10:15:00</span>
+<span class="text-[10px] text-tertiary-container font-mono">0x7B...E441</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary font-bold text-xs shrink-0">AW</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">Alice Wong</span>
+<span class="text-[11px] text-on-surface-variant">CS-2023-0155</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-sm text-on-surface">Cybersecurity Lab</span>
+<span class="text-[11px] text-tertiary-container">Lab 304 - Floor 3</span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<span class="material-symbols-outlined text-green-500 bg-green-50 p-1.5 rounded-full text-sm" data-icon="fingerprint" data-weight="fill" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+</td>
+<td class="px-6 py-5">
+<span class="text-[11px] font-mono text-tertiary-container bg-surface-container-low px-2 py-1 rounded">Web Browser (ID: IP-192)</span>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-widest">Check-Out</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center space-x-1 px-3 py-1 bg-primary-fixed/30 text-primary-container rounded-lg backdrop-blur-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="text-[10px] font-bold uppercase tracking-tight">On-Chain</span>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="bg-surface-container-low/20 hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-on-surface">Oct 24, 08:35:10</span>
+<span class="text-[10px] text-tertiary-container font-mono">0x9C...F21A</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-xs shrink-0">RK</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">Robert King</span>
+<span class="text-[11px] text-on-surface-variant">CS-2023-0994</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-sm text-on-surface">Computer Science 101</span>
+<span class="text-[11px] text-tertiary-container">Lecture Hall A</span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<span class="material-symbols-outlined text-green-500 bg-green-50 p-1.5 rounded-full text-sm" data-icon="fingerprint" data-weight="fill" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+</td>
+<td class="px-6 py-5">
+<span class="text-[11px] font-mono text-tertiary-container bg-surface-container-low px-2 py-1 rounded">iPhone 13 (ID: 112)</span>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-widest">Check-In</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center space-x-1 px-3 py-1 bg-primary-fixed/30 text-primary-container rounded-lg backdrop-blur-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="text-[10px] font-bold uppercase tracking-tight">On-Chain</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="px-6 py-4 flex flex-col md:flex-row justify-between items-center bg-surface-container-low/30 border-t border-outline-variant/10 gap-4">
+<span class="text-xs font-medium text-on-surface-variant">Showing <span class="text-on-surface">1-10</span> of <span class="text-on-surface">1,429</span> entries</span>
+<div class="flex items-center space-x-1">
+<button class="p-2 hover:bg-surface-container-high rounded-lg transition-colors text-outline">
+<span class="material-symbols-outlined text-lg" data-icon="first_page">first_page</span>
+</button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg transition-colors text-outline">
+<span class="material-symbols-outlined text-lg" data-icon="chevron_left">chevron_left</span>
+</button>
+<div class="flex space-x-1 px-2">
+<button class="w-8 h-8 rounded-lg bg-primary text-white text-xs font-bold">1</button>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface-variant text-xs font-bold transition-all">2</button>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface-variant text-xs font-bold transition-all">3</button>
+<span class="w-8 h-8 flex items-center justify-center text-outline">...</span>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-on-surface-variant text-xs font-bold transition-all">143</button>
+</div>
+<button class="p-2 hover:bg-surface-container-high rounded-lg transition-colors text-outline">
+<span class="material-symbols-outlined text-lg" data-icon="chevron_right">chevron_right</span>
+</button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg transition-colors text-outline">
+<span class="material-symbols-outlined text-lg" data-icon="last_page">last_page</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Shell -->
+<footer class="w-full py-6 bg-surface-container-low mt-auto border-t border-outline-variant/20 flex flex-col md:flex-row justify-between items-center px-4 lg:px-12 gap-4">
+<span class="text-[10px] lg:text-xs uppercase tracking-widest text-tertiary-container text-center md:text-left">© 2024 Immutable Ledger Attendance System. Verified on Chain.</span>
+<div class="flex flex-wrap justify-center items-center gap-4 lg:gap-6">
+<a class="text-[10px] lg:text-xs uppercase tracking-widest text-tertiary-container hover:text-primary transition-all" href="#">Privacy Policy</a>
+<a class="text-[10px] lg:text-xs uppercase tracking-widest font-bold text-primary hover:underline transition-all" href="#">Audit Logs</a>
+<a class="text-[10px] lg:text-xs uppercase tracking-widest text-tertiary-container hover:text-primary transition-all" href="#">System Status</a>
+</div>
+</footer>
+</main>
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('mobile-sidebar');
+        sidebar.classList.toggle('closed');
+        if (!sidebar.classList.contains('closed')) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+    }
+</script>
+</body></html>

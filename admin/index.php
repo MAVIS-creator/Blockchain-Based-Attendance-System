@@ -12,7 +12,7 @@ $page = $_GET['page'] ?? 'dashboard';
 $routes = [
   'dashboard'          => 'dashboard.php',
   'status'             => 'status.php',
-  'logs'               => 'logs/logs.php', 
+  'logs'               => 'logs/logs.php',
   'clear_logs_ui'      => 'clear_logs_ui.php',
   'clear_tokens_ui'    => 'clear_tokens_ui.php',
   'failed_attempts'    => 'logs/failed_attempts.php',
@@ -35,20 +35,30 @@ $view = $routes[$page] ?? 'dashboard.php';
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Admin Panel</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="boxicons.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | Attendance System</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <!-- Boxicons (kept for backward compatibility) -->
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-          <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=2.1">
+  <!-- Favicons -->
+  <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="../asset/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="../asset/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="../asset/favicon-16x16.png">
   <link rel="manifest" href="../asset/site.webmanifest">
 </head>
-<body>
+<body class="admin-page-<?= htmlspecialchars($page) ?>">
 
-<div class="layout"> 
+<div class="layout">
 
+  <?php include 'includes/navbar.php'; ?>
   <?php include 'includes/sidebar.php'; ?>
 
   <div class="main-content">
@@ -60,13 +70,20 @@ $view = $routes[$page] ?? 'dashboard.php';
   </div>
 
 </div>
+
 <script>
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
-  const content = document.querySelector('.main-content');
-  sidebar.classList.toggle('collapsed');
-  if (content) content.classList.toggle('expanded');
-  document.cookie = "sidebar_collapsed=" + (sidebar.classList.contains('collapsed') ? 'true' : 'false');
+  const body = document.body;
+  if (sidebar.classList.contains('open')) {
+    sidebar.classList.remove('open');
+    body.classList.remove('sidebar-open');
+    body.style.overflow = '';
+  } else {
+    sidebar.classList.add('open');
+    body.classList.add('sidebar-open');
+    body.style.overflow = 'hidden';
+  }
 }
 </script>
 <?php if (function_exists('ob_end_flush')) { @ob_end_flush(); } ?>

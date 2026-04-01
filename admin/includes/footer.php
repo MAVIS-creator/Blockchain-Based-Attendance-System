@@ -1,4 +1,4 @@
 <footer class="footer">
-  <p>&copy; <?= date("Y") ?> Attendance System. All rights reserved.</p>
-  <p>&copy; <?= date("Y") ?> Made with GPT(Lex)</p>
+  <p>&copy; <?= date("Y") ?> Immutable Ledger Attendance System. Verified on Chain.</p>
+  <p>Made with GPT(Lex)</p>
 </footer>
