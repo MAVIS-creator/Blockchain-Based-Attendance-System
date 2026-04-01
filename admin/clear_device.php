@@ -2,13 +2,17 @@
 session_start();
 if (empty($_SESSION['admin_logged_in'])) {
   header('HTTP/1.1 403 Forbidden');
-  echo json_encode(['ok'=>false,'message'=>'Not authorized']);
+  echo json_encode(['ok' => false, 'message' => 'Not authorized']);
   exit;
 }
 // CSRF protection
 $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
-if (function_exists('csrf_check_request') && !csrf_check_request()) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'csrf_failed']); exit; }
+if (function_exists('csrf_check_request') && !csrf_check_request()) {
+  header('HTTP/1.1 403 Forbidden');
+  echo json_encode(['ok' => false, 'message' => 'csrf_failed']);
+  exit;
+}
 
 // Accept fingerprint or matric to clear device-blocking state for today
 $fingerprint = trim($_POST['fingerprint'] ?? '');
@@ -18,16 +22,17 @@ $ip = trim($_POST['ip'] ?? '');
 $mac = trim($_POST['mac'] ?? '');
 $today = date('Y-m-d');
 $adminLogs = __DIR__ . '/logs';
-$responses = ['cleared'=>[], 'skipped'=>[], 'errors'=>[]];
+$responses = ['cleared' => [], 'skipped' => [], 'errors' => []];
 
 if ($fingerprint === '' && $matric === '' && $token === '' && $ip === '' && $mac === '') {
   header('Content-Type: application/json');
-  echo json_encode(['ok'=>false,'message'=>'fingerprint, matric, token, ip, or mac required']);
+  echo json_encode(['ok' => false, 'message' => 'fingerprint, matric, token, ip, or mac required']);
   exit;
 }
 
 // Helper to read/write JSON stores (supports ENC: encrypted files)
-function read_json($file){
+function read_json($file)
+{
   if (!file_exists($file)) return [];
   $c = @file_get_contents($file);
   if (!is_string($c) || $c === '') return [];
@@ -49,7 +54,8 @@ function read_json($file){
   return is_array($d) ? $d : [];
 }
 
-function write_json($file, $data){
+function write_json($file, $data)
+{
   $payload = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
   $current = file_exists($file) ? (string)@file_get_contents($file) : '';
   $shouldEncrypt = (strpos($current, 'ENC:') === 0);
@@ -82,25 +88,40 @@ foreach ($targets as $file) {
   $data = read_json($file);
   $changed = false;
   if ($fingerprint !== '') {
-    if (isset($data[$fingerprint])) { unset($data[$fingerprint]); $changed = true; }
+    if (isset($data[$fingerprint])) {
+      unset($data[$fingerprint]);
+      $changed = true;
+    }
     // some files may use concatenated keys
     foreach ($data as $k => $v) {
-      if (strpos($k, $fingerprint) !== false) { unset($data[$k]); $changed = true; }
+      if (strpos($k, $fingerprint) !== false) {
+        unset($data[$k]);
+        $changed = true;
+      }
     }
   }
   if ($token !== '') {
     foreach ($data as $k => $v) {
-      if (strpos($k, $token) !== false) { unset($data[$k]); $changed = true; }
+      if (strpos($k, $token) !== false) {
+        unset($data[$k]);
+        $changed = true;
+      }
     }
   }
   if ($ip !== '') {
     foreach ($data as $k => $v) {
-      if (strpos($k, $ip) !== false) { unset($data[$k]); $changed = true; }
+      if (strpos($k, $ip) !== false) {
+        unset($data[$k]);
+        $changed = true;
+      }
     }
   }
   if ($mac !== '') {
     foreach ($data as $k => $v) {
-      if (strpos($k, $mac) !== false) { unset($data[$k]); $changed = true; }
+      if (strpos($k, $mac) !== false) {
+        unset($data[$k]);
+        $changed = true;
+      }
     }
   }
   if ($matric !== '') {
@@ -108,14 +129,24 @@ foreach ($targets as $file) {
     $fpFile = __DIR__ . '/fingerprints.json';
     if (file_exists($fpFile)) {
       $fps = read_json($fpFile);
-      if (isset($fps[$matric])) { unset($fps[$matric]); write_json($fpFile,$fps); $responses['cleared'][] = "fingerprints.json: $matric"; }
+      if (isset($fps[$matric])) {
+        unset($fps[$matric]);
+        write_json($fpFile, $fps);
+        $responses['cleared'][] = "fingerprints.json: $matric";
+      }
     }
     // also remove any entries where matric appears in keys
     foreach ($data as $k => $v) {
-      if (strpos($k, $matric) !== false) { unset($data[$k]); $changed = true; }
+      if (strpos($k, $matric) !== false) {
+        unset($data[$k]);
+        $changed = true;
+      }
     }
   }
-  if ($changed) { write_json($file, $data); $responses['cleared'][] = $file; }
+  if ($changed) {
+    write_json($file, $data);
+    $responses['cleared'][] = $file;
+  }
 }
 
 // Also remove matching entries from blocked_tokens.log
@@ -155,10 +186,19 @@ if (file_exists($cdFile)) {
   $cd = read_json($cdFile);
   $changed = false;
   foreach ($cd as $k => $v) {
-    if ($fingerprint !== '' && strpos($k, $fingerprint) !== false) { unset($cd[$k]); $changed = true; }
-    if ($matric !== '' && strpos($k, $matric) !== false) { unset($cd[$k]); $changed = true; }
+    if ($fingerprint !== '' && strpos($k, $fingerprint) !== false) {
+      unset($cd[$k]);
+      $changed = true;
+    }
+    if ($matric !== '' && strpos($k, $matric) !== false) {
+      unset($cd[$k]);
+      $changed = true;
+    }
   }
-  if ($changed) { write_json($cdFile, $cd); $responses['cleared'][] = $cdFile; }
+  if ($changed) {
+    write_json($cdFile, $cd);
+    $responses['cleared'][] = $cdFile;
+  }
 }
 
 // Audit: record who cleared and what
@@ -168,12 +208,12 @@ $auditFile = $auditDir . '/audit.log';
 $adminUser = $_SESSION['admin_user'] ?? 'unknown';
 $remoteIp = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
 if (!empty($responses['cleared'])) {
-    $timeStr = date('Y-m-d H:i:s');
-    foreach ($responses['cleared'] as $f) {
+  $timeStr = date('Y-m-d H:i:s');
+  foreach ($responses['cleared'] as $f) {
     $line = "$timeStr | clear_device | $adminUser | file:$f | key:" . ($fingerprint ?: ($matric ?: ($token ?: ($ip ?: $mac)))) . " | from:$remoteIp" . PHP_EOL;
-        file_put_contents($auditFile, $line, FILE_APPEND | LOCK_EX);
-    }
+    file_put_contents($auditFile, $line, FILE_APPEND | LOCK_EX);
+  }
 }
 
 header('Content-Type: application/json');
-echo json_encode(['ok'=>true,'result'=>$responses]);
+echo json_encode(['ok' => true, 'result' => $responses]);
