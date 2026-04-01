@@ -416,7 +416,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="lg:col-span-8 space-y-8">
       <form method="POST" class="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/20 space-y-6">
         <?php csrf_field(); ?>
-        <div class="flex items-center gap-3 mb-2"><span class="material-symbols-outlined text-primary">verified_user</span><h3 class="text-lg font-bold">Attendance Policy</h3></div>
+        <div class="flex items-center gap-3 mb-2"><span class="material-symbols-outlined text-primary">verified_user</span>
+          <h3 class="text-lg font-bold">Attendance Policy</h3>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -488,7 +490,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <?php csrf_field(); ?>
           <select class="bg-surface-container-low rounded-lg border border-outline-variant/20 px-4 py-3 min-w-[260px]" name="apply_template_name">
             <option value="">Select template...</option>
-            <?php $tpls = json_decode(file_get_contents($templatesFile), true) ?: []; foreach ($tpls as $tn => $tv): ?>
+            <?php $tpls = json_decode(file_get_contents($templatesFile), true) ?: [];
+            foreach ($tpls as $tn => $tv): ?>
               <option value="<?= htmlspecialchars($tn) ?>"><?= htmlspecialchars($tn) ?></option>
             <?php endforeach; ?>
           </select>
@@ -591,7 +594,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = @json_decode(file_get_contents(__DIR__ . '/../status.json'), true) ?: [];
     $lastAudit = file_exists(__DIR__ . '/settings_audit.log') ? array_slice(array_map('trim', file(__DIR__ . '/settings_audit.log')), -10) : [];
     $backups = glob(__DIR__ . '/backups/settings_*.json');
-    usort($backups, function ($a, $b) { return filemtime($b) - filemtime($a); });
+    usort($backups, function ($a, $b) {
+      return filemtime($b) - filemtime($a);
+    });
     ?>
     <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
       <div class="md:col-span-8 bg-surface-container-low rounded-xl p-8">
@@ -617,45 +622,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 </div>
 <script>
-function openTab(evt, tabName) {
-  var i, tabcontent, tablinks;
-  tabcontent = document.getElementsByClassName('st-tab-content');
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].classList.remove('active');
-    tabcontent[i].classList.add('hidden');
-  }
-  tablinks = document.getElementsByClassName('st-tab');
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].classList.remove('active');
-    tablinks[i].classList.remove('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
-    tablinks[i].classList.add('text-on-surface-variant', 'font-medium');
-  }
-  var activeTab = document.getElementById(tabName);
-  if(activeTab){
-    activeTab.classList.add('active');
-    activeTab.classList.remove('hidden');
-  }
-  if(evt && evt.currentTarget){
-    evt.currentTarget.classList.add('active');
-    evt.currentTarget.classList.add('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
-    evt.currentTarget.classList.remove('text-on-surface-variant', 'font-medium');
-  } else {
-    var targetBtn = document.querySelector('button[onclick*="' + tabName + '"]');
-    if(targetBtn){
-      targetBtn.classList.add('active');
-      targetBtn.classList.add('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
-      targetBtn.classList.remove('text-on-surface-variant', 'font-medium');
+  function openTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName('st-tab-content');
+    for (i = 0; i < tabcontent.length; i++) {
+      tabcontent[i].classList.remove('active');
+      tabcontent[i].classList.add('hidden');
     }
+    tablinks = document.getElementsByClassName('st-tab');
+    for (i = 0; i < tablinks.length; i++) {
+      tablinks[i].classList.remove('active');
+      tablinks[i].classList.remove('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
+      tablinks[i].classList.add('text-on-surface-variant', 'font-medium');
+    }
+    var activeTab = document.getElementById(tabName);
+    if (activeTab) {
+      activeTab.classList.add('active');
+      activeTab.classList.remove('hidden');
+    }
+    if (evt && evt.currentTarget) {
+      evt.currentTarget.classList.add('active');
+      evt.currentTarget.classList.add('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
+      evt.currentTarget.classList.remove('text-on-surface-variant', 'font-medium');
+    } else {
+      var targetBtn = document.querySelector('button[onclick*="' + tabName + '"]');
+      if (targetBtn) {
+        targetBtn.classList.add('active');
+        targetBtn.classList.add('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
+        targetBtn.classList.remove('text-on-surface-variant', 'font-medium');
+      }
+    }
+    history.replaceState(null, null, '#' + tabName);
   }
-  history.replaceState(null, null, '#' + tabName);
-}
 
-document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function() {
     var hash = window.location.hash.substring(1);
-    if(hash && document.getElementById(hash)) {
-       openTab(null, hash);
+    if (hash && document.getElementById(hash)) {
+      openTab(null, hash);
     }
-});
+  });
 </script>
 <script>
   (function() {

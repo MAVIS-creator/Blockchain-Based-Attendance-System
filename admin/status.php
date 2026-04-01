@@ -88,16 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
     <!-- Check-In Card -->
     <div class="st-card" style="text-align:center;">
-      <div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;margin-bottom:12px;
-        <?php if ($status['checkin']): ?>
-          background:#ecfdf5;
-        <?php else: ?>
-          background:#fef2f2; 
-        <?php endif; ?>
-      ">
-        <span class="material-symbols-outlined" style="font-size:1.5rem;font-variation-settings:'FILL' 1;
-          <?php if ($status['checkin']): ?>color:#059669;<?php else: ?>color:var(--error);<?php endif; ?>
-        ">login</span>
+      <?php $checkinBg = $status['checkin'] ? '#ecfdf5' : '#fef2f2'; ?>
+      <?php $checkinColor = $status['checkin'] ? '#059669' : 'var(--error)'; ?>
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;margin-bottom:12px;background:<?= $checkinBg ?>;">
+        <span class="material-symbols-outlined" style="font-size:1.5rem;font-variation-settings:'FILL' 1;color:<?= $checkinColor ?>;">login</span>
       </div>
       <p style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--on-surface-variant);margin:0 0 6px;">Check-In</p>
       <?php if ($status['checkin']): ?>
@@ -109,16 +103,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!-- Check-Out Card -->
     <div class="st-card" style="text-align:center;">
-      <div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;margin-bottom:12px;
-        <?php if ($status['checkout']): ?>
-          background:#ecfdf5;
-        <?php else: ?>
-          background:#fef2f2; {
-        <?php endif; ?>
-      ">
-        <span class="material-symbols-outlined" style="font-size:1.5rem;font-variation-settings:'FILL' 1;
-          <?php if ($status['checkout']): ?>color:#059669;<?php else: ?>color:var(--error);<?php endif; ?>
-        ">logout</span>
+      <?php $checkoutBg = $status['checkout'] ? '#ecfdf5' : '#fef2f2'; ?>
+      <?php $checkoutColor = $status['checkout'] ? '#059669' : 'var(--error)'; ?>
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;margin-bottom:12px;background:<?= $checkoutBg ?>;">
+        <span class="material-symbols-outlined" style="font-size:1.5rem;font-variation-settings:'FILL' 1;color:<?= $checkoutColor ?>;">logout</span>
       </div>
       <p style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--on-surface-variant);margin:0 0 6px;">Check-Out</p>
       <?php if ($status['checkout']): ?>

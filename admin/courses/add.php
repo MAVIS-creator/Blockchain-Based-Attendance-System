@@ -25,48 +25,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     die('Invalid CSRF token.');
   }
 
-    if (isset($_POST['course_name'])) {
-        $newCourse = trim($_POST['course_name']);
-        if ($newCourse !== '' && !in_array($newCourse, $courses, true)) {
-            $courses[] = $newCourse;
-            file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT));
-        }
-        header("Location: " . $_SERVER['REQUEST_URI']);
-        exit;
-    }
-
-    if (isset($_POST['remove_course'])) {
-        $removeCourse = $_POST['remove_course'];
-        $courses = array_values(array_filter($courses, fn($course) => $course !== $removeCourse));
-        file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT));
-        header("Location: " . $_SERVER['REQUEST_URI']);
-        exit;
-    }
-
-    if (isset($_POST['batch_delete']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
-      $selected = array_map('strval', $_POST['selected_courses']);
-      $selectedSet = array_flip($selected);
-      $courses = array_values(array_filter($courses, function ($course) use ($selectedSet) {
-        return !isset($selectedSet[$course]);
-      }));
-
-      if ($activeCourse !== '' && isset($selectedSet[$activeCourse])) {
-        file_put_contents($activeFile, json_encode(['course' => ''], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-      }
-
+  if (isset($_POST['course_name'])) {
+    $newCourse = trim($_POST['course_name']);
+    if ($newCourse !== '' && !in_array($newCourse, $courses, true)) {
+      $courses[] = $newCourse;
       file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT));
-      header("Location: " . $_SERVER['REQUEST_URI']);
-      exit;
+    }
+    header("Location: " . $_SERVER['REQUEST_URI']);
+    exit;
+  }
+
+  if (isset($_POST['remove_course'])) {
+    $removeCourse = $_POST['remove_course'];
+    $courses = array_values(array_filter($courses, fn($course) => $course !== $removeCourse));
+    file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT));
+    header("Location: " . $_SERVER['REQUEST_URI']);
+    exit;
+  }
+
+  if (isset($_POST['batch_delete']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
+    $selected = array_map('strval', $_POST['selected_courses']);
+    $selectedSet = array_flip($selected);
+    $courses = array_values(array_filter($courses, function ($course) use ($selectedSet) {
+      return !isset($selectedSet[$course]);
+    }));
+
+    if ($activeCourse !== '' && isset($selectedSet[$activeCourse])) {
+      file_put_contents($activeFile, json_encode(['course' => ''], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
-    if (isset($_POST['batch_set_active']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
-      $selected = array_values(array_filter(array_map('strval', $_POST['selected_courses'])));
-      if (count($selected) === 1 && in_array($selected[0], $courses, true)) {
-        file_put_contents($activeFile, json_encode(['course' => $selected[0]], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-      }
-      header("Location: " . $_SERVER['REQUEST_URI']);
-      exit;
+    file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT));
+    header("Location: " . $_SERVER['REQUEST_URI']);
+    exit;
+  }
+
+  if (isset($_POST['batch_set_active']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
+    $selected = array_values(array_filter(array_map('strval', $_POST['selected_courses'])));
+    if (count($selected) === 1 && in_array($selected[0], $courses, true)) {
+      file_put_contents($activeFile, json_encode(['course' => $selected[0]], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
+    header("Location: " . $_SERVER['REQUEST_URI']);
+    exit;
+  }
 }
 ?>
 
@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', () => {
     const selectAll = document.getElementById('select_all_courses');
     const checkboxes = Array.from(document.querySelectorAll('.course-checkbox'));
     const count = document.getElementById('selection_count');
@@ -161,14 +161,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const singleRemoveButtons = Array.from(document.querySelectorAll('.single-remove-btn'));
 
     function updateSelectionUI() {
-        const selected = checkboxes.filter(c => c.checked).length;
-        if (count) count.textContent = selected + ' selected';
-        if (batchDeleteBtn) batchDeleteBtn.disabled = selected === 0;
-        if (batchActiveBtn) batchActiveBtn.disabled = selected !== 1;
-        if (selectAll) {
-            selectAll.checked = selected > 0 && selected === checkboxes.length;
-            selectAll.indeterminate = selected > 0 && selected < checkboxes.length;
-        }
+      const selected = checkboxes.filter(c => c.checked).length;
+      if (count) count.textContent = selected + ' selected';
+      if (batchDeleteBtn) batchDeleteBtn.disabled = selected === 0;
+      if (batchActiveBtn) batchActiveBtn.disabled = selected !== 1;
+      if (selectAll) {
+        selectAll.checked = selected > 0 && selected === checkboxes.length;
+        selectAll.indeterminate = selected > 0 && selected < checkboxes.length;
+      }
     }
 
     if (selectAll) {
@@ -185,7 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', function(e) {
         e.preventDefault();
         const form = btn.closest('form');
-        window.adminConfirm('Remove course', 'Are you sure you want to remove this course?').then(function(ok){ if (ok) form.requestSubmit(btn); });
+        window.adminConfirm('Remove course', 'Are you sure you want to remove this course?').then(function(ok) {
+          if (ok) form.requestSubmit(btn);
+        });
       });
     });
 
@@ -196,9 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!submitter) return;
         if (submitter.name === 'batch_delete') {
           e.preventDefault();
-          window.adminConfirm('Delete selected courses', 'This will remove all selected courses. Continue?').then(function(ok){ if (ok) batchForm.requestSubmit(submitter); });
+          window.adminConfirm('Delete selected courses', 'This will remove all selected courses. Continue?').then(function(ok) {
+            if (ok) batchForm.requestSubmit(submitter);
+          });
         }
       });
     }
-});
+  });
 </script>

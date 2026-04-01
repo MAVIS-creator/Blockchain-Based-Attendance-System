@@ -1,17 +1,21 @@
 # Disable directory browsing
+
 Options -Indexes
 
 # Protect .env files
-<FilesMatch "^\.env(.*)?$">
-    Require all denied
+
+<FilesMatch "^\.env(.\*)?$">
+Require all denied
 </FilesMatch>
 
 # Protect specific json files that contain sensitive info or are system configs
+
 <FilesMatch "^(accounts|settings|settings_templates|chat|revoked|support_tickets)\.json$">
-    Require all denied
+Require all denied
 </FilesMatch>
 
 # Protect log files and backups
+
 <FilesMatch "\.(log|bak|lock|ps1|bat|md)$">
-    Require all denied
+Require all denied
 </FilesMatch>
