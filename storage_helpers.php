@@ -1,27 +1,11 @@
 <?php
 
+require_once __DIR__ . '/env_helpers.php';
+
 if (!function_exists('app_storage_env_value')) {
   function app_storage_env_value($key, $default = null)
   {
-    $val = getenv($key);
-    if ($val !== false && $val !== '') return $val;
-
-    static $cache = null;
-    if ($cache === null) {
-      $cache = [];
-      $envPath = __DIR__ . '/.env';
-      if (file_exists($envPath)) {
-        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-          $line = trim((string)$line);
-          if ($line === '' || strpos($line, '#') === 0 || strpos($line, '=') === false) continue;
-          list($k, $v) = explode('=', $line, 2);
-          $cache[trim($k)] = trim(trim($v), "\"'");
-        }
-      }
-    }
-
-    return array_key_exists($key, $cache) ? $cache[$key] : $default;
+    return app_env_value($key, $default, __DIR__ . '/.env');
   }
 }
 

@@ -11,6 +11,8 @@ require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 $pageCsrfToken = csrf_token();
+$flashMessage = $_SESSION['admin_flash'] ?? null;
+unset($_SESSION['admin_flash']);
 
 $ticketsFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/support_tickets.json');
 $tickets = [];
@@ -71,16 +73,23 @@ function resolve_ticket_atomic($ticketsFile, $resolveTime)
 }
 
 // Handle resolve
-if (isset($_GET['resolve'])) {
-  $csrfOk = isset($_GET['csrf_token']) && hash_equals((string)($_SESSION['_csrf']['token'] ?? ''), (string)$_GET['csrf_token']);
-  if (!$csrfOk) {
-    http_response_code(403);
-    echo 'Invalid CSRF token.';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['resolve_ticket'])) {
+  if (!csrf_check_request()) {
+    $_SESSION['admin_flash'] = ['type' => 'error', 'title' => 'Invalid CSRF token', 'text' => 'Please refresh the page and try again.'];
+    header("Location: index.php?page=support_tickets");
     exit;
   }
-  $resolveTime = $_GET['resolve'];
+  $resolveTime = trim((string)($_POST['resolve_ticket'] ?? ''));
+  if ($resolveTime === '') {
+    $_SESSION['admin_flash'] = ['type' => 'error', 'title' => 'Resolve failed', 'text' => 'Ticket timestamp is missing.'];
+    header("Location: index.php?page=support_tickets");
+    exit;
+  }
   hybrid_mark_support_ticket_resolved($resolveTime);
-  resolve_ticket_atomic($ticketsFile, $resolveTime);
+  $resolved = resolve_ticket_atomic($ticketsFile, $resolveTime);
+  $_SESSION['admin_flash'] = $resolved
+    ? ['type' => 'success', 'title' => 'Resolved', 'text' => 'Ticket marked as resolved.']
+    : ['type' => 'error', 'title' => 'Resolve failed', 'text' => 'Could not update the ticket file.'];
   header("Location: index.php?page=support_tickets");
   exit;
 }
@@ -88,8 +97,8 @@ if (isset($_GET['resolve'])) {
 // Handle manual check-in/out
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_POST['name'], $_POST['matric'], $_POST['reason'])) {
   if (!csrf_check_request()) {
-    http_response_code(403);
-    echo 'Invalid CSRF token.';
+    $_SESSION['admin_flash'] = ['type' => 'error', 'title' => 'Invalid CSRF token', 'text' => 'Please refresh the page and try again.'];
+    header("Location: index.php?page=support_tickets");
     exit;
   }
 
@@ -108,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
   $line = "{$name} | {$matric} | {$action} | MANUAL | ::1 | UNKNOWN | {$timestamp} | Web Ticket Panel | {$activeCourse} | {$reason}\n";
 
   file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+  $_SESSION['admin_flash'] = ['type' => 'success', 'title' => 'Attendance recorded', 'text' => ucfirst($action) . ' was added from support tickets.'];
   header("Location: index.php?page=support_tickets");
   exit;
 }
@@ -136,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
         $ipMatch = $ip ? checkLogMatch($logLines, $ip, 4) : false;
         ?>
 
-        <div class="ticket-card">
+        <div class="ticket-card" style="position:relative;overflow:visible;">
           <!-- Header -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--surface-container-high);">
             <strong style="color:var(--on-surface);font-size:1rem;"><?= htmlspecialchars($ticket['name']) ?></strong>
@@ -163,17 +173,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
           <!-- Footer -->
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--surface-container-high);font-size:0.85rem;color:var(--on-surface-variant);flex-wrap:wrap;gap:8px;">
             <span><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;">schedule</span> <?= htmlspecialchars($ticket['timestamp']) ?></span>
-            <a class="st-btn st-btn-success st-btn-sm resolve-btn" href="index.php?page=support_tickets&resolve=<?= urlencode($ticket['timestamp']) ?>&csrf_token=<?= urlencode($pageCsrfToken) ?>" onclick="return confirmResolve(event)">
-              <span class="material-symbols-outlined" style="font-size:1rem;">check_circle</span> Resolve
-            </a>
+            <form method="post" class="resolve-ticket-form" style="margin:0;">
+              <?php csrf_field(); ?>
+              <input type="hidden" name="resolve_ticket" value="<?= htmlspecialchars($ticket['timestamp']) ?>">
+              <button type="submit" class="st-btn st-btn-success st-btn-sm resolve-btn" onclick="return confirmResolve(event)">
+                <span class="material-symbols-outlined" style="font-size:1rem;">check_circle</span> Resolve
+              </button>
+            </form>
           </div>
 
           <!-- Action Menu -->
-          <div style="position:absolute;top:16px;right:16px;" class="action-menu">
-            <button type="button" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;" onclick="toggleActionMenu(this)">
+          <div style="position:absolute;top:16px;right:16px;z-index:30;" class="action-menu">
+            <button type="button" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;" onclick="return toggleActionMenu(event, this)">
               <span class="material-symbols-outlined" style="font-size:1rem;color:var(--on-surface-variant);">more_vert</span>
             </button>
-            <form method="post" class="action-menu-content" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:10px;box-shadow:var(--shadow-ambient);padding:4px;z-index:50;min-width:160px;">
+            <form method="post" class="action-menu-content" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:10px;box-shadow:var(--shadow-ambient);padding:4px;z-index:60;min-width:160px;">
               <?php csrf_field(); ?>
               <input type="hidden" name="name" value="<?= htmlspecialchars($ticket['name']) ?>">
               <input type="hidden" name="matric" value="<?= htmlspecialchars($ticket['matric']) ?>">
@@ -206,26 +220,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
 <script>
   function confirmResolve(e) {
     e.preventDefault();
-    const url = e.currentTarget.href;
-    Swal.fire({
-      title: 'Mark as Resolved?',
-      text: "This ticket will be marked as resolved.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#059669',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Yes, resolve it'
-    }).then((result) => {
-      if (result.isConfirmed) window.location.href = url;
+    const form = e.currentTarget.closest('form');
+    window.adminConfirm('Mark as Resolved?', 'This ticket will be marked as resolved.')
+    .then((ok) => {
+      if (ok && form) form.submit();
     });
+    return false;
   }
 
-  function toggleActionMenu(trigger) {
+  function toggleActionMenu(e, trigger) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     document.querySelectorAll('.action-menu-content').forEach(menu => {
       if (menu !== trigger.nextElementSibling) menu.style.display = 'none';
     });
     var menu = trigger.nextElementSibling;
-    if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    if (menu) {
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+    return false;
   }
 
   document.addEventListener('click', (e) => {
@@ -233,4 +248,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
       document.querySelectorAll('.action-menu-content').forEach(m => m.style.display = 'none');
     }
   });
+
+  <?php if (is_array($flashMessage) && !empty($flashMessage['title'])): ?>
+    window.adminAlert(
+      <?= json_encode((string)$flashMessage['title']) ?>,
+      <?= json_encode((string)($flashMessage['text'] ?? '')) ?>,
+      <?= json_encode((string)($flashMessage['type'] ?? 'info')) ?>
+    );
+  <?php endif; ?>
 </script>

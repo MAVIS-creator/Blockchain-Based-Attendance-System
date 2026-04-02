@@ -3,7 +3,9 @@
 require_once __DIR__ . '/hybrid_dual_write.php';
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
+require_once __DIR__ . '/request_timing.php';
 app_storage_init();
+request_timing_start('submit.php');
 
 // ✅ Set timezone to Nigeria
 date_default_timezone_set('Africa/Lagos');
@@ -33,6 +35,7 @@ if (strpos($fingerprint, '_') !== false) {
 
 // ✅ Check attendance status
 $statusFile = app_storage_migrate_file('status.json', __DIR__ . '/status.json');
+$span = microtime(true);
 if (!file_exists($statusFile)) {
     header('Content-Type: application/json');
     echo json_encode(['ok' => false, 'message' => 'Attendance status file not found.']);
@@ -52,11 +55,13 @@ if (!isset($status[$action]) || !$status[$action]) {
     echo json_encode(['ok' => false, 'message' => "The $action mode is not currently enabled."]);
     exit;
 }
+request_timing_span('load_status', $span, ['action' => $action]);
 
 // -----------------------
 // Load admin settings (try JSON, else decrypt ENC:)
 // -----------------------
 $settingsPath = admin_storage_migrate_file('settings.json', __DIR__ . '/admin/settings.json');
+$span = microtime(true);
 $settings = [];
 if (file_exists($settingsPath)) {
     $raw = file_get_contents($settingsPath);
@@ -76,6 +81,7 @@ if (file_exists($settingsPath)) {
         }
     }
 }
+request_timing_span('load_settings', $span, ['encrypted' => strpos((string)($raw ?? ''), 'ENC:') === 0]);
 
 // Helper: respond JSON and exit
 function fail($code, $message)
@@ -278,6 +284,7 @@ if (!empty($settings['ip_whitelist']) && is_array($settings['ip_whitelist'])) {
 // Geo-fence enforcement (if configured)
 // -----------------------
 if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && is_array($settings['geo_fence'])) {
+    $geoSpan = microtime(true);
     $gf = $settings['geo_fence'];
     $gfLat = isset($gf['lat']) ? floatval($gf['lat']) : null;
     $gfLng = isset($gf['lng']) ? floatval($gf['lng']) : null;
@@ -287,6 +294,7 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
         $postLat = isset($_POST['lat']) ? floatval($_POST['lat']) : null;
         $postLng = isset($_POST['lng']) ? floatval($_POST['lng']) : null;
         if ($postLat === null || $postLng === null) {
+            request_timing_note('geo_fence_result', 'missing_client_location');
             fail('GEOFENCE_MISSING', 'Location required for attendance at this time.');
         }
         // haversine
@@ -297,9 +305,16 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         $dist = $earthRadius * $c;
         if ($dist > $gfRadius) {
+            request_timing_note('geo_fence_result', 'outside');
+            request_timing_note('geo_fence_distance_m', round($dist, 2));
             fail('GEOFENCE_OUTSIDE', 'You are outside the allowed attendance area.');
         }
+        request_timing_note('geo_fence_result', 'inside');
+        request_timing_note('geo_fence_distance_m', round($dist, 2));
     }
+    request_timing_span('geo_fence_check', $geoSpan, ['enabled' => true]);
+} else {
+    request_timing_note('geo_fence_result', 'disabled');
 }
 
 // -----------------------
@@ -388,6 +403,7 @@ $failedLog = $logDir . "/" . $today . "_failed_attempts.log";
 
 // ✅ Read log lines
 $lines = file_exists($logFile) ? file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
+request_timing_note('existing_log_lines', is_array($lines) ? count($lines) : 0);
 
 // 🔐 Check for duplicate actions
 foreach ($lines as $line) {
@@ -468,9 +484,12 @@ if ($action === "checkout") {
 // ✅ Save to .log file (include MAC when available)
 $logReason = '-';
 $logEntry = "$name | $matric | $action | $fingerprint | $ip | $mac | " . date("Y-m-d H:i:s") . " | $userAgent | $course | $logReason\n";
+$logWriteSpan = microtime(true);
 file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
+request_timing_span('append_attendance_log', $logWriteSpan);
 
 // ✅ Save as blockchain block (JSON)
+$chainSpan = microtime(true);
 $chainFile = app_storage_file('secure_logs/attendance_chain.json');
 $chain = file_exists($chainFile) ? json_decode(file_get_contents($chainFile), true) : [];
 if (!is_array($chain)) {
@@ -499,8 +518,10 @@ $block['hash'] = hash('sha256', json_encode($blockDataForHash, JSON_UNESCAPED_SL
 
 $chain[] = $block;
 file_put_contents($chainFile, json_encode($chain, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+request_timing_span('write_chain', $chainSpan, ['chain_blocks' => count($chain)]);
 
 // ✅ Optional hybrid dual-write (file remains source of truth)
+$dualWriteSpan = microtime(true);
 hybrid_dual_write('attendance', 'attendance_logs', [
     'timestamp' => date('c'),
     'name' => $name,
@@ -514,6 +535,7 @@ hybrid_dual_write('attendance', 'attendance_logs', [
     'reason' => $logReason,
     'chain_hash' => $block['hash'],
 ]);
+request_timing_span('hybrid_dual_write', $dualWriteSpan);
 
 // ⚡ Optional: Polygon integration
 require_once __DIR__ . '/polygon_hash.php';

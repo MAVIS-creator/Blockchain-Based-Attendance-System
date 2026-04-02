@@ -8,6 +8,7 @@ require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
 
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/../env_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 
@@ -17,22 +18,7 @@ $logsDir = app_storage_file('logs');
 $exportDir = app_storage_file('backups');
 if (!is_dir($exportDir)) @mkdir($exportDir, 0755, true);
 
-// Load .env helper
-function load_env_vars($path)
-{
-  $env = [];
-  if (file_exists($path)) {
-    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $l) {
-      $t = trim($l);
-      if ($t === '' || strpos($t, '#') === 0 || strpos($t, '=') === false) continue;
-      list($k, $v) = explode('=', $t, 2);
-      $env[trim($k)] = trim(trim($v), "\"'");
-    }
-  }
-  return $env;
-}
-$ENV = load_env_vars(__DIR__ . '/../.env');
+$ENV = app_load_env_layers(__DIR__ . '/../.env');
 
 // Get default recipient from settings
 $defaultRecipient = '';
@@ -254,25 +240,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])) {
     <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Select log groups by date and course, choose columns, and send as CSV or PDF report.</p>
   </div>
 
-  <?php if ($error): ?>
-    <div style="background:var(--error-container);color:var(--error);padding:12px 16px;border-radius:12px;font-weight:600;font-size:0.9rem;margin-bottom:24px;display:flex;align-items:center;gap:8px;">
-      <span class="material-symbols-outlined">error</span>
-      <?= htmlspecialchars($error) ?>
+  <?php if ($success && $exportPath && file_exists($exportPath)): ?>
+    <div style="margin-bottom:24px;">
+      <a href="download_backup.php?file=<?php echo urlencode(basename($exportPath)); ?>" download class="st-btn st-btn-primary" style="text-decoration:none;display:inline-flex;">
+        <span class="material-symbols-outlined">download</span> Download Export
+      </a>
     </div>
-  <?php endif; ?>
-
-  <?php if ($success): ?>
-    <div style="background:var(--success-container);color:var(--success);padding:12px 16px;border-radius:12px;font-weight:600;font-size:0.9rem;margin-bottom:24px;display:flex;align-items:center;gap:8px;">
-      <span class="material-symbols-outlined">check_circle</span>
-      <?= htmlspecialchars($success) ?>
-    </div>
-    <?php if ($exportPath && file_exists($exportPath)): ?>
-      <div style="margin-bottom:24px;">
-        <a href="download_backup.php?file=<?php echo urlencode(basename($exportPath)); ?>" download class="st-btn st-btn-primary" style="text-decoration:none;display:inline-flex;">
-          <span class="material-symbols-outlined">download</span> Download Export
-        </a>
-      </div>
-    <?php endif; ?>
   <?php endif; ?>
 
   <div class="st-card" style="padding:24px;">
@@ -369,3 +342,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])) {
     </form>
   </div>
 </div>
+<?php if ($error || $success): ?>
+<script>
+  window.adminAlert(
+    <?= json_encode($success ? 'Success' : 'Action failed') ?>,
+    <?= json_encode($success ?: $error) ?>,
+    <?= json_encode($success ? 'success' : 'error') ?>
+  );
+</script>
+<?php endif; ?>

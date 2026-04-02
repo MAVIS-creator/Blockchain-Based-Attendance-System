@@ -1,9 +1,13 @@
 <?php
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
+require_once __DIR__ . '/request_timing.php';
 app_storage_init();
+request_timing_start('index.php');
 $statusFile = app_storage_migrate_file('status.json', __DIR__ . '/status.json');
+$span = microtime(true);
 $status = json_decode(file_get_contents($statusFile), true);
+request_timing_span('load_status', $span);
 $activeMode = $status["checkin"] ? "checkin" : ($status["checkout"] ? "checkout" : "");
 if (!$activeMode) {
   header('Location: attendance_closed.php');
@@ -13,16 +17,19 @@ if (!$activeMode) {
 // Read active course
 $activeCourse = "General";
 $activeFile = admin_course_storage_migrate_file('active_course.json');
+$span = microtime(true);
 if (file_exists($activeFile)) {
   $activeData = json_decode(file_get_contents($activeFile), true);
   if (is_array($activeData)) {
     $activeCourse = $activeData['course'] ?? "General";
   }
 }
+request_timing_span('load_active_course', $span);
 
 // Announcement logic
 $announcementFile = admin_storage_migrate_file('announcement.json');
 $announcement = ['enabled' => false, 'message' => ''];
+$span = microtime(true);
 if (file_exists($announcementFile)) {
   $json = json_decode(file_get_contents($announcementFile), true);
   if (is_array($json)) {
@@ -30,6 +37,7 @@ if (file_exists($announcementFile)) {
     $announcement['message'] = $json['message'] ?? '';
   }
 }
+request_timing_span('load_announcement', $span);
 ?>
 <!DOCTYPE html>
 <html lang="en">

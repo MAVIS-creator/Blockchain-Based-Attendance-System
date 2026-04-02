@@ -76,12 +76,6 @@ function render_announcement_form($announcement, $successMsg, $errorMsg, $embedd
           <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Toggle and update the student-facing announcement banner.</p>
         </div>
 
-        <?php if ($successMsg): ?>
-          <div class="alert alert-success"><?= htmlspecialchars($successMsg) ?></div>
-        <?php elseif ($errorMsg): ?>
-          <div class="alert alert-danger"><?= htmlspecialchars($errorMsg) ?></div>
-        <?php endif; ?>
-
         <div class="st-card">
           <form method="post">
             <?php csrf_field(); ?>
@@ -142,6 +136,15 @@ function render_announcement_form($announcement, $successMsg, $errorMsg, $embedd
           });
         })();
       </script>
+      <?php if ($successMsg !== '' || $errorMsg !== ''): ?>
+      <script>
+        window.adminAlert(
+          <?= json_encode($successMsg !== '' ? 'Success' : 'Error') ?>,
+          <?= json_encode($successMsg !== '' ? $successMsg : $errorMsg) ?>,
+          <?= json_encode($successMsg !== '' ? 'success' : 'error') ?>
+        );
+      </script>
+      <?php endif; ?>
     <?php
     return ob_get_clean();
   }

@@ -4,7 +4,9 @@ date_default_timezone_set('Africa/Lagos');
 require_once __DIR__ . '/hybrid_dual_write.php';
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
+require_once __DIR__ . '/request_timing.php';
 app_storage_init();
+request_timing_start('support.php');
 
 $ticketsFile = app_storage_file('support_tickets.json');
 $legacyTicketsFile = __DIR__ . '/admin/support_tickets.json';
@@ -47,6 +49,7 @@ function append_support_ticket_atomic($ticketsFile, $ticket)
 $success = false;
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+  $submitSpan = microtime(true);
   $name = trim($_POST['name'] ?? '');
   $matric = trim($_POST['matric'] ?? '');
   $message = trim($_POST['message'] ?? '');
@@ -66,6 +69,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     ]);
 
     if ($saved) {
+      $dualWriteSpan = microtime(true);
       hybrid_dual_write('support_ticket', 'support_tickets', [
         'timestamp' => date('c'),
         'name' => $name,
@@ -76,9 +80,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         'created_at_local' => $createdAt,
         'resolved' => false
       ]);
+      request_timing_span('hybrid_dual_write', $dualWriteSpan);
     }
 
     $success = $saved;
+    request_timing_span('submit_support_ticket', $submitSpan, ['saved' => $saved]);
   }
 }
 

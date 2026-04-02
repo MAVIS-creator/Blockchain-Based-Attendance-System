@@ -1,4 +1,5 @@
 <?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
+<?php $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'superadmin'; ?>
 <!-- Desktop Navigation Bar (visible ≥1024px, hidden on mobile) -->
 <nav class="desktop-navbar">
   <div class="navbar-container">
@@ -26,6 +27,7 @@
           <span class="material-symbols-outlined">history_edu</span><span>Logs</span><i class='bx bx-chevron-down' style="font-size:0.8rem;margin-left:2px;"></i>
         </button>
         <ul class="dropdown-menu">
+          <li><a href="index.php?page=request_timings" class="<?= $page == 'request_timings' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">timer</span>Request Timings</a></li>
           <li><a href="index.php?page=logs" class="<?= $page == 'logs' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">description</span>General Logs</a></li>
           <li><a href="index.php?page=chain" class="<?= $page == 'chain' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">link</span>Chain</a></li>
           <li><a href="index.php?page=failed_attempts" class="<?= $page == 'failed_attempts' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">error</span>Failed Logs</a></li>
@@ -51,6 +53,9 @@
         </button>
         <ul class="dropdown-menu">
           <li><a href="index.php?page=manual_attendance" class="<?= $page == 'manual_attendance' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">touch_app</span>Manual Attendance</a></li>
+          <?php if ($isSuperAdmin): ?>
+            <li><a href="index.php?page=geofence" class="<?= $page == 'geofence' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">distance</span>Geo-fence</a></li>
+          <?php endif; ?>
           <li><a href="index.php?page=announcement" class="<?= $page == 'announcement' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">campaign</span>Announcement</a></li>
           <li><a href="index.php?page=unlink_fingerprint" class="<?= $page == 'unlink_fingerprint' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">link_off</span>Unlink Fingerprint</a></li>
           <li><a href="index.php?page=patcher" class="<?= $page == 'patcher' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">code_blocks</span>Patcher</a></li>
@@ -81,7 +86,6 @@
     <!-- Right-side User Actions -->
     <div class="navbar-actions">
       <?php
-      $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'superadmin';
       if (!empty($_SESSION['admin_name'])):
         $adminName = htmlspecialchars($_SESSION['admin_name']);
         $adminAvatar = $_SESSION['admin_avatar'] ?? null;

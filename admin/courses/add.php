@@ -12,6 +12,8 @@ $courses = file_exists($courseFile) ? json_decode(file_get_contents($courseFile)
 if (!is_array($courses)) $courses = [];
 
 $activeCourse = '';
+$message = '';
+$errorMessage = '';
 if (file_exists($activeFile)) {
   $activeData = json_decode(file_get_contents($activeFile), true);
   if (is_array($activeData) && isset($activeData['course'])) {
@@ -23,28 +25,30 @@ if (file_exists($activeFile)) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (function_exists('csrf_check_request') && !csrf_check_request()) {
     http_response_code(403);
-    die('Invalid CSRF token.');
+    $errorMessage = 'Invalid CSRF token. Please refresh the page and try again.';
   }
 
-  if (isset($_POST['course_name'])) {
+  if ($errorMessage === '' && isset($_POST['course_name'])) {
     $newCourse = trim($_POST['course_name']);
     if ($newCourse !== '' && !in_array($newCourse, $courses, true)) {
       $courses[] = $newCourse;
       file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT), LOCK_EX);
+      $message = 'Course added successfully.';
+    } elseif ($newCourse === '') {
+      $errorMessage = 'Course name is required.';
+    } else {
+      $errorMessage = 'That course already exists.';
     }
-    header("Location: " . $_SERVER['REQUEST_URI']);
-    exit;
   }
 
-  if (isset($_POST['remove_course'])) {
+  if ($errorMessage === '' && isset($_POST['remove_course'])) {
     $removeCourse = $_POST['remove_course'];
     $courses = array_values(array_filter($courses, fn($course) => $course !== $removeCourse));
     file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT), LOCK_EX);
-    header("Location: " . $_SERVER['REQUEST_URI']);
-    exit;
+    $message = 'Course removed successfully.';
   }
 
-  if (isset($_POST['batch_delete']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
+  if ($errorMessage === '' && isset($_POST['batch_delete']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
     $selected = array_map('strval', $_POST['selected_courses']);
     $selectedSet = array_flip($selected);
     $courses = array_values(array_filter($courses, function ($course) use ($selectedSet) {
@@ -56,17 +60,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT), LOCK_EX);
-    header("Location: " . $_SERVER['REQUEST_URI']);
-    exit;
+    $message = 'Selected courses deleted.';
   }
 
-  if (isset($_POST['batch_set_active']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
+  if ($errorMessage === '' && isset($_POST['batch_set_active']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
     $selected = array_values(array_filter(array_map('strval', $_POST['selected_courses'])));
     if (count($selected) === 1 && in_array($selected[0], $courses, true)) {
       file_put_contents($activeFile, json_encode(['course' => $selected[0]], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+      $activeCourse = $selected[0];
+      $message = 'Active course updated.';
+    } else {
+      $errorMessage = 'Select exactly one valid course to set active.';
     }
-    header("Location: " . $_SERVER['REQUEST_URI']);
-    exit;
   }
 }
 ?>
@@ -153,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
+  (function() {
     const selectAll = document.getElementById('select_all_courses');
     const checkboxes = Array.from(document.querySelectorAll('.course-checkbox'));
     const count = document.getElementById('selection_count');
@@ -205,5 +210,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
       });
     }
-  });
+    <?php if ($message !== ''): ?>
+    window.adminAlert('Success', <?= json_encode($message) ?>, 'success');
+    <?php elseif ($errorMessage !== ''): ?>
+    window.adminAlert('Action failed', <?= json_encode($errorMessage) ?>, 'error');
+    <?php endif; ?>
+  })();
 </script>

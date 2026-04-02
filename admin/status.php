@@ -96,10 +96,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Enable or disable check-in and check-out modes for the attendance system.</p>
   </div>
 
-  <?php if (!empty($errorMessage)): ?>
-    <div class="alert alert-danger"><?= htmlspecialchars($errorMessage) ?></div>
-  <?php endif; ?>
-
   <!-- Status Cards Grid -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
     <!-- Check-In Card -->
@@ -170,6 +166,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
   const endTime = <?= isset($status['end_time']) ? $status['end_time'] : 'null' ?>;
+
+  <?php if (!empty($errorMessage)): ?>
+  window.adminAlert('Action failed', <?= json_encode($errorMessage) ?>, 'error');
+  <?php endif; ?>
 
   function formatCountdown(seconds) {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');

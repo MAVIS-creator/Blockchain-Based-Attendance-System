@@ -47,9 +47,10 @@ $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 's
         </a></li>
 
       <li>
-        <details class="sidebar-group" <?= in_array($page, ['logs', 'chain', 'failed_attempts', 'clear_logs_ui', 'clear_tokens_ui', 'send_logs_email']) ? 'open' : '' ?>>
+        <details class="sidebar-group" <?= in_array($page, ['request_timings', 'logs', 'chain', 'failed_attempts', 'clear_logs_ui', 'clear_tokens_ui', 'send_logs_email']) ? 'open' : '' ?>>
           <summary><span class="material-symbols-outlined">history_edu</span><span class="label-text">Logs</span></summary>
           <ul>
+            <li><a href="index.php?page=request_timings" class="<?= $page == 'request_timings' ? 'active' : '' ?>"><span class="material-symbols-outlined">timer</span><span class="label-text">Request Timings</span></a></li>
             <li><a href="index.php?page=logs" class="<?= $page == 'logs' ? 'active' : '' ?>"><span class="material-symbols-outlined">description</span><span class="label-text">General Logs</span></a></li>
             <li><a href="index.php?page=chain" class="<?= $page == 'chain' ? 'active' : '' ?>"><span class="material-symbols-outlined">link</span><span class="label-text">Chain</span></a></li>
             <li><a href="index.php?page=failed_attempts" class="<?= $page == 'failed_attempts' ? 'active' : '' ?>"><span class="material-symbols-outlined">error</span><span class="label-text">Failed Logs</span></a></li>
@@ -73,6 +74,12 @@ $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 's
       <li><a href="index.php?page=manual_attendance" class="<?= $page == 'manual_attendance' ? 'active' : '' ?>">
           <span class="material-symbols-outlined">touch_app</span><span class="label-text">Manual Attendance</span>
         </a></li>
+
+      <?php if ($isSuperAdmin): ?>
+        <li><a href="index.php?page=geofence" class="<?= $page == 'geofence' ? 'active' : '' ?>">
+            <span class="material-symbols-outlined">distance</span><span class="label-text">Geo-fence</span>
+          </a></li>
+      <?php endif; ?>
 
       <li><a href="index.php?page=announcement" class="<?= $page == 'announcement' ? 'active' : '' ?>">
           <span class="material-symbols-outlined">campaign</span><span class="label-text">Announcement</span>

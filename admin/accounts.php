@@ -141,11 +141,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Manage admin users. Max: <?= intval($settings['max_admins'] ?? 5) ?> accounts.</p>
   </div>
 
-  <?php if ($message): ?><div class="alert alert-success"><?= htmlspecialchars($message) ?></div><?php endif; ?>
-  <?php if ($errors): ?><div class="alert alert-danger">
-      <ul style="margin:0;padding-left:18px;"><?php foreach ($errors as $e) echo '<li>' . htmlspecialchars($e) . '</li>'; ?></ul>
-    </div><?php endif; ?>
-
   <!-- Accounts Table -->
   <div class="st-card" style="padding:0;margin-bottom:20px;overflow-x:auto;">
     <table class="st-table" style="width:100%;">
@@ -259,3 +254,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
   </div>
 </div>
+
+<script>
+  document.querySelectorAll('form input[name="action"][value="delete"]').forEach(function(input) {
+    var form = input.closest('form');
+    if (!form) return;
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      window.adminConfirm('Delete admin account', 'This account will be removed permanently. Continue?').then(function(ok) {
+        if (ok) form.submit();
+      });
+    });
+  });
+
+  <?php if ($message !== ''): ?>
+  window.adminAlert('Success', <?= json_encode($message) ?>, 'success');
+  <?php elseif (!empty($errors)): ?>
+  window.adminAlert('Action failed', <?= json_encode(implode("\n", $errors)) ?>, 'error');
+  <?php endif; ?>
+</script>

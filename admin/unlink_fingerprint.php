@@ -44,10 +44,12 @@ $offset = ($currentPage - 1) * $entriesPerPage;
 $paginatedData = array_slice($fingerprintsData, $offset, $entriesPerPage, true);
 
 $message = "";
+$messageType = 'success';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!csrf_check_request()) {
     http_response_code(403);
     $message = "Invalid CSRF token.";
+    $messageType = 'error';
   }
 
   $matric = trim($_POST['matric'] ?? '');
@@ -62,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     file_put_contents($auditFile, $logEntry, FILE_APPEND | LOCK_EX);
 
     $message = "Fingerprint for Matric Number $matric has been unlinked successfully.";
+    $messageType = 'success';
 
     // Preserve existing query params
     $queryParams = $_GET;
@@ -72,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
   } elseif (empty($message)) {
     $message = "No fingerprint found for Matric Number $matric.";
+    $messageType = 'error';
   }
 }
 
@@ -105,10 +109,6 @@ function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded
           </h2>
           <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Remove linked fingerprints from student matric numbers.</p>
         </div>
-
-        <?php if ($message): ?>
-          <div class="alert <?= strpos($message, 'successfully') !== false ? 'alert-success' : 'alert-danger' ?>"><?= htmlspecialchars($message) ?></div>
-        <?php endif; ?>
 
         <!-- Unlink Form -->
         <div class="st-card" style="margin-bottom:20px;">
@@ -192,6 +192,14 @@ function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded
           });
           return false;
         }
+
+        <?php if ($message !== ''): ?>
+        window.adminAlert(
+          <?= json_encode($messageType === 'success' ? 'Success' : 'Action failed') ?>,
+          <?= json_encode($message) ?>,
+          <?= json_encode($messageType) ?>
+        );
+        <?php endif; ?>
       </script>
     <?php
     if (!$embedded) {

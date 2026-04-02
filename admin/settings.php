@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/../env_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 
@@ -92,18 +93,7 @@ if (!file_exists($templatesFile)) file_put_contents($templatesFile, json_encode(
 // Load .env (simple parser – avoids extra dependency)
 function load_env_array($path)
 {
-  $env = [];
-  if (file_exists($path)) {
-    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $l) {
-      $t = trim($l);
-      if ($t === '' || strpos($t, '#') === 0) continue;
-      if (strpos($t, '=') === false) continue;
-      list($k, $v) = explode('=', $t, 2);
-      $env[trim($k)] = trim(trim($v), "\"'");
-    }
-  }
-  return $env;
+  return app_load_env_layers($path);
 }
 
 function load_env_lines($path)
@@ -687,15 +677,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p class="text-on-surface-variant mt-1">Exact Stitch screen structure mapped to live settings endpoints.</p>
   </div>
 
-  <?php if ($message): ?>
-    <div class="mb-4 rounded-lg px-4 py-3 bg-green-100 text-green-800 border border-green-200"><?= htmlspecialchars($message) ?></div>
-  <?php endif; ?>
-  <?php if ($errors): ?>
-    <div class="mb-4 rounded-lg px-4 py-3 bg-error-container text-error border border-red-200">
-      <ul class="list-disc list-inside"><?php foreach ($errors as $e) echo '<li>' . htmlspecialchars($e) . '</li>'; ?></ul>
-    </div>
-  <?php endif; ?>
-
   <div class="bg-surface-container-low p-1.5 rounded-xl flex gap-1 mb-8 overflow-x-auto whitespace-nowrap">
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-semibold transition-all bg-white text-primary shadow-sm" onclick="openTab(event, 'tab-general')">General</button>
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-templates')">Templates</button>
@@ -1067,6 +1048,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   });
 </script>
+<?php if ($message || $errors): ?>
+<script>
+  window.adminAlert(
+    <?= json_encode($message ? 'Success' : 'Action failed') ?>,
+    <?= json_encode($message ?: implode("\n", $errors)) ?>,
+    <?= json_encode($message ? 'success' : 'error') ?>
+  );
+</script>
+<?php endif; ?>
 <script>
   (function() {
     var btn = document.getElementById('geo_test_btn');

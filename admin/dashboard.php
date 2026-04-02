@@ -2,7 +2,9 @@
 require_once __DIR__ . '/includes/hybrid_admin_read.php';
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/../request_timing.php';
 app_storage_init();
+request_timing_start('admin/dashboard.php');
 $logDir = app_storage_file('logs');
 $failedDir = $logDir;
 
@@ -15,6 +17,7 @@ $recentLogs = [];
 $today = new DateTime();
 $twoDaysAgo = (clone $today)->modify('-2 days');
 
+$span = microtime(true);
 foreach (glob($logDir . '/*.log') as $file) {
   if (preg_match('/(\d{4}-\d{2}-\d{2})\.log$/', $file, $match)) {
     $date = $match[1];
@@ -48,7 +51,9 @@ foreach (glob($logDir . '/*.log') as $file) {
     }
   }
 }
+request_timing_span('scan_attendance_logs', $span, ['daily_files' => count(glob($logDir . '/*.log')) ?: 0]);
 
+$span = microtime(true);
 foreach (glob($failedDir . '/*_failed_attempts.log') as $file) {
   if (preg_match('/(\d{4}-\d{2}-\d{2})_failed_attempts\.log$/', $file, $match)) {
     $date = $match[1];
@@ -56,6 +61,7 @@ foreach (glob($failedDir . '/*_failed_attempts.log') as $file) {
     $failedCounts[$date] = count($lines);
   }
 }
+request_timing_span('scan_failed_logs', $span, ['failed_files' => count(glob($failedDir . '/*_failed_attempts.log')) ?: 0]);
 
 $supportFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/support_tickets.json');
 $supportSource = 'file';

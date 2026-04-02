@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/../env_helpers.php';
 
 $error = '';
 $success = '';
@@ -30,17 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Generate token (always say "If email exists", to prevent enumeration)
             if ($foundUser) {
                 // Read .env for SMTP config
-                $envVars = [];
-                $envFile = __DIR__ . '/../.env';
-                if (file_exists($envFile)) {
-                    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                    foreach ($lines as $l) {
-                        $t = trim($l);
-                        if ($t === '' || strpos($t, '#') === 0 || strpos($t, '=') === false) continue;
-                        list($k, $v) = explode('=', $t, 2);
-                        $envVars[trim($k)] = trim(trim($v), "\"'");
-                    }
-                }
+                $envVars = app_load_env_layers(__DIR__ . '/../.env');
 
                 $smtpHost = $envVars['SMTP_HOST'] ?? '';
                 if (!$smtpHost) {
