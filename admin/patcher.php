@@ -743,7 +743,8 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     font-size: 11px;
   }
 
-  .ps-input, .ps-textarea {
+  .ps-input,
+  .ps-textarea {
     width: 100%;
     padding: 8px 12px;
     background: rgba(10, 18, 40, 0.8);
@@ -756,7 +757,8 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     transition: border-color 0.2s;
   }
 
-  .ps-input:focus, .ps-textarea:focus {
+  .ps-input:focus,
+  .ps-textarea:focus {
     border-color: rgba(100, 180, 255, 0.5);
   }
 
@@ -779,7 +781,8 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     margin-bottom: 12px;
   }
 
-  .ps-file-item, .ps-folder-item {
+  .ps-file-item,
+  .ps-folder-item {
     padding: 8px 10px;
     margin: 2px 4px;
     background: transparent;
@@ -795,7 +798,8 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     text-overflow: ellipsis;
   }
 
-  .ps-file-item:hover, .ps-folder-item:hover {
+  .ps-file-item:hover,
+  .ps-folder-item:hover {
     background: rgba(100, 130, 180, 0.1);
     color: #d1d8ff;
   }
@@ -974,7 +978,7 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
               </div>
             </div>
           </div>
-          
+
           <div class="ps-panel-body">
             <div class="ps-view active" data-panel="explorer">
               <div style="margin-bottom:10px;">
@@ -1135,7 +1139,7 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     const csrf = <?= json_encode($csrf) ?>,
       dashboardUrl = 'index.php?page=dashboard',
       shell = document.getElementById('patcherStudio');
-    
+
     const state = {
       files: [],
       currentPath: '',
@@ -1193,7 +1197,7 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
         '<': '&lt;',
         '>': '&gt;',
         '"': '&quot;'
-      }[ch]));
+      } [ch]));
     }
 
     function updateLineNumbers() {
@@ -1250,7 +1254,10 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
           folder = idx >= 0 ? file.path.slice(0, idx) : '.',
           name = idx >= 0 ? file.path.slice(idx + 1) : file.path;
         if (!map.has(folder)) map.set(folder, []);
-        map.get(folder).push({...file, name});
+        map.get(folder).push({
+          ...file,
+          name
+        });
       });
       return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     }
@@ -1302,7 +1309,9 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     }
 
     async function openFile(path) {
-      const data = await api('read_file', {path});
+      const data = await api('read_file', {
+        path
+      });
       if (!data.ok) return window.adminAlert('Open failed', data.message || 'Unable to open file', 'error');
       state.currentPath = data.path;
       state.currentContent = data.content || '';
@@ -1420,7 +1429,9 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
       if (!path) return window.adminAlert('No file selected', 'Open a tracked file first.', 'warning');
       const ok = confirm(`Revert ${path} back to HEAD?`);
       if (!ok) return;
-      const data = await api('revert_file', {path});
+      const data = await api('revert_file', {
+        path
+      });
       if (!data.ok) return window.adminAlert('Revert failed', data.message || 'Unable to revert file.', 'error');
       log(data.message || 'File reverted');
       if (state.currentPath === path) await openFile(path);
@@ -1467,7 +1478,9 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
         return;
       }
       log(`> ${command}`);
-      const data = await api('run_terminal', {command});
+      const data = await api('run_terminal', {
+        command
+      });
       if (!data.ok) {
         log(data.message || 'Command failed');
         window.adminAlert('Command blocked', data.message || 'Unable to run command.', 'warning');
@@ -1513,7 +1526,10 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     document.getElementById('btnNewFile').addEventListener('click', async () => {
       const path = prompt('New file path:');
       if (!path) return;
-      const data = await api('create_file', {path, content: ''});
+      const data = await api('create_file', {
+        path,
+        content: ''
+      });
       if (data.ok) {
         await loadFiles();
         await openFile(path);
@@ -1523,7 +1539,9 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     document.getElementById('btnNewFolder').addEventListener('click', async () => {
       const path = prompt('New folder path:');
       if (!path) return;
-      const data = await api('create_folder', {path});
+      const data = await api('create_folder', {
+        path
+      });
       if (data.ok) {
         await loadFiles();
         log(data.message || 'Folder created');
@@ -1538,7 +1556,9 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     });
 
     document.getElementById('btnGitPull').addEventListener('click', async () => {
-      const data = await api('git_pull', {branch: 'main'});
+      const data = await api('git_pull', {
+        branch: 'main'
+      });
       log(data.output || data.message || 'Pull completed');
       await loadRecentChanges();
     });
