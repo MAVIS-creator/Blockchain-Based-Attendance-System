@@ -60,7 +60,30 @@ if (!function_exists('app_load_env_layers')) {
       $env = array_merge($env, app_load_env_file($localPath));
     }
 
+    $localhostMode = strtolower((string)($env['LOCALHOST_MODE'] ?? 'false'));
+    if ($shouldLoadLocal && in_array($localhostMode, ['1', 'true', 'yes', 'on'], true)) {
+      $projectRoot = realpath($baseDir) ?: $baseDir;
+      $defaultLocalStorage = $projectRoot . DIRECTORY_SEPARATOR . 'storage';
+      $configuredLocalStorage = trim((string)($env['LOCAL_STORAGE_PATH'] ?? ''));
+
+      $env['HYBRID_MODE'] = 'off';
+      $env['HYBRID_ADMIN_READ'] = 'false';
+      $env['STORAGE_PATH'] = $configuredLocalStorage !== '' ? $configuredLocalStorage : $defaultLocalStorage;
+      $env['APP_ENV'] = 'local';
+      $env['APP_DEBUG'] = 'true';
+    }
+
     return $env;
+  }
+}
+
+if (!function_exists('app_local_mode_enabled')) {
+  function app_local_mode_enabled($baseEnvPath = null)
+  {
+    $path = $baseEnvPath ?: (__DIR__ . DIRECTORY_SEPARATOR . '.env');
+    $env = app_load_env_layers($path);
+    $flag = strtolower((string)($env['LOCALHOST_MODE'] ?? 'false'));
+    return app_is_local_environment() && in_array($flag, ['1', 'true', 'yes', 'on'], true);
   }
 }
 
@@ -79,4 +102,3 @@ if (!function_exists('app_env_value')) {
     return array_key_exists($key, $cache[$path]) ? $cache[$path][$key] : $default;
   }
 }
-

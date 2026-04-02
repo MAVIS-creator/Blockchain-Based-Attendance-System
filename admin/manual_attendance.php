@@ -11,6 +11,8 @@ require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
+require_once __DIR__ . '/cache_helpers.php';
 app_storage_init();
 
 date_default_timezone_set('Africa/Lagos');
@@ -26,7 +28,7 @@ if (!is_dir($logDir)) {
 
 $activeCourse = 'General';
 if (file_exists($activeCourseFile)) {
-    $data = json_decode(file_get_contents($activeCourseFile), true);
+    $data = admin_cached_json_file('active_course_manual', $activeCourseFile, [], 15);
     if (isset($data['course'])) {
         $activeCourse = $data['course'];
     }
@@ -77,25 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fingerprint = 'MANUAL_' . strtoupper($matric);
 
             // Load settings (try JSON then decrypt)
-            $settingsPath = admin_storage_migrate_file('settings.json');
-            $settings = [];
-            if (file_exists($settingsPath)) {
-                $raw = file_get_contents($settingsPath);
-                $decoded = json_decode($raw, true);
-                if (is_array($decoded)) $settings = $decoded;
-                else if (strpos($raw, 'ENC:') === 0) {
-                    $keyFile = admin_storage_migrate_file('.settings_key');
-                    if (file_exists($keyFile)) {
-                        $key = trim(file_get_contents($keyFile));
-                        $blob = base64_decode(substr($raw, 4));
-                        $iv = substr($blob, 0, 16);
-                        $ct = substr($blob, 16);
-                        $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
-                        $decoded2 = json_decode($plain, true);
-                        if (is_array($decoded2)) $settings = $decoded2;
-                    }
-                }
-            }
+            $settings = admin_load_settings_cached(15);
 
             // helper for CIDR match (IPv4)
             $ip_in_cidr = function ($ip, $cidr) {

@@ -3,6 +3,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/../env_helpers.php';
+require_once __DIR__ . '/state_helpers.php';
 
 $error = '';
 $success = '';
@@ -15,8 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Valid email address is required.';
         } else {
-            $accountsFile = admin_storage_migrate_file('accounts.json');
-            $accounts = file_exists($accountsFile) ? json_decode(file_get_contents($accountsFile), true) : [];
+            $accounts = admin_load_accounts_cached(15);
 
             $foundUser = null;
             if (is_array($accounts)) {

@@ -1,5 +1,9 @@
 <?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
 <?php $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'superadmin'; ?>
+<?php
+require_once __DIR__ . '/../cache_helpers.php';
+$ticketCount = admin_support_ticket_count(15);
+?>
 <!-- Desktop Navigation Bar (visible ≥1024px, hidden on mobile) -->
 <nav class="desktop-navbar">
   <div class="navbar-container">
@@ -60,22 +64,7 @@
           <li><a href="index.php?page=unlink_fingerprint" class="<?= $page == 'unlink_fingerprint' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">link_off</span>Unlink Fingerprint</a></li>
           <li><a href="index.php?page=patcher" class="<?= $page == 'patcher' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">code_blocks</span>Patcher</a></li>
           <li><a href="index.php?page=support_tickets" class="<?= $page == 'support_tickets' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">confirmation_number</span>Support Tickets
-              <?php
-              $ticketCount = 0;
-              require_once __DIR__ . '/../../storage_helpers.php';
-              app_storage_init();
-              $ticketsFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/../support_tickets.json');
-              if (file_exists($ticketsFile)) {
-                $tickets = json_decode(file_get_contents($ticketsFile), true);
-                if (is_array($tickets)) {
-                  foreach ($tickets as $t) {
-                    if (!($t['resolved'] ?? false)) {
-                      $ticketCount++;
-                    }
-                  }
-                }
-              }
-              if ($ticketCount > 0): ?>
+              <?php if ($ticketCount > 0): ?>
                 <span class="nav-badge" style="margin-left:auto;background:var(--error);color:#fff;border-radius:10px;padding:2px 6px;font-size:0.7rem;font-weight:700;"><?= $ticketCount ?></span>
               <?php endif; ?>
             </a></li>

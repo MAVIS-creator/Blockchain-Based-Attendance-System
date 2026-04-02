@@ -1,19 +1,17 @@
 <?php
 require_once __DIR__ . '/../runtime_storage.php';
+require_once __DIR__ . '/../cache_helpers.php';
 $courseFile = admin_course_storage_migrate_file('course.json');
 $activeFile = admin_course_storage_migrate_file('active_course.json');
 
 // Load courses
-$courses = file_exists($courseFile) ? json_decode(file_get_contents($courseFile), true) : [];
+$courses = admin_cached_json_file('courses_list', $courseFile, [], 30);
 if (!is_array($courses)) $courses = [];
 
 // Load current active course
-$activeCourse = "";
-if (file_exists($activeFile)) {
-    $activeData = json_decode(file_get_contents($activeFile), true);
-    if (is_array($activeData) && isset($activeData['course'])) {
-        $activeCourse = $activeData['course'];
-    }
+$activeCourse = admin_active_course_name_cached(15);
+if ($activeCourse === 'General' && !file_exists($activeFile)) {
+    $activeCourse = '';
 }
 
 // Handle form submission

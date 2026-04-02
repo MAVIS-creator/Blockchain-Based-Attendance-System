@@ -8,10 +8,11 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/../env_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 app_storage_init();
 
-$settingsFile = admin_storage_migrate_file('settings.json');
-$keyFile = admin_storage_migrate_file('.settings_key');
+$settingsFile = admin_settings_file();
+$keyFile = admin_settings_key_file();
 $backupDir = app_storage_file('backups');
 if (!is_dir($backupDir)) @mkdir($backupDir, 0700, true);
 
@@ -87,7 +88,7 @@ function audit_settings_change($adminUser, $changes)
 }
 
 // templates file
-$templatesFile = admin_storage_migrate_file('settings_templates.json');
+$templatesFile = admin_templates_file();
 if (!file_exists($templatesFile)) file_put_contents($templatesFile, json_encode(new stdClass(), JSON_PRETTY_PRINT));
 
 // Load .env (simple parser – avoids extra dependency)
@@ -424,8 +425,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   // load accounts for re-auth
-  $accountsFile = admin_storage_migrate_file('accounts.json');
-  $accounts = @json_decode(file_get_contents($accountsFile), true) ?: [];
+  $accounts = admin_load_accounts_cached(15);
   $currentUser = $_SESSION['admin_user'] ?? '';
 
   // helper: require re-auth for critical changes
@@ -439,7 +439,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // template operations
   if (isset($_POST['save_template']) && trim($_POST['template_name'] ?? '') !== '') {
     $tplName = trim($_POST['template_name']);
-    $templates = json_decode(file_get_contents($templatesFile), true) ?: [];
+    $templates = admin_load_templates_cached(15);
     $templates[$tplName] = $settings; // save current settings as template
     file_put_contents($templatesFile, json_encode($templates, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     $message = "Template saved: {$tplName}";
@@ -447,7 +447,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if (isset($_POST['apply_template']) && trim($_POST['apply_template_name'] ?? '') !== '') {
     $applyName = trim($_POST['apply_template_name']);
-    $templates = json_decode(file_get_contents($templatesFile), true) ?: [];
+    $templates = admin_load_templates_cached(15);
     if (isset($templates[$applyName])) {
       $old = $settings;
       $settings = $templates[$applyName];
@@ -543,7 +543,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       // retention cleanup
       if ($settings['auto_backup']) {
-        $backups = glob(app_storage_file('backups') . '/settings_*.json');
+        $backups = admin_backup_files_cached('settings_*.json', 20);
         if (count($backups) > ($settings['backup_retention'] ?? 10)) {
           usort($backups, function ($a, $b) {
             return filemtime($a) - filemtime($b);
@@ -735,7 +735,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div class="lg:col-span-4 space-y-6">
       <div class="bg-white p-6 rounded-xl shadow-sm border border-outline-variant/20">
-        <?php $accountsFile = admin_storage_migrate_file('accounts.json'); $acct = json_decode(file_get_contents($accountsFile), true) ?: []; ?>
+        <?php $acct = admin_load_accounts_cached(15); ?>
         <p class="text-xs text-on-surface-variant">Admin Accounts</p>
         <p class="font-bold text-2xl"><?= count($acct) ?> / <?= htmlspecialchars($settings['max_admins'] ?? 5) ?></p>
       </div>
@@ -758,7 +758,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <?php csrf_field(); ?>
           <select class="bg-surface-container-low rounded-lg border border-outline-variant/20 px-4 py-3 min-w-[260px]" name="apply_template_name">
             <option value="">Select template...</option>
-            <?php $tpls = json_decode(file_get_contents($templatesFile), true) ?: [];
+            <?php $tpls = admin_load_templates_cached(15);
             foreach ($tpls as $tn => $tv): ?>
               <option value="<?= htmlspecialchars($tn) ?>"><?= htmlspecialchars($tn) ?></option>
             <?php endforeach; ?>
@@ -968,14 +968,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <div id="tab-overview" class="st-tab-content hidden">
     <?php
-    $accountsFile = admin_storage_migrate_file('accounts.json');
-    $acct = json_decode(file_get_contents($accountsFile), true) ?: [];
+    $acct = admin_load_accounts_cached(15);
     $adminCount = count($acct);
-    $statusFile = app_storage_migrate_file('status.json', __DIR__ . '/../status.json');
-    $status = @json_decode(file_get_contents($statusFile), true) ?: [];
-    $settingsAuditFile = admin_storage_migrate_file('settings_audit.log');
-    $lastAudit = file_exists($settingsAuditFile) ? array_slice(array_map('trim', file($settingsAuditFile)), -10) : [];
-    $backups = glob(app_storage_file('backups') . '/settings_*.json');
+    $status = admin_load_status_cached(10);
+    $settingsAuditFile = admin_settings_audit_file();
+    $lastAudit = admin_recent_text_lines_cached('settings_audit_recent', $settingsAuditFile, 10, 10);
+    $backups = admin_backup_files_cached('settings_*.json', 20);
     usort($backups, function ($a, $b) {
       return filemtime($b) - filemtime($a);
     });

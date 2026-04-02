@@ -7,6 +7,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/cache_helpers.php';
 app_storage_init();
 $base = __DIR__ . '/';
 $accounts = admin_storage_migrate_file('accounts.json');
@@ -23,18 +24,42 @@ $unlinkPage = $base . 'unlink_fingerprint.php';
 $addCoursePage = $base . 'courses/add.php';
 $chatFile = admin_storage_migrate_file('chat.json');
 
-$out = [
-    'accounts' => @filemtime($accounts) ?: 0,
-    'settings' => @filemtime($settings) ?: 0,
-    'chain' => @filemtime($chain) ?: 0,
-    'tickets' => @filemtime($ticketsFile) ?: 0,
-    'fingerprints' => @filemtime($fingerprints) ?: 0,
-    'courses' => @filemtime($courses) ?: 0,
-    'active_course' => @filemtime($activeCourse) ?: 0,
-    'status' => @filemtime($statusFile) ?: 0,
-    'view_tickets_page' => @filemtime($viewTicketsPage) ?: 0,
-    'unlink_page' => @filemtime($unlinkPage) ?: 0,
-    'add_course_page' => @filemtime($addCoursePage) ?: 0,
-    'chat' => @filemtime($chatFile) ?: 0
-];
+function last_update_mtime($path)
+{
+    return @filemtime($path) ?: 0;
+}
+
+$cacheKey = 'admin_last_updates:' . md5(
+    implode('|', [
+        last_update_mtime($accounts),
+        last_update_mtime($settings),
+        last_update_mtime($chain),
+        last_update_mtime($ticketsFile),
+        last_update_mtime($fingerprints),
+        last_update_mtime($courses),
+        last_update_mtime($activeCourse),
+        last_update_mtime($statusFile),
+        last_update_mtime($viewTicketsPage),
+        last_update_mtime($unlinkPage),
+        last_update_mtime($addCoursePage),
+        last_update_mtime($chatFile),
+    ])
+);
+
+$out = admin_cache_remember($cacheKey, 2, function () use ($accounts, $settings, $chain, $ticketsFile, $fingerprints, $courses, $activeCourse, $statusFile, $viewTicketsPage, $unlinkPage, $addCoursePage, $chatFile) {
+    return [
+        'accounts' => @filemtime($accounts) ?: 0,
+        'settings' => @filemtime($settings) ?: 0,
+        'chain' => @filemtime($chain) ?: 0,
+        'tickets' => @filemtime($ticketsFile) ?: 0,
+        'fingerprints' => @filemtime($fingerprints) ?: 0,
+        'courses' => @filemtime($courses) ?: 0,
+        'active_course' => @filemtime($activeCourse) ?: 0,
+        'status' => @filemtime($statusFile) ?: 0,
+        'view_tickets_page' => @filemtime($viewTicketsPage) ?: 0,
+        'unlink_page' => @filemtime($unlinkPage) ?: 0,
+        'add_course_page' => @filemtime($addCoursePage) ?: 0,
+        'chat' => @filemtime($chatFile) ?: 0
+    ];
+});
 echo json_encode($out);

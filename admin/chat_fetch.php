@@ -7,11 +7,12 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 require_once __DIR__ . '/runtime_storage.php';
-$chatFile = admin_storage_migrate_file('chat.json');
+require_once __DIR__ . '/state_helpers.php';
+$chatFile = admin_chat_file();
 if (!file_exists($chatFile)) {
     file_put_contents($chatFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
 }
-$messages = json_decode(file_get_contents($chatFile), true) ?: [];
+$messages = admin_cached_json_file('chat_messages', $chatFile, [], 5);
 // Return last 200 messages
 $slice = array_slice($messages, -200);
 echo json_encode($slice);

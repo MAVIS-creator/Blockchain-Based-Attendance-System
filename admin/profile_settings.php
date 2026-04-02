@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
@@ -15,8 +16,8 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 $user = $_SESSION['admin_user'] ?? '';
-$accountsFile = admin_storage_migrate_file('accounts.json');
-$accounts = file_exists($accountsFile) ? json_decode(file_get_contents($accountsFile), true) : [];
+$accountsFile = admin_accounts_file();
+$accounts = admin_load_accounts_cached(15);
 
 function admin_avatar_url($storedValue)
 {
@@ -127,10 +128,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (isset($_POST['check_sessions'])) {
-        $sessionsFile = admin_storage_migrate_file('sessions.json');
+        $sessionsFile = admin_sessions_file();
         $activeCount = 0;
         if (file_exists($sessionsFile)) {
-            $activeSessions = json_decode(file_get_contents($sessionsFile), true);
+            $activeSessions = admin_load_sessions_cached(10);
             if (is_array($activeSessions)) {
                 foreach ($activeSessions as $sid => $sessData) {
                     if ($sessData['user'] === $user) {
@@ -144,9 +145,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (isset($_POST['terminate_sessions'])) {
-        $sessionsFile = admin_storage_migrate_file('sessions.json');
+        $sessionsFile = admin_sessions_file();
         if (file_exists($sessionsFile)) {
-            $activeSessions = json_decode(file_get_contents($sessionsFile), true);
+            $activeSessions = admin_load_sessions_cached(10);
             if (is_array($activeSessions)) {
                 $currentSessionId = session_id();
                 foreach ($activeSessions as $sid => $sessData) {
@@ -290,10 +291,10 @@ if (!empty($currentUser['avatar'])) {
 
             <div style="display:flex; flex-direction:column; gap:16px; flex:1;">
                 <?php
-                $sessionsFile = admin_storage_migrate_file('sessions.json');
+                $sessionsFile = admin_sessions_file();
                 $mySessions = [];
                 if (file_exists($sessionsFile)) {
-                    $allSess = json_decode(file_get_contents($sessionsFile), true);
+                    $allSess = admin_load_sessions_cached(10);
                     if (is_array($allSess)) {
                         foreach ($allSess as $sid => $sessData) {
                             if (isset($sessData['user']) && $sessData['user'] === $user) {

@@ -6,14 +6,15 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 
-$accountsFile = admin_storage_migrate_file('accounts.json');
-$settingsFile = admin_storage_migrate_file('settings.json');
+$accountsFile = admin_accounts_file();
+$settingsFile = admin_settings_file();
 if (!file_exists($accountsFile)) file_put_contents($accountsFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 if (!file_exists($settingsFile)) file_put_contents($settingsFile, json_encode(['prefer_mac' => true, 'max_admins' => 5], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-$accounts = json_decode(file_get_contents($accountsFile), true) ?: [];
-$settings = json_decode(file_get_contents($settingsFile), true) ?: ['prefer_mac' => true, 'max_admins' => 5];
+$accounts = admin_load_accounts_cached(15);
+$settings = admin_load_settings_cached(15) ?: ['prefer_mac' => true, 'max_admins' => 5];
 
 require_once __DIR__ . '/includes/csrf.php';
 csrf_token();

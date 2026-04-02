@@ -7,6 +7,7 @@ header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
 header('Connection: keep-alive');
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/cache_helpers.php';
 app_storage_init();
 @ini_set('output_buffering', 'off');
 @ini_set('zlib.output_compression', 0);
@@ -23,8 +24,7 @@ while (true) {
     $mtime = file_exists($file) ? filemtime($file) : 0;
     if ($mtime > $lastMtime) {
         $lastMtime = $mtime;
-        $raw = @file_get_contents($file);
-        $data = @json_decode($raw, true) ?: ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
+        $data = admin_cached_json_file('revoked_sse', $file, ['tokens'=>[], 'ips'=>[], 'macs'=>[]], 5);
         // filter expired same as revoked_tokens.php
         $now = time();
         $resp = ['tokens'=>[], 'ips'=>[], 'macs'=>[]];

@@ -3,9 +3,10 @@
 // Lightweight and cacheable
 header('Content-Type: application/json');
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/cache_helpers.php';
 app_storage_init();
 $file = app_storage_migrate_file('revoked.json', __DIR__ . '/revoked.json');
-$data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
+$data = admin_cached_json_file('revoked_tokens', $file, ['tokens'=>[], 'ips'=>[], 'macs'=>[]], 10);
 if (!is_array($data)) $data = ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
 
 // Remove expired entries and build response

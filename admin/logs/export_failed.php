@@ -2,6 +2,9 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+require_once dirname(__DIR__) . '/log_helpers.php';
+require_once dirname(__DIR__, 2) . '/storage_helpers.php';
+app_storage_init();
 
 // Ensure admin is authenticated
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
@@ -13,7 +16,7 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 $selectedDate = $_GET['logDate'] ?? date('Y-m-d');
 
 // Build log file path
-$logFile = __DIR__ . "/{$selectedDate}_failed_attempts.log";
+$logFile = app_storage_file("logs/{$selectedDate}_failed_attempts.log");
 
 if (!file_exists($logFile)) {
     header("HTTP/1.0 404 Not Found");
@@ -31,13 +34,19 @@ $output = fopen('php://output', 'w');
 // Write CSV headers (include MAC and fingerprint)
 fputcsv($output, ['Name', 'Matric Number', 'Action', 'Fingerprint', 'IP Address', 'MAC', 'Timestamp', 'Device Info', 'Course', 'Reason']);
 
-// Read and parse log file
-$lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-foreach ($lines as $line) {
-    $parts = array_map('trim', explode('|', $line));
-    if (count($parts) >= 6) {
-        fputcsv($output, $parts);
-    }
+foreach (admin_failed_attempt_entries_for_date($logFile, 15) as $entry) {
+    fputcsv($output, [
+        $entry['name'] ?? '',
+        $entry['matric'] ?? '',
+        $entry['action'] ?? '',
+        $entry['fingerprint'] ?? '',
+        $entry['ip'] ?? '',
+        $entry['mac'] ?? 'UNKNOWN',
+        $entry['timestamp'] ?? '',
+        $entry['device'] ?? '',
+        $entry['course'] ?? '',
+        $entry['reason'] ?? '',
+    ]);
 }
 
 fclose($output);

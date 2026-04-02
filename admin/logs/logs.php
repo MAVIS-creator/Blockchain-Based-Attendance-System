@@ -3,13 +3,14 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 require_once dirname(__DIR__) . '/includes/hybrid_admin_read.php';
 require_once dirname(__DIR__, 2) . '/storage_helpers.php';
 require_once dirname(__DIR__) . '/runtime_storage.php';
+require_once dirname(__DIR__) . '/cache_helpers.php';
+require_once dirname(__DIR__) . '/log_helpers.php';
 app_storage_init();
 
 $logDir = app_storage_file('logs');
 $courseFile = admin_course_storage_migrate_file('course.json');
-$activeCourseFile = admin_course_storage_migrate_file('active_course.json');
 
-$courses = file_exists($courseFile) ? json_decode(file_get_contents($courseFile), true) : ['General'];
+$courses = admin_cached_json_file('courses_list', $courseFile, ['General'], 30);
 if (empty($courses)) $courses = ['General'];
 
 $selectedDate = $_GET['logDate'] ?? date('Y-m-d');
@@ -17,12 +18,7 @@ $selectedCourse = null;
 if (isset($_GET['course']) && trim($_GET['course']) !== '') {
   $selectedCourse = $_GET['course'];
 } else {
-  if (file_exists($activeCourseFile)) {
-    $tmp = trim(file_get_contents($activeCourseFile));
-    $selectedCourse = $tmp !== '' ? $tmp : 'General';
-  } else {
-    $selectedCourse = 'General';
-  }
+  $selectedCourse = admin_active_course_name_cached(15);
 }
 
 $searchName = trim($_GET['search'] ?? '');
@@ -45,40 +41,7 @@ if (is_array($hybridEntries)) {
 }
 
 if (empty($entries) && file_exists($logFile)) {
-  $lines = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-  foreach ($lines as $line) {
-    $parts = array_map('trim', explode('|', $line));
-    if (count($parts) < 6) continue;
-
-    // If there are 9 or more parts we assume the new format (including MAC at index 5)
-    if (count($parts) >= 9) {
-      $entry = [
-        'name'        => $parts[0] ?? '',
-        'matric'      => $parts[1] ?? '',
-        'action'      => $parts[2] ?? '',
-        'fingerprint' => $parts[3] ?? '',
-        'ip'          => $parts[4] ?? '',
-        'mac'         => $parts[5] ?? 'UNKNOWN',
-        'timestamp'   => $parts[6] ?? '',
-        'device'      => $parts[7] ?? '',
-        'course'      => $parts[8] ?? 'General',
-        'reason'      => $parts[9] ?? '-'
-      ];
-    } else {
-      $entry = [
-        'name'        => $parts[0] ?? '',
-        'matric'      => $parts[1] ?? '',
-        'action'      => $parts[2] ?? '',
-        'fingerprint' => $parts[3] ?? '',
-        'ip'          => $parts[4] ?? '',
-        'mac'         => 'UNKNOWN',
-        'timestamp'   => $parts[5] ?? '',
-        'device'      => $parts[6] ?? '',
-        'course'      => $parts[7] ?? 'General',
-        'reason'      => $parts[8] ?? '-'
-      ];
-    }
-
+  foreach (admin_attendance_entries_for_date_parsed($logFile, 15) as $entry) {
     if (
       $searchName !== '' &&
       stripos($entry['name'], $searchName) === false &&

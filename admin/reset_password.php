@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 
 $error = '';
 $success = '';
@@ -12,7 +13,7 @@ $email = $_GET['email'] ?? ($_POST['email'] ?? '');
 $token = $_GET['token'] ?? ($_POST['token'] ?? '');
 
 $resetsFile = admin_storage_migrate_file('password_resets.json');
-$resets = file_exists($resetsFile) ? json_decode(file_get_contents($resetsFile), true) : [];
+$resets = admin_cached_json_file('password_resets', $resetsFile, [], 10);
 
 if (empty($email) || empty($token)) {
     $error = 'Invalid or missing reset token.';
@@ -46,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
         } elseif ($newPass !== $confPass) {
             $error = 'Passwords do not match.';
         } else {
-            $accountsFile = admin_storage_migrate_file('accounts.json');
-            $accounts = json_decode(file_get_contents($accountsFile), true);
+            $accountsFile = admin_accounts_file();
+            $accounts = admin_load_accounts_cached(15);
 
             if (isset($accounts[$userAccount])) {
                 $accounts[$userAccount]['password'] = password_hash($newPass, PASSWORD_DEFAULT);

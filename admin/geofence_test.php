@@ -1,6 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 header('Content-Type: application/json');
 
 if (empty($_SESSION['admin_logged_in'])) {
@@ -22,30 +23,7 @@ if (!csrf_check_request()) {
   exit;
 }
 
-$settingsFile = admin_storage_migrate_file('settings.json');
-$keyFile = admin_storage_migrate_file('.settings_key');
-
-function load_settings_maybe_decrypt($settingsFile, $keyFile)
-{
-  if (!file_exists($settingsFile)) return [];
-  $raw = file_get_contents($settingsFile);
-  $decoded = json_decode($raw, true);
-  if (is_array($decoded)) return $decoded;
-
-  if (strpos($raw, 'ENC:') === 0 && file_exists($keyFile)) {
-    $key = trim(file_get_contents($keyFile));
-    $blob = base64_decode(substr($raw, 4));
-    $iv = substr($blob, 0, 16);
-    $ct = substr($blob, 16);
-    $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
-    $decoded2 = json_decode($plain, true);
-    if (is_array($decoded2)) return $decoded2;
-  }
-
-  return [];
-}
-
-$settings = load_settings_maybe_decrypt($settingsFile, $keyFile);
+$settings = admin_load_settings_cached(10);
 $enabled = !empty($settings['geo_fence_enabled']);
 $geo = is_array($settings['geo_fence'] ?? null) ? $settings['geo_fence'] : [];
 $centerLat = isset($geo['lat']) ? floatval($geo['lat']) : null;

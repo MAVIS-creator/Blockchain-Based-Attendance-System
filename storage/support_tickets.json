@@ -1,0 +1,210 @@
+[
+    {
+        "name": "Akintunde Dolapo",
+        "matric": "2023011471",
+        "message": "ygghcvhjbkkj",
+        "timestamp": "2025-06-30 12:56:38",
+        "resolved": true
+    },
+    {
+        "name": "Akintunde Dolapo",
+        "matric": "2023011471",
+        "message": "I have issues marking attendance",
+        "timestamp": "2025-06-30 23:06:18",
+        "resolved": true
+    },
+    {
+        "name": "Akintunde Dolapo",
+        "matric": "2023011471",
+        "message": "I have an issue trying to login, my attendance has being closed",
+        "timestamp": "2025-07-07 13:09:04",
+        "resolved": true
+    },
+    {
+        "name": "Akintunde Abiodun Femi",
+        "matric": "2023011474",
+        "message": "I cant mark my attendance",
+        "timestamp": "2025-07-07 21:09:01",
+        "resolved": true
+    },
+    {
+        "name": "Rufai Michael",
+        "matric": "2023005577",
+        "message": "It worked",
+        "fingerprint": "391747ddf9f7e076d89a8129050ede24",
+        "ip": "192.168.8.102",
+        "timestamp": "2025-07-09 10:00:11",
+        "resolved": true
+    },
+    {
+        "name": "Gbadamosi Abayomi",
+        "matric": "2023005742",
+        "message": "Not able to checkout",
+        "fingerprint": "5c168c6e475cce2ea2653d5f51aeaebf",
+        "ip": "192.168.8.101",
+        "timestamp": "2025-07-09 10:07:03",
+        "resolved": true
+    },
+    {
+        "name": "Balogun Joseph Segun",
+        "matric": "2023009478",
+        "message": "Unable to checkout",
+        "fingerprint": "1af1a889db7ddbf43dfada97b1a0c089",
+        "ip": "192.168.8.112",
+        "timestamp": "2025-07-09 10:07:08",
+        "resolved": true
+    },
+    {
+        "name": "ALADE-YUSUFF OLUWAKAYODE SAMUEL",
+        "matric": "2023006811",
+        "message": "My phone is almost dead",
+        "fingerprint": "cac76dd4aa452a9929b803eeba5964e6",
+        "ip": "192.168.8.108",
+        "timestamp": "2025-07-14 12:43:50",
+        "resolved": true
+    },
+    {
+        "name": "Olukoya Samuel oluwaseun",
+        "matric": "2023011014",
+        "message": "My phone will soon die",
+        "fingerprint": "1e0aa16a2404931e9973b84e09b53a70",
+        "ip": "192.168.8.109",
+        "timestamp": "2025-07-14 12:44:27",
+        "resolved": true
+    },
+    {
+        "name": "Bello habeeb",
+        "matric": "2023003453",
+        "message": "I left my phone at home",
+        "fingerprint": "1d96a26bcad91e6871de09afb2d7a65e",
+        "ip": "192.168.8.104",
+        "timestamp": "2025-07-14 12:45:58",
+        "resolved": true
+    },
+    {
+        "name": "Rafiu Malik Opeyemi",
+        "matric": "2023011458",
+        "message": "My phone is off",
+        "fingerprint": "793cd694a88573acd1e4c87f8c28f0ee",
+        "ip": "192.168.8.115",
+        "timestamp": "2025-07-14 12:48:52",
+        "resolved": true
+    },
+    {
+        "name": "Oyinloye Jeremiah olufemi",
+        "matric": "2023009292",
+        "message": "Attendance closed",
+        "fingerprint": "1d96a26bcad91e6871de09afb2d7a65e",
+        "ip": "192.168.8.104",
+        "timestamp": "2025-07-14 12:50:59",
+        "resolved": true
+    },
+    {
+        "name": "Olayemi bright pelumi",
+        "matric": "2024013010",
+        "message": "Attendance closed",
+        "fingerprint": "08c39ccc18d9a22742cd21f19e1579a8",
+        "ip": "192.168.8.119",
+        "timestamp": "2025-07-14 12:52:21",
+        "resolved": true
+    },
+    {
+        "name": "Oyinloye Jeremiah olufemi",
+        "matric": "2023009292",
+        "message": "Attendance closed",
+        "fingerprint": "1d96a26bcad91e6871de09afb2d7a65e",
+        "ip": "192.168.8.104",
+        "timestamp": "2025-07-14 12:52:26",
+        "resolved": true
+    },
+    {
+        "name": "Famoriyo Eniola Austin",
+        "matric": "2023002855",
+        "message": "I can\u2019t check in",
+        "fingerprint": "1ab1364443f252e29a209010be19dbbf",
+        "ip": "192.168.8.120",
+        "timestamp": "2025-07-14 12:54:18",
+        "resolved": true
+    },
+    {
+        "name": "Adeyanju Philemon Adekunle",
+        "matric": "2023002618",
+        "message": "My phone is not with me",
+        "fingerprint": "1af1f3e8c7d3b94fece146222e475d44",
+        "ip": "192.168.8.126",
+        "timestamp": "2025-07-14 13:22:28",
+        "resolved": true
+    },
+    {
+        "name": "Adeyanju Philemon Adekunle",
+        "matric": "2023002618",
+        "message": "My phone is not with me",
+        "fingerprint": "1af1f3e8c7d3b94fece146222e475d44",
+        "ip": "192.168.8.126",
+        "timestamp": "2025-07-14 13:23:04",
+        "resolved": true
+    },
+    {
+        "name": "Abisoye sheriff aduralere",
+        "matric": "2023002608",
+        "message": "Figerprint error",
+        "fingerprint": "526cdeeeb109ca8ae06fef5b6a65cf17",
+        "ip": "192.168.8.125",
+        "timestamp": "2025-07-14 13:24:32",
+        "resolved": true
+    },
+    {
+        "name": "Samson Mofiyinfoluwa Faith",
+        "matric": "2023010192",
+        "message": "Finggerprint does not match",
+        "fingerprint": "f1bcc5b81abb1180a731f211d216a219",
+        "ip": "192.168.8.132",
+        "timestamp": "2025-07-14 13:28:58",
+        "resolved": true
+    },
+    {
+        "name": "Adegbite Adewale Oluwaseun",
+        "matric": "2023008094",
+        "message": "Unable to checkout",
+        "fingerprint": "22a6982d84869ea6ba526a8a45ef0f95",
+        "ip": "192.168.8.133",
+        "timestamp": "2025-07-14 14:21:10",
+        "resolved": true
+    },
+    {
+        "name": "Adeyeye Taiwo Adeshola",
+        "matric": "2024011392",
+        "message": "Fingerprint not match",
+        "fingerprint": "0553b3cf71b6c137f76555619d0e9157",
+        "ip": "192.168.8.140",
+        "timestamp": "2025-07-14 14:21:33",
+        "resolved": true
+    },
+    {
+        "name": "OMODARA OMOBOLAJI ISRAEL",
+        "matric": "2023009024",
+        "message": "Fingerprint issue",
+        "fingerprint": "f70e266283348ed814005f5048a38442",
+        "ip": "192.168.8.135",
+        "timestamp": "2025-07-14 14:21:44",
+        "resolved": true
+    },
+    {
+        "name": "Olayanju Stephen Olayinka",
+        "matric": "2023002372",
+        "message": "Fingerprint issue",
+        "fingerprint": "f07efd07582d37548984523577b6114a",
+        "ip": "192.168.8.137",
+        "timestamp": "2025-07-14 14:21:50",
+        "resolved": true
+    },
+    {
+        "name": "Olayanju Stephen Olayinka",
+        "matric": "2023002372",
+        "message": "Fingerprint issue",
+        "fingerprint": "f07efd07582d37548984523577b6114a",
+        "ip": "192.168.8.137",
+        "timestamp": "2025-07-14 14:22:03",
+        "resolved": true
+    }
+]

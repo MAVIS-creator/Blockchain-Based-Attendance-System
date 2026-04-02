@@ -10,13 +10,11 @@ csrf_token();
 
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 app_storage_init();
-$statusFile = app_storage_migrate_file('status.json', __DIR__ . '/../status.json');
+$statusFile = admin_status_file();
 // load status
-$status = file_exists($statusFile) ? json_decode(file_get_contents($statusFile), true) : ['checkin' => false, 'checkout' => false, 'end_time' => null];
-if (!isset($status['end_time'])) {
-  $status['end_time'] = null;
-}
+$status = admin_load_status_cached(10);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!csrf_check_request()) {
@@ -26,28 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $duration = isset($_POST['duration']) && is_numeric($_POST['duration']) ? (int)$_POST['duration'] * 60 : 600; // default 10 minutes
 
   // try to load admin settings to enforce check windows
-  $settingsPath = admin_storage_migrate_file('settings.json');
-  $settings = [];
-  if (file_exists($settingsPath)) {
-    $raw = file_get_contents($settingsPath);
-    $decoded = json_decode($raw, true);
-    if (is_array($decoded)) $settings = $decoded;
-    else {
-      // try decrypt if starts with ENC:
-      if (strpos($raw, 'ENC:') === 0) {
-        $keyFile = admin_storage_migrate_file('.settings_key');
-        if (file_exists($keyFile)) {
-          $key = trim(file_get_contents($keyFile));
-          $blob = base64_decode(substr($raw, 4));
-          $iv = substr($blob, 0, 16);
-          $ct = substr($blob, 16);
-          $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
-          $decoded = json_decode($plain, true);
-          if (is_array($decoded)) $settings = $decoded;
-        }
-      }
-    }
-  }
+  $settings = admin_load_settings_cached(15);
 
   $errorMessage = null;
 

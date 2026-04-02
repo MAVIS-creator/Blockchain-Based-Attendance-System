@@ -9,6 +9,7 @@ require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/hybrid_admin_read.php';
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/cache_helpers.php';
 app_storage_init();
 $pageCsrfToken = csrf_token();
 $flashMessage = $_SESSION['admin_flash'] ?? null;
@@ -22,12 +23,12 @@ $hybridTickets = hybrid_fetch_support_tickets($ticketsSource);
 if (is_array($hybridTickets)) {
   $tickets = $hybridTickets;
 } else if (file_exists($ticketsFile)) {
-  $tickets = json_decode(file_get_contents($ticketsFile), true);
+  $tickets = admin_cached_json_file('support_tickets_page', $ticketsFile, [], 15);
 }
 
 $today = date('Y-m-d');
 $logFile = app_storage_file("logs/{$today}.log");
-$logLines = file_exists($logFile) ? file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
+$logLines = admin_cached_file_lines('support_ticket_today_log', $logFile, 15);
 
 function checkLogMatch($logLines, $needle, $index)
 {
@@ -107,8 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
   $matric = trim($_POST['matric']);
   $reason = trim($_POST['reason']);
 
-  $activeCourseFile = admin_course_storage_migrate_file('active_course.json', __DIR__ . '/courses/active_course.json');
-  $activeCourse = file_exists($activeCourseFile) ? json_decode(file_get_contents($activeCourseFile), true)['course'] ?? 'General' : 'General';
+  $activeCourse = admin_active_course_name_cached(15);
 
   $timestamp = date('Y-m-d H:i:s');
   $logFile = app_storage_file("logs/{$today}.log");

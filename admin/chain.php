@@ -6,12 +6,13 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 }
 
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/cache_helpers.php';
 app_storage_init();
 $chainFile = app_storage_migrate_file('secure_logs/attendance_chain.json', __DIR__ . '/../secure_logs/attendance_chain.json');
 if (!file_exists($chainFile)) {
   $status = ['ok'=>false,'message'=>'Chain file not found.'];
 } else {
-  $chain = json_decode(file_get_contents($chainFile), true);
+  $chain = admin_cached_json_file('attendance_chain_page', $chainFile, [], 15);
   if (!is_array($chain) || count($chain) === 0) {
     $status = ['ok'=>false,'message'=>'Chain is empty or invalid.'];
   } else {

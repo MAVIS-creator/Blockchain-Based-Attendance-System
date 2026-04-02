@@ -8,12 +8,13 @@ if (!isset($_SESSION['admin_logged_in'])) {
 }
 
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 
 // Session Tracking & Validity Check
-$sessionsFile = admin_storage_migrate_file('sessions.json');
+$sessionsFile = admin_sessions_file();
 $currentSessionId = session_id();
 if (file_exists($sessionsFile)) {
-  $activeSessions = json_decode(file_get_contents($sessionsFile), true);
+  $activeSessions = admin_load_sessions_cached(10);
   if (!is_array($activeSessions)) $activeSessions = [];
 
   // If tracking is active but our session isn't in it, we were terminated

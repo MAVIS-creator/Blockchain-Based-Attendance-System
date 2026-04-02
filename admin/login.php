@@ -2,9 +2,10 @@
 session_start();
 $error = '';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 
 // Ensure accounts file exists with a default superadmin (only on first run)
-$accountsFile = admin_storage_migrate_file('accounts.json');
+$accountsFile = admin_accounts_file();
 if (!file_exists($accountsFile)) {
     // Default superadmin: username Mavis with the password supplied by user
     $defaultPassword = '.*123$<>Callmelater.,12';
@@ -19,7 +20,7 @@ if (!file_exists($accountsFile)) {
     file_put_contents($accountsFile, json_encode($default, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 }
 
-$accounts = json_decode(file_get_contents($accountsFile), true) ?: [];
+$accounts = admin_load_accounts_cached(15);
 
 // Normalize accounts storage: if the file contains a sequential array (e.g. []), convert to associative
 if (!is_array($accounts)) $accounts = [];
@@ -87,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_avatar'] = $accounts[$usernameToUse]['avatar'] ?? null;
         $_SESSION['admin_role'] = $accounts[$usernameToUse]['role'] ?? 'admin';
         // Track session
-        $sessionsFile = admin_storage_migrate_file('sessions.json');
-        $activeSessions = file_exists($sessionsFile) ? json_decode(file_get_contents($sessionsFile), true) : [];
+        $sessionsFile = admin_sessions_file();
+        $activeSessions = admin_load_sessions_cached(10);
         if (!is_array($activeSessions)) $activeSessions = [];
         $activeSessions[session_id()] = [
             'user' => $usernameToUse,

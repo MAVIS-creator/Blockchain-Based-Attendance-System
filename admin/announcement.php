@@ -9,6 +9,7 @@ if (empty($_SESSION['admin_logged_in'])) {
 require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/cache_helpers.php';
 
 $announcementFile = admin_storage_migrate_file('announcement.json');
 $successMsg = "";
@@ -17,7 +18,7 @@ $errorMsg = "";
 $announcement = ['message' => '', 'enabled' => false];
 
 if (file_exists($announcementFile)) {
-  $announcementData = json_decode(file_get_contents($announcementFile), true);
+  $announcementData = admin_cached_json_file('announcement', $announcementFile, [], 15);
   if (is_array($announcementData)) {
     $announcement = $announcementData;
   }

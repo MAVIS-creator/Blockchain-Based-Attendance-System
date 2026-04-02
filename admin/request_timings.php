@@ -8,6 +8,7 @@ if (empty($_SESSION['admin_logged_in'])) {
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/cache_helpers.php';
 app_storage_init();
 csrf_token();
 
@@ -26,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $records = [];
 if (file_exists($timingFile)) {
-  $lines = @file($timingFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+  $lines = admin_cached_file_lines('request_timings_lines', $timingFile, 10);
   $lines = array_slice($lines, -300);
   foreach ($lines as $line) {
     $decoded = json_decode($line, true);

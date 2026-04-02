@@ -3,12 +3,14 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 require_once dirname(__DIR__, 2) . '/storage_helpers.php';
 require_once dirname(__DIR__) . '/runtime_storage.php';
+require_once dirname(__DIR__) . '/cache_helpers.php';
+require_once dirname(__DIR__) . '/log_helpers.php';
 app_storage_init();
 $logDir = app_storage_file('logs');
 $courseFile = admin_course_storage_migrate_file('course.json');
 
 // Load courses safely
-$courses = file_exists($courseFile) ? json_decode(file_get_contents($courseFile), true) : ['General'];
+$courses = admin_cached_json_file('courses_list', $courseFile, ['General'], 30);
 if (empty($courses)) $courses = ['General'];
 
 // Read and sanitize query params
@@ -26,53 +28,21 @@ $perPage = 20;
 $logs = [];
 
 // Classic failed attempts
-$logFiles = glob($logDir . '/*_failed_attempts.log');
-foreach ($logFiles as $filePath) {
-    if (!preg_match('/(\d{4}-\d{2}-\d{2})_failed_attempts\.log$/', $filePath, $match)) continue;
-    $logDate = $match[1];
-    if ($logDate !== $selectedDate) continue;
+$failedLogFile = $logDir . DIRECTORY_SEPARATOR . $selectedDate . '_failed_attempts.log';
+foreach (admin_failed_attempt_entries_for_date($failedLogFile, 15) as $entry) {
+    $matchesCourse = ($selectedCourse === 'All' || ($entry['course'] ?? '') === $selectedCourse);
+    $matchesSearch = ($search === '' || stripos($entry['name'] ?? '', $search) !== false || stripos($entry['matric'] ?? '', $search) !== false);
 
-    $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        $parts = array_map('trim', explode('|', $line));
-        if (count($parts) < 5) continue;
-
-        $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
-
-        if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
-            $nameVal = $parts[0];
-            $matricVal = $parts[1];
-            $finger = $parts[3] ?? '';
-            $ipVal = $parts[4] ?? '';
-            $timestampVal = $parts[6] ?? '';
-            $deviceVal = $parts[7] ?? '';
-            $courseVal = $parts[8] ?? '';
-        } else {
-            $nameVal = $parts[0] ?? '';
-            $matricVal = $parts[1] ?? '';
-            $ipVal = $parts[2] ?? '';
-            $finger = $parts[3] ?? '';
-            $timestampVal = $parts[4] ?? '';
-            $deviceVal = $parts[5] ?? '';
-            $courseVal = $parts[6] ?? '';
-        }
-
-        $entry = [
-            'name' => $nameVal,
-            'matric' => $matricVal,
-            'ip' => $ipVal,
-            'fingerprint' => $finger,
-            'timestamp' => $timestampVal,
-            'device' => $deviceVal,
-            'course' => $courseVal,
+    if ($matchesCourse && $matchesSearch) {
+        $logs[] = [
+            'name' => $entry['name'] ?? '',
+            'matric' => $entry['matric'] ?? '',
+            'ip' => $entry['ip'] ?? '',
+            'fingerprint' => $entry['fingerprint'] ?? '',
+            'timestamp' => $entry['timestamp'] ?? '',
+            'device' => $entry['device'] ?? '',
+            'course' => $entry['course'] ?? '',
         ];
-
-        $matchesCourse = ($selectedCourse === 'All' || $courseVal === $selectedCourse);
-        $matchesSearch = ($search === '' || stripos($entry['name'], $search) !== false || stripos($entry['matric'], $search) !== false);
-
-        if ($matchesCourse && $matchesSearch) {
-            $logs[] = $entry;
-        }
     }
 }
 
@@ -81,34 +51,15 @@ $mainLogFile = "{$logDir}/{$selectedDate}.log";
 $checkMap = [];
 
 if (file_exists($mainLogFile)) {
-    $lines = file($mainLogFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        $parts = array_map('trim', explode('|', $line));
-        if (count($parts) < 5) continue;
-
-        $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
-
-        if (count($parts) >= 9 && preg_match($macRegex, $parts[5])) {
-            $name = $parts[0];
-            $matric = $parts[1];
-            $action = $parts[2];
-            $finger = $parts[3];
-            $ip = $parts[4];
-            $timestamp = $parts[6] ?? '';
-            $device = $parts[7] ?? '';
-            $course = $parts[8] ?? '';
-        } else {
-            $name = $parts[0] ?? '';
-            $matric = $parts[1] ?? '';
-            $action = $parts[2] ?? '';
-            $finger = $parts[3] ?? '';
-            $ip = $parts[4] ?? '';
-            $timestamp = $parts[5] ?? '';
-            $device = $parts[6] ?? '';
-            $course = $parts[7] ?? '';
-        }
-
-        $course = trim($course);
+    foreach (admin_attendance_entries_for_date_parsed($mainLogFile, 15) as $entry) {
+        $name = $entry['name'] ?? '';
+        $matric = $entry['matric'] ?? '';
+        $action = $entry['action'] ?? '';
+        $finger = $entry['fingerprint'] ?? '';
+        $ip = $entry['ip'] ?? '';
+        $timestamp = $entry['timestamp'] ?? '';
+        $device = $entry['device'] ?? '';
+        $course = trim((string)($entry['course'] ?? ''));
 
         if ($selectedCourse !== 'All' && $course !== $selectedCourse) continue;
 

@@ -2,72 +2,30 @@
 require_once __DIR__ . '/includes/hybrid_admin_read.php';
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/cache_helpers.php';
 require_once __DIR__ . '/../request_timing.php';
 app_storage_init();
 request_timing_start('admin/dashboard.php');
 $logDir = app_storage_file('logs');
-$failedDir = $logDir;
-
-$dailyCounts = [];
-$courseCounts = [];
-$failedCounts = [];
-$uniqueStudents = [];
-$recentLogs = [];
 
 $today = new DateTime();
-$twoDaysAgo = (clone $today)->modify('-2 days');
 
 $span = microtime(true);
-foreach (glob($logDir . '/*.log') as $file) {
-  if (preg_match('/(\d{4}-\d{2}-\d{2})\.log$/', $file, $match)) {
-    $date = $match[1];
-    $fileDate = new DateTime($date);
-    $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    $dailyCounts[$date] = count($lines);
-
-    foreach ($lines as $line) {
-      $parts = array_map('trim', explode('|', $line));
-      if (isset($parts[1])) {
-        $matric = trim($parts[1]);
-        $uniqueStudents[$matric] = true;
-      }
-
-      // detect course index depending on whether MAC field exists
-      $macRegex = '/([0-9a-f]{2}[:\\\\-]){5}[0-9a-f]{2}/i';
-      if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
-        // new format: course likely at index 8
-        $course = isset($parts[8]) ? trim($parts[8]) : 'General';
-      } else {
-        // old format: course likely at index 7
-        $course = isset($parts[7]) ? trim($parts[7]) : 'General';
-      }
-      $courseCounts[$course] = ($courseCounts[$course] ?? 0) + 1;
-    }
-
-    if ($fileDate >= $twoDaysAgo) {
-      foreach (array_reverse($lines) as $recentLine) {
-        $recentLogs[] = $recentLine;
-      }
-    }
-  }
-}
-request_timing_span('scan_attendance_logs', $span, ['daily_files' => count(glob($logDir . '/*.log')) ?: 0]);
-
-$span = microtime(true);
-foreach (glob($failedDir . '/*_failed_attempts.log') as $file) {
-  if (preg_match('/(\d{4}-\d{2}-\d{2})_failed_attempts\.log$/', $file, $match)) {
-    $date = $match[1];
-    $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    $failedCounts[$date] = count($lines);
-  }
-}
-request_timing_span('scan_failed_logs', $span, ['failed_files' => count(glob($failedDir . '/*_failed_attempts.log')) ?: 0]);
+$logSummary = admin_dashboard_log_summary(20, 2);
+$dailyCounts = $logSummary['dailyCounts'] ?? [];
+$courseCounts = $logSummary['courseCounts'] ?? [];
+$failedCounts = $logSummary['failedCounts'] ?? [];
+$recentLogs = $logSummary['recentLogs'] ?? [];
+request_timing_span('scan_dashboard_logs', $span, [
+  'daily_files' => (int)($logSummary['attendanceFileCount'] ?? 0),
+  'failed_files' => (int)($logSummary['failedFileCount'] ?? 0),
+]);
 
 $supportFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/support_tickets.json');
 $supportSource = 'file';
 $supportTickets = hybrid_fetch_support_tickets($supportSource);
 if (!is_array($supportTickets)) {
-  $supportTickets = file_exists($supportFile) ? json_decode(file_get_contents($supportFile), true) : [];
+  $supportTickets = admin_cached_json_file('support_tickets_dashboard', $supportFile, [], 15);
 }
 $newSupportCount = 0;
 if (is_array($supportTickets)) {
@@ -78,18 +36,8 @@ if (is_array($supportTickets)) {
   }
 }
 
-$fingerprintFile = app_storage_migrate_file('fingerprints.json', __DIR__ . '/fingerprints.json');
-$fingerprintsData = file_exists($fingerprintFile) ? json_decode(file_get_contents($fingerprintFile), true) : [];
-$fingerprintCount = is_array($fingerprintsData) ? count($fingerprintsData) : 0;
-
-$activeCourse = "General";
-$activeFile = admin_course_storage_migrate_file('active_course.json');
-if (file_exists($activeFile)) {
-  $activeData = json_decode(file_get_contents($activeFile), true);
-  if (is_array($activeData)) {
-    $activeCourse = $activeData['course'] ?? "General";
-  }
-}
+$fingerprintCount = admin_fingerprint_count_cached(15);
+$activeCourse = admin_active_course_name_cached(15);
 
 $todayStr = $today->format('Y-m-d');
 $todayCount = $dailyCounts[$todayStr] ?? 0;
@@ -142,7 +90,7 @@ $todayFailed = $failedCounts[$todayStr] ?? 0;
       <span class="st-stat-badge info">Active</span>
     </div>
     <p class="st-stat-label">Total Students</p>
-    <p class="st-stat-value"><?= number_format(count($uniqueStudents)) ?></p>
+    <p class="st-stat-value"><?= number_format((int)($logSummary['uniqueStudentCount'] ?? 0)) ?></p>
   </div>
 
   <!-- Failed Attempts -->

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../runtime_storage.php';
+require_once __DIR__ . '/../cache_helpers.php';
 $courseFile = admin_course_storage_migrate_file('course.json');
 $activeFile = admin_course_storage_migrate_file('active_course.json');
 $csrfPath = __DIR__ . '/../includes/csrf.php';
@@ -8,13 +9,16 @@ if (file_exists($csrfPath)) {
 }
 
 // Load courses
-$courses = file_exists($courseFile) ? json_decode(file_get_contents($courseFile), true) : [];
+$courses = admin_cached_json_file('courses_list', $courseFile, [], 30);
 if (!is_array($courses)) $courses = [];
 
-$activeCourse = '';
+$activeCourse = admin_active_course_name_cached(15);
 $message = '';
 $errorMessage = '';
-if (file_exists($activeFile)) {
+if ($activeCourse === 'General' && !file_exists($activeFile)) {
+  $activeCourse = '';
+}
+if (file_exists($activeFile) && $activeCourse === '') {
   $activeData = json_decode(file_get_contents($activeFile), true);
   if (is_array($activeData) && isset($activeData['course'])) {
     $activeCourse = (string)$activeData['course'];

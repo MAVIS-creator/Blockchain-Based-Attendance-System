@@ -1,18 +1,6 @@
 <?php
-$ticketCount = 0;
-require_once __DIR__ . '/../../storage_helpers.php';
-app_storage_init();
-$ticketsFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/../support_tickets.json');
-if (file_exists($ticketsFile)) {
-  $tickets = json_decode(file_get_contents($ticketsFile), true);
-  if (is_array($tickets)) {
-    foreach ($tickets as $t) {
-      if (!($t['resolved'] ?? false)) {
-        $ticketCount++;
-      }
-    }
-  }
-}
+require_once __DIR__ . '/../cache_helpers.php';
+$ticketCount = admin_support_ticket_count(15);
 $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'superadmin';
 ?>
 

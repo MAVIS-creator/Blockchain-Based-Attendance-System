@@ -10,6 +10,9 @@ csrf_token();
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/../env_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/cache_helpers.php';
+require_once __DIR__ . '/state_helpers.php';
+require_once __DIR__ . '/log_helpers.php';
 app_storage_init();
 
 // send_logs_email.php - redesigned to show selectable log files grouped by date+course
@@ -23,44 +26,12 @@ $ENV = app_load_env_layers(__DIR__ . '/../.env');
 // Get default recipient from settings
 $defaultRecipient = '';
 try {
-  $settingsFile = admin_storage_migrate_file('settings.json');
-  $adminSettings = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?: []) : [];
+  $adminSettings = admin_load_settings_cached(15);
   $defaultRecipient = $adminSettings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? '');
 } catch (\Throwable $e) { /* ignore */
 }
 
-// Build groups: parse all log files and group entries by date+course
-$groups = [];
-if (is_dir($logsDir)) {
-  $it = new DirectoryIterator($logsDir);
-  foreach ($it as $f) {
-    if ($f->isFile()) {
-      $fn = $f->getFilename();
-      if (preg_match('/\.(php|css)$/i', $fn)) continue; // skip helpers
-      $lines = @file($logsDir . '/' . $fn, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-      foreach ($lines as $ln) {
-        $parts = array_map('trim', explode('|', $ln));
-        $parts = array_pad($parts, 10, '');
-        // extract date and course
-        $dt = $parts[6] ?? '';
-        $dateOnly = null;
-        if ($dt && preg_match('/(20\d{2}-\d{2}-\d{2})/', $dt, $md)) $dateOnly = $md[1];
-        if (!$dateOnly && preg_match('/(20\d{2}-\d{2}-\d{2})/', $fn, $mf)) $dateOnly = $mf[1];
-        if (!$dateOnly) $dateOnly = date('Y-m-d');
-        $course = ($parts[8] ?? '') !== '' ? $parts[8] : 'Unknown';
-        $key = $dateOnly . '|' . $course;
-        if (!isset($groups[$key])) $groups[$key] = ['date' => $dateOnly, 'course' => $course, 'entries' => 0, 'failed' => 0, 'files' => []];
-        $groups[$key]['entries']++;
-        $txt = strtolower($ln);
-        if (strpos($txt, 'failed') !== false || strpos($txt, 'invalid') !== false) $groups[$key]['failed']++;
-        if (!in_array($fn, $groups[$key]['files'])) $groups[$key]['files'][] = $fn;
-      }
-    }
-  }
-}
-uasort($groups, function ($a, $b) {
-  return strcmp($b['date'] . $b['course'], $a['date'] . $a['course']);
-});
+$groups = admin_log_groups_summary(20);
 
 $success = '';
 $error = '';
@@ -91,10 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])) {
       foreach ($group['files'] as $fn) {
         $path = $logsDir . '/' . $fn;
         if (!is_readable($path)) continue;
-        $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-        foreach ($lines as $line) {
-          $parts = array_map('trim', explode('|', $line));
-          $parts = array_pad($parts, 10, '');
+        foreach (admin_cached_file_lines('send_logs_group_lines', $path, 15) as $line) {
+          $parts = array_pad(array_map('trim', explode('|', $line)), 10, '');
           $row = [
             'name' => $parts[0],
             'matric' => $parts[1],
@@ -198,10 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])) {
 
               // From address from .env, from name from settings
               $settings = [];
-              $settingsFile = admin_storage_migrate_file('settings.json');
-              if (file_exists($settingsFile)) {
-                $settings = json_decode(file_get_contents($settingsFile), true) ?: [];
-              }
+              $settings = admin_load_settings_cached(15);
               $fromEmail = $ENV['FROM_EMAIL'] ?? 'no-reply@example.com';
               $fromName = $settings['smtp']['from_name'] ?? ($ENV['FROM_NAME'] ?? 'Attendance System');
 
