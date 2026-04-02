@@ -8,12 +8,16 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/../env_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/cache_helpers.php';
 require_once __DIR__ . '/state_helpers.php';
 app_storage_init();
 
 $settingsFile = admin_settings_file();
 $keyFile = admin_settings_key_file();
 $backupDir = app_storage_file('backups');
+$envPath = __DIR__ . '/../.env';
+$envLocalPath = __DIR__ . '/../.env.local';
+$cacheStatus = admin_cache_status();
 if (!is_dir($backupDir)) @mkdir($backupDir, 0700, true);
 
 // helper: generate/return encryption key
@@ -321,8 +325,8 @@ function test_smtp_connection_env($env, $recipient = '')
   }
 }
 // Resolve env once for this page
-$envPath = __DIR__ . '/../.env';
 $ENV = load_env_array($envPath);
+$ENV_LOCAL = load_env_array($envLocalPath);
 
 // default settings
 if (!file_exists($settingsFile)) {
@@ -615,6 +619,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if (empty($errors)) {
         $saved = update_env_values($envPath, $updates);
         if ($saved) {
+          $localSaved = update_env_values($envLocalPath, [
+            'LOCALHOST_MODE' => (isset($_POST['env_localhost_mode']) && $_POST['env_localhost_mode'] === '1') ? 'true' : 'false',
+            'LOCAL_STORAGE_PATH' => trim($_POST['env_local_storage_path'] ?? ($ENV_LOCAL['LOCAL_STORAGE_PATH'] ?? '')),
+          ]);
+          if (!$localSaved) {
+            $errors[] = 'Unable to write .env.local file.';
+          }
+        }
+        if (empty($errors) && $saved) {
           $maskedAudit = [];
           foreach ($updates as $k => $v) {
             $oldV = $ENV[$k] ?? '';
@@ -628,8 +641,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
           audit_settings_change($currentUser, ['env_rotation' => $maskedAudit]);
           $ENV = load_env_array($envPath);
+          $ENV_LOCAL = load_env_array($envLocalPath);
           $message = 'Environment settings updated successfully.';
-        } else {
+        } elseif (!$saved) {
           $errors[] = 'Unable to write .env file.';
         }
       }
@@ -911,6 +925,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">STORAGE_PATH</label>
             <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_storage_path" value="<?= htmlspecialchars($ENV['STORAGE_PATH'] ?? '') ?>" placeholder="/home/data">
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-lg border border-outline-variant/30 bg-surface-container-low p-4">
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Local Mode Override</p>
+                  <p class="text-sm text-on-surface-variant mt-1">Only applies on localhost. Forces file-only mode and local storage.</p>
+                </div>
+                <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold <?= app_local_mode_enabled($envPath) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' ?>">
+                  <span class="w-2 h-2 rounded-full <?= app_local_mode_enabled($envPath) ? 'bg-emerald-500' : 'bg-slate-400' ?>"></span>
+                  <?= app_local_mode_enabled($envPath) ? 'Enabled' : 'Disabled' ?>
+                </span>
+              </div>
+              <label class="flex items-center gap-3 rounded-lg border border-outline-variant/20 bg-white px-4 py-3">
+                <input class="w-5 h-5" type="checkbox" name="env_localhost_mode" value="1" <?= (strtolower($ENV_LOCAL['LOCALHOST_MODE'] ?? 'false') === 'true') ? 'checked' : '' ?>>
+                <span class="text-sm font-medium">Enable localhost override</span>
+              </label>
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">LOCAL_STORAGE_PATH</label>
+              <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_local_storage_path" value="<?= htmlspecialchars($ENV_LOCAL['LOCAL_STORAGE_PATH'] ?? '') ?>" placeholder="<?= htmlspecialchars(app_storage_path()) ?>">
+              <p class="text-xs text-on-surface-variant mt-2">Leave blank to use the project `storage` folder on localhost.</p>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-outline-variant/30 bg-surface-container-low p-4">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">APCu Cache</p>
+                <p class="text-sm text-on-surface-variant mt-1">Request caching gets stronger when APCu is enabled on the server.</p>
+              </div>
+              <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold <?= $cacheStatus['apcu_enabled'] ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' ?>">
+                <span class="w-2 h-2 rounded-full <?= $cacheStatus['apcu_enabled'] ? 'bg-emerald-500' : 'bg-amber-500' ?>"></span>
+                <?= $cacheStatus['apcu_enabled'] ? 'APCu Enabled' : 'APCu Unavailable' ?>
+              </span>
+            </div>
+            <?php if (!$cacheStatus['apcu_enabled']): ?>
+              <p class="text-xs text-on-surface-variant mt-3">Enable APCu in your PHP runtime to improve cross-request cache hits for admin state and parsed logs.</p>
+            <?php endif; ?>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">

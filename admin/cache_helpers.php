@@ -71,6 +71,24 @@ if (!function_exists('admin_cached_json_file')) {
   }
 }
 
+if (!function_exists('admin_cached_file_lines')) {
+  function admin_cached_file_lines($cachePrefix, $path, $ttl = 15)
+  {
+    $mtime = @filemtime($path) ?: 0;
+    $size = @filesize($path) ?: 0;
+    $key = $cachePrefix . ':' . md5($path . '|' . $mtime . '|' . $size);
+
+    return admin_cache_remember($key, $ttl, function () use ($path) {
+      if (!file_exists($path)) {
+        return [];
+      }
+
+      $lines = @file($path, FILE_IGNORE_NEW_LINES);
+      return is_array($lines) ? $lines : [];
+    });
+  }
+}
+
 if (!function_exists('admin_support_ticket_count')) {
   function admin_support_ticket_count($ttl = 15)
   {

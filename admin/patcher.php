@@ -11,9 +11,10 @@ if (($_SESSION['admin_role'] ?? 'admin') !== 'superadmin') {
 }
 
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/../env_helpers.php';
 $csrf = csrf_token();
-
 $projectRoot = realpath(__DIR__ . '/..');
+$patcherEnv = app_load_env_layers(__DIR__ . '/../.env');
 
 function patcher_allowed_extensions()
 {
@@ -25,14 +26,13 @@ function patcher_safe_rel_path($input)
   $p = trim((string)$input);
   $p = str_replace('\\', '/', $p);
   $p = ltrim($p, '/');
-  if ($p === '') return '';
-  if (strpos($p, '..') !== false) return '';
+  if ($p === '' || strpos($p, '..') !== false) return '';
   return $p;
 }
 
 function patcher_extension_allowed($relPath)
 {
-  if (strtolower((string)$relPath) === '.env') return true;
+  if (strtolower((string)$relPath) === '.env' || strtolower((string)$relPath) === '.env.local') return true;
   $ext = strtolower(pathinfo((string)$relPath, PATHINFO_EXTENSION));
   return in_array($ext, patcher_allowed_extensions(), true);
 }
@@ -44,7 +44,7 @@ function patcher_absolute_path($projectRoot, $relPath)
   return $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
 }
 
-function patcher_run_cmd($command, $cwd = null)
+function patcher_run_cmd($command, $cwd = null, $stdin = '')
 {
   $descriptorspec = [
     0 => ['pipe', 'r'],
@@ -57,13 +57,14 @@ function patcher_run_cmd($command, $cwd = null)
     return ['ok' => false, 'exit' => -1, 'out' => '', 'err' => 'Failed to start process.'];
   }
 
+  fwrite($pipes[0], (string)$stdin);
   fclose($pipes[0]);
   $out = stream_get_contents($pipes[1]);
   $err = stream_get_contents($pipes[2]);
   fclose($pipes[1]);
   fclose($pipes[2]);
-
   $exit = proc_close($process);
+
   return ['ok' => $exit === 0, 'exit' => $exit, 'out' => (string)$out, 'err' => (string)$err];
 }
 
@@ -72,7 +73,6 @@ function patcher_list_files($projectRoot, $maxFiles = 1200)
   $result = [];
   $skipDirs = ['.git', 'vendor', 'node_modules'];
   $allowed = patcher_allowed_extensions();
-
   $it = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator($projectRoot, FilesystemIterator::SKIP_DOTS),
     RecursiveIteratorIterator::SELF_FIRST
@@ -83,47 +83,122 @@ function patcher_list_files($projectRoot, $maxFiles = 1200)
     $rel = str_replace('\\', '/', ltrim(substr($full, strlen($projectRoot)), '\\/'));
 
     foreach ($skipDirs as $sd) {
-      if (preg_match('#(^|/)' . preg_quote($sd, '#') . '(/|$)#', $rel)) {
-        continue 2;
-      }
+      if (preg_match('#(^|/)' . preg_quote($sd, '#') . '(/|$)#', $rel)) continue 2;
     }
 
-    if ($fileInfo->isDir()) {
-      continue;
-    }
-
+    if ($fileInfo->isDir()) continue;
     $ext = strtolower(pathinfo($rel, PATHINFO_EXTENSION));
-    if (!in_array($ext, $allowed, true)) {
-      continue;
-    }
+    if (!in_array($ext, $allowed, true) && !in_array(strtolower($rel), ['.env', '.env.local'], true)) continue;
 
     $result[] = [
       'path' => $rel,
       'size' => $fileInfo->getSize(),
       'mtime' => $fileInfo->getMTime(),
     ];
-
     if (count($result) >= $maxFiles) break;
   }
 
   usort($result, function ($a, $b) {
     return strcmp($a['path'], $b['path']);
   });
-
   return $result;
+}
+
+function patcher_ai_enabled($env)
+{
+  $flag = strtolower((string)($env['PATCHER_AI_ENABLED'] ?? 'true'));
+  return in_array($flag, ['1', 'true', 'yes', 'on'], true);
+}
+
+function patcher_ai_command($env, $promptFile)
+{
+  $template = trim((string)($env['PATCHER_QWEN_RUN'] ?? ''));
+  if ($template !== '') {
+    return str_replace('{{PROMPT_FILE}}', escapeshellarg($promptFile), $template);
+  }
+
+  $bin = trim((string)($env['PATCHER_QWEN_COMMAND'] ?? 'qwen'));
+  $model = trim((string)($env['PATCHER_QWEN_MODEL'] ?? ''));
+  $modelPart = $model !== '' ? (' --model ' . escapeshellarg($model)) : '';
+  return $bin . $modelPart . ' -p ' . escapeshellarg((string)file_get_contents($promptFile));
+}
+
+function patcher_extract_json_block($text)
+{
+  $text = trim((string)$text);
+  $decoded = json_decode($text, true);
+  if (is_array($decoded)) return $decoded;
+
+  if (preg_match('/```json\s*(\{.*\})\s*```/is', $text, $m)) {
+    $decoded = json_decode($m[1], true);
+    if (is_array($decoded)) return $decoded;
+  }
+
+  $start = strpos($text, '{');
+  $end = strrpos($text, '}');
+  if ($start !== false && $end !== false && $end > $start) {
+    $decoded = json_decode(substr($text, $start, $end - $start + 1), true);
+    if (is_array($decoded)) return $decoded;
+  }
+
+  return null;
+}
+
+function patcher_ai_prompt($path, $issue, $content)
+{
+  $projectGuidance = "Project guidance:\n"
+    . "- This is a PHP attendance system with file-first persistence and optional Supabase dual-write.\n"
+    . "- Prefer minimal, production-safe edits.\n"
+    . "- Preserve storage helper usage, runtime storage paths, CSRF protections, and SweetAlert-based UX where relevant.\n"
+    . "- Avoid introducing destructive behavior or broad architectural rewrites.\n"
+    . "- Keep code compatible with Azure Web App Linux and localhost XAMPP development.\n";
+
+  return "You are Qwen Code acting as an in-app patch assistant for a PHP repository.\n"
+    . "Return strict JSON only.\n"
+    . "Schema:\n"
+    . "{\n"
+    . "  \"summary\": \"short title\",\n"
+    . "  \"explanation\": \"why this matters and what to change\",\n"
+    . "  \"risk\": \"low|medium|high\",\n"
+    . "  \"checks\": [\"step 1\", \"step 2\"],\n"
+    . "  \"patch_preview\": \"diff-style preview or code snippet\",\n"
+    . "  \"improved_code\": \"full improved file content\"\n"
+    . "}\n\n"
+    . $projectGuidance . "\n"
+    . "Target file: {$path}\n"
+    . "Issue description: {$issue}\n\n"
+    . "Current file content:\n"
+    . "```text\n{$content}\n```";
 }
 
 if (isset($_GET['api'])) {
   header('Content-Type: application/json');
   $action = (string)$_GET['api'];
 
-  if ($action !== 'list_files' && !csrf_check_request()) {
+  if (!in_array($action, ['list_files', 'ai_status'], true) && !csrf_check_request()) {
     echo json_encode(['ok' => false, 'message' => 'Invalid CSRF token.']);
     exit;
   }
 
   if ($action === 'list_files') {
     echo json_encode(['ok' => true, 'files' => patcher_list_files($projectRoot)]);
+    exit;
+  }
+
+  if ($action === 'ai_status') {
+    $enabled = patcher_ai_enabled($patcherEnv);
+    if (!$enabled) {
+      echo json_encode(['ok' => true, 'enabled' => false, 'online' => false, 'message' => 'AI assistant disabled by config.']);
+      exit;
+    }
+    $bin = trim((string)($patcherEnv['PATCHER_QWEN_COMMAND'] ?? 'qwen'));
+    $res = patcher_run_cmd($bin . ' --version', $projectRoot);
+    echo json_encode([
+      'ok' => true,
+      'enabled' => true,
+      'online' => $res['ok'],
+      'message' => $res['ok'] ? trim($res['out']) : 'Qwen CLI not reachable. Set PATCHER_QWEN_RUN or PATCHER_QWEN_COMMAND in .env.local.',
+    ]);
     exit;
   }
 
@@ -163,6 +238,30 @@ if (isset($_GET['api'])) {
       exit;
     }
     echo json_encode(['ok' => true, 'message' => 'Saved: ' . $rel]);
+    exit;
+  }
+
+  if ($action === 'apply_ai_patch') {
+    $rel = patcher_safe_rel_path($_POST['path'] ?? '');
+    $content = (string)($_POST['content'] ?? '');
+    if ($rel === '' || !patcher_extension_allowed($rel)) {
+      echo json_encode(['ok' => false, 'message' => 'Invalid or disallowed file path.']);
+      exit;
+    }
+    if ($content === '') {
+      echo json_encode(['ok' => false, 'message' => 'No AI-generated content provided.']);
+      exit;
+    }
+    $target = patcher_absolute_path($projectRoot, $rel);
+    if (!file_exists($target) || !is_file($target)) {
+      echo json_encode(['ok' => false, 'message' => 'File not found.']);
+      exit;
+    }
+    if (@file_put_contents($target, $content, LOCK_EX) === false) {
+      echo json_encode(['ok' => false, 'message' => 'Failed to apply AI patch.']);
+      exit;
+    }
+    echo json_encode(['ok' => true, 'message' => 'AI patch applied to ' . $rel]);
     exit;
   }
 
@@ -208,718 +307,432 @@ if (isset($_GET['api'])) {
 
   if ($action === 'git_status') {
     $res = patcher_run_cmd('git status --short', $projectRoot);
-    echo json_encode([
-      'ok' => $res['ok'],
-      'message' => $res['ok'] ? 'Git status completed.' : ('git status failed (exit ' . $res['exit'] . ').'),
-      'output' => trim($res['out'] . "\n" . $res['err'])
-    ]);
+    echo json_encode(['ok' => $res['ok'], 'message' => $res['ok'] ? 'Git status completed.' : 'git status failed.', 'output' => trim($res['out'] . "\n" . $res['err'])]);
     exit;
   }
 
   if ($action === 'git_pull') {
     $branch = trim($_POST['branch'] ?? 'main');
     if ($branch === '') $branch = 'main';
-    $cmd = 'git pull --ff-only origin ' . escapeshellarg($branch);
-    $res = patcher_run_cmd($cmd, $projectRoot);
-    echo json_encode([
-      'ok' => $res['ok'],
-      'message' => $res['ok'] ? ('Git pull successful on ' . $branch . '.') : ('git pull failed (exit ' . $res['exit'] . '). Configure credentials in terminal/credential manager.'),
-      'output' => trim($res['out'] . "\n" . $res['err'])
-    ]);
+    $res = patcher_run_cmd('git pull --ff-only origin ' . escapeshellarg($branch), $projectRoot);
+    echo json_encode(['ok' => $res['ok'], 'message' => $res['ok'] ? 'Git pull successful.' : 'git pull failed.', 'output' => trim($res['out'] . "\n" . $res['err'])]);
+    exit;
+  }
+
+  if ($action === 'ai_generate') {
+    if (!patcher_ai_enabled($patcherEnv)) {
+      echo json_encode(['ok' => false, 'message' => 'AI assistant is disabled.']);
+      exit;
+    }
+    $rel = patcher_safe_rel_path($_POST['path'] ?? '');
+    $issue = trim((string)($_POST['issue'] ?? ''));
+    $content = (string)($_POST['content'] ?? '');
+    if ($rel === '' || !patcher_extension_allowed($rel)) {
+      echo json_encode(['ok' => false, 'message' => 'Select a valid file first.']);
+      exit;
+    }
+    if ($issue === '') {
+      echo json_encode(['ok' => false, 'message' => 'Issue description is required.']);
+      exit;
+    }
+    if ($content === '') {
+      $target = patcher_absolute_path($projectRoot, $rel);
+      if (!file_exists($target) || !is_file($target)) {
+        echo json_encode(['ok' => false, 'message' => 'Target file not found.']);
+        exit;
+      }
+      $content = (string)file_get_contents($target);
+    }
+
+    $prompt = patcher_ai_prompt($rel, $issue, $content);
+    $promptFile = tempnam(sys_get_temp_dir(), 'patcher_qwen_');
+    file_put_contents($promptFile, $prompt);
+    $command = patcher_ai_command($patcherEnv, $promptFile);
+    $res = patcher_run_cmd($command, $projectRoot);
+    @unlink($promptFile);
+
+    if (!$res['ok']) {
+      echo json_encode([
+        'ok' => false,
+        'message' => 'Qwen command failed. Configure PATCHER_QWEN_RUN or PATCHER_QWEN_COMMAND in .env.local.',
+        'output' => trim($res['out'] . "\n" . $res['err'])
+      ]);
+      exit;
+    }
+
+    $decoded = patcher_extract_json_block($res['out']);
+    if (!is_array($decoded)) {
+      $decoded = [
+        'summary' => 'AI response generated',
+        'explanation' => trim($res['out']),
+        'risk' => 'medium',
+        'checks' => [],
+        'patch_preview' => trim($res['out']),
+        'improved_code' => '',
+      ];
+    }
+
+    echo json_encode(['ok' => true, 'result' => $decoded, 'raw' => trim($res['out'])]);
     exit;
   }
 
   echo json_encode(['ok' => false, 'message' => 'Unknown API action.']);
   exit;
 }
+
+$localMode = app_local_mode_enabled(__DIR__ . '/../.env');
+$quickOpen = ['.env', '.env.local', 'hybrid_dual_write.php', 'replay_outbox.php', 'supabase/schema.sql'];
 ?>
-
 <style>
-  html,
-  body.admin-page-patcher {
-    height: 100% !important;
-  }
-
-  body.admin-page-patcher {
-    margin: 0 !important;
-    overflow: auto !important;
-    background: #020617 !important;
-  }
-
-  body.admin-page-patcher .layout {
-    display: block !important;
-    height: 100vh !important;
-    min-height: 100vh !important;
-    overflow: auto !important;
-  }
-
-  body.admin-page-patcher .navbar,
-  body.admin-page-patcher .sidebar,
-  body.admin-page-patcher .main-content>.header,
-  body.admin-page-patcher .main-content>footer,
-  body.admin-page-patcher .main-content>.footer {
-    display: none !important;
-  }
-
+  body.admin-page-patcher .layout,
   body.admin-page-patcher .main-content,
-  body.admin-page-patcher .content-wrapper {
-    margin: 0 !important;
-    padding: 0 !important;
-    max-width: none !important;
-    width: 100% !important;
-    min-height: 100vh !important;
-    height: auto !important;
-    overflow-x: auto !important;
-    overflow-y: auto !important;
-  }
-
-  #patcherRoot {
-    position: relative;
-    border-radius: 0 !important;
-    border: 0 !important;
-    padding: 10px !important;
-    background: #020617;
-    min-height: 100vh !important;
-    height: auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    overflow-x: auto;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  #patcherRoot,
-  #patcherRoot * {
-    box-sizing: border-box;
-  }
-
-  #cmdOutputWrap.collapsed {
-    display: none;
-  }
-
-  #cmdOutputWrap {
-    height: 140px;
-    min-height: 90px;
-    max-height: 50vh;
-    resize: vertical;
-    overflow: auto;
-    border-top: 1px solid #1f2937;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  #fileList,
-  #cmdOutput {
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y pan-x;
-  }
-
-  #editor {
-    min-width: 0;
-    touch-action: pan-y pan-x;
-  }
-
-  @media (max-width: 1100px) {
-    #patcherWorkspace {
-      grid-template-columns: minmax(220px, 34%) minmax(0, 1fr) !important;
-    }
-  }
-
-  @media (max-width: 860px) {
-    #patcherWorkspace {
-      grid-template-columns: 1fr !important;
-      grid-template-rows: minmax(220px, 32vh) minmax(420px, 1fr);
-    }
-  }
+  body.admin-page-patcher .content-wrapper { margin:0!important; padding:0!important; max-width:none!important; width:100%!important; }
+  body.admin-page-patcher .sidebar, body.admin-page-patcher .desktop-navbar, body.admin-page-patcher .page-header, body.admin-page-patcher footer { display:none!important; }
+  #patcherStudio { min-height:100vh; background:
+    radial-gradient(circle at top left, rgba(166,200,255,.10), transparent 26%),
+    radial-gradient(circle at top right, rgba(78,222,163,.08), transparent 22%),
+    linear-gradient(180deg, #0b1326 0%, #060e20 100%);
+    color:#dae2fd; font-family:Inter,sans-serif; }
+  .ps-shell { display:grid; grid-template-rows:56px 54px minmax(0,1fr); min-height:100vh; }
+  .ps-top, .ps-toolbar { backdrop-filter: blur(18px); background:rgba(11,19,38,.82); border-bottom:1px solid rgba(67,70,84,.18); }
+  .ps-top { display:flex; align-items:center; justify-content:space-between; padding:0 20px; }
+  .ps-brand { display:flex; align-items:center; gap:14px; }
+  .ps-brand h1 { margin:0; font:800 1.3rem Manrope,sans-serif; letter-spacing:-.03em; }
+  .ps-brand p { margin:0; color:#c3c6d6; font-size:.82rem; }
+  .ps-nav { display:flex; gap:18px; font-size:.85rem; }
+  .ps-nav a { color:#8d90a0; text-decoration:none; padding:18px 0 14px; border-bottom:2px solid transparent; }
+  .ps-nav a.active { color:#a6c8ff; border-color:#a6c8ff; font-weight:700; }
+  .ps-badge { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:999px; background:rgba(78,222,163,.12); color:#4edea3; font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.12em; }
+  .ps-badge-dot { width:8px; height:8px; border-radius:50%; background:#4edea3; box-shadow:0 0 14px rgba(78,222,163,.7); }
+  .ps-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 18px; overflow:auto; }
+  .ps-quick, .ps-actions { display:flex; gap:10px; align-items:center; }
+  .ps-chip, .ps-btn { border:0; border-radius:12px; color:#dae2fd; font-weight:700; cursor:pointer; }
+  .ps-chip { background:#171f33; padding:10px 14px; font-size:.76rem; white-space:nowrap; }
+  .ps-btn { padding:10px 16px; font-size:.78rem; }
+  .ps-btn.primary { background:linear-gradient(135deg,#a6c8ff,#6ea8ff); color:#00315f; }
+  .ps-btn.success { background:linear-gradient(135deg,#4edea3,#2bbf80); color:#052e22; }
+  .ps-btn.ghost { background:#171f33; }
+  .ps-workspace { display:grid; grid-template-columns:56px 280px minmax(0,1fr) 360px; min-height:0; }
+  .ps-rail { background:#131b2e; display:flex; flex-direction:column; align-items:center; gap:18px; padding:18px 0; }
+  .ps-rail button { background:none; border:0; color:#8d90a0; cursor:pointer; }
+  .ps-rail button.active { color:#a6c8ff; }
+  .ps-panel { background:#131b2e; padding:16px; min-height:0; overflow:hidden; }
+  .ps-panel h3, .ps-side h3 { margin:0 0 12px; font:800 .74rem Inter,sans-serif; color:#8d90a0; letter-spacing:.18em; text-transform:uppercase; }
+  .ps-search, .ps-input, .ps-textarea { width:100%; background:#060e20; border:0; color:#dae2fd; border-radius:12px; padding:12px 14px; }
+  .ps-filelist, .ps-console { overflow:auto; }
+  .ps-filelist { margin-top:12px; max-height:calc(100vh - 240px); }
+  .ps-file { padding:10px 12px; border-radius:12px; color:#c3c6d6; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .ps-file.active { background:#222a3d; color:#a6c8ff; }
+  .ps-editor-wrap { display:grid; grid-template-rows:42px minmax(0,1fr) 170px; min-height:0; background:#060e20; }
+  .ps-tabs { display:flex; align-items:center; justify-content:space-between; background:#131b2e; padding:0 14px; }
+  .ps-tab { color:#a6c8ff; font-weight:700; font-size:.84rem; }
+  .ps-editor { width:100%; height:100%; resize:none; border:0; padding:18px; background:#060e20; color:#dae2fd; font:500 .84rem/1.65 "JetBrains Mono", monospace; }
+  .ps-console { border-top:1px solid rgba(67,70,84,.18); padding:12px 16px; background:#050a16; font:500 .76rem/1.6 "JetBrains Mono", monospace; color:#c3c6d6; }
+  .ps-side { background:#131b2e; padding:16px; display:grid; grid-template-rows:auto auto auto 1fr auto; gap:14px; min-height:0; }
+  .ps-card { background:#171f33; border-radius:16px; padding:14px; }
+  .ps-label { color:#8d90a0; font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; margin-bottom:8px; display:block; }
+  .ps-textarea { min-height:120px; resize:vertical; }
+  .ps-output { background:#060e20; border-radius:14px; padding:14px; min-height:120px; white-space:pre-wrap; overflow:auto; font-size:.8rem; color:#c3c6d6; }
+  .ps-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .ps-metric { background:#060e20; border-radius:12px; padding:12px; text-align:center; }
+  .ps-local-tag { margin-left:12px; }
+  @media (max-width: 1180px) { .ps-workspace { grid-template-columns:56px 240px minmax(0,1fr); } .ps-side { position:fixed; inset:110px 16px 16px auto; width:min(360px,calc(100vw - 32px)); box-shadow:0 12px 40px -12px rgba(6,14,32,.8); border-radius:18px; } }
+  @media (max-width: 860px) { .ps-workspace { grid-template-columns:1fr; grid-template-rows:auto auto minmax(420px,1fr) auto; } .ps-rail { display:none; } .ps-panel, .ps-side { position:static; width:auto; inset:auto; border-radius:0; } }
 </style>
 
-<div id="patcherRoot" class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-4" style="min-height:100vh;">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-    <div>
-      <h2 style="margin:0;font-size:1.15rem;font-weight:800;">Patcher Studio</h2>
-      <p style="margin:2px 0 0;color:var(--on-surface-variant);font-size:0.8rem;">VSCode-style editor for quick in-app changes. Git credentials should be configured in terminal/credential manager.</p>
-      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
-        <button type="button" class="st-btn st-btn-sm" data-hybrid-open=".env" style="background:#1d4ed8;color:#fff;">Open .env</button>
-        <button type="button" class="st-btn st-btn-sm" data-hybrid-open="hybrid_dual_write.php" style="background:#1d4ed8;color:#fff;">Open hybrid_dual_write.php</button>
-        <button type="button" class="st-btn st-btn-sm" data-hybrid-open="replay_outbox.php" style="background:#1d4ed8;color:#fff;">Open replay_outbox.php</button>
-        <button type="button" class="st-btn st-btn-sm" data-hybrid-open="supabase/schema.sql" style="background:#1d4ed8;color:#fff;">Open supabase/schema.sql</button>
+<div id="patcherStudio">
+  <div class="ps-shell">
+    <header class="ps-top">
+      <div class="ps-brand">
+        <div>
+          <h1>Patcher Studio</h1>
+          <p>Manual + AI-assisted patch workflow</p>
+        </div>
+        <?php if ($localMode): ?>
+          <span class="ps-badge ps-local-tag"><span class="ps-badge-dot"></span>Local Mode</span>
+        <?php endif; ?>
+      </div>
+      <nav class="ps-nav">
+        <a href="#" class="active">Files</a>
+        <a href="#">Deploy</a>
+        <a href="#">Logs</a>
+        <a href="#">Terminal</a>
+      </nav>
+    </header>
+
+    <div class="ps-toolbar">
+      <div class="ps-quick">
+        <?php foreach ($quickOpen as $file): ?>
+          <button class="ps-chip" type="button" data-open-file="<?= htmlspecialchars($file) ?>">Open <?= htmlspecialchars(basename($file)) ?></button>
+        <?php endforeach; ?>
+      </div>
+      <div class="ps-actions">
+        <button class="ps-btn ghost" type="button" id="btnRefreshFiles">Refresh</button>
+        <button class="ps-btn ghost" type="button" id="btnNewFolder">New Folder</button>
+        <button class="ps-btn ghost" type="button" id="btnNewFile">New File</button>
+        <button class="ps-btn success" type="button" id="btnSaveFile">Save</button>
+        <button class="ps-btn ghost" type="button" id="btnGitStatus">Git Status</button>
+        <button class="ps-btn primary" type="button" id="btnGitPull">Git Pull</button>
       </div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button type="button" class="st-btn st-btn-sm" id="btnBackDashboard" style="background:#475569;color:#fff;">Back to Dashboard</button>
-      <button type="button" class="st-btn st-btn-sm st-btn-secondary" id="btnRefreshFiles">Refresh Files</button>
-      <button type="button" class="st-btn st-btn-sm st-btn-secondary" id="btnNewFolder">New Folder</button>
-      <button type="button" class="st-btn st-btn-sm st-btn-primary" id="btnNewFile">New File</button>
-      <button type="button" class="st-btn st-btn-sm st-btn-success" id="btnSaveFile">Save</button>
-      <button type="button" class="st-btn st-btn-sm" id="btnGitStatus" style="background:#1f2937;color:#fff;">Git Status</button>
-      <button type="button" class="st-btn st-btn-sm" id="btnGitPull" style="background:#0f766e;color:#fff;">Git Pull</button>
+
+    <div class="ps-workspace">
+      <aside class="ps-rail">
+        <button class="active" type="button"><span class="material-symbols-outlined">folder</span></button>
+        <button type="button"><span class="material-symbols-outlined">search</span></button>
+        <button type="button"><span class="material-symbols-outlined">account_tree</span></button>
+        <button type="button"><span class="material-symbols-outlined">terminal</span></button>
+      </aside>
+
+      <section class="ps-panel">
+        <h3>Explorer</h3>
+        <input id="fileSearch" class="ps-search" type="text" placeholder="Filter files...">
+        <div class="ps-filelist" id="fileList"></div>
+      </section>
+
+      <main class="ps-editor-wrap">
+        <div class="ps-tabs">
+          <div class="ps-tab" id="currentFileLabel">No file selected</div>
+          <div style="font-size:.76rem;color:#8d90a0;">Qwen-assisted editor</div>
+        </div>
+        <textarea id="editor" class="ps-editor" spellcheck="false" placeholder="Open a file to start editing..."></textarea>
+        <div class="ps-console" id="consoleOutput">Patcher Studio ready.</div>
+      </main>
+
+      <aside class="ps-side">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <h3 style="margin:0;color:#dae2fd;">AI Patch Assistant</h3>
+          <span class="ps-badge" id="aiStatusBadge"><span class="ps-badge-dot"></span>Checking</span>
+        </div>
+        <div class="ps-card">
+          <label class="ps-label">Target File</label>
+          <input id="aiTargetFile" class="ps-input" type="text" readonly>
+        </div>
+        <div class="ps-card">
+          <label class="ps-label">Issue Description</label>
+          <textarea id="aiIssue" class="ps-textarea" placeholder="Describe the fix or improvement you want Qwen Code to propose..."></textarea>
+          <div style="display:flex;gap:10px;margin-top:12px;">
+            <button class="ps-btn primary" type="button" id="btnAiGenerate" style="flex:1;">Generate Patch Proposal</button>
+            <button class="ps-btn ghost" type="button" id="btnAiApply">Apply to Editor</button>
+            <button class="ps-btn success" type="button" id="btnAiApplyFile">Apply to File</button>
+          </div>
+        </div>
+        <div class="ps-card">
+          <label class="ps-label">Explanation</label>
+          <div id="aiExplanation" class="ps-output">No AI analysis yet.</div>
+        </div>
+        <div class="ps-card" style="display:grid;grid-template-rows:auto auto 1fr auto;gap:12px;min-height:0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <label class="ps-label" style="margin:0;">Patch Preview</label>
+            <span id="aiRisk" style="color:#4edea3;font-size:.72rem;font-weight:800;">Risk: n/a</span>
+          </div>
+          <div class="ps-metrics">
+            <div class="ps-metric"><div style="font-size:.68rem;color:#8d90a0;">Checks</div><div id="aiChecksCount" style="font-weight:800;font-size:1rem;">0</div></div>
+            <div class="ps-metric"><div style="font-size:.68rem;color:#8d90a0;">Patch Size</div><div id="aiPatchSize" style="font-weight:800;font-size:1rem;">0</div></div>
+            <div class="ps-metric"><div style="font-size:.68rem;color:#8d90a0;">Target</div><div id="aiTargetShort" style="font-weight:800;font-size:.78rem;">n/a</div></div>
+          </div>
+          <div id="aiPatchPreview" class="ps-output">Patch preview will appear here.</div>
+          <div>
+            <label class="ps-label" style="margin-bottom:8px;">Diff View</label>
+            <div id="aiDiffPreview" class="ps-output">Diff will appear here after AI generates a proposal.</div>
+          </div>
+          <div id="aiChecks" style="font-size:.78rem;color:#c3c6d6;"></div>
+        </div>
+      </aside>
     </div>
-  </div>
-
-  <div id="patcherWorkspace" style="display:grid;grid-template-columns:minmax(240px,300px) minmax(0,1fr);gap:12px;flex:1;min-height:70vh;">
-    <aside style="border:1px solid var(--outline-variant);border-radius:10px;overflow:hidden;background:#0f172a;color:#e2e8f0;display:flex;flex-direction:column;min-height:0;">
-      <div style="padding:10px 12px;border-bottom:1px solid #334155;font-weight:700;font-size:0.8rem;letter-spacing:0.04em;">EXPLORER</div>
-      <div style="padding:8px;border-bottom:1px solid #334155;">
-        <input id="fileSearch" type="text" placeholder="Filter files..." style="width:100%;border:1px solid #334155;background:#1e293b;color:#fff;border-radius:6px;padding:7px 9px;font-size:0.82rem;">
-      </div>
-      <div id="fileList" style="overflow:auto;flex:1;padding:6px;"></div>
-    </aside>
-
-    <main style="display:flex;flex-direction:column;min-height:0;border:1px solid var(--outline-variant);border-radius:10px;overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;background:#111827;color:#e5e7eb;padding:8px 12px;border-bottom:1px solid #374151;">
-        <div id="currentFileLabel" style="font-size:0.85rem;font-weight:600;">No file selected</div>
-        <div style="font-size:0.75rem;color:#93c5fd;">Allowed: .<?= htmlspecialchars(implode(', .', patcher_allowed_extensions())) ?></div>
-      </div>
-      <div id="editor" style="flex:1;min-height:0;"></div>
-      <div id="editorStatusBar" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 10px;background:#0f172a;color:#cbd5e1;border-top:1px solid #1f2937;font-size:0.73rem;">
-        <div style="display:flex;gap:12px;align-items:center;min-width:0;">
-          <span id="sbFile" style="color:#93c5fd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48ch;">No file</span>
-          <span id="sbDirty" style="color:#86efac;">Saved</span>
-          <span id="sbLang">Plain Text</span>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;">
-          <span id="sbCursor">Ln 1, Col 1</span>
-          <span id="sbEncoding">UTF-8</span>
-        </div>
-      </div>
-      <div style="border-top:1px solid var(--outline-variant);background:#0b1220;color:#d1d5db;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span id="statusText" style="font-size:0.78rem;">Ready.</span>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button type="button" id="btnToggleOutput" style="background:#334155;color:#fff;border:1px solid #475569;border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer;">Terminal ▾</button>
-          <button type="button" id="btnClearOutput" style="background:#1f2937;color:#fff;border:1px solid #374151;border-radius:6px;padding:4px 8px;font-size:0.75rem;cursor:pointer;">Clear Output</button>
-        </div>
-      </div>
-      <div id="cmdOutputWrap">
-        <pre id="cmdOutput" style="margin:0;height:100%;max-height:none;min-height:80px;overflow:auto;background:#020617;color:#e2e8f0;padding:10px;font-size:0.75rem;">No command run yet.</pre>
-      </div>
-    </main>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"></script>
 <script>
-  (function() {
-    var csrfToken = <?= json_encode($csrf) ?>;
-    var editor = null;
-    var currentFile = '';
-    var allFiles = [];
-    var expandedDirs = {};
-    var lastSavedContent = '';
-    var isDirty = false;
-    var outputCollapsed = false;
-    var apiBaseUrl = null;
+(() => {
+  const csrf = <?= json_encode($csrf) ?>;
+  const state = { files: [], currentPath: '', currentContent: '', suggestedContent: '' };
+  const fileList = document.getElementById('fileList');
+  const editor = document.getElementById('editor');
+  const fileSearch = document.getElementById('fileSearch');
+  const currentFileLabel = document.getElementById('currentFileLabel');
+  const consoleOutput = document.getElementById('consoleOutput');
+  const aiTargetFile = document.getElementById('aiTargetFile');
+  const aiIssue = document.getElementById('aiIssue');
+  const aiExplanation = document.getElementById('aiExplanation');
+  const aiPatchPreview = document.getElementById('aiPatchPreview');
+  const aiChecks = document.getElementById('aiChecks');
+  const aiChecksCount = document.getElementById('aiChecksCount');
+  const aiPatchSize = document.getElementById('aiPatchSize');
+  const aiTargetShort = document.getElementById('aiTargetShort');
+  const aiRisk = document.getElementById('aiRisk');
+  const aiStatusBadge = document.getElementById('aiStatusBadge');
+  const aiDiffPreview = document.getElementById('aiDiffPreview');
 
-    function getApiBaseUrl() {
-      if (apiBaseUrl) return apiBaseUrl;
-      var path = window.location.pathname || '';
-      var dir = path.replace(/\/[^\/]*$/, '/');
-      apiBaseUrl = dir + 'patcher.php';
-      return apiBaseUrl;
+  function log(msg) {
+    const ts = new Date().toLocaleTimeString();
+    consoleOutput.textContent = `[${ts}] ${msg}\n` + consoleOutput.textContent;
+  }
+
+  function escapeHtml(text) {
+    return String(text).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  }
+
+  function renderDiff(oldText, newText) {
+    if (!newText) {
+      aiDiffPreview.textContent = 'Diff will appear here after AI generates a proposal.';
+      return;
     }
-
-    function labelForLang(path) {
-      var p = (path || '').toLowerCase();
-      if (p === '.env' || p.endsWith('.env')) return 'ENV';
-      if (p.endsWith('.sql')) return 'SQL';
-      if (p.endsWith('.php')) return 'PHP';
-      if (p.endsWith('.json')) return 'JSON';
-      if (p.endsWith('.js')) return 'JavaScript';
-      if (p.endsWith('.css')) return 'CSS';
-      if (p.endsWith('.html')) return 'HTML';
-      if (p.endsWith('.md')) return 'Markdown';
-      if (p.endsWith('.txt')) return 'Plain Text';
-      return 'Plain Text';
+    const oldLines = String(oldText || '').split('\n');
+    const newLines = String(newText || '').split('\n');
+    const max = Math.max(oldLines.length, newLines.length);
+    const rows = [];
+    for (let i = 0; i < max; i++) {
+      const a = oldLines[i];
+      const b = newLines[i];
+      if (a === b) continue;
+      if (typeof a !== 'undefined') rows.push(`<div style="background:rgba(147,0,10,.18);padding:4px 8px;border-radius:8px;margin-bottom:4px;color:#ffb4ab;">- ${escapeHtml(a)}</div>`);
+      if (typeof b !== 'undefined') rows.push(`<div style="background:rgba(0,104,70,.22);padding:4px 8px;border-radius:8px;margin-bottom:4px;color:#4edea3;">+ ${escapeHtml(b)}</div>`);
     }
+    aiDiffPreview.innerHTML = rows.length ? rows.join('') : '<div>No diff detected.</div>';
+  }
 
-    function updateStatusBar() {
-      var sbFile = document.getElementById('sbFile');
-      var sbDirty = document.getElementById('sbDirty');
-      var sbLang = document.getElementById('sbLang');
-      if (sbFile) sbFile.textContent = currentFile || 'No file';
-      if (sbDirty) {
-        sbDirty.textContent = isDirty ? 'Unsaved changes' : 'Saved';
-        sbDirty.style.color = isDirty ? '#fca5a5' : '#86efac';
-      }
-      if (sbLang) sbLang.textContent = labelForLang(currentFile);
+  async function api(action, payload = {}, method = 'POST') {
+    const opts = { method, headers: {} };
+    if (method === 'POST') {
+      const body = new URLSearchParams();
+      Object.entries(payload).forEach(([k, v]) => body.append(k, v == null ? '' : String(v)));
+      body.append('csrf_token', csrf);
+      opts.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+      opts.body = body.toString();
     }
+    const res = await fetch(`patcher.php?api=${encodeURIComponent(action)}`, opts);
+    return res.json();
+  }
 
-    function updateCursorStatus() {
-      var sbCursor = document.getElementById('sbCursor');
-      if (!sbCursor || !editor) return;
-      var pos = editor.getPosition();
-      var line = (pos && pos.lineNumber) ? pos.lineNumber : 1;
-      var col = (pos && pos.column) ? pos.column : 1;
-      sbCursor.textContent = 'Ln ' + line + ', Col ' + col;
-    }
-
-    function setStatus(msg, isErr) {
-      var el = document.getElementById('statusText');
-      if (!el) return;
-      el.textContent = msg || '';
-      el.style.color = isErr ? '#fca5a5' : '#93c5fd';
-    }
-
-    function setOutput(text) {
-      var out = document.getElementById('cmdOutput');
-      if (!out) return;
-      out.textContent = text || '';
-    }
-
-    function setCurrentFile(path) {
-      currentFile = path || '';
-      var lbl = document.getElementById('currentFileLabel');
-      if (lbl) lbl.textContent = (currentFile || 'No file selected') + (isDirty ? ' • unsaved' : '');
-      updateStatusBar();
-    }
-
-    function updateDirtyState(nextDirty) {
-      isDirty = !!nextDirty;
-      setCurrentFile(currentFile);
-      updateStatusBar();
-    }
-
-    function ensureCanLeave(message) {
-      if (!isDirty) return true;
-      return window.confirm(message || 'You have unsaved changes. Save before leaving this page?');
-    }
-
-    function updateTerminalCollapsedState() {
-      var wrap = document.getElementById('cmdOutputWrap');
-      var btn = document.getElementById('btnToggleOutput');
-      if (!wrap || !btn) return;
-      wrap.classList.toggle('collapsed', outputCollapsed);
-      btn.textContent = outputCollapsed ? 'Terminal ▸' : 'Terminal ▾';
-    }
-
-    function encodeForm(data) {
-      var p = new URLSearchParams();
-      Object.keys(data || {}).forEach(function(k) {
-        p.append(k, data[k] == null ? '' : String(data[k]));
-      });
-      return p.toString();
-    }
-
-    function api(action, method, data) {
-      method = method || 'GET';
-      var opts = {
-        method: method,
-        credentials: 'same-origin',
-        headers: {
-          'Cache-Control': 'no-store'
-        }
-      };
-      if (method !== 'GET') {
-        opts.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
-        opts.headers['X-CSRF-Token'] = csrfToken;
-        opts.body = encodeForm(data || {});
-      }
-      var url = getApiBaseUrl() + '?api=' + encodeURIComponent(action) + '&_ts=' + Date.now();
-      return fetch(url, opts).then(async function(r) {
-        var text = await r.text();
-        try {
-          return JSON.parse(text);
-        } catch (e) {
-          var preview = String(text || '').replace(/\s+/g, ' ').slice(0, 220);
-          throw new Error('Server returned non-JSON response. Preview: ' + preview);
-        }
-      });
-    }
-
-    function guessLang(path) {
-      var p = (path || '').toLowerCase();
-      if (p.endsWith('.php')) return 'php';
-      if (p.endsWith('.json')) return 'json';
-      if (p.endsWith('.js')) return 'javascript';
-      if (p.endsWith('.css')) return 'css';
-      if (p.endsWith('.html')) return 'html';
-      if (p.endsWith('.md')) return 'markdown';
-      return 'plaintext';
-    }
-
-    function createTree(files) {
-      var root = {
-        type: 'dir',
-        name: '',
-        path: '',
-        dirs: {},
-        files: []
-      };
-      (files || []).forEach(function(item) {
-        var fullPath = String(item.path || '');
-        if (!fullPath) return;
-        var parts = fullPath.split('/');
-        var node = root;
-        var walk = '';
-        for (var i = 0; i < parts.length; i++) {
-          var name = parts[i];
-          if (!name) continue;
-          walk = walk ? (walk + '/' + name) : name;
-          var isFile = i === parts.length - 1;
-          if (isFile) {
-            node.files.push({
-              name: name,
-              path: fullPath
-            });
-          } else {
-            if (!node.dirs[name]) {
-              node.dirs[name] = {
-                type: 'dir',
-                name: name,
-                path: walk,
-                dirs: {},
-                files: []
-              };
-              if (walk.indexOf('/') === -1 && expandedDirs[walk] === undefined) {
-                expandedDirs[walk] = true;
-              }
-            }
-            node = node.dirs[name];
-          }
-        }
-      });
-      return root;
-    }
-
-    function dirMatches(node, query) {
-      if (!query) return true;
-      var dirNames = Object.keys(node.dirs || {});
-      for (var i = 0; i < dirNames.length; i++) {
-        var d = node.dirs[dirNames[i]];
-        if (d.path.toLowerCase().indexOf(query) !== -1) return true;
-        if (dirMatches(d, query)) return true;
-      }
-      for (var j = 0; j < (node.files || []).length; j++) {
-        if ((node.files[j].path || '').toLowerCase().indexOf(query) !== -1) return true;
-      }
-      return false;
-    }
-
-    function renderDir(node, depth, query) {
-      var html = '';
-      var dirNames = Object.keys(node.dirs || {}).sort();
-
-      for (var i = 0; i < dirNames.length; i++) {
-        var d = node.dirs[dirNames[i]];
-        if (!dirMatches(d, query)) continue;
-
-        var isExpanded = query ? true : (expandedDirs[d.path] !== false);
-        var chevron = isExpanded ? '▾' : '▸';
-        var pad = 8 + depth * 14;
-
-        html += '<div class="tree-row dir" data-dir="' + escapeHtml(d.path) + '" style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px ' + pad + 'px;color:#cbd5e1;font-size:0.8rem;cursor:pointer;border-radius:6px;">';
-        html += '<span data-toggle-dir="' + escapeHtml(d.path) + '" style="width:14px;display:inline-block;color:#94a3b8;">' + chevron + '</span>';
-        html += '<span style="color:#fbbf24;">📁</span>';
-        html += '<span>' + escapeHtml(d.name) + '</span>';
-        html += '</div>';
-
-        if (isExpanded) {
-          html += renderDir(d, depth + 1, query);
-        }
-      }
-
-      var files = (node.files || []).slice().sort(function(a, b) {
-        return a.name.localeCompare(b.name);
-      });
-      for (var k = 0; k < files.length; k++) {
-        var f = files[k];
-        if (query && (f.path || '').toLowerCase().indexOf(query) === -1) continue;
-        var fPad = 8 + depth * 14 + 18;
-        var isActive = currentFile === f.path;
-        html += '<div class="tree-row file" data-open-file="' + escapeHtml(f.path) + '" style="display:flex;align-items:center;gap:6px;padding:4px 8px 4px ' + fPad + 'px;color:' + (isActive ? '#bfdbfe' : '#e2e8f0') + ';font-size:0.8rem;cursor:pointer;border-radius:6px;' + (isActive ? 'background:#1e3a8a55;' : '') + '">';
-        html += '<span style="width:14px;display:inline-block;"></span>';
-        html += '<span style="color:#60a5fa;">📄</span>';
-        html += '<span>' + escapeHtml(f.name) + '</span>';
-        html += '</div>';
-      }
-
-      return html;
-    }
-
-    function wireTreeEvents() {
-      var wrap = document.getElementById('fileList');
-      if (!wrap) return;
-
-      Array.from(wrap.querySelectorAll('[data-toggle-dir]')).forEach(function(el) {
-        el.addEventListener('click', function(e) {
-          e.stopPropagation();
-          var dir = this.getAttribute('data-toggle-dir') || '';
-          expandedDirs[dir] = !(expandedDirs[dir] !== false);
-          renderFiles(allFiles);
-        });
-      });
-
-      Array.from(wrap.querySelectorAll('.tree-row.dir')).forEach(function(el) {
-        el.addEventListener('click', function() {
-          var dir = this.getAttribute('data-dir') || '';
-          expandedDirs[dir] = !(expandedDirs[dir] !== false);
-          renderFiles(allFiles);
-        });
-        el.addEventListener('mouseenter', function() {
-          this.style.background = '#1e293b';
-        });
-        el.addEventListener('mouseleave', function() {
-          this.style.background = 'transparent';
-        });
-      });
-
-      Array.from(wrap.querySelectorAll('[data-open-file]')).forEach(function(el) {
-        el.addEventListener('click', function() {
-          openFile(this.getAttribute('data-open-file') || '');
-        });
-        el.addEventListener('mouseenter', function() {
-          this.style.background = '#1e293b';
-        });
-        el.addEventListener('mouseleave', function() {
-          var fp = this.getAttribute('data-open-file') || '';
-          this.style.background = (fp === currentFile) ? '#1e3a8a55' : 'transparent';
-        });
-      });
-    }
-
-    function renderFiles(list) {
-      allFiles = list || [];
-      var wrap = document.getElementById('fileList');
-      if (!wrap) return;
-
-      var query = (document.getElementById('fileSearch').value || '').toLowerCase().trim();
-      var tree = createTree(allFiles);
-      var html = renderDir(tree, 0, query);
-      wrap.innerHTML = html || '<div style="padding:8px;color:#94a3b8;font-size:0.8rem;">No files found.</div>';
-      wireTreeEvents();
-    }
-
-    function refreshFiles() {
-      setStatus('Refreshing files...');
-      api('list_files', 'GET').then(function(res) {
-        if (!res || !res.ok) throw new Error((res && res.message) || 'Failed to list files.');
-        renderFiles(res.files || []);
-        setStatus('Files refreshed.');
-      }).catch(function(err) {
-        setStatus(err.message || 'Failed to list files.', true);
-      });
-    }
-
-    function quickOpenFile() {
-      if (!allFiles || !allFiles.length) {
-        setStatus('No files available yet.', true);
-        return;
-      }
-      var guess = currentFile || (allFiles[0] && allFiles[0].path) || '';
-      var path = window.prompt('Quick Open (relative file path):', guess);
-      if (!path) return;
-      var normalized = String(path).trim();
-      var exists = allFiles.some(function(f) {
-        return (f.path || '') === normalized;
-      });
-      if (!exists) {
-        setStatus('File not found in explorer list: ' + normalized, true);
-        return;
-      }
-      openFile(normalized);
-    }
-
-    function openFile(path) {
-      if (!path) return;
-      if (path !== currentFile && !ensureCanLeave('You have unsaved changes. Continue and discard them?')) {
-        return;
-      }
-      setStatus('Opening ' + path + '...');
-      api('read_file', 'POST', {
-        path: path
-      }).then(function(res) {
-        if (!res || !res.ok) throw new Error((res && res.message) || 'Failed to read file.');
-        if (!editor) return;
-        var oldModel = editor.getModel();
-        var model = monaco.editor.createModel(res.content || '', guessLang(path));
-        editor.setModel(model);
-        if (oldModel) oldModel.dispose();
-        setCurrentFile(path);
-        lastSavedContent = res.content || '';
-        updateDirtyState(false);
-        setStatus('Opened: ' + path);
-      }).catch(function(err) {
-        setStatus(err.message || 'Read failed.', true);
-      });
-    }
-
-    function saveCurrent() {
-      if (!currentFile) {
-        setStatus('Select a file first.', true);
-        return;
-      }
-      setStatus('Saving ' + currentFile + '...');
-      api('save_file', 'POST', {
-        path: currentFile,
-        content: editor ? editor.getValue() : ''
-      }).then(function(res) {
-        if (!res || !res.ok) throw new Error((res && res.message) || 'Save failed.');
-        lastSavedContent = editor ? editor.getValue() : '';
-        updateDirtyState(false);
-        setStatus(res.message || 'Saved.');
-      }).catch(function(err) {
-        setStatus(err.message || 'Save failed.', true);
-      });
-    }
-
-    function createFile() {
-      var path = window.prompt('New file path (relative):', 'docs/new-note.md');
-      if (!path) return;
-      var content = window.prompt('Initial content (optional):', '') || '';
-      setStatus('Creating file...');
-      api('create_file', 'POST', {
-        path: path,
-        content: content
-      }).then(function(res) {
-        if (!res || !res.ok) throw new Error((res && res.message) || 'Create file failed.');
-        setStatus(res.message || 'File created.');
-        refreshFiles();
-        openFile(path);
-      }).catch(function(err) {
-        setStatus(err.message || 'Create file failed.', true);
-      });
-    }
-
-    function createFolder() {
-      var path = window.prompt('New folder path (relative):', 'modules/new-feature');
-      if (!path) return;
-      setStatus('Creating folder...');
-      api('create_folder', 'POST', {
-        path: path
-      }).then(function(res) {
-        if (!res || !res.ok) throw new Error((res && res.message) || 'Create folder failed.');
-        setStatus(res.message || 'Folder created.');
-        refreshFiles();
-      }).catch(function(err) {
-        setStatus(err.message || 'Create folder failed.', true);
-      });
-    }
-
-    function runGitStatus() {
-      setStatus('Running git status...');
-      api('git_status', 'POST', {}).then(function(res) {
-        if (!res || !res.ok) throw new Error((res && res.message) || 'git status failed.');
-        setOutput(res.output || '(no output)');
-        setStatus(res.message || 'Git status done.');
-      }).catch(function(err) {
-        setStatus(err.message || 'git status failed.', true);
-      });
-    }
-
-    function runGitPull() {
-      var branch = window.prompt('Branch to pull:', 'main') || 'main';
-      setStatus('Running git pull...');
-      api('git_pull', 'POST', {
-        branch: branch
-      }).then(function(res) {
-        if (!res || !res.ok) {
-          setOutput((res && res.output) || '');
-          throw new Error((res && res.message) || 'git pull failed.');
-        }
-        setOutput(res.output || '(no output)');
-        setStatus(res.message || 'Git pull done.');
-        refreshFiles();
-      }).catch(function(err) {
-        setStatus(err.message || 'git pull failed.', true);
-      });
-    }
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, function(c) {
-        return ({
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;'
-        })[c];
-      });
-    }
-
-    require.config({
-      paths: {
-        'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs'
-      }
+  function renderFiles() {
+    const q = fileSearch.value.trim().toLowerCase();
+    fileList.innerHTML = '';
+    state.files.filter(f => !q || f.path.toLowerCase().includes(q)).forEach(file => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ps-file' + (file.path === state.currentPath ? ' active' : '');
+      btn.innerHTML = `<span>${file.path}</span><span style="color:#8d90a0;font-size:.72rem;">${Math.round((file.size || 0)/1024)} KB</span>`;
+      btn.addEventListener('click', () => openFile(file.path));
+      fileList.appendChild(btn);
     });
-    require(['vs/editor/editor.main'], function() {
-      editor = monaco.editor.create(document.getElementById('editor'), {
-        value: '// Select a file from Explorer to start editing\n',
-        language: 'plaintext',
-        theme: 'vs-dark',
-        automaticLayout: true,
-        fontSize: 14,
-        minimap: {
-          enabled: true
-        },
-        mouseWheelScrollSensitivity: 1,
-        fastScrollSensitivity: 5,
-        scrollbar: {
-          alwaysConsumeMouseWheel: false,
-        },
-        scrollBeyondLastLine: false,
-      });
+  }
 
-      editor.onDidChangeModelContent(function() {
-        if (!editor) return;
-        updateDirtyState(editor.getValue() !== lastSavedContent);
-      });
-      editor.onDidChangeCursorPosition(function() {
-        updateCursorStatus();
-      });
+  async function loadFiles() {
+    const data = await api('list_files', {}, 'GET');
+    if (!data.ok) return log(data.message || 'Failed to load files');
+    state.files = data.files || [];
+    renderFiles();
+    log(`Loaded ${state.files.length} files`);
+  }
 
-      refreshFiles();
-      updateTerminalCollapsedState();
-      updateStatusBar();
-      updateCursorStatus();
+  async function openFile(path) {
+    const data = await api('read_file', { path });
+    if (!data.ok) return window.adminAlert('Open failed', data.message || 'Unable to open file', 'error');
+    state.currentPath = data.path;
+    state.currentContent = data.content || '';
+    state.suggestedContent = '';
+    editor.value = state.currentContent;
+    currentFileLabel.textContent = data.path;
+    aiTargetFile.value = data.path;
+    aiTargetShort.textContent = data.path.split('/').pop();
+    aiDiffPreview.textContent = 'Diff will appear here after AI generates a proposal.';
+    renderFiles();
+    log(`Opened ${data.path}`);
+  }
 
-      document.getElementById('btnRefreshFiles').addEventListener('click', refreshFiles);
-      document.getElementById('btnNewFile').addEventListener('click', createFile);
-      document.getElementById('btnNewFolder').addEventListener('click', createFolder);
-      document.getElementById('btnSaveFile').addEventListener('click', saveCurrent);
-      document.getElementById('btnGitStatus').addEventListener('click', runGitStatus);
-      document.getElementById('btnGitPull').addEventListener('click', runGitPull);
-      document.getElementById('btnBackDashboard').addEventListener('click', function() {
-        if (!ensureCanLeave('You have unsaved changes. Leave patcher and discard them?')) return;
-        window.location.href = 'index.php?page=dashboard';
-      });
-      document.getElementById('btnClearOutput').addEventListener('click', function() {
-        setOutput('');
-      });
-      document.getElementById('btnToggleOutput').addEventListener('click', function() {
-        outputCollapsed = !outputCollapsed;
-        updateTerminalCollapsedState();
-      });
+  async function saveCurrent() {
+    if (!state.currentPath) return window.adminAlert('No file selected', 'Open a file first.', 'warning');
+    const data = await api('save_file', { path: state.currentPath, content: editor.value });
+    if (!data.ok) return window.adminAlert('Save failed', data.message || 'Unable to save file', 'error');
+    state.currentContent = editor.value;
+    log(data.message || 'Saved');
+    window.adminAlert('Saved', data.message || 'File saved.', 'success');
+  }
 
-      document.getElementById('fileSearch').addEventListener('input', function() {
-        renderFiles(allFiles);
-      });
+  async function aiStatus() {
+    const data = await api('ai_status', {}, 'GET');
+    const online = !!(data && data.online);
+    aiStatusBadge.innerHTML = `<span class="ps-badge-dot"></span>${online ? 'Online' : 'Offline'}`;
+    aiStatusBadge.style.background = online ? 'rgba(78,222,163,.12)' : 'rgba(255,180,171,.14)';
+    aiStatusBadge.style.color = online ? '#4edea3' : '#ffb4ab';
+    if (data && data.message) log(data.message);
+  }
 
-      Array.from(document.querySelectorAll('[data-hybrid-open]')).forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          var fp = this.getAttribute('data-hybrid-open') || '';
-          if (fp) openFile(fp);
-        });
-      });
+  async function generateAiProposal() {
+    if (!state.currentPath) return window.adminAlert('No target file', 'Open a file before requesting AI help.', 'warning');
+    if (!aiIssue.value.trim()) return window.adminAlert('Issue required', 'Describe the issue or requested improvement.', 'warning');
+    aiExplanation.textContent = 'Generating proposal...';
+    aiPatchPreview.textContent = 'Waiting for Qwen Code response...';
+    const data = await api('ai_generate', { path: state.currentPath, issue: aiIssue.value.trim(), content: editor.value });
+    if (!data.ok) {
+      aiExplanation.textContent = data.message || 'AI request failed.';
+      aiPatchPreview.textContent = data.output || '';
+      return window.adminAlert('AI request failed', data.message || 'Qwen did not respond successfully.', 'error');
+    }
+    const result = data.result || {};
+    state.suggestedContent = result.improved_code || '';
+    aiExplanation.textContent = result.explanation || result.summary || 'No explanation returned.';
+    aiPatchPreview.textContent = result.patch_preview || '(No patch preview returned)';
+    renderDiff(state.currentContent, state.suggestedContent);
+    aiRisk.textContent = 'Risk: ' + (result.risk || 'n/a');
+    const checks = Array.isArray(result.checks) ? result.checks : [];
+    aiChecksCount.textContent = String(checks.length);
+    aiPatchSize.textContent = String((result.patch_preview || '').length);
+    aiChecks.innerHTML = checks.map(item => `<div style="margin-top:6px;">- ${item}</div>`).join('') || '<div>No checks returned.</div>';
+    log(`AI proposal generated for ${state.currentPath}`);
+  }
 
-      window.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-          e.preventDefault();
-          saveCurrent();
-          return;
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
-          e.preventDefault();
-          quickOpenFile();
-        }
-      });
+  document.getElementById('btnAiApply').addEventListener('click', () => {
+    if (!state.suggestedContent) return window.adminAlert('No AI code yet', 'Generate a patch proposal first.', 'warning');
+    editor.value = state.suggestedContent;
+    renderDiff(state.currentContent, state.suggestedContent);
+    log('Applied AI proposal to editor buffer');
+  });
 
-      window.addEventListener('beforeunload', function(e) {
-        if (!isDirty) return;
-        e.preventDefault();
-        e.returnValue = '';
-      });
-    });
-  })();
+  document.getElementById('btnAiApplyFile').addEventListener('click', async () => {
+    if (!state.currentPath) return window.adminAlert('No target file', 'Open a file first.', 'warning');
+    if (!state.suggestedContent) return window.adminAlert('No AI code yet', 'Generate a patch proposal first.', 'warning');
+    const ok = await window.adminConfirm('Apply AI patch to file', 'This will overwrite the file on disk with the AI-generated content.');
+    if (!ok) return;
+    const data = await api('apply_ai_patch', { path: state.currentPath, content: state.suggestedContent });
+    if (!data.ok) return window.adminAlert('Apply failed', data.message || 'Unable to apply AI patch.', 'error');
+    state.currentContent = state.suggestedContent;
+    editor.value = state.currentContent;
+    renderDiff(state.currentContent, state.currentContent);
+    log(data.message || 'AI patch applied');
+    window.adminAlert('Applied', data.message || 'AI patch applied to file.', 'success');
+  });
+
+  document.getElementById('btnAiGenerate').addEventListener('click', generateAiProposal);
+  document.getElementById('btnSaveFile').addEventListener('click', saveCurrent);
+  document.getElementById('btnRefreshFiles').addEventListener('click', loadFiles);
+  document.getElementById('btnGitStatus').addEventListener('click', async () => {
+    const data = await api('git_status', {});
+    log(data.output || data.message || 'No git output');
+  });
+  document.getElementById('btnGitPull').addEventListener('click', async () => {
+    const data = await api('git_pull', { branch: 'main' });
+    log(data.output || data.message || 'No git output');
+  });
+  document.getElementById('btnNewFile').addEventListener('click', async () => {
+    const path = prompt('New file path');
+    if (!path) return;
+    const data = await api('create_file', { path, content: '' });
+    if (data.ok) { await loadFiles(); await openFile(path); }
+    else window.adminAlert('Create failed', data.message || 'Unable to create file.', 'error');
+  });
+  document.getElementById('btnNewFolder').addEventListener('click', async () => {
+    const path = prompt('New folder path');
+    if (!path) return;
+    const data = await api('create_folder', { path });
+    if (data.ok) { loadFiles(); log(data.message || 'Folder created'); }
+    else window.adminAlert('Create failed', data.message || 'Unable to create folder.', 'error');
+  });
+  fileSearch.addEventListener('input', renderFiles);
+  document.querySelectorAll('[data-open-file]').forEach(btn => btn.addEventListener('click', () => openFile(btn.getAttribute('data-open-file'))));
+
+  loadFiles();
+  aiStatus();
+})();
 </script>

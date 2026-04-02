@@ -1,4 +1,8 @@
 <?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
+<?php
+require_once __DIR__ . '/../../env_helpers.php';
+$adminLocalMode = app_local_mode_enabled(__DIR__ . '/../../.env');
+?>
 <!-- Mobile Page Header (visible <1024px only, hidden on desktop) -->
 <header class="page-header">
   <div style="display:flex;align-items:center;gap:12px;">
@@ -7,6 +11,12 @@
     </button>
     <img src="../asset/lautech_logo.png" alt="logo" style="height:32px;width:auto;border-radius:6px;" onerror="this.style.display='none'">
     <h1>Attendance Admin</h1>
+    <?php if ($adminLocalMode): ?>
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(78,222,163,0.14);color:#059669;font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#4edea3;box-shadow:0 0 12px rgba(78,222,163,0.7);"></span>
+        Local Mode
+      </span>
+    <?php endif; ?>
   </div>
 
   <div style="display:flex;align-items:center;gap:10px;">
