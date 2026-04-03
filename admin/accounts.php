@@ -133,22 +133,240 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<!-- Admin Accounts — Stitch UI -->
-<div style="max-width:900px;margin:0 auto;">
-  <div style="margin-bottom:24px;">
-    <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">
-      <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">group</span>Admin Accounts
-    </h2>
-    <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Manage admin users. Max: <?= intval($settings['max_admins'] ?? 5) ?> accounts.</p>
+<style>
+  .accounts-page {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .accounts-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .accounts-title {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--on-surface);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .accounts-subtitle {
+    margin: 6px 0 0;
+    color: var(--on-surface-variant);
+    font-size: 0.92rem;
+  }
+
+  .accounts-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .accounts-stat-card {
+    background: var(--surface-container-lowest);
+    border: 1px solid var(--outline-variant);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: var(--shadow-ambient);
+  }
+
+  .accounts-stat-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--on-surface-variant);
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+
+  .accounts-stat-value {
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: var(--on-surface);
+  }
+
+  .accounts-table-wrap {
+    overflow-x: auto;
+  }
+
+  .accounts-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .accounts-self-chip {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--on-surface-variant);
+    background: var(--surface-container-high);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .accounts-reset-form {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .accounts-reset-input {
+    width: 132px;
+    min-width: 132px;
+  }
+
+  .admin-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(7, 18, 31, 0.56);
+    backdrop-filter: blur(4px);
+    z-index: 21000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .admin-modal-backdrop.open {
+    display: flex;
+  }
+
+  .admin-modal {
+    width: min(680px, 100%);
+    background: var(--surface-container-lowest);
+    border: 1px solid var(--outline-variant);
+    border-radius: 18px;
+    box-shadow: var(--shadow-elevated);
+    overflow: hidden;
+  }
+
+  .admin-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    background: linear-gradient(135deg, var(--primary-fixed), var(--surface-container-low));
+    border-bottom: 1px solid var(--outline-variant);
+  }
+
+  .admin-modal-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--on-surface);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .admin-modal-body {
+    padding: 18px;
+  }
+
+  .admin-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .admin-modal-grid .full {
+    grid-column: span 2;
+  }
+
+  .admin-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 6px;
+  }
+
+  @media (max-width: 860px) {
+    .accounts-stat-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .accounts-hero {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .admin-modal-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-modal-grid .full {
+      grid-column: span 1;
+    }
+
+    .accounts-actions {
+      justify-content: flex-start;
+    }
+
+    .accounts-reset-input {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+</style>
+
+<div class="accounts-page">
+  <div class="accounts-hero">
+    <div>
+      <h2 class="accounts-title"><span class="material-symbols-outlined">admin_panel_settings</span>Manage Accounts</h2>
+      <p class="accounts-subtitle">Modern account controls for your admin team. Max allowed: <?= intval($settings['max_admins'] ?? 5) ?> accounts.</p>
+    </div>
+    <?php if ($currentRole === 'superadmin'): ?>
+      <button type="button" class="st-btn st-btn-primary" id="openCreateAdminModalBtn">
+        <span class="material-symbols-outlined" style="font-size:1rem;">person_add</span>
+        Create Admin
+      </button>
+    <?php endif; ?>
   </div>
 
-  <!-- Accounts Table -->
-  <div class="st-card" style="padding:0;margin-bottom:20px;overflow-x:auto;">
+  <?php
+  $totalAdmins = count($accounts);
+  $superAdmins = 0;
+  foreach ($accounts as $acct) {
+    if (($acct['role'] ?? 'admin') === 'superadmin') $superAdmins++;
+  }
+  ?>
+
+  <div class="accounts-stat-grid">
+    <div class="accounts-stat-card">
+      <div class="accounts-stat-label">Total Admins</div>
+      <div class="accounts-stat-value"><?= intval($totalAdmins) ?></div>
+    </div>
+    <div class="accounts-stat-card">
+      <div class="accounts-stat-label">Super Admins</div>
+      <div class="accounts-stat-value"><?= intval($superAdmins) ?></div>
+    </div>
+    <div class="accounts-stat-card">
+      <div class="accounts-stat-label">Remaining Slots</div>
+      <div class="accounts-stat-value"><?= max(0, intval($settings['max_admins'] ?? 5) - $totalAdmins) ?></div>
+    </div>
+  </div>
+
+  <div class="st-card accounts-table-wrap" style="padding:0;">
     <table class="st-table" style="width:100%;">
       <thead>
         <tr>
-          <th>Username</th>
-          <th>Name</th>
+          <th>Admin</th>
           <th>Email</th>
           <th>Role</th>
           <th style="text-align:right;">Actions</th>
@@ -156,14 +374,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </thead>
       <tbody>
         <?php foreach ($accounts as $u => $info): ?>
+          <?php $isSelf = $u === ($_SESSION['admin_user'] ?? ''); ?>
           <tr>
-            <td style="font-weight:600;"><?= htmlspecialchars($u) ?></td>
-            <td><?= htmlspecialchars($info['name'] ?? '') ?></td>
+            <td>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <strong><?= htmlspecialchars($u) ?></strong>
+                <span style="color:var(--on-surface-variant);font-size:0.82rem;"><?= htmlspecialchars($info['name'] ?? $u) ?></span>
+              </div>
+            </td>
             <td>
               <?php if (!empty($info['email'])): ?>
-                <a href="mailto:<?= htmlspecialchars($info['email']) ?>?subject=Smart Attendance System Invitation&body=You have been invited as an admin. Username: <?= htmlspecialchars($u) ?>" style="color:var(--primary);text-decoration:none;"><?= htmlspecialchars($info['email']) ?></a>
+                <a href="mailto:<?= htmlspecialchars($info['email']) ?>" style="color:var(--primary);font-weight:600;"><?= htmlspecialchars($info['email']) ?></a>
               <?php else: ?>
-                <span style="color:var(--outline);">—</span>
+                <span style="color:var(--outline);">No email</span>
               <?php endif; ?>
             </td>
             <td>
@@ -173,26 +396,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </td>
             <td style="text-align:right;">
               <?php if ($currentRole === 'superadmin'): ?>
-                <?php if ($u !== ($_SESSION['admin_user'] ?? '')): ?>
-                  <div style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
-                    <form method="POST" style="display:inline;margin:0;">
+                <?php if ($isSelf): ?>
+                  <span class="accounts-self-chip">YOU</span>
+                <?php else: ?>
+                  <div class="accounts-actions">
+                    <form method="POST" class="accounts-reset-form" style="margin:0;">
+                      <?php csrf_field(); ?>
+                      <input type="hidden" name="action" value="set_password">
+                      <input type="hidden" name="target" value="<?= htmlspecialchars($u) ?>">
+                      <input type="password" name="new_password" class="accounts-reset-input" placeholder="New password" required minlength="6">
+                      <button type="submit" class="st-btn st-btn-sm" style="background:#f59e0b;color:#fff;">Set</button>
+                    </form>
+                    <form method="POST" class="admin-delete-form" style="margin:0;">
                       <?php csrf_field(); ?>
                       <input type="hidden" name="action" value="delete">
                       <input type="hidden" name="target" value="<?= htmlspecialchars($u) ?>">
                       <button type="submit" class="st-btn st-btn-danger st-btn-sm">
                         <span class="material-symbols-outlined" style="font-size:0.9rem;">delete</span>
+                        Remove
                       </button>
                     </form>
-                    <form method="POST" style="display:inline-flex;gap:4px;margin:0;align-items:center;">
-                      <?php csrf_field(); ?>
-                      <input type="hidden" name="action" value="set_password">
-                      <input type="hidden" name="target" value="<?= htmlspecialchars($u) ?>">
-                      <input type="password" name="new_password" placeholder="New pwd" style="width:120px;padding:6px 8px;font-size:0.85rem;">
-                      <button type="submit" class="st-btn st-btn-sm" style="background:#f59e0b;color:#fff;">Set</button>
-                    </form>
                   </div>
-                <?php else: ?>
-                  <span class="st-chip st-chip-neutral">(you)</span>
                 <?php endif; ?>
               <?php else: ?>
                 <span style="color:var(--outline);">—</span>
@@ -204,62 +428,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </table>
   </div>
 
-  <!-- Create Admin -->
-  <?php if ($currentRole === 'superadmin'): ?>
-    <div class="st-card" style="margin-bottom:20px;">
-      <p style="font-weight:700;color:var(--on-surface);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
-        <span class="material-symbols-outlined" style="font-size:1.1rem;">person_add</span> Create Admin
-      </p>
-      <form method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
-        <?php csrf_field(); ?>
-        <input name="action" type="hidden" value="create">
-        <div>
-          <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Username</label>
-          <input name="username" placeholder="username" required>
-        </div>
-        <div>
-          <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Full Name</label>
-          <input name="fullname" placeholder="Full Name">
-        </div>
-        <div>
-          <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Email</label>
-          <input name="email" type="email" placeholder="admin@domain.com">
-        </div>
-        <div>
-          <label style="display:block;font-weight:600;margin-bottom:4px;color:var(--on-surface-variant);font-size:0.8rem;">Password</label>
-          <input name="password" type="password" placeholder="password" required>
-        </div>
-        <button type="submit" class="st-btn st-btn-success">
-          <span class="material-symbols-outlined" style="font-size:1rem;">add</span> Create
-        </button>
-      </form>
-    </div>
-  <?php else: ?>
-    <p style="color:var(--outline);font-style:italic;">Only super-admins can create new admin accounts.</p>
+  <?php if ($currentRole !== 'superadmin'): ?>
+    <p style="margin-top:12px;color:var(--outline);font-style:italic;">Only super-admins can create or modify admin accounts.</p>
   <?php endif; ?>
-
-  <!-- Change Own Password -->
-  <div class="st-card">
-    <p style="font-weight:700;color:var(--on-surface);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
-      <span class="material-symbols-outlined" style="font-size:1.1rem;">lock</span> Change Your Password
-    </p>
-    <form method="POST" style="max-width:400px;display:flex;flex-direction:column;gap:10px;">
-      <?php csrf_field(); ?>
-      <input type="hidden" name="action" value="change_self">
-      <input type="password" name="current_password" placeholder="Current password">
-      <input type="password" name="new_password" placeholder="New password">
-      <input type="password" name="confirm_password" placeholder="Confirm new password">
-      <button type="submit" class="st-btn st-btn-primary">
-        <span class="material-symbols-outlined" style="font-size:1rem;">lock_reset</span> Change Password
-      </button>
-    </form>
-  </div>
 </div>
 
+<?php if ($currentRole === 'superadmin'): ?>
+  <div class="admin-modal-backdrop" id="createAdminModal" aria-hidden="true">
+    <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="createAdminModalTitle">
+      <div class="admin-modal-head">
+        <p class="admin-modal-title" id="createAdminModalTitle"><span class="material-symbols-outlined">person_add</span>Create Admin</p>
+        <button type="button" class="admin-modal-close" id="closeCreateAdminModalBtn" aria-label="Close create admin modal">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="admin-modal-body">
+        <form method="POST">
+          <?php csrf_field(); ?>
+          <input name="action" type="hidden" value="create">
+          <div class="admin-modal-grid">
+            <div>
+              <label class="st-label" style="margin-bottom:6px;display:block;">Username</label>
+              <input name="username" placeholder="username" required pattern="[a-zA-Z0-9_\-]{3,30}">
+            </div>
+            <div>
+              <label class="st-label" style="margin-bottom:6px;display:block;">Full Name</label>
+              <input name="fullname" placeholder="Full Name">
+            </div>
+            <div class="full">
+              <label class="st-label" style="margin-bottom:6px;display:block;">Email</label>
+              <input name="email" type="email" placeholder="admin@domain.com">
+            </div>
+            <div class="full">
+              <label class="st-label" style="margin-bottom:6px;display:block;">Temporary Password</label>
+              <input name="password" type="password" placeholder="Minimum 6 characters" required minlength="6">
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+            <button type="button" class="st-btn st-btn-ghost" id="cancelCreateAdminModalBtn">Cancel</button>
+            <button type="submit" class="st-btn st-btn-success">
+              <span class="material-symbols-outlined" style="font-size:1rem;">check</span>
+              Create Admin
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
+
 <script>
-  document.querySelectorAll('form input[name="action"][value="delete"]').forEach(function(input) {
-    var form = input.closest('form');
-    if (!form) return;
+  document.querySelectorAll('.admin-delete-form').forEach(function(form) {
     form.addEventListener('submit', function(e) {
       e.preventDefault();
       window.adminConfirm('Delete admin account', 'This account will be removed permanently. Continue?').then(function(ok) {
@@ -268,9 +487,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     });
   });
 
+  (function() {
+    var modal = document.getElementById('createAdminModal');
+    if (!modal) return;
+    var openBtn = document.getElementById('openCreateAdminModalBtn');
+    var closeBtn = document.getElementById('closeCreateAdminModalBtn');
+    var cancelBtn = document.getElementById('cancelCreateAdminModalBtn');
+
+    function openModal() {
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+    });
+  })();
+
   <?php if ($message !== ''): ?>
-  window.adminAlert('Success', <?= json_encode($message) ?>, 'success');
+    window.adminAlert('Success', <?= json_encode($message) ?>, 'success');
   <?php elseif (!empty($errors)): ?>
-  window.adminAlert('Action failed', <?= json_encode(implode("\n", $errors)) ?>, 'error');
+    window.adminAlert('Action failed', <?= json_encode(implode("\n", $errors)) ?>, 'error');
   <?php endif; ?>
 </script>

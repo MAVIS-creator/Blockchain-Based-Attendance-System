@@ -162,6 +162,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' => '', 'lng' => '', 'radius_m' => 0];
 ?>
 
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin="" />
+<style>
+  .geo-map-shell {
+    margin-top: 10px;
+    border: 1px solid var(--outline-variant);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface-container-low);
+  }
+
+  .geo-map-canvas {
+    height: 330px;
+    width: 100%;
+    z-index: 0;
+  }
+
+  .geo-map-controls {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 12px;
+    border-top: 1px solid var(--outline-variant);
+    background: var(--surface-container-lowest);
+  }
+
+  .geo-map-meta {
+    color: var(--on-surface-variant);
+    font-size: 0.84rem;
+    line-height: 1.35;
+  }
+
+  .geo-map-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .geo-place-search {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .geo-place-input {
+    width: 100%;
+    border: 1px solid var(--outline-variant);
+    background: var(--surface-container-low);
+    color: var(--on-surface);
+    border-radius: 10px;
+    padding: 9px 10px;
+    font-size: 0.85rem;
+  }
+
+  .geo-radius-wrap {
+    display: grid;
+    gap: 8px;
+  }
+
+  .geo-radius-label {
+    font-size: 0.82rem;
+    color: var(--on-surface-variant);
+    font-weight: 600;
+  }
+
+  .geo-radius-slider {
+    width: 100%;
+  }
+
+  @media (max-width: 760px) {
+    .geo-map-controls {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
   <div>
     <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);margin:0;">Geo-fence Manager</h2>
@@ -193,9 +273,29 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
         <input type="checkbox" name="geo_fence_enabled" value="1" <?= !empty($settings['geo_fence_enabled']) ? 'checked' : '' ?>>
         <span>Enable geo-fence enforcement in `submit.php`</span>
       </label>
-      <input class="st-input" type="text" name="geo_lat" placeholder="Latitude" value="<?= htmlspecialchars((string)($activeGeo['lat'] ?? '')) ?>">
-      <input class="st-input" type="text" name="geo_lng" placeholder="Longitude" value="<?= htmlspecialchars((string)($activeGeo['lng'] ?? '')) ?>">
-      <input class="st-input" type="number" min="1" name="geo_radius_m" placeholder="Radius (meters)" value="<?= htmlspecialchars((string)($activeGeo['radius_m'] ?? 0)) ?>">
+      <input id="geo_lat" class="st-input" type="text" name="geo_lat" placeholder="Latitude" value="<?= htmlspecialchars((string)($activeGeo['lat'] ?? '')) ?>">
+      <input id="geo_lng" class="st-input" type="text" name="geo_lng" placeholder="Longitude" value="<?= htmlspecialchars((string)($activeGeo['lng'] ?? '')) ?>">
+      <input id="geo_radius_m" class="st-input" type="number" min="1" name="geo_radius_m" placeholder="Radius (meters)" value="<?= htmlspecialchars((string)($activeGeo['radius_m'] ?? 0)) ?>">
+
+      <div class="geo-map-shell">
+        <div id="geo_map_canvas" class="geo-map-canvas"></div>
+        <div class="geo-map-controls">
+          <div class="geo-radius-wrap">
+            <label class="geo-radius-label" for="geo_radius_slider">Radius from map: <strong id="geo_radius_value">0</strong> m</label>
+            <input id="geo_radius_slider" class="geo-radius-slider" type="range" min="10" max="1000" step="5" value="100">
+            <div class="geo-place-search">
+              <input id="geo_place_query" class="geo-place-input" type="text" placeholder="Search place name (e.g. Lagos State University)">
+              <button type="button" id="geo_place_search_btn" class="st-btn st-btn-sm st-btn-secondary">Search</button>
+            </div>
+            <div id="geo_map_status" class="geo-map-meta">Tip: click anywhere on the map to set center point. Radius updates live.</div>
+          </div>
+          <div class="geo-map-actions">
+            <button type="button" id="geo_map_my_location" class="st-btn st-btn-sm st-btn-secondary">Use My Location</button>
+            <button type="button" id="geo_map_use_inputs" class="st-btn st-btn-sm st-btn-primary">Center from Inputs</button>
+          </div>
+        </div>
+      </div>
+
       <button type="submit" name="save_geofence" value="1" class="st-btn st-btn-primary">
         <span class="material-symbols-outlined" style="font-size:1rem;">save</span> Save Active Geo-fence
       </button>
@@ -268,55 +368,253 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
   </div>
 </div>
 
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""></script>
 <script>
   (function() {
     var btn = document.getElementById('geo_test_btn');
     var out = document.getElementById('geo_test_result');
     var lat = document.getElementById('geo_test_lat');
     var lng = document.getElementById('geo_test_lng');
-    if (!btn || !out || !lat || !lng) return;
+    var geoLatInput = document.getElementById('geo_lat');
+    var geoLngInput = document.getElementById('geo_lng');
+    var geoRadiusInput = document.getElementById('geo_radius_m');
+    var geoRadiusSlider = document.getElementById('geo_radius_slider');
+    var geoRadiusValue = document.getElementById('geo_radius_value');
+    var geoMapStatus = document.getElementById('geo_map_status');
+    var geoMyLocationBtn = document.getElementById('geo_map_my_location');
+    var geoUseInputsBtn = document.getElementById('geo_map_use_inputs');
+    var geoPlaceQuery = document.getElementById('geo_place_query');
+    var geoPlaceSearchBtn = document.getElementById('geo_place_search_btn');
+    var geoMapEl = document.getElementById('geo_map_canvas');
 
-    btn.addEventListener('click', function() {
-      var body = new URLSearchParams();
-      body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
-      body.append('test_lat', lat.value.trim());
-      body.append('test_lng', lng.value.trim());
+    if (btn && out && lat && lng) {
+      btn.addEventListener('click', function() {
+        var body = new URLSearchParams();
+        body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
+        body.append('test_lat', lat.value.trim());
+        body.append('test_lng', lng.value.trim());
 
-      out.textContent = 'Running geofence test...';
-      fetch('geofence_test.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
-        body: body.toString()
-      }).then(function(r) {
-        return r.json();
-      }).then(function(data) {
-        if (!data || !data.ok) {
+        out.textContent = 'Running geofence test...';
+        fetch('geofence_test.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+          },
+          body: body.toString()
+        }).then(function(r) {
+          return r.json();
+        }).then(function(data) {
+          if (!data || !data.ok) {
+            out.style.color = '#b91c1c';
+            out.textContent = 'Test failed: ' + ((data && data.message) ? data.message : 'Unknown error');
+            return;
+          }
+
+          if (data.enforced === false) {
+            out.style.color = '#0369a1';
+            out.textContent = 'Geo-fence is disabled, so submit.php will not reject by location.';
+            return;
+          }
+
+          out.style.color = data.inside ? '#166534' : '#b91c1c';
+          out.textContent = (data.inside ? 'Inside' : 'Outside') + ' geo-fence. Distance: ' + data.distance_m + 'm. Radius: ' + data.radius_m + 'm.';
+        }).catch(function() {
           out.style.color = '#b91c1c';
-          out.textContent = 'Test failed: ' + ((data && data.message) ? data.message : 'Unknown error');
-          return;
-        }
-
-        if (data.enforced === false) {
-          out.style.color = '#0369a1';
-          out.textContent = 'Geo-fence is disabled, so submit.php will not reject by location.';
-          return;
-        }
-
-        out.style.color = data.inside ? '#166534' : '#b91c1c';
-        out.textContent = (data.inside ? 'Inside' : 'Outside') + ' geo-fence. Distance: ' + data.distance_m + 'm. Radius: ' + data.radius_m + 'm.';
-      }).catch(function() {
-        out.style.color = '#b91c1c';
-        out.textContent = 'Request error while testing geo-fence.';
+          out.textContent = 'Request error while testing geo-fence.';
+        });
       });
+    }
+
+    if (!geoMapEl || !geoLatInput || !geoLngInput || !geoRadiusInput || !geoRadiusSlider || !window.L) return;
+
+    function parseNum(v, fallback) {
+      var n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    var defaultLat = parseNum(geoLatInput.value, 6.5244);
+    var defaultLng = parseNum(geoLngInput.value, 3.3792);
+    var defaultRadius = Math.max(10, parseNum(geoRadiusInput.value, 120));
+
+    geoRadiusSlider.value = String(defaultRadius);
+    geoRadiusValue.textContent = String(defaultRadius);
+
+    var map = L.map('geo_map_canvas', {
+      zoomControl: true,
+      attributionControl: true
+    }).setView([defaultLat, defaultLng], 16);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 20,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var marker = L.marker([defaultLat, defaultLng], {
+      draggable: true
+    }).addTo(map);
+
+    var circle = L.circle([defaultLat, defaultLng], {
+      radius: defaultRadius,
+      color: '#2563eb',
+      fillColor: '#3b82f6',
+      fillOpacity: 0.22,
+      weight: 2
+    }).addTo(map);
+
+    function updateInputsAndMap(latVal, lngVal, radiusVal, moveMap) {
+      var latFixed = Number(latVal).toFixed(6);
+      var lngFixed = Number(lngVal).toFixed(6);
+      var safeRadius = Math.max(10, Math.round(Number(radiusVal) || 10));
+
+      geoLatInput.value = latFixed;
+      geoLngInput.value = lngFixed;
+      geoRadiusInput.value = String(safeRadius);
+      geoRadiusSlider.value = String(safeRadius);
+      geoRadiusValue.textContent = String(safeRadius);
+
+      marker.setLatLng([Number(latFixed), Number(lngFixed)]);
+      circle.setLatLng([Number(latFixed), Number(lngFixed)]);
+      circle.setRadius(safeRadius);
+
+      if (moveMap) {
+        map.panTo([Number(latFixed), Number(lngFixed)], {
+          animate: true
+        });
+      }
+
+      if (geoMapStatus) {
+        geoMapStatus.textContent = 'Center: ' + latFixed + ', ' + lngFixed + ' • Radius: ' + safeRadius + 'm';
+      }
+    }
+
+    map.on('click', function(ev) {
+      updateInputsAndMap(ev.latlng.lat, ev.latlng.lng, geoRadiusInput.value, false);
     });
+
+    marker.on('dragend', function() {
+      var pos = marker.getLatLng();
+      updateInputsAndMap(pos.lat, pos.lng, geoRadiusInput.value, false);
+    });
+
+    geoRadiusSlider.addEventListener('input', function() {
+      updateInputsAndMap(geoLatInput.value, geoLngInput.value, geoRadiusSlider.value, false);
+    });
+
+    geoRadiusInput.addEventListener('input', function() {
+      updateInputsAndMap(geoLatInput.value, geoLngInput.value, geoRadiusInput.value, false);
+    });
+
+    geoLatInput.addEventListener('change', function() {
+      updateInputsAndMap(geoLatInput.value, geoLngInput.value, geoRadiusInput.value, true);
+    });
+
+    geoLngInput.addEventListener('change', function() {
+      updateInputsAndMap(geoLatInput.value, geoLngInput.value, geoRadiusInput.value, true);
+    });
+
+    if (geoUseInputsBtn) {
+      geoUseInputsBtn.addEventListener('click', function() {
+        updateInputsAndMap(geoLatInput.value, geoLngInput.value, geoRadiusInput.value, true);
+      });
+    }
+
+    function searchPlaceByName() {
+      if (!geoPlaceQuery || !geoPlaceSearchBtn) return;
+
+      var query = (geoPlaceQuery.value || '').trim();
+      if (!query) {
+        if (geoMapStatus) geoMapStatus.textContent = 'Enter a place name first (e.g. Lagos State University).';
+        geoPlaceQuery.focus();
+        return;
+      }
+
+      geoPlaceSearchBtn.disabled = true;
+      geoPlaceSearchBtn.textContent = 'Searching...';
+      if (geoMapStatus) geoMapStatus.textContent = 'Searching for "' + query + '"...';
+
+      var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(query);
+      fetch(url, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      }).then(function(resp) {
+        return resp.json();
+      }).then(function(results) {
+        if (!Array.isArray(results) || !results.length) {
+          if (geoMapStatus) geoMapStatus.textContent = 'No place found for "' + query + '". Try a more specific name.';
+          return;
+        }
+
+        var hit = results[0] || {};
+        var foundLat = parseNum(hit.lat, NaN);
+        var foundLng = parseNum(hit.lon, NaN);
+        if (!Number.isFinite(foundLat) || !Number.isFinite(foundLng)) {
+          if (geoMapStatus) geoMapStatus.textContent = 'Found a place, but coordinates were invalid. Try another result.';
+          return;
+        }
+
+        updateInputsAndMap(foundLat, foundLng, geoRadiusInput.value, true);
+        map.setZoom(Math.max(map.getZoom(), 16));
+        if (geoMapStatus) geoMapStatus.textContent = 'Place found: ' + (hit.display_name || query);
+      }).catch(function() {
+        if (geoMapStatus) geoMapStatus.textContent = 'Place search failed. Please try again in a moment.';
+      }).finally(function() {
+        geoPlaceSearchBtn.disabled = false;
+        geoPlaceSearchBtn.textContent = 'Search';
+      });
+    }
+
+    if (geoPlaceSearchBtn) {
+      geoPlaceSearchBtn.addEventListener('click', searchPlaceByName);
+    }
+
+    if (geoPlaceQuery) {
+      geoPlaceQuery.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          searchPlaceByName();
+        }
+      });
+    }
+
+    if (geoMyLocationBtn && navigator.geolocation) {
+      geoMyLocationBtn.addEventListener('click', function() {
+        geoMyLocationBtn.disabled = true;
+        geoMyLocationBtn.textContent = 'Locating...';
+
+        navigator.geolocation.getCurrentPosition(function(position) {
+          updateInputsAndMap(position.coords.latitude, position.coords.longitude, geoRadiusInput.value, true);
+          geoMyLocationBtn.disabled = false;
+          geoMyLocationBtn.textContent = 'Use My Location';
+        }, function() {
+          if (geoMapStatus) {
+            geoMapStatus.textContent = 'Could not fetch your location. You can still click the map manually.';
+          }
+          geoMyLocationBtn.disabled = false;
+          geoMyLocationBtn.textContent = 'Use My Location';
+        }, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+    } else if (geoMyLocationBtn) {
+      geoMyLocationBtn.disabled = true;
+      geoMyLocationBtn.title = 'Geolocation is not available in this browser.';
+    }
+
+    updateInputsAndMap(defaultLat, defaultLng, defaultRadius, false);
   })();
 </script>
 <?php if ($message !== '' || !empty($errors)): ?>
-<script>
-  window.adminAlert(
-    <?= json_encode($message !== '' ? 'Success' : 'Action failed') ?>,
-    <?= json_encode($message !== '' ? $message : implode("\n", $errors)) ?>,
-    <?= json_encode($message !== '' ? 'success' : 'error') ?>
-  );
-</script>
+  <script>
+    window.adminAlert(
+      <?= json_encode($message !== '' ? 'Success' : 'Action failed') ?>,
+      <?= json_encode($message !== '' ? $message : implode("\n", $errors)) ?>,
+      <?= json_encode($message !== '' ? 'success' : 'error') ?>
+    );
+  </script>
 <?php endif; ?>

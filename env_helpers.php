@@ -49,7 +49,8 @@ if (!function_exists('app_load_env_file')) {
 if (!function_exists('app_load_env_layers')) {
   function app_load_env_layers($baseEnvPath)
   {
-    $env = app_load_env_file($baseEnvPath);
+    $baseEnv = app_load_env_file($baseEnvPath);
+    $env = $baseEnv;
     $baseDir = dirname((string)$baseEnvPath);
     $localPath = $baseDir . DIRECTORY_SEPARATOR . '.env.local';
 
@@ -66,11 +67,17 @@ if (!function_exists('app_load_env_layers')) {
       $defaultLocalStorage = $projectRoot . DIRECTORY_SEPARATOR . 'storage';
       $configuredLocalStorage = trim((string)($env['LOCAL_STORAGE_PATH'] ?? ''));
 
-      $env['HYBRID_MODE'] = 'off';
-      $env['HYBRID_ADMIN_READ'] = 'false';
+      // Local mode should keep the local storage path and debug behavior,
+      // but it must not erase hybrid settings that were intentionally saved.
       $env['STORAGE_PATH'] = $configuredLocalStorage !== '' ? $configuredLocalStorage : $defaultLocalStorage;
       $env['APP_ENV'] = 'local';
       $env['APP_DEBUG'] = 'true';
+      if (array_key_exists('HYBRID_MODE', $baseEnv)) {
+        $env['HYBRID_MODE'] = $baseEnv['HYBRID_MODE'];
+      }
+      if (array_key_exists('HYBRID_ADMIN_READ', $baseEnv)) {
+        $env['HYBRID_ADMIN_READ'] = $baseEnv['HYBRID_ADMIN_READ'];
+      }
     }
 
     return $env;

@@ -331,6 +331,7 @@ $ENV_LOCAL = load_env_array($envLocalPath);
 // default settings
 if (!file_exists($settingsFile)) {
   $default = [
+    'device_identity_mode' => 'mac',
     'prefer_mac' => true,
     'max_admins' => 5,
     'require_fingerprint_match' => false,
@@ -367,10 +368,11 @@ if (!file_exists($settingsFile)) {
   save_settings($settingsFile, $keyFile, $default, false);
 }
 
-$settings = load_settings($settingsFile, $keyFile) ?: ['prefer_mac' => true, 'max_admins' => 5];
+$settings = load_settings($settingsFile, $keyFile) ?: ['device_identity_mode' => 'mac', 'prefer_mac' => true, 'max_admins' => 5];
 
 // Ensure missing keys from older settings files are populated safely.
 $settings = array_replace([
+  'device_identity_mode' => 'mac',
   'prefer_mac' => true,
   'max_admins' => 5,
   'require_fingerprint_match' => false,
@@ -402,6 +404,14 @@ $settings = array_replace([
     'format' => 'csv'
   ]
 ], is_array($settings) ? $settings : []);
+
+// Backward compatibility: old boolean prefer_mac -> new mode
+if (empty($settings['device_identity_mode'])) {
+  $settings['device_identity_mode'] = !isset($settings['prefer_mac']) || (bool)$settings['prefer_mac'] ? 'mac' : 'ip';
+}
+if (!in_array($settings['device_identity_mode'], ['mac', 'ip', 'both'], true)) {
+  $settings['device_identity_mode'] = 'mac';
+}
 
 // determine current user role
 $currentRole = $_SESSION['admin_role'] ?? 'admin';
@@ -465,7 +475,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   // Save settings flow
   if (isset($_POST['save_settings'])) {
-    $preferMac = isset($_POST['prefer_mac']) && $_POST['prefer_mac'] === '1';
+    $deviceIdentityMode = strtolower(trim((string)($_POST['device_identity_mode'] ?? ($settings['device_identity_mode'] ?? 'mac'))));
+    if (!in_array($deviceIdentityMode, ['mac', 'ip', 'both'], true)) {
+      $deviceIdentityMode = 'mac';
+    }
     $maxAdmins = intval($_POST['max_admins'] ?? $settings['max_admins']);
     $requireFingerprint = isset($_POST['require_fingerprint_match']) && $_POST['require_fingerprint_match'] === '1';
     $checkinStart = trim($_POST['checkin_time_start'] ?? '');
@@ -477,10 +490,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ipWhitelist = array_values(array_filter(array_map('trim', preg_split('/[\r\n,]+/', $ipWhitelistRaw))));
     $encryptedSettings = isset($_POST['encrypted_settings']) && $_POST['encrypted_settings'] === '1';
     $deviceCooldown = intval($_POST['device_cooldown_seconds'] ?? 0);
-    $geoFenceEnabled = isset($_POST['geo_fence_enabled']) && $_POST['geo_fence_enabled'] === '1';
-    $geoLat = $_POST['geo_lat'] ?? null;
-    $geoLng = $_POST['geo_lng'] ?? null;
-    $geoRadius = intval($_POST['geo_radius_m'] ?? 0);
     $userAgentLock = isset($_POST['user_agent_lock']) && $_POST['user_agent_lock'] === '1';
     $autoBackup = isset($_POST['auto_backup']) && $_POST['auto_backup'] === '1';
     $backupRetention = intval($_POST['backup_retention'] ?? 10);
@@ -494,12 +503,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($blockedTokensRetention < 1) $blockedTokensRetention = 1;
     if ($blockedTokensRetention > 3650) $blockedTokensRetention = 3650;
 
-    if ($geoFenceEnabled) {
-      if ($geoLat === null || $geoLat === '' || !is_numeric($geoLat)) $errors[] = 'Geo-fence latitude must be a valid number when geo-fencing is enabled.';
-      if ($geoLng === null || $geoLng === '' || !is_numeric($geoLng)) $errors[] = 'Geo-fence longitude must be a valid number when geo-fencing is enabled.';
-      if ($geoRadius <= 0) $errors[] = 'Geo-fence radius must be greater than 0 when geo-fencing is enabled.';
-    }
-
     // if critical fields are changing and encryption toggle or max_admins changed, require reauth
     $critical = false;
     if (($settings['max_admins'] ?? 0) !== $maxAdmins) $critical = true;
@@ -508,7 +511,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
       $old = $settings;
-      $settings['prefer_mac'] = $preferMac;
+      $settings['device_identity_mode'] = $deviceIdentityMode;
+      $settings['prefer_mac'] = $deviceIdentityMode !== 'ip';
       if ($currentRole === 'superadmin') $settings['max_admins'] = $maxAdmins;
       $settings['require_fingerprint_match'] = $requireFingerprint;
       $settings['checkin_time_start'] = $checkinStart;
@@ -517,8 +521,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $settings['ip_whitelist'] = $ipWhitelist;
       $settings['encrypted_settings'] = $encryptedSettings;
       $settings['device_cooldown_seconds'] = $deviceCooldown;
-      $settings['geo_fence_enabled'] = $geoFenceEnabled;
-      $settings['geo_fence'] = ['lat' => $geoLat, 'lng' => $geoLng, 'radius_m' => $geoRadius];
       $settings['user_agent_lock'] = $userAgentLock;
       $settings['auto_backup'] = $autoBackup;
       $settings['backup_retention'] = $backupRetention;
@@ -711,14 +713,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Device Preference</label>
-            <div class="flex gap-4 p-1 bg-surface-container-low rounded-lg mt-2">
-              <label class="flex-1 flex items-center justify-center py-2 px-4 rounded-md cursor-pointer <?= ($settings['prefer_mac'] ?? true) ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant' ?>">
-                <input class="hidden" type="radio" name="prefer_mac" value="1" <?= ($settings['prefer_mac'] ?? true) ? 'checked' : '' ?>><span class="text-sm font-semibold">Prefer MAC</span>
-              </label>
-              <label class="flex-1 flex items-center justify-center py-2 px-4 rounded-md cursor-pointer <?= !($settings['prefer_mac'] ?? true) ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant' ?>">
-                <input class="hidden" type="radio" name="prefer_mac" value="0" <?= !($settings['prefer_mac'] ?? true) ? 'checked' : '' ?>><span class="text-sm font-semibold">Prefer IP</span>
-              </label>
-            </div>
+            <select class="mt-2 w-full bg-surface-container-low border-none rounded-lg text-sm py-2.5" name="device_identity_mode">
+              <?php $deviceMode = strtolower((string)($settings['device_identity_mode'] ?? ((!isset($settings['prefer_mac']) || $settings['prefer_mac']) ? 'mac' : 'ip'))); ?>
+              <option value="mac" <?= $deviceMode === 'mac' ? 'selected' : '' ?>>MAC first (fallback to IP)</option>
+              <option value="ip" <?= $deviceMode === 'ip' ? 'selected' : '' ?>>IP only</option>
+              <option value="both" <?= $deviceMode === 'both' ? 'selected' : '' ?>>Both endpoints (IP and MAC)</option>
+            </select>
+            <p class="text-xs text-on-surface-variant mt-2">Use BOTH to enforce duplicate checks against both network endpoints.</p>
           </div>
           <div>
             <label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Max Admins</label>
@@ -807,16 +808,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <section class="xl:col-span-7 min-w-0 bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4 border border-outline-variant/20">
         <h3 class="text-lg font-semibold">Geo-fencing</h3>
-        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="geo_fence_enabled" value="1" <?= ($settings['geo_fence_enabled'] ?? false) ? 'checked' : '' ?>> Enable geo-fence</label>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input class="bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="text" name="geo_lat" placeholder="Latitude" value="<?= htmlspecialchars($settings['geo_fence']['lat'] ?? '') ?>">
-          <input class="bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="text" name="geo_lng" placeholder="Longitude" value="<?= htmlspecialchars($settings['geo_fence']['lng'] ?? '') ?>">
+        <div class="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+          <p class="text-sm text-on-surface-variant">Geo-fence configuration was moved out of System Settings.</p>
+          <p class="text-sm text-on-surface-variant mt-1">Use the dedicated <strong>Geo-fence Manager</strong> page to set map location, radius, landmarks, and run tests.</p>
+          <div class="mt-3">
+            <a href="index.php?page=geofence" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-container transition-colors">
+              <span class="material-symbols-outlined" style="font-size:1rem;">map</span>
+              Open Geo-fence Manager
+            </a>
+          </div>
         </div>
-        <div class="flex items-end gap-4">
-          <div class="flex-1"><input class="w-full bg-surface border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="geo_radius_m" placeholder="Radius (meters)" value="<?= htmlspecialchars($settings['geo_fence']['radius_m'] ?? 0) ?>"></div>
-          <button id="geo_test_btn" type="button" class="bg-primary hover:bg-primary-container text-white h-[46px] px-6 rounded-lg font-semibold text-sm">Test Geofence</button>
-        </div>
-        <div id="geo_test_result" class="text-sm text-on-surface-variant"></div>
       </section>
 
       <section class="xl:col-span-5 min-w-0 bg-surface-container-low p-6 rounded-xl space-y-4">
@@ -932,7 +933,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="flex items-center justify-between gap-3 mb-3">
                 <div>
                   <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Local Mode Override</p>
-                  <p class="text-sm text-on-surface-variant mt-1">Only applies on localhost. Forces file-only mode and local storage.</p>
+                  <p class="text-sm text-on-surface-variant mt-1">Only applies on localhost. Uses your local storage path and local debug settings without erasing saved hybrid flags.</p>
                 </div>
                 <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold <?= app_local_mode_enabled($envPath) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' ?>">
                   <span class="w-2 h-2 rounded-full <?= app_local_mode_enabled($envPath) ? 'bg-emerald-500' : 'bg-slate-400' ?>"></span>
@@ -1101,73 +1102,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   });
 </script>
 <?php if ($message || $errors): ?>
-<script>
-  window.adminAlert(
-    <?= json_encode($message ? 'Success' : 'Action failed') ?>,
-    <?= json_encode($message ?: implode("\n", $errors)) ?>,
-    <?= json_encode($message ? 'success' : 'error') ?>
-  );
-</script>
+  <script>
+    window.adminAlert(
+      <?= json_encode($message ? 'Success' : 'Action failed') ?>,
+      <?= json_encode($message ?: implode("\n", $errors)) ?>,
+      <?= json_encode($message ? 'success' : 'error') ?>
+    );
+  </script>
 <?php endif; ?>
-<script>
-  (function() {
-    var btn = document.getElementById('geo_test_btn');
-    var out = document.getElementById('geo_test_result');
-    var testLatInput = document.getElementById('geo_test_lat');
-    var testLngInput = document.getElementById('geo_test_lng');
-    if (!btn || !out || !testLatInput || !testLngInput) return;
-
-    function read(name) {
-      var el = document.querySelector('[name="' + name + '"]');
-      return el ? el.value : '';
-    }
-
-    if (!testLatInput.value) testLatInput.value = read('geo_lat');
-    if (!testLngInput.value) testLngInput.value = read('geo_lng');
-
-    btn.addEventListener('click', function() {
-      var csrf = read('csrf_token');
-      var body = new URLSearchParams();
-      body.append('csrf_token', csrf || '');
-      body.append('test_lat', testLatInput.value.trim());
-      body.append('test_lng', testLngInput.value.trim());
-
-      out.textContent = 'Running geofence test...';
-      fetch('geofence_test.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-          },
-          body: body.toString()
-        })
-        .then(function(r) {
-          return r.json();
-        })
-        .then(function(data) {
-          if (!data || !data.ok) {
-            out.style.color = '#b91c1c';
-            out.textContent = 'Test failed: ' + ((data && data.message) ? data.message : 'Unknown error');
-            return;
-          }
-
-          if (data.enforced === false) {
-            out.style.color = '#0369a1';
-            out.textContent = 'Geo-fence is currently disabled, so attendance would not be blocked by location.';
-            return;
-          }
-
-          if (data.inside) {
-            out.style.color = '#166534';
-            out.textContent = 'Inside geofence. Distance: ' + data.distance_m + 'm (radius: ' + data.radius_m + 'm).';
-          } else {
-            out.style.color = '#b91c1c';
-            out.textContent = 'Outside geofence. Distance: ' + data.distance_m + 'm (radius: ' + data.radius_m + 'm).';
-          }
-        })
-        .catch(function() {
-          out.style.color = '#b91c1c';
-          out.textContent = 'Request error while testing geofence.';
-        });
-    });
-  })();
-</script>

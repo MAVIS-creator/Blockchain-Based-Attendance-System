@@ -83,6 +83,12 @@ if (file_exists($settingsPath)) {
 }
 request_timing_span('load_settings', $span, ['encrypted' => strpos((string)($raw ?? ''), 'ENC:') === 0]);
 
+// Device identity mode: mac | ip | both (backward compatible with prefer_mac)
+$deviceIdentityMode = strtolower(trim((string)($settings['device_identity_mode'] ?? '')));
+if (!in_array($deviceIdentityMode, ['mac', 'ip', 'both'], true)) {
+    $deviceIdentityMode = (!isset($settings['prefer_mac']) || (bool)$settings['prefer_mac']) ? 'mac' : 'ip';
+}
+
 // Helper: respond JSON and exit
 function fail($code, $message)
 {
@@ -318,11 +324,18 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
 }
 
 // -----------------------
-// Device identifier (prefer MAC)
+// Device identifier based on configured mode
 // -----------------------
+$hasMac = !empty($mac) && $mac !== 'UNKNOWN';
 $deviceId = 'NOID';
-if (!empty($mac) && $mac !== 'UNKNOWN') $deviceId = $mac;
-else $deviceId = hash('sha256', $userAgent);
+if ($deviceIdentityMode === 'ip') {
+    $deviceId = 'ip:' . $ip;
+} elseif ($deviceIdentityMode === 'both') {
+    $deviceId = 'both:' . $ip . '|' . ($hasMac ? $mac : 'UNKNOWN');
+} else {
+    // mac mode with safe fallback
+    $deviceId = $hasMac ? ('mac:' . $mac) : ('ip:' . $ip);
+}
 
 // -----------------------
 // Device cooldown
@@ -426,29 +439,17 @@ foreach ($lines as $line) {
         exit;
     }
 
-    // Consult admin setting for preference: prefer_mac true = check MAC first, else check IP first
-    $settingsFile = admin_storage_migrate_file('settings.json', __DIR__ . '/admin/settings.json');
-    $preferMac = true;
-    if (file_exists($settingsFile)) {
-        $s = json_decode(file_get_contents($settingsFile), true);
-        if (isset($s['prefer_mac'])) $preferMac = (bool)$s['prefer_mac'];
-    }
+    $sameMac = isset($logMac) && $logMac !== 'UNKNOWN' && $mac !== 'UNKNOWN' && $logMac === $mac && $logAction === $action;
+    $sameIp = ($logIp === $ip && $logAction === $action && $ip !== '127.0.0.1');
 
     $sameDevice = false;
-    if ($preferMac) {
-        if (isset($logMac) && $logMac !== 'UNKNOWN' && $mac !== 'UNKNOWN' && $logMac === $mac && $logAction === $action) {
-            $sameDevice = true;
-        }
-        if (!$sameDevice && $logIp === $ip && $logAction === $action && $ip !== '127.0.0.1') {
-            $sameDevice = true;
-        }
+    if ($deviceIdentityMode === 'both') {
+        $sameDevice = $sameIp || $sameMac;
+    } elseif ($deviceIdentityMode === 'ip') {
+        $sameDevice = $sameIp;
     } else {
-        if ($logIp === $ip && $logAction === $action && $ip !== '127.0.0.1') {
-            $sameDevice = true;
-        }
-        if (!$sameDevice && isset($logMac) && $logMac !== 'UNKNOWN' && $mac !== 'UNKNOWN' && $logMac === $mac && $logAction === $action) {
-            $sameDevice = true;
-        }
+        // mac mode: prefer MAC, fallback to IP when MAC is unavailable
+        $sameDevice = ($mac !== 'UNKNOWN') ? $sameMac : $sameIp;
     }
 
     if ($sameDevice) {
