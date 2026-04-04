@@ -145,6 +145,28 @@ function mask_secret_value($value)
   return substr($value, 0, 3) . str_repeat('*', max(4, $len - 6)) . substr($value, -3);
 }
 
+function resolve_env_value_for_ui($key, $effectiveEnv, $baseEnv, $default = '')
+{
+  $effective = (string)($effectiveEnv[$key] ?? '');
+  if (trim($effective) !== '') return $effective;
+  if (array_key_exists($key, $baseEnv) && trim((string)$baseEnv[$key]) !== '') {
+    return (string)$baseEnv[$key];
+  }
+  return (string)$default;
+}
+
+function build_env_panel_values($effectiveEnv, $baseEnv)
+{
+  $panel = is_array($effectiveEnv) ? $effectiveEnv : [];
+  if (!is_array($baseEnv)) return $panel;
+  foreach ($baseEnv as $k => $v) {
+    if (!isset($panel[$k]) || trim((string)$panel[$k]) === '') {
+      $panel[$k] = $v;
+    }
+  }
+  return $panel;
+}
+
 function test_supabase_connection_env($env)
 {
   $url = rtrim(trim($env['SUPABASE_URL'] ?? ''), '/');
@@ -325,8 +347,10 @@ function test_smtp_connection_env($env, $recipient = '')
   }
 }
 // Resolve env once for this page
-$ENV = load_env_array($envPath);
-$ENV_LOCAL = load_env_array($envLocalPath);
+$ENV_BASE = app_load_env_file($envPath);
+$ENV = load_env_array($envPath); // effective runtime env (includes local layering rules)
+$ENV_PANEL = build_env_panel_values($ENV, $ENV_BASE); // UI-safe view: fallback to base .env if local override is blank
+$ENV_LOCAL = app_load_env_file($envLocalPath);
 
 // default settings
 if (!file_exists($settingsFile)) {
@@ -573,20 +597,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   if (isset($_POST['test_supabase_connection'])) {
-    $envTestResult = test_supabase_connection_env($ENV);
+    $envTestResult = test_supabase_connection_env($ENV_PANEL);
     if ($envTestResult['ok']) $message = $envTestResult['message'];
     else $errors[] = $envTestResult['message'];
   }
 
   if (isset($_POST['test_supabase_write'])) {
-    $envTestResult = test_supabase_write_env($ENV);
+    $envTestResult = test_supabase_write_env($ENV_PANEL);
     if ($envTestResult['ok']) $message = $envTestResult['message'];
     else $errors[] = $envTestResult['message'];
   }
 
   if (isset($_POST['test_smtp_connection'])) {
     $smtpTestRecipient = trim($_POST['smtp_test_recipient'] ?? '');
-    $envTestResult = test_smtp_connection_env($ENV, $smtpTestRecipient);
+    $envTestResult = test_smtp_connection_env($ENV_PANEL, $smtpTestRecipient);
     if ($envTestResult['ok']) $message = $envTestResult['message'];
     else $errors[] = $envTestResult['message'];
   }
@@ -604,14 +628,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $hybridAdminRead = isset($_POST['env_hybrid_admin_read']) && $_POST['env_hybrid_admin_read'] === '1' ? 'true' : 'false';
 
       $updates = [
-        'SUPABASE_URL' => trim($_POST['env_supabase_url'] ?? ($ENV['SUPABASE_URL'] ?? '')),
-        'SUPABASE_SERVICE_ROLE_KEY' => trim($_POST['env_supabase_service_role_key'] ?? ($ENV['SUPABASE_SERVICE_ROLE_KEY'] ?? '')),
+        'SUPABASE_URL' => trim($_POST['env_supabase_url'] ?? ($ENV_BASE['SUPABASE_URL'] ?? '')),
+        'SUPABASE_SERVICE_ROLE_KEY' => trim($_POST['env_supabase_service_role_key'] ?? ($ENV_BASE['SUPABASE_SERVICE_ROLE_KEY'] ?? '')),
         'HYBRID_MODE' => $hybridMode,
         'HYBRID_ADMIN_READ' => $hybridAdminRead,
-        'STORAGE_PATH' => trim($_POST['env_storage_path'] ?? ($ENV['STORAGE_PATH'] ?? '')),
-        'POLYGON_PRIVATE_KEY' => trim($_POST['env_polygon_private_key'] ?? ($ENV['POLYGON_PRIVATE_KEY'] ?? '')),
-        'SMTP_USER' => trim($_POST['env_smtp_user'] ?? ($ENV['SMTP_USER'] ?? '')),
-        'SMTP_PASS' => trim($_POST['env_smtp_pass'] ?? ($ENV['SMTP_PASS'] ?? '')),
+        'STORAGE_PATH' => trim($_POST['env_storage_path'] ?? ($ENV_BASE['STORAGE_PATH'] ?? '')),
+        'POLYGON_PRIVATE_KEY' => trim($_POST['env_polygon_private_key'] ?? ($ENV_BASE['POLYGON_PRIVATE_KEY'] ?? '')),
+        'SMTP_USER' => trim($_POST['env_smtp_user'] ?? ($ENV_BASE['SMTP_USER'] ?? '')),
+        'SMTP_PASS' => trim($_POST['env_smtp_pass'] ?? ($ENV_BASE['SMTP_PASS'] ?? '')),
       ];
 
       if ($updates['SUPABASE_URL'] !== '' && !preg_match('#^https?://#i', $updates['SUPABASE_URL'])) {
@@ -632,7 +656,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($errors) && $saved) {
           $maskedAudit = [];
           foreach ($updates as $k => $v) {
-            $oldV = $ENV[$k] ?? '';
+            $oldV = $ENV_BASE[$k] ?? '';
             if ($oldV !== $v) {
               $isSensitive = in_array($k, ['SUPABASE_SERVICE_ROLE_KEY', 'POLYGON_PRIVATE_KEY', 'SMTP_PASS'], true);
               $maskedAudit[$k] = [
@@ -642,8 +666,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
           }
           audit_settings_change($currentUser, ['env_rotation' => $maskedAudit]);
+          $ENV_BASE = app_load_env_file($envPath);
           $ENV = load_env_array($envPath);
-          $ENV_LOCAL = load_env_array($envLocalPath);
+          $ENV_PANEL = build_env_panel_values($ENV, $ENV_BASE);
+          $ENV_LOCAL = app_load_env_file($envLocalPath);
           $message = 'Environment settings updated successfully.';
         } elseif (!$saved) {
           $errors[] = 'Unable to write .env file.';
@@ -899,12 +925,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SUPABASE_URL</label>
-            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_supabase_url" value="<?= htmlspecialchars($ENV['SUPABASE_URL'] ?? '') ?>" placeholder="https://your-project.supabase.co">
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_supabase_url" value="<?= htmlspecialchars(resolve_env_value_for_ui('SUPABASE_URL', $ENV, $ENV_BASE)) ?>" placeholder="https://your-project.supabase.co">
           </div>
 
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SUPABASE_SERVICE_ROLE_KEY</label>
-            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="password" name="env_supabase_service_role_key" value="<?= htmlspecialchars($ENV['SUPABASE_SERVICE_ROLE_KEY'] ?? '') ?>" placeholder="service role key">
+            <div class="relative">
+              <input id="env_supabase_service_role_key" class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 pr-12 text-sm" type="password" name="env_supabase_service_role_key" value="<?= htmlspecialchars(resolve_env_value_for_ui('SUPABASE_SERVICE_ROLE_KEY', $ENV, $ENV_BASE)) ?>" placeholder="service role key" autocomplete="off">
+              <button type="button" class="env-secret-toggle absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" data-target="env_supabase_service_role_key" aria-label="Show or hide SUPABASE service key">
+                <span class="material-symbols-outlined" style="font-size:1.1rem;">visibility</span>
+              </button>
+            </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -925,7 +956,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">STORAGE_PATH</label>
-            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_storage_path" value="<?= htmlspecialchars($ENV['STORAGE_PATH'] ?? '') ?>" placeholder="/home/data">
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_storage_path" value="<?= htmlspecialchars(resolve_env_value_for_ui('STORAGE_PATH', $ENV, $ENV_BASE)) ?>" placeholder="/home/data">
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -991,17 +1022,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">POLYGON_PRIVATE_KEY</label>
-            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="password" name="env_polygon_private_key" value="<?= htmlspecialchars($ENV['POLYGON_PRIVATE_KEY'] ?? '') ?>">
+            <div class="relative">
+              <input id="env_polygon_private_key" class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 pr-12 text-sm" type="password" name="env_polygon_private_key" value="<?= htmlspecialchars(resolve_env_value_for_ui('POLYGON_PRIVATE_KEY', $ENV, $ENV_BASE)) ?>" autocomplete="off">
+              <button type="button" class="env-secret-toggle absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" data-target="env_polygon_private_key" aria-label="Show or hide polygon private key">
+                <span class="material-symbols-outlined" style="font-size:1.1rem;">visibility</span>
+              </button>
+            </div>
           </div>
 
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SMTP_USER</label>
-            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_smtp_user" value="<?= htmlspecialchars($ENV['SMTP_USER'] ?? '') ?>">
+            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_smtp_user" value="<?= htmlspecialchars(resolve_env_value_for_ui('SMTP_USER', $ENV, $ENV_BASE)) ?>">
           </div>
 
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SMTP_PASS</label>
-            <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="password" name="env_smtp_pass" value="<?= htmlspecialchars($ENV['SMTP_PASS'] ?? '') ?>">
+            <div class="relative">
+              <input id="env_smtp_pass" class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 pr-12 text-sm" type="password" name="env_smtp_pass" value="<?= htmlspecialchars(resolve_env_value_for_ui('SMTP_PASS', $ENV, $ENV_BASE)) ?>" autocomplete="off">
+              <button type="button" class="env-secret-toggle absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" data-target="env_smtp_pass" aria-label="Show or hide SMTP password">
+                <span class="material-symbols-outlined" style="font-size:1.1rem;">visibility</span>
+              </button>
+            </div>
           </div>
 
           <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
@@ -1057,6 +1098,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 </div>
 <script>
+  function bindSecretVisibilityToggles() {
+    var toggles = document.querySelectorAll('.env-secret-toggle');
+    toggles.forEach(function(btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', function() {
+        var targetId = btn.getAttribute('data-target');
+        if (!targetId) return;
+        var input = document.getElementById(targetId);
+        if (!input) return;
+        var icon = btn.querySelector('.material-symbols-outlined');
+        var isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        if (icon) icon.textContent = isHidden ? 'visibility_off' : 'visibility';
+      });
+    });
+  }
+
   function openTab(evt, tabName) {
     var i, tabcontent, tablinks;
     tabcontent = document.getElementsByClassName('st-tab-content');
@@ -1099,6 +1158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
       openTab(null, 'tab-general');
     }
+    bindSecretVisibilityToggles();
   });
 </script>
 <?php if ($message || $errors): ?>

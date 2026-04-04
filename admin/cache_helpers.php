@@ -2,11 +2,35 @@
 
 require_once __DIR__ . '/runtime_storage.php';
 
+// APCu polyfills for development/linting: these allow safe use of apcu_* functions
+// in code even when APCu extension is not installed
+if (!function_exists('apcu_enabled')) {
+  function apcu_enabled()
+  {
+    return false;
+  }
+}
+
+if (!function_exists('apcu_fetch')) {
+  function apcu_fetch($key, &$success = null)
+  {
+    $success = false;
+    return null;
+  }
+}
+
+if (!function_exists('apcu_store')) {
+  function apcu_store($key, $var, $ttl = 0)
+  {
+    return false;
+  }
+}
+
 if (!function_exists('admin_cache_enabled')) {
   function admin_cache_enabled()
   {
     if (!function_exists('apcu_fetch') || !filter_var((string)ini_get('apc.enabled'), FILTER_VALIDATE_BOOLEAN)) {
-      return function_exists('apcu_enabled') ? apcu_enabled() : false;
+      return @apcu_enabled();
     }
     return true;
   }
@@ -34,9 +58,9 @@ if (!function_exists('admin_cache_remember')) {
       return $requestCache[$cacheKey];
     }
 
-    if (admin_cache_enabled()) {
+    if (admin_cache_enabled() && function_exists('apcu_fetch')) {
       $success = false;
-      $value = apcu_fetch($cacheKey, $success);
+      $value = @apcu_fetch($cacheKey, $success);
       if ($success) {
         $requestCache[$cacheKey] = $value;
         return $value;
@@ -46,7 +70,7 @@ if (!function_exists('admin_cache_remember')) {
     $value = $resolver();
     $requestCache[$cacheKey] = $value;
 
-    if (admin_cache_enabled()) {
+    if (admin_cache_enabled() && function_exists('apcu_store')) {
       @apcu_store($cacheKey, $value, $ttl);
     }
 
