@@ -2828,7 +2828,15 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     DOM.searchInput.addEventListener('input', renderFiles);
 
     document.querySelectorAll('.ps-sidebar-btn').forEach(btn => {
-      btn.addEventListener('click', () => switchPanel(btn.getAttribute('data-panel')));
+        btn.addEventListener('click', () => {
+          const targetPanel = btn.getAttribute('data-panel');
+          if (state.currentPanel === targetPanel) {
+            toggleLeftPanel();
+          } else {
+            if (!state.leftOpen) toggleLeftPanel();
+            switchPanel(targetPanel);
+          }
+        });
     });
 
     document.getElementById('btnRefresh').addEventListener('click', loadFiles);
