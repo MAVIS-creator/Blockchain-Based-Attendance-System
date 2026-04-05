@@ -238,9 +238,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
     e.preventDefault();
     const form = e.currentTarget.closest('form');
     window.adminConfirm('Mark as Resolved?', 'This ticket will be marked as resolved.')
-    .then((ok) => {
-      if (ok && form) form.submit();
-    });
+      .then((ok) => {
+        if (ok && form) form.submit();
+      });
     return false;
   }
 

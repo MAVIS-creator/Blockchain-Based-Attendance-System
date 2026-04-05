@@ -438,12 +438,12 @@ function patcher_ai_job_save($root, array $job)
 {
   $path = patcher_ai_job_path($root, $job['id'] ?? '');
   if ($path === '') return false;
-  
+
   $json = json_encode($job, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
   if ($json === false) {
-      error_log("Failed to encode job " . ($job['id'] ?? '') . ": " . json_last_error_msg());
-      // attempt safe encode
-      $json = json_encode(['id' => $job['id'], 'status' => 'error', 'message' => 'Internal JSON encode error: ' . json_last_error_msg()]);
+    error_log("Failed to encode job " . ($job['id'] ?? '') . ": " . json_last_error_msg());
+    // attempt safe encode
+    $json = json_encode(['id' => $job['id'], 'status' => 'error', 'message' => 'Internal JSON encode error: ' . json_last_error_msg()]);
   }
   return @file_put_contents($path, (string)$json, LOCK_EX) !== false;
 }
@@ -765,14 +765,14 @@ function patcher_read_file_snippet($root, $rel, $maxBytes = 12000)
   if ($content === '') return '';
   if (strlen($content) > $maxBytes) {
     if (function_exists('mb_substr')) {
-        $content = mb_substr($content, 0, $maxBytes, 'UTF-8') . "\n\n... (truncated)";
+      $content = mb_substr($content, 0, $maxBytes, 'UTF-8') . "\n\n... (truncated)";
     } else {
-        $content = substr($content, 0, $maxBytes) . "\n\n... (truncated)";
+      $content = substr($content, 0, $maxBytes) . "\n\n... (truncated)";
     }
   }
   // Ensure valid UTF-8
   if (!mb_check_encoding($content, 'UTF-8')) {
-      $content = mb_convert_encoding($content, 'UTF-8', 'UTF-8');
+    $content = mb_convert_encoding($content, 'UTF-8', 'UTF-8');
   }
   return $content;
 }
@@ -1321,9 +1321,9 @@ if (isset($_GET['api'])) {
 $localMode = app_local_mode_enabled(__DIR__ . '/../.env');
 $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
 ?>
-          <div style="padding:8px 16px;border-bottom:1px solid rgba(100,130,180,0.1);font-size:11px;color:#7a8ab5;">
-            Use the file explorer to open files. Editor actions remain available in the toolbar below.
-          </div>
+<div style="padding:8px 16px;border-bottom:1px solid rgba(100,130,180,0.1);font-size:11px;color:#7a8ab5;">
+  Use the file explorer to open files. Editor actions remain available in the toolbar below.
+</div>
 <style>
   body.admin-page-patcher .layout,
   body.admin-page-patcher .main-content,
@@ -2358,14 +2358,14 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
         const validation = req.validation || {};
         const status = String(req.status || 'pending');
         const statusColor = status === 'approved' ? '#4edea3' : (status === 'rejected' ? '#ffb4ab' : '#90c0ff');
-        const buttons = status === 'pending'
-          ? `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="ps-btn success xs" type="button" data-release-approve="${e(req.release_id)}">Approve & Apply</button><button class="ps-btn danger xs" type="button" data-release-reject="${e(req.release_id)}">Reject</button></div>`
-          : `<div style="margin-top:8px;color:${statusColor};font-size:11px;">Reviewed: ${e(status)}</div>`;
+        const buttons = status === 'pending' ?
+          `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="ps-btn success xs" type="button" data-release-approve="${e(req.release_id)}">Approve & Apply</button><button class="ps-btn danger xs" type="button" data-release-reject="${e(req.release_id)}">Reject</button></div>` :
+          `<div style="margin-top:8px;color:${statusColor};font-size:11px;">Reviewed: ${e(status)}</div>`;
         const validationColor = validation.ok === false ? '#ffb4ab' : '#4edea3';
         const validationText = validation.message || (validation.ok === false ? 'Pre-apply validation failed.' : 'Pre-apply validation passed.');
-        const validationChecks = Array.isArray(validation.checks) && validation.checks.length
-          ? `<div style="margin-top:4px;font-size:11px;">Checks: ${validation.checks.map(check => `${e(check.name || 'check')}:${e(check.ok ? 'pass' : 'fail')}`).join(' • ')}</div>`
-          : '';
+        const validationChecks = Array.isArray(validation.checks) && validation.checks.length ?
+          `<div style="margin-top:4px;font-size:11px;">Checks: ${validation.checks.map(check => `${e(check.name || 'check')}:${e(check.ok ? 'pass' : 'fail')}`).join(' • ')}</div>` :
+          '';
         return `<div class="ps-item" style="margin:8px 0 0;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><strong>${e(req.path || '-')}</strong><span style="font-size:11px;color:${statusColor};text-transform:uppercase;">${e(status)}</span></div><div style="margin-top:4px;font-size:11px;">Release ID: ${e(req.release_id || '-')}</div><div style="margin-top:4px;font-size:11px;">Backup: ${e(req.backup_path || '-')}</div><div style="margin-top:4px;font-size:11px;">Current bytes: ${e(String(snap.current_bytes ?? 0))} • Suggested bytes: ${e(String(snap.new_bytes ?? 0))}</div><div style="margin-top:4px;font-size:11px;">Line delta: ${e(String(snap.line_delta ?? 0))}</div><div style="margin-top:4px;font-size:11px;color:${validationColor};">Validation: ${e(validationText)}</div>${validationChecks}${review.decision ? `<div style="margin-top:4px;font-size:11px;">Review decision: ${e(review.decision)}</div>` : ''}${buttons}</div>`;
       }).join('');
     }
@@ -2488,13 +2488,13 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
       DOM.aiConfidence.style.color = confidenceLevel === 'high' ? '#4edea3' : (confidenceLevel === 'low' ? '#ffb4ab' : '#90c0ff');
 
       const reasons = Array.isArray(data.candidate_reasons) ? data.candidate_reasons : [];
-      DOM.aiScanReasons.innerHTML = reasons.length
-        ? reasons.slice(0, 12).map(entry => {
-            const p = e(entry.path || '-');
-            const tags = Array.isArray(entry.reasons) ? entry.reasons.map(x => `<code style="background:rgba(100,130,180,.18);padding:1px 5px;border-radius:5px;">${e(x)}</code>`).join(' ') : '<code>unknown</code>';
-            return `<div style="margin-top:6px;"><strong>${p}</strong><br><span style="opacity:.9;">${tags}</span></div>`;
-          }).join('')
-        : 'No file-selection rationale returned.';
+      DOM.aiScanReasons.innerHTML = reasons.length ?
+        reasons.slice(0, 12).map(entry => {
+          const p = e(entry.path || '-');
+          const tags = Array.isArray(entry.reasons) ? entry.reasons.map(x => `<code style="background:rgba(100,130,180,.18);padding:1px 5px;border-radius:5px;">${e(x)}</code>`).join(' ') : '<code>unknown</code>';
+          return `<div style="margin-top:6px;"><strong>${p}</strong><br><span style="opacity:.9;">${tags}</span></div>`;
+        }).join('') :
+        'No file-selection rationale returned.';
 
       const fallbackNote = data.fallback_reason ? `<div style="margin-top:8px;color:#ffb4ab;">Fallback reason: ${e(data.fallback_reason)}</div>` : '';
       const schemaNote = r.schema_valid === false ? '<div style="margin-top:8px;color:#ffd580;">Schema note: AI response was normalized for safety.</div>' : '';
@@ -2678,7 +2678,11 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
       setDiagTab('root');
       DOM.aiConfidence.textContent = 'n/a';
       DOM.aiScanReasons.textContent = 'Collecting file-selection rationale...';
-      renderTimeline([{ step: 'Issue intake', status: 'running', detail: 'Preparing issue context and requesting analysis.' }]);
+      renderTimeline([{
+        step: 'Issue intake',
+        status: 'running',
+        detail: 'Preparing issue context and requesting analysis.'
+      }]);
       try {
         const start = await api('ai_analyze_issue_start', {
           issue: DOM.aiIssue.value.trim(),
@@ -2862,15 +2866,15 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     DOM.searchInput.addEventListener('input', renderFiles);
 
     document.querySelectorAll('.ps-sidebar-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const targetPanel = btn.getAttribute('data-panel');
-          if (state.currentPanel === targetPanel) {
-            toggleLeftPanel();
-          } else {
-            if (!state.leftOpen) toggleLeftPanel();
-            switchPanel(targetPanel);
-          }
-        });
+      btn.addEventListener('click', () => {
+        const targetPanel = btn.getAttribute('data-panel');
+        if (state.currentPanel === targetPanel) {
+          toggleLeftPanel();
+        } else {
+          if (!state.leftOpen) toggleLeftPanel();
+          switchPanel(targetPanel);
+        }
+      });
     });
 
     document.getElementById('btnRefresh').addEventListener('click', loadFiles);
