@@ -184,8 +184,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
 
           <!-- Action Menu -->
           <div style="position:absolute;top:16px;right:16px;z-index:30;" class="action-menu">
-            <button type="button" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;" onclick="return toggleActionMenu(event, this)">
-              <span class="material-symbols-outlined" style="font-size:1rem;color:var(--on-surface-variant);">more_vert</span>
+            <button type="button" class="action-menu-trigger" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;" onclick="toggleActionMenu(event, this)">
+              <span class="material-symbols-outlined" style="pointer-events: none; font-size:1rem;color:var(--on-surface-variant);">more_vert</span>
             </button>
             <form method="post" class="action-menu-content" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:10px;box-shadow:var(--shadow-ambient);padding:4px;z-index:60;min-width:160px;">
               <?php csrf_field(); ?>
@@ -218,6 +218,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
 </div>
 
 <script>
+  function toggleActionMenu(e, trigger) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    document.querySelectorAll('.action-menu-content').forEach(menu => {
+      if (menu !== trigger.nextElementSibling) {
+        menu.style.display = 'none';
+      }
+    });
+    const menu = trigger.nextElementSibling;
+    if (menu) {
+      menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+    }
+  }
+
   function confirmResolve(e) {
     e.preventDefault();
     const form = e.currentTarget.closest('form');
@@ -225,21 +241,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
     .then((ok) => {
       if (ok && form) form.submit();
     });
-    return false;
-  }
-
-  function toggleActionMenu(e, trigger) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    document.querySelectorAll('.action-menu-content').forEach(menu => {
-      if (menu !== trigger.nextElementSibling) menu.style.display = 'none';
-    });
-    var menu = trigger.nextElementSibling;
-    if (menu) {
-      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-    }
     return false;
   }
 

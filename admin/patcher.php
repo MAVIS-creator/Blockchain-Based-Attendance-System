@@ -2254,7 +2254,9 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
       aiOpen: true,
       leftOpen: true,
       terminalOpen: true,
-      currentPanel: 'explorer'
+      currentPanel: 'explorer',
+      aiProviderTouched: false,
+      aiModelTouched: false
     };
 
     const DOM = {
@@ -2430,8 +2432,33 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    function defaultModelForProvider(provider) {
+      if (provider === 'gemini') return 'gemini-2.0-flash';
+      if (provider === 'openrouter') return 'openrouter/free';
+      return '';
+    }
+
+    function modelLooksCompatible(provider, model) {
+      const m = String(model || '').trim().toLowerCase();
+      if (!m) return true;
+      if (provider === 'gemini') return m.startsWith('gemini-');
+      if (provider === 'openrouter') return !m.startsWith('gemini-');
+      return true;
+    }
+
+    function applyProviderModelDefaults(provider, force = false) {
+      const p = String(provider || DOM.aiProvider.value || 'auto').toLowerCase();
+      const current = String(DOM.aiModel.value || '').trim();
+      const compatible = modelLooksCompatible(p, current);
+      if (force || !current || !compatible) {
+        DOM.aiModel.value = defaultModelForProvider(p);
+      }
+    }
+
     async function applyAiAnalysisResult(data) {
       const r = data.result || {};
+      if (data.provider) DOM.aiProvider.value = data.provider;
+      if (data.model) DOM.aiModel.value = data.model;
       if (data.target_file && state.currentPath !== data.target_file) {
         try {
           await openFile(data.target_file);
@@ -2620,8 +2647,15 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
       const online = !!(data && data.online);
       DOM.aiStatus.textContent = online ? '✓ Online' : '✕ Offline';
       DOM.aiStatus.style.color = online ? '#4edea3' : '#ffb4ab';
-      if (data && data.provider) DOM.aiProvider.value = data.provider;
-      if (data && data.default_model && !DOM.aiModel.value.trim()) DOM.aiModel.value = data.default_model;
+      if (data && data.provider && !state.aiProviderTouched) {
+        DOM.aiProvider.value = data.provider;
+      }
+      if (data && data.default_model && (!DOM.aiModel.value.trim() || !state.aiModelTouched)) {
+        DOM.aiModel.value = data.default_model;
+      }
+      if (!state.aiModelTouched) {
+        applyProviderModelDefaults(DOM.aiProvider.value, false);
+      }
       if (data && data.message) log(data.message);
     }
 
@@ -2663,7 +2697,7 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
         state.aiJobId = start.job_id;
         renderTimeline(start.timeline || []);
         let complete = false;
-        for (let i = 0; i < 80; i++) {
+        for (let i = 0; i < 180; i++) {
           await sleep(650);
           const poll = await api('ai_analyze_issue_poll', {
             job_id: state.aiJobId
@@ -2691,9 +2725,9 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
           }
         }
         if (!complete) {
-          DOM.aiExplanation.textContent = 'Analysis timed out waiting for completion.';
+          DOM.aiExplanation.textContent = 'Analysis is still processing on the server.';
           if (state.aiJobId) {
-            window.adminAlert('Still processing', 'Analysis is taking longer than expected. You can click Analyze Issue again to retry.', 'warning');
+            window.adminAlert('Still processing', `Analysis is taking longer than expected on hosted mode (Job ID: ${state.aiJobId}). You can wait and retry shortly.`, 'warning');
           }
         }
       } finally {
@@ -2970,9 +3004,13 @@ $patcherAiStatus = patcher_ai_status_payload($patcherEnv);
     });
 
     DOM.aiProvider.addEventListener('change', () => {
-      if (DOM.aiProvider.value === 'gemini' && !DOM.aiModel.value.trim()) DOM.aiModel.value = 'gemini-2.0-flash';
-      if (DOM.aiProvider.value === 'openrouter' && !DOM.aiModel.value.trim()) DOM.aiModel.value = 'openrouter/free';
-      if (DOM.aiProvider.value === 'auto' && !DOM.aiModel.value.trim()) DOM.aiModel.value = '';
+      state.aiProviderTouched = true;
+      applyProviderModelDefaults(DOM.aiProvider.value, true);
+      log(`Provider changed to ${DOM.aiProvider.value}. Model set to ${DOM.aiModel.value || 'auto-default'}.`);
+    });
+
+    DOM.aiModel.addEventListener('input', () => {
+      state.aiModelTouched = true;
     });
 
     window.addEventListener('beforeunload', event => {
