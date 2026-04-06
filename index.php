@@ -357,16 +357,18 @@ request_timing_span('load_announcement', $span);
         Need help?
         <a href="support.php" class="btn btn-accent"><i class='bx bx-message'></i> Support</a>
       </p>
-          </form>
+    </form>
+  </div>
+
+  <!-- Public Footer -->
+  <footer style="margin: 1.6rem auto 0; width: 100%; border-top: 1px solid rgba(95, 109, 125, 0.16); padding: 1rem 0 0.25rem; text-align: center; color: var(--muted, #64748b); font-size: 0.84rem;">
+    <div style="display:inline-flex;flex-direction:column;gap:4px;padding:0.35rem 0.9rem;border-radius:999px;background:rgba(255,255,255,0.72);backdrop-filter:blur(8px);box-shadow:0 8px 22px rgba(24, 39, 75, 0.05);">
+      <div style="font-weight:700;letter-spacing:0.03em;text-transform:uppercase;font-size:0.76rem;color:var(--primary);">Created by CYB 204 Group 5</div>
+      <div style="font-size:0.76rem;">(Headed by Maximus and Mavis)</div>
     </div>
+  </footer>
 
-    <!-- Public Footer -->
-    <footer style="margin-top: 2rem; text-align: center; color: var(--muted, #64748b); font-size: 0.85rem; padding-bottom: 1.5rem;">
-      <div style="font-weight: 600; letter-spacing: 0.02em;">Created by CYB 204 Group 5</div>
-      <div style="font-size: 0.75rem; opacity: 0.85; margin-top: 4px;">(Headed by Maximus and Mavis)</div>
-    </footer>
-
-    <script src="./js/fp.min.js"></script>
+  <script src="./js/fp.min.js"></script>
   <script>
     const submitBtn = document.getElementById('submitBtn');
     const fingerprintInput = document.getElementById('fingerprint');
@@ -684,7 +686,7 @@ request_timing_span('load_announcement', $span);
 
           if (enabled) {
             announcementText.textContent = message || 'An important announcement is currently active.';
-            announcementPanel.style.display = 'block';
+            announcementPanel.style.display = 'flex';
           } else {
             announcementPanel.style.display = 'none';
           }
@@ -730,4 +732,3 @@ request_timing_span('load_announcement', $span);
 </body>
 
 </html>
-

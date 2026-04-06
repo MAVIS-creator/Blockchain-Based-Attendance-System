@@ -25,3 +25,8 @@ Require all denied
 <FilesMatch "\.(log|bak|lock|ps1|bat|md)$">
 Require all denied
 </FilesMatch>
+
+# Route Apache error responses to custom pages
+
+ErrorDocument 404 /404.php
+ErrorDocument 500 /500.php

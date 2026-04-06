@@ -189,13 +189,17 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     .announcement-panel {
       display: none;
       margin-bottom: 14px;
-      background: var(--info-bg);
+      background: linear-gradient(135deg, var(--info-bg), #f7fbff);
       border: 1px solid var(--info-line);
       color: var(--info-text);
-      border-radius: 12px;
-      padding: 10px 12px;
+      border-radius: 14px;
+      padding: 12px 14px;
       font-size: 0.93rem;
-      line-height: 1.35;
+      line-height: 1.5;
+      box-shadow: 0 10px 26px rgba(29, 79, 128, 0.08);
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
     }
 
     .announcement-title {
@@ -349,7 +353,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 <body>
 
   <div class="container">
-    <div id="announcementPanel" class="announcement-panel" style="<?= !empty($announcement['enabled']) ? 'display:block;' : 'display:none;' ?>">
+    <div id="announcementPanel" class="announcement-panel" style="<?= !empty($announcement['enabled']) ? 'display:flex;' : 'display:none;' ?>">
       <span class="announcement-title"><i class='bx bx-bell'></i> Announcement:</span>
       <span id="announcementText"><?= htmlspecialchars(trim((string)($announcement['message'] ?? '')) !== '' ? (string)$announcement['message'] : 'An important announcement is currently active.') ?></span>
     </div>
@@ -390,12 +394,14 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     </form>
 
     <a class="back-link <?= $blocked ? 'disabled-link' : '' ?>" href="<?= $blocked ? '#' : 'index.php' ?>"><i class='bx bx-chevron-left'></i> Back to Attendance</a>
-    </div>
+  </div>
 
   <!-- Public Footer -->
-  <footer style="margin-top: 2rem; text-align: center; color: var(--muted, #64748b); font-size: 0.85rem; padding-bottom: 1.5rem;">
-    <div style="font-weight: 600; letter-spacing: 0.02em;">Created by CYB 204 Group 5</div>
-    <div style="font-size: 0.75rem; opacity: 0.85; margin-top: 4px;">(Headed by Maximus and Mavis)</div>
+  <footer style="margin: 1.6rem auto 0; width: 100%; border-top: 1px solid rgba(95, 109, 125, 0.16); padding: 1rem 0 0.25rem; text-align: center; color: var(--muted, #64748b); font-size: 0.84rem;">
+    <div style="display:inline-flex;flex-direction:column;gap:4px;padding:0.35rem 0.9rem;border-radius:999px;background:rgba(255,255,255,0.72);backdrop-filter:blur(8px);box-shadow:0 8px 22px rgba(24, 39, 75, 0.05);">
+      <div style="font-weight:700;letter-spacing:0.03em;text-transform:uppercase;font-size:0.76rem;color:var(--primary);">Created by CYB 204 Group 5</div>
+      <div style="font-size:0.76rem;">(Headed by Maximus and Mavis)</div>
+    </div>
   </footer>
 
   <!-- Add fingerprint script -->
@@ -489,4 +495,3 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 </body>
 
 </html>
-

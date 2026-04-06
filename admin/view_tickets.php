@@ -14,6 +14,7 @@ app_storage_init();
 $pageCsrfToken = csrf_token();
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
+$ticketMenuDebugMode = isset($_GET['debug']) && $_GET['debug'] !== '0';
 
 $ticketsFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/support_tickets.json');
 $tickets = [];
@@ -73,6 +74,71 @@ function resolve_ticket_atomic($ticketsFile, $resolveTime)
   return true;
 }
 
+function bulk_update_tickets_atomic($ticketsFile, array $selectedTimes, $bulkAction, $logFile = null, $activeCourse = '')
+{
+  $bulkAction = strtolower(trim((string)$bulkAction));
+  $allowedActions = ['resolve', 'checkin', 'checkout'];
+  if (!in_array($bulkAction, $allowedActions, true)) {
+    return ['updated' => 0, 'logged' => 0];
+  }
+
+  $selectedLookup = array_fill_keys(array_filter(array_map('strval', $selectedTimes)), true);
+  if (!$selectedLookup) {
+    return ['updated' => 0, 'logged' => 0];
+  }
+
+  $attendanceAction = $bulkAction === 'checkin' ? 'checkin' : ($bulkAction === 'checkout' ? 'checkout' : '');
+  $timestamp = date('Y-m-d H:i:s');
+  $updatedCount = 0;
+  $logLines = [];
+
+  $fp = fopen($ticketsFile, 'c+');
+  if (!$fp) return ['updated' => 0, 'logged' => 0];
+  if (!flock($fp, LOCK_EX)) {
+    fclose($fp);
+    return ['updated' => 0, 'logged' => 0];
+  }
+
+  rewind($fp);
+  $raw = stream_get_contents($fp);
+  $tickets = json_decode($raw ?: '[]', true);
+  if (!is_array($tickets)) $tickets = [];
+
+  foreach ($tickets as &$ticket) {
+    $ticketTime = (string)($ticket['timestamp'] ?? '');
+    if (!isset($selectedLookup[$ticketTime])) {
+      continue;
+    }
+
+    if (!($ticket['resolved'] ?? false)) {
+      $ticket['resolved'] = true;
+      $updatedCount++;
+    }
+
+    if ($attendanceAction !== '') {
+      $name = trim((string)($ticket['name'] ?? 'Unknown'));
+      $matric = trim((string)($ticket['matric'] ?? ''));
+      $reason = trim((string)($ticket['message'] ?? 'Bulk support ticket action'));
+      $logLines[] = "{$name} | {$matric} | {$attendanceAction} | MANUAL | ::1 | UNKNOWN | {$timestamp} | Bulk Ticket Panel | {$activeCourse} | {$reason}\n";
+    }
+  }
+  unset($ticket);
+
+  $payload = json_encode($tickets, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+  rewind($fp);
+  ftruncate($fp, 0);
+  fwrite($fp, $payload);
+  fflush($fp);
+  flock($fp, LOCK_UN);
+  fclose($fp);
+
+  if (!empty($logLines) && $logFile) {
+    file_put_contents($logFile, implode('', $logLines), FILE_APPEND | LOCK_EX);
+  }
+
+  return ['updated' => $updatedCount, 'logged' => count($logLines)];
+}
+
 // Handle resolve
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['resolve_ticket'])) {
   if (!csrf_check_request()) {
@@ -121,6 +187,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
   header("Location: index.php?page=support_tickets");
   exit;
 }
+
+// Handle bulk actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST['selected_tickets'])) {
+  if (!csrf_check_request()) {
+    $_SESSION['admin_flash'] = ['type' => 'error', 'title' => 'Invalid CSRF token', 'text' => 'Please refresh the page and try again.'];
+    header("Location: index.php?page=support_tickets");
+    exit;
+  }
+
+  $bulkAction = trim((string)$_POST['bulk_action']);
+  $selectedTickets = array_values(array_filter(array_map('trim', (array)$_POST['selected_tickets'])));
+
+  if (empty($selectedTickets)) {
+    $_SESSION['admin_flash'] = ['type' => 'error', 'title' => 'Bulk action failed', 'text' => 'Select at least one ticket first.'];
+    header("Location: index.php?page=support_tickets");
+    exit;
+  }
+
+  $activeCourse = admin_active_course_name_cached(15);
+  $result = bulk_update_tickets_atomic($ticketsFile, $selectedTickets, $bulkAction, $logFile, $activeCourse);
+  $updatedCount = (int)($result['updated'] ?? 0);
+  $loggedCount = (int)($result['logged'] ?? 0);
+
+  foreach (array_unique($selectedTickets) as $resolveTime) {
+    hybrid_mark_support_ticket_resolved($resolveTime);
+  }
+
+  if ($bulkAction === 'resolve') {
+    $_SESSION['admin_flash'] = ['type' => 'success', 'title' => 'Bulk resolved', 'text' => "Resolved {$updatedCount} ticket(s)."];
+  } elseif ($bulkAction === 'checkin') {
+    $_SESSION['admin_flash'] = ['type' => 'success', 'title' => 'Bulk check-in', 'text' => "Checked in and resolved {$updatedCount} ticket(s). Logged {$loggedCount} attendance entry/entries."];
+  } elseif ($bulkAction === 'checkout') {
+    $_SESSION['admin_flash'] = ['type' => 'success', 'title' => 'Bulk check-out', 'text' => "Checked out and resolved {$updatedCount} ticket(s). Logged {$loggedCount} attendance entry/entries."];
+  } else {
+    $_SESSION['admin_flash'] = ['type' => 'error', 'title' => 'Bulk action failed', 'text' => 'Unsupported bulk action.'];
+  }
+
+  header("Location: index.php?page=support_tickets");
+  exit;
+}
 ?>
 
 <!-- Support Tickets — Stitch UI -->
@@ -130,6 +236,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
   </h2>
   <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Review and resolve student support requests. Source: <strong><?= htmlspecialchars($ticketsSource) ?></strong></p>
 </div>
+
+<?php if ($ticketMenuDebugMode): ?>
+  <div id="ticketMenuDebugPanel" style="position:fixed;right:16px;bottom:16px;z-index:9999;max-width:380px;padding:12px 14px;border-radius:12px;background:rgba(15,23,42,0.96);color:#e2e8f0;font-size:12px;line-height:1.45;box-shadow:0 12px 30px rgba(15,23,42,0.25);border:1px solid rgba(148,163,184,0.25);">
+    <div style="font-weight:700;margin-bottom:4px;">Ticket menu debug</div>
+    <div data-debug-message>Debug mode active. Click the three-dot button to trace the menu behavior.</div>
+    <div data-debug-error style="margin-top:6px;color:#fca5a5;"></div>
+  </div>
+<?php endif; ?>
+
+<form id="bulkTicketForm" method="post" style="margin:0 0 16px 0;">
+  <?php csrf_field(); ?>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:14px;box-shadow:var(--shadow-ambient);">
+    <div style="display:flex;flex-direction:column;gap:4px;min-width:220px;">
+      <strong style="color:var(--on-surface);font-size:0.95rem;">Bulk actions</strong>
+      <span style="color:var(--on-surface-variant);font-size:0.82rem;">Select tickets below, then choose resolve, check-in, or check-out.</span>
+    </div>
+    <label style="display:inline-flex;align-items:center;gap:8px;color:var(--on-surface-variant);font-size:0.84rem;cursor:pointer;user-select:none;">
+      <input type="checkbox" id="selectAllTickets" style="width:16px;height:16px;">
+      Select all
+    </label>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <button type="submit" name="bulk_action" value="resolve" class="st-btn st-btn-success st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+        <span class="material-symbols-outlined" style="font-size:1rem;">task_alt</span> Bulk Resolve
+      </button>
+      <button type="submit" name="bulk_action" value="checkin" class="st-btn st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;background:#0ea5e9;color:#fff;border-color:#0ea5e9;">
+        <span class="material-symbols-outlined" style="font-size:1rem;">login</span> Bulk Check-In
+      </button>
+      <button type="submit" name="bulk_action" value="checkout" class="st-btn st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;background:#7c3aed;color:#fff;border-color:#7c3aed;">
+        <span class="material-symbols-outlined" style="font-size:1rem;">logout</span> Bulk Check-Out
+      </button>
+    </div>
+  </div>
+</form>
 
 <div class="tickets-wrapper" style="grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));">
   <?php
@@ -149,7 +288,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
         <div class="ticket-card" style="position:relative;overflow:visible;">
           <!-- Header -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--surface-container-high);">
-            <strong style="color:var(--on-surface);font-size:1rem;"><?= htmlspecialchars($ticket['name']) ?></strong>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;max-width:72%;">
+              <input type="checkbox" class="bulk-ticket-checkbox" form="bulkTicketForm" name="selected_tickets[]" value="<?= htmlspecialchars($ticket['timestamp']) ?>" style="width:16px;height:16px;accent-color:#1f5d99;">
+              <strong style="color:var(--on-surface);font-size:1rem;"><?= htmlspecialchars($ticket['name']) ?></strong>
+            </label>
             <span class="st-chip st-chip-info"><?= htmlspecialchars($ticket['matric']) ?></span>
           </div>
 
@@ -218,29 +360,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
 </div>
 
 <script>
+  const ticketMenuDebugEnabled = new URLSearchParams(window.location.search).has('debug');
+  const ticketMenuDebugState = {
+    lastEvent: '',
+    lastError: ''
+  };
+
+  function ticketMenuDebug(message, detail = '') {
+    if (!ticketMenuDebugEnabled) return;
+    const output = detail ? `${message}: ${detail}` : message;
+    ticketMenuDebugState.lastEvent = output;
+    console.debug('[SupportTicketsMenu]', output);
+
+    let panel = document.getElementById('ticketMenuDebugPanel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'ticketMenuDebugPanel';
+      panel.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:9999;max-width:360px;padding:12px 14px;border-radius:12px;background:rgba(15,23,42,0.94);color:#e2e8f0;font-size:12px;line-height:1.45;box-shadow:0 12px 30px rgba(15,23,42,0.25);border:1px solid rgba(148,163,184,0.25);';
+      panel.innerHTML = '<div style="font-weight:700;margin-bottom:4px;">Ticket menu debug</div><div data-debug-message></div><div data-debug-error style="margin-top:6px;color:#fca5a5;"></div>';
+      document.body.appendChild(panel);
+    }
+
+    const messageNode = panel.querySelector('[data-debug-message]');
+    const errorNode = panel.querySelector('[data-debug-error]');
+    if (messageNode) messageNode.textContent = output;
+    if (errorNode && ticketMenuDebugState.lastError) {
+      errorNode.textContent = ticketMenuDebugState.lastError;
+    }
+  }
+
+  window.addEventListener('error', (event) => {
+    ticketMenuDebugState.lastError = event.message || 'Unknown script error';
+    ticketMenuDebug('JavaScript error detected', ticketMenuDebugState.lastError);
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason && event.reason.message ? event.reason.message : String(event.reason || 'Unknown rejection');
+    ticketMenuDebugState.lastError = reason;
+    ticketMenuDebug('Unhandled promise rejection', reason);
+  });
+
+  const selectAllTickets = document.getElementById('selectAllTickets');
+  const bulkTicketCheckboxes = () => Array.from(document.querySelectorAll('.bulk-ticket-checkbox'));
+
+  if (selectAllTickets) {
+    selectAllTickets.addEventListener('change', () => {
+      const checked = selectAllTickets.checked;
+      bulkTicketCheckboxes().forEach(cb => {
+        cb.checked = checked;
+      });
+      ticketMenuDebug('Bulk selection toggled', checked ? 'All tickets selected' : 'All tickets cleared');
+    });
+
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('bulk-ticket-checkbox')) {
+        const boxes = bulkTicketCheckboxes();
+        selectAllTickets.checked = boxes.length > 0 && boxes.every(cb => cb.checked);
+      }
+    });
+  }
+
   document.addEventListener('click', (e) => {
     // Handle action menu trigger clicks
     const trigger = e.target.closest('.action-menu-trigger');
     if (trigger) {
       e.preventDefault();
-      
-      const menu = trigger.closest('.action-menu').querySelector('.action-menu-content');
-      
+
+      ticketMenuDebug('Action menu trigger clicked', `target=${trigger.className}`);
+
+      const menuWrapper = trigger.closest('.action-menu');
+      if (!menuWrapper) {
+        ticketMenuDebug('Action menu wrapper missing', 'The trigger was clicked, but .action-menu was not found.');
+        return;
+      }
+
+      const menu = menuWrapper.querySelector('.action-menu-content');
+      if (!menu) {
+        ticketMenuDebug('Action menu content missing', 'The menu container could not be found next to the trigger.');
+        return;
+      }
+
       // Close all other menus
       document.querySelectorAll('.action-menu-content').forEach(m => {
         if (m !== menu) m.style.display = 'none';
       });
-      
+
       // Toggle current menu
       if (menu) {
-        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+        const nextState = (menu.style.display === 'block') ? 'none' : 'block';
+        menu.style.display = nextState;
+        ticketMenuDebug('Action menu toggled', `display=${nextState}`);
       }
       return;
     }
-    
+
     // Clicking outside completely closes any open menus
     if (!e.target.closest('.action-menu')) {
       document.querySelectorAll('.action-menu-content').forEach(m => m.style.display = 'none');
+      ticketMenuDebug('Closed open menus', 'Clicked outside the action menu.');
     }
   });
 
