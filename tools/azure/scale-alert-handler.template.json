@@ -1,0 +1,89 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "scale-alert-handler",
+      "location": "southafricanorth",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "triggers": {
+            "manual": {
+              "type": "Request",
+              "kind": "Http"
+            }
+          },
+          "actions": {
+            "withinBusinessWindow": {
+              "type": "If",
+              "expression": "@and(greaterOrEquals(dayOfWeek(convertFromUtc(utcNow(),'W. Central Africa Standard Time')),1),lessOrEquals(dayOfWeek(convertFromUtc(utcNow(),'W. Central Africa Standard Time')),5),greaterOrEquals(int(formatDateTime(convertFromUtc(utcNow(),'W. Central Africa Standard Time'),'HH')),6),less(int(formatDateTime(convertFromUtc(utcNow(),'W. Central Africa Standard Time'),'HH')),16))",
+              "actions": {
+                "getCurrentPlan": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "GET",
+                    "uri": "https://management.azure.com/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2?api-version=2022-03-01",
+                    "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+                  }
+                },
+                "checkPlan": {
+                  "type": "If",
+                  "runAfter": { "getCurrentPlan": ["Succeeded"] },
+                  "expression": "@equals(string(body('getCurrentPlan')?['sku']?['name']), 'B3')",
+                  "actions": {},
+                  "else": {
+                    "actions": {
+                      "checkSeverity": {
+                        "type": "If",
+                        "expression": "@greaterOrEquals(int(coalesce(triggerBody()?['data']?['essentials']?['severity'], 2)), 2)",
+                        "actions": {
+                          "scaleToB3": {
+                            "type": "Http",
+                            "inputs": {
+                              "method": "PATCH",
+                              "uri": "https://management.azure.com/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2?api-version=2022-03-01",
+                              "headers": { "Content-Type": "application/json" },
+                              "body": { "sku": { "name": "B3", "tier": "Basic" }, "properties": { "reserved": true } },
+                              "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+                            }
+                          }
+                        },
+                        "else": {
+                          "actions": {
+                            "scaleToB2": {
+                              "type": "Http",
+                              "inputs": {
+                                "method": "PATCH",
+                                "uri": "https://management.azure.com/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2?api-version=2022-03-01",
+                                "headers": { "Content-Type": "application/json" },
+                                "body": { "sku": { "name": "B2", "tier": "Basic" }, "properties": { "reserved": true } },
+                                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "skipOutsideBusinessWindow": {
+                    "type": "Compose",
+                    "inputs": "Outside business window (Mon-Fri, 06:00-15:59 W. Central Africa). No scaling applied."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

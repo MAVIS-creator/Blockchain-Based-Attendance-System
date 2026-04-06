@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "scale-evening-f1",
+      "location": "southafricanorth",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "triggers": {
+            "recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "schedule": {
+                  "hours": [16],
+                  "minutes": [0]
+                },
+                "timeZone": "W. Central Africa Standard Time"
+              }
+            }
+          },
+          "actions": {
+            "patch_plan_to_b1": {
+              "type": "Http",
+              "inputs": {
+                "method": "PATCH",
+                "uri": "https://management.azure.com/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2?api-version=2022-03-01",
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "sku": { "name": "B1", "tier": "Basic" },
+                  "properties": { "reserved": true }
+                },
+                "authentication": {
+                  "type": "ManagedServiceIdentity",
+                  "audience": "https://management.azure.com"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

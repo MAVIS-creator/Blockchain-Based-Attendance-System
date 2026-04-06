@@ -1,0 +1,64 @@
+{
+  "properties": {
+    "state": "Enabled",
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "schedule": {
+              "hours": [18],
+              "minutes": [10]
+            },
+            "timeZone": "W. Central Africa Standard Time"
+          }
+        }
+      },
+      "actions": {
+        "patch_plan_to_b1": {
+          "type": "Http",
+          "runAfter": {},
+          "inputs": {
+            "method": "PATCH",
+            "uri": "https://management.azure.com/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2?api-version=2022-03-01",
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "sku": {
+                "name": "B1",
+                "tier": "Basic",
+                "size": "B1",
+                "family": "B",
+                "capacity": 1
+              },
+              "properties": {
+                "reserved": true
+              }
+            },
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "audience": "https://management.azure.com"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "parameters": {
+      "$connections": {
+        "value": {}
+      }
+    }
+  }
+}
