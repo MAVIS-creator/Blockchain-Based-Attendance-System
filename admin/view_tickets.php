@@ -14,9 +14,8 @@ app_storage_init();
 $pageCsrfToken = csrf_token();
 $flashMessage = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
-$ticketMenuDebugMode = isset($_GET['debug']) && $_GET['debug'] !== '0';
 
-$ticketsFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/support_tickets.json');
+$ticketsFile = admin_storage_migrate_file('support_tickets.json', app_storage_file('support_tickets.json'));
 $tickets = [];
 $ticketsSource = 'file';
 
@@ -237,14 +236,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
   <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Review and resolve student support requests. Source: <strong><?= htmlspecialchars($ticketsSource) ?></strong></p>
 </div>
 
-<?php if ($ticketMenuDebugMode): ?>
-  <div id="ticketMenuDebugPanel" style="position:fixed;right:16px;bottom:16px;z-index:9999;max-width:380px;padding:12px 14px;border-radius:12px;background:rgba(15,23,42,0.96);color:#e2e8f0;font-size:12px;line-height:1.45;box-shadow:0 12px 30px rgba(15,23,42,0.25);border:1px solid rgba(148,163,184,0.25);">
-    <div style="font-weight:700;margin-bottom:4px;">Ticket menu debug</div>
-    <div data-debug-message>Debug mode active. Click the three-dot button to trace the menu behavior.</div>
-    <div data-debug-error style="margin-top:6px;color:#fca5a5;"></div>
-  </div>
-<?php endif; ?>
-
 <form id="bulkTicketForm" method="post" style="margin:0 0 16px 0;">
   <?php csrf_field(); ?>
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:14px;box-shadow:var(--shadow-ambient);">
@@ -315,32 +306,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
           <!-- Footer -->
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--surface-container-high);font-size:0.85rem;color:var(--on-surface-variant);flex-wrap:wrap;gap:8px;">
             <span><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;">schedule</span> <?= htmlspecialchars($ticket['timestamp']) ?></span>
-            <form method="post" class="resolve-ticket-form" style="margin:0;">
-              <?php csrf_field(); ?>
-              <input type="hidden" name="resolve_ticket" value="<?= htmlspecialchars($ticket['timestamp']) ?>">
-              <button type="submit" class="st-btn st-btn-success st-btn-sm resolve-btn" onclick="return confirmResolve(event)">
-                <span class="material-symbols-outlined" style="font-size:1rem;">check_circle</span> Resolve
-              </button>
-            </form>
-          </div>
-
-          <!-- Action Menu -->
-          <div style="position:absolute;top:16px;right:16px;z-index:30;" class="action-menu">
-            <button type="button" class="action-menu-trigger" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;">
-              <span class="material-symbols-outlined" style="pointer-events: none; font-size:1rem;color:var(--on-surface-variant);">more_vert</span>
-            </button>
-            <form method="post" class="action-menu-content" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:10px;box-shadow:var(--shadow-ambient);padding:4px;z-index:60;min-width:160px;">
-              <?php csrf_field(); ?>
-              <input type="hidden" name="name" value="<?= htmlspecialchars($ticket['name']) ?>">
-              <input type="hidden" name="matric" value="<?= htmlspecialchars($ticket['matric']) ?>">
-              <input type="hidden" name="reason" value="<?= htmlspecialchars($ticket['message']) ?>">
-              <button type="submit" name="manual_action" value="checkin" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;border-radius:6px;font-family:inherit;font-size:0.88rem;color:var(--on-surface);transition:background 0.15s;">
-                <span class="material-symbols-outlined" style="font-size:1rem;">login</span> Check-In
-              </button>
-              <button type="submit" name="manual_action" value="checkout" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;border-radius:6px;font-family:inherit;font-size:0.88rem;color:var(--on-surface);transition:background 0.15s;">
-                <span class="material-symbols-outlined" style="font-size:1rem;">logout</span> Check-Out
-              </button>
-            </form>
+            <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+              <div style="position:relative;" class="action-menu">
+                <button type="button" class="action-menu-trigger" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;">
+                  <span class="material-symbols-outlined" style="pointer-events:none;font-size:1rem;color:var(--on-surface-variant);">more_vert</span>
+                </button>
+                <form method="post" class="action-menu-content" hidden style="position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:10px;box-shadow:var(--shadow-ambient);padding:4px;z-index:1000;min-width:160px;">
+                  <?php csrf_field(); ?>
+                  <input type="hidden" name="name" value="<?= htmlspecialchars($ticket['name']) ?>">
+                  <input type="hidden" name="matric" value="<?= htmlspecialchars($ticket['matric']) ?>">
+                  <input type="hidden" name="reason" value="<?= htmlspecialchars($ticket['message']) ?>">
+                  <button type="submit" name="manual_action" value="checkin" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;border-radius:6px;font-family:inherit;font-size:0.88rem;color:var(--on-surface);transition:background 0.15s;">
+                    <span class="material-symbols-outlined" style="font-size:1rem;">login</span> Check-In
+                  </button>
+                  <button type="submit" name="manual_action" value="checkout" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;border-radius:6px;font-family:inherit;font-size:0.88rem;color:var(--on-surface);transition:background 0.15s;">
+                    <span class="material-symbols-outlined" style="font-size:1rem;">logout</span> Check-Out
+                  </button>
+                </form>
+              </div>
+              <form method="post" class="resolve-ticket-form" style="margin:0;">
+                <?php csrf_field(); ?>
+                <input type="hidden" name="resolve_ticket" value="<?= htmlspecialchars($ticket['timestamp']) ?>">
+                <button type="submit" class="st-btn st-btn-success st-btn-sm resolve-btn" onclick="return confirmResolve(event)">
+                  <span class="material-symbols-outlined" style="font-size:1rem;">check_circle</span> Resolve
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       <?php endif; ?>
@@ -360,46 +351,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
 </div>
 
 <script>
-  const ticketMenuDebugEnabled = new URLSearchParams(window.location.search).has('debug');
-  const ticketMenuDebugState = {
-    lastEvent: '',
-    lastError: ''
-  };
-
-  function ticketMenuDebug(message, detail = '') {
-    if (!ticketMenuDebugEnabled) return;
-    const output = detail ? `${message}: ${detail}` : message;
-    ticketMenuDebugState.lastEvent = output;
-    console.debug('[SupportTicketsMenu]', output);
-
-    let panel = document.getElementById('ticketMenuDebugPanel');
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.id = 'ticketMenuDebugPanel';
-      panel.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:9999;max-width:360px;padding:12px 14px;border-radius:12px;background:rgba(15,23,42,0.94);color:#e2e8f0;font-size:12px;line-height:1.45;box-shadow:0 12px 30px rgba(15,23,42,0.25);border:1px solid rgba(148,163,184,0.25);';
-      panel.innerHTML = '<div style="font-weight:700;margin-bottom:4px;">Ticket menu debug</div><div data-debug-message></div><div data-debug-error style="margin-top:6px;color:#fca5a5;"></div>';
-      document.body.appendChild(panel);
-    }
-
-    const messageNode = panel.querySelector('[data-debug-message]');
-    const errorNode = panel.querySelector('[data-debug-error]');
-    if (messageNode) messageNode.textContent = output;
-    if (errorNode && ticketMenuDebugState.lastError) {
-      errorNode.textContent = ticketMenuDebugState.lastError;
-    }
-  }
-
-  window.addEventListener('error', (event) => {
-    ticketMenuDebugState.lastError = event.message || 'Unknown script error';
-    ticketMenuDebug('JavaScript error detected', ticketMenuDebugState.lastError);
-  });
-
-  window.addEventListener('unhandledrejection', (event) => {
-    const reason = event.reason && event.reason.message ? event.reason.message : String(event.reason || 'Unknown rejection');
-    ticketMenuDebugState.lastError = reason;
-    ticketMenuDebug('Unhandled promise rejection', reason);
-  });
-
   const selectAllTickets = document.getElementById('selectAllTickets');
   const bulkTicketCheckboxes = () => Array.from(document.querySelectorAll('.bulk-ticket-checkbox'));
 
@@ -409,7 +360,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
       bulkTicketCheckboxes().forEach(cb => {
         cb.checked = checked;
       });
-      ticketMenuDebug('Bulk selection toggled', checked ? 'All tickets selected' : 'All tickets cleared');
     });
 
     document.addEventListener('change', (e) => {
@@ -426,38 +376,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
     if (trigger) {
       e.preventDefault();
 
-      ticketMenuDebug('Action menu trigger clicked', `target=${trigger.className}`);
-
       const menuWrapper = trigger.closest('.action-menu');
-      if (!menuWrapper) {
-        ticketMenuDebug('Action menu wrapper missing', 'The trigger was clicked, but .action-menu was not found.');
-        return;
-      }
+      if (!menuWrapper) return;
+
+      const parentCard = menuWrapper.closest('.ticket-card');
 
       const menu = menuWrapper.querySelector('.action-menu-content');
-      if (!menu) {
-        ticketMenuDebug('Action menu content missing', 'The menu container could not be found next to the trigger.');
-        return;
-      }
+      if (!menu) return;
 
       // Close all other menus
-      document.querySelectorAll('.action-menu-content').forEach(m => {
-        if (m !== menu) m.style.display = 'none';
+      document.querySelectorAll('.action-menu').forEach(wrapper => {
+        const otherMenu = wrapper.querySelector('.action-menu-content');
+        if (!otherMenu || otherMenu === menu) {
+          return;
+        }
+        wrapper.classList.remove('active');
+        otherMenu.hidden = true;
+        const otherCard = wrapper.closest('.ticket-card');
+        if (otherCard) otherCard.style.zIndex = '';
       });
+
+      document.querySelectorAll('.ticket-card').forEach(card => {
+        card.style.zIndex = '';
+      });
+      if (parentCard) {
+        parentCard.style.zIndex = '40000';
+      }
 
       // Toggle current menu
       if (menu) {
-        const nextState = (menu.style.display === 'block') ? 'none' : 'block';
-        menu.style.display = nextState;
-        ticketMenuDebug('Action menu toggled', `display=${nextState}`);
+        const isOpen = menuWrapper.classList.contains('active');
+        const nextState = isOpen ? 'none' : 'block';
+        menuWrapper.classList.toggle('active', !isOpen);
+        menu.hidden = isOpen;
+        if (isOpen && parentCard) {
+          parentCard.style.zIndex = '';
+        }
       }
       return;
     }
 
     // Clicking outside completely closes any open menus
     if (!e.target.closest('.action-menu')) {
-      document.querySelectorAll('.action-menu-content').forEach(m => m.style.display = 'none');
-      ticketMenuDebug('Closed open menus', 'Clicked outside the action menu.');
+      document.querySelectorAll('.action-menu').forEach(wrapper => {
+        wrapper.classList.remove('active');
+        const menu = wrapper.querySelector('.action-menu-content');
+        if (menu) menu.hidden = true;
+      });
+      document.querySelectorAll('.ticket-card').forEach(card => {
+        card.style.zIndex = '';
+      });
     }
   });
 

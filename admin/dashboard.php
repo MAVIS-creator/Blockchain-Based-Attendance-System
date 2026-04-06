@@ -21,7 +21,7 @@ request_timing_span('scan_dashboard_logs', $span, [
   'failed_files' => (int)($logSummary['failedFileCount'] ?? 0),
 ]);
 
-$supportFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/support_tickets.json');
+$supportFile = admin_storage_migrate_file('support_tickets.json', app_storage_file('support_tickets.json'));
 $supportSource = 'file';
 $supportTickets = hybrid_fetch_support_tickets($supportSource);
 if (!is_array($supportTickets)) {

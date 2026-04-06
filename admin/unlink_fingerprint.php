@@ -10,7 +10,7 @@ require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
 require_once __DIR__ . '/runtime_storage.php';
 
-$fingerprintFile = app_storage_migrate_file('fingerprints.json', __DIR__ . '/fingerprints.json');
+$fingerprintFile = admin_storage_migrate_file('fingerprints.json', app_storage_file('fingerprints.json'));
 $fingerprintsData = file_exists($fingerprintFile) ? json_decode(file_get_contents($fingerprintFile), true) : [];
 if (!is_array($fingerprintsData)) $fingerprintsData = [];
 
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $embedded = (basename($_SERVER['SCRIPT_NAME']) === 'index.php' || isset($page));
 
-function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded, $message)
+function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded, $message, $messageType)
 {
   ob_start();
   if (!$embedded) {
@@ -194,11 +194,11 @@ function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded
         }
 
         <?php if ($message !== ''): ?>
-        window.adminAlert(
-          <?= json_encode($messageType === 'success' ? 'Success' : 'Action failed') ?>,
-          <?= json_encode($message) ?>,
-          <?= json_encode($messageType) ?>
-        );
+          window.adminAlert(
+            <?= json_encode($messageType === 'success' ? 'Success' : 'Action failed') ?>,
+            <?= json_encode($message) ?>,
+            <?= json_encode($messageType) ?>
+          );
         <?php endif; ?>
       </script>
     <?php
@@ -208,4 +208,4 @@ function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded
     return ob_get_clean();
   }
 
-  echo render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded, $message);
+  echo render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded, $message, $messageType);

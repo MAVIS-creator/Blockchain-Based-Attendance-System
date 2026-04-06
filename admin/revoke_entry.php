@@ -1,16 +1,25 @@
 <?php
 session_start();
-if (empty($_SESSION['admin_logged_in'])) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'Not authorized']); exit; }
+if (empty($_SESSION['admin_logged_in'])) {
+	header('HTTP/1.1 403 Forbidden');
+	echo json_encode(['ok' => false, 'message' => 'Not authorized']);
+	exit;
+}
 // CSRF protection
 $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
-if (function_exists('csrf_check_request') && !csrf_check_request()) { header('HTTP/1.1 403 Forbidden'); echo json_encode(['ok'=>false,'message'=>'csrf_failed']); exit; }
+if (function_exists('csrf_check_request') && !csrf_check_request()) {
+	header('HTTP/1.1 403 Forbidden');
+	echo json_encode(['ok' => false, 'message' => 'csrf_failed']);
+	exit;
+}
 
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
-$file = app_storage_migrate_file('revoked.json', __DIR__ . '/revoked.json');
-$data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
-if (!is_array($data)) $data = ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
+$file = admin_storage_migrate_file('revoked.json', app_storage_file('revoked.json'));
+$data = file_exists($file) ? json_decode(file_get_contents($file), true) : ['tokens' => [], 'ips' => [], 'macs' => []];
+if (!is_array($data)) $data = ['tokens' => [], 'ips' => [], 'macs' => []];
 
 function mask_audit_value($value)
 {
@@ -35,15 +44,15 @@ if (!isset($data['ips']) || !is_array($data['ips'])) $data['ips'] = [];
 if (!isset($data['macs']) || !is_array($data['macs'])) $data['macs'] = [];
 
 if ($token !== '') {
-	$data['tokens'][$token] = ['by'=>$adminUser,'at'=>time(),'expiry'=>$expiry];
+	$data['tokens'][$token] = ['by' => $adminUser, 'at' => time(), 'expiry' => $expiry];
 	$added[] = 'token';
 }
 if ($ip !== '') {
-	$data['ips'][$ip] = ['by'=>$adminUser,'at'=>time(),'expiry'=>$expiry];
+	$data['ips'][$ip] = ['by' => $adminUser, 'at' => time(), 'expiry' => $expiry];
 	$added[] = 'ip';
 }
 if ($mac !== '') {
-	$data['macs'][$mac] = ['by'=>$adminUser,'at'=>time(),'expiry'=>$expiry];
+	$data['macs'][$mac] = ['by' => $adminUser, 'at' => time(), 'expiry' => $expiry];
 	$added[] = 'mac';
 }
 
@@ -57,9 +66,9 @@ $timeStr = date('Y-m-d H:i:s');
 foreach ($added as $type) {
 	$target = ($type === 'token') ? $token : (($type === 'ip') ? $ip : $mac);
 	$maskedTarget = mask_audit_value($target);
-	$line = "$timeStr | revoke | $adminUser | $type | $maskedTarget | expiry:" . date('Y-m-d',$expiry) . " | from:$remoteIp" . PHP_EOL;
+	$line = "$timeStr | revoke | $adminUser | $type | $maskedTarget | expiry:" . date('Y-m-d', $expiry) . " | from:$remoteIp" . PHP_EOL;
 	file_put_contents($auditFile, $line, FILE_APPEND | LOCK_EX);
 }
 
 header('Content-Type: application/json');
-echo json_encode(['ok'=>true,'added'=>$added,'counts'=>['tokens'=>count($data['tokens']),'ips'=>count($data['ips']),'macs'=>count($data['macs'])]]);
+echo json_encode(['ok' => true, 'added' => $added, 'counts' => ['tokens' => count($data['tokens']), 'ips' => count($data['ips']), 'macs' => count($data['macs'])]]);

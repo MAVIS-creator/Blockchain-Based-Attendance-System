@@ -116,7 +116,7 @@ if (!function_exists('admin_cached_file_lines')) {
 if (!function_exists('admin_support_ticket_count')) {
   function admin_support_ticket_count($ttl = 15)
   {
-    $ticketsFile = app_storage_migrate_file('support_tickets.json', __DIR__ . '/support_tickets.json');
+    $ticketsFile = admin_storage_migrate_file('support_tickets.json', app_storage_file('support_tickets.json'));
     $tickets = admin_cached_json_file('support_tickets', $ticketsFile, [], $ttl);
     $count = 0;
     foreach ($tickets as $ticket) {
@@ -131,7 +131,7 @@ if (!function_exists('admin_support_ticket_count')) {
 if (!function_exists('admin_fingerprint_count_cached')) {
   function admin_fingerprint_count_cached($ttl = 15)
   {
-    $fingerprintFile = app_storage_migrate_file('fingerprints.json', __DIR__ . '/fingerprints.json');
+    $fingerprintFile = admin_storage_migrate_file('fingerprints.json', app_storage_file('fingerprints.json'));
     $fingerprints = admin_cached_json_file('fingerprints', $fingerprintFile, [], $ttl);
     return is_array($fingerprints) ? count($fingerprints) : 0;
   }

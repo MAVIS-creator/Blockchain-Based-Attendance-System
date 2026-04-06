@@ -14,11 +14,11 @@ $accounts = admin_storage_migrate_file('accounts.json');
 $settings = admin_storage_migrate_file('settings.json');
 $chain = app_storage_migrate_file('secure_logs/attendance_chain.json', __DIR__ . '/../secure_logs/attendance_chain.json');
 // additional watched files/pages/data
-$ticketsFile = app_storage_migrate_file('support_tickets.json', $base . 'support_tickets.json');
-$fingerprints = app_storage_migrate_file('fingerprints.json', $base . 'fingerprints.json');
+$ticketsFile = admin_storage_migrate_file('support_tickets.json', app_storage_file('support_tickets.json'));
+$fingerprints = admin_storage_migrate_file('fingerprints.json', app_storage_file('fingerprints.json'));
 $courses = admin_course_storage_migrate_file('course.json');
 $activeCourse = admin_course_storage_migrate_file('active_course.json');
-$statusFile = app_storage_migrate_file('status.json', $base . 'status.json');
+$statusFile = admin_storage_migrate_file('status.json', app_storage_file('status.json'));
 $viewTicketsPage = $base . 'view_tickets.php';
 $unlinkPage = $base . 'unlink_fingerprint.php';
 $addCoursePage = $base . 'courses/add.php';

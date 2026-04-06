@@ -14,12 +14,102 @@ if (!function_exists('request_timing_enabled')) {
   }
 }
 
+if (!function_exists('request_timing_sample_rate')) {
+  function request_timing_sample_rate()
+  {
+    $raw = getenv('APP_TIMING_SAMPLE_RATE');
+    if ($raw === false || $raw === '') {
+      return 0.05; // Default: keep only 5% of normal requests.
+    }
+    $rate = (float)$raw;
+    if (!is_finite($rate)) {
+      return 0.05;
+    }
+    if ($rate < 0) $rate = 0;
+    if ($rate > 1) $rate = 1;
+    return $rate;
+  }
+}
+
+if (!function_exists('request_timing_slow_ms_threshold')) {
+  function request_timing_slow_ms_threshold()
+  {
+    $raw = getenv('APP_TIMING_SLOW_MS');
+    if ($raw === false || $raw === '') {
+      return 1200.0; // Always keep slow requests (>= 1.2s) by default.
+    }
+    $ms = (float)$raw;
+    if (!is_finite($ms) || $ms < 0) {
+      return 1200.0;
+    }
+    return $ms;
+  }
+}
+
+if (!function_exists('request_timing_max_spans')) {
+  function request_timing_max_spans()
+  {
+    $raw = getenv('APP_TIMING_MAX_SPANS');
+    if ($raw === false || $raw === '') {
+      return 10;
+    }
+    $value = (int)$raw;
+    if ($value < 1) {
+      return 1;
+    }
+    if ($value > 200) {
+      return 200;
+    }
+    return $value;
+  }
+}
+
+if (!function_exists('request_timing_should_keep_errors')) {
+  function request_timing_should_keep_errors()
+  {
+    $raw = getenv('APP_TIMING_KEEP_ERRORS');
+    if ($raw === false || $raw === '') {
+      return true;
+    }
+    $raw = strtolower(trim((string)$raw));
+    return in_array($raw, ['1', 'true', 'yes', 'on'], true);
+  }
+}
+
+if (!function_exists('request_timing_should_sample')) {
+  function request_timing_should_sample($rate)
+  {
+    if ($rate >= 1) return true;
+    if ($rate <= 0) return false;
+    try {
+      $bucket = random_int(1, 10000);
+    } catch (Exception $e) {
+      $bucket = mt_rand(1, 10000);
+    }
+    return $bucket <= (int)round($rate * 10000);
+  }
+}
+
 if (!function_exists('request_timing_start')) {
   function request_timing_start($route, array $meta = [])
   {
     static $initialized = false;
     if (!request_timing_enabled()) {
       return null;
+    }
+
+    if (isset($GLOBALS['__request_timing_ctx']) && is_array($GLOBALS['__request_timing_ctx'])) {
+      if ((string)$route !== '') {
+        $GLOBALS['__request_timing_ctx']['route'] = (string)$route;
+      }
+      if (!empty($meta)) {
+        $existingMeta = $GLOBALS['__request_timing_ctx']['meta'] ?? [];
+        if (!is_array($existingMeta)) {
+          $existingMeta = [];
+        }
+        $GLOBALS['__request_timing_ctx']['meta'] = array_merge($existingMeta, $meta);
+      }
+      return $GLOBALS['__request_timing_ctx']['started_at'] ?? microtime(true);
     }
 
     app_storage_init();
@@ -44,10 +134,44 @@ if (!function_exists('request_timing_start')) {
   }
 }
 
+if (!function_exists('request_timing_auto_start')) {
+  function request_timing_auto_start(array $meta = [])
+  {
+    if (!request_timing_enabled()) {
+      return null;
+    }
+
+    if (PHP_SAPI === 'cli' || PHP_SAPI === 'phpdbg') {
+      return null;
+    }
+
+    $script = (string)($_SERVER['SCRIPT_NAME'] ?? $_SERVER['PHP_SELF'] ?? 'unknown.php');
+    $route = ltrim(str_replace('\\', '/', $script), '/');
+    if ($route === '') {
+      $route = 'unknown.php';
+    }
+
+    $defaultMeta = [
+      'auto_timing' => true,
+      'script' => $route,
+    ];
+
+    return request_timing_start($route, array_merge($defaultMeta, $meta));
+  }
+}
+
 if (!function_exists('request_timing_span')) {
   function request_timing_span($name, $startedAt, array $meta = [])
   {
     if (!request_timing_enabled() || !isset($GLOBALS['__request_timing_ctx']) || $startedAt === null) {
+      return;
+    }
+
+    $maxSpans = request_timing_max_spans();
+    $existingSpans = $GLOBALS['__request_timing_ctx']['spans'] ?? [];
+    if (count($existingSpans) >= $maxSpans) {
+      $dropped = (int)($GLOBALS['__request_timing_ctx']['spans_dropped'] ?? 0);
+      $GLOBALS['__request_timing_ctx']['spans_dropped'] = $dropped + 1;
       return;
     }
 
@@ -84,6 +208,39 @@ if (!function_exists('request_timing_flush')) {
     $ctx['duration_ms'] = round((microtime(true) - (float)$ctx['started_at']) * 1000, 2);
     $ctx['memory_peak_mb'] = round(memory_get_peak_usage(true) / 1048576, 2);
     $ctx['status_code'] = http_response_code();
+
+    $statusCode = (int)$ctx['status_code'];
+    $durationMs = (float)$ctx['duration_ms'];
+    $slowMsThreshold = request_timing_slow_ms_threshold();
+    $keepErrors = request_timing_should_keep_errors();
+    $sampleRate = request_timing_sample_rate();
+
+    $isError = $statusCode >= 400;
+    $isSlow = $durationMs >= $slowMsThreshold;
+    $isSampled = request_timing_should_sample($sampleRate);
+
+    if (!$isError && !$isSlow && !$isSampled) {
+      return;
+    }
+
+    if ($isError && !$keepErrors) {
+      // Respect explicit config to skip error logging as well.
+      return;
+    }
+
+    if (!isset($ctx['meta']) || !is_array($ctx['meta'])) {
+      $ctx['meta'] = [];
+    }
+    $ctx['meta']['timing_policy'] = [
+      'sample_rate' => $sampleRate,
+      'slow_ms' => $slowMsThreshold,
+      'kept_because' => $isError ? 'error' : ($isSlow ? 'slow' : 'sampled')
+    ];
+
+    if (!empty($ctx['spans_dropped'])) {
+      $ctx['meta']['spans_dropped'] = (int)$ctx['spans_dropped'];
+      unset($ctx['spans_dropped']);
+    }
 
     $logFile = app_storage_file('logs/request_timing.jsonl');
     @file_put_contents($logFile, json_encode($ctx, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);

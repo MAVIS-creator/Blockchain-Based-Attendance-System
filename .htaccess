@@ -30,3 +30,12 @@ Require all denied
 
 ErrorDocument 404 /404.php
 ErrorDocument 500 /500.php
+
+# Auto-track request timing for all PHP pages in this app
+
+<IfModule mod_php.c>
+php_value auto_prepend_file "C:/xampp/htdocs/Blockchain-Based-Attendance-System/request_timing_auto.php"
+</IfModule>
+<IfModule mod_php8.c>
+php_value auto_prepend_file "C:/xampp/htdocs/Blockchain-Based-Attendance-System/request_timing_auto.php"
+</IfModule>

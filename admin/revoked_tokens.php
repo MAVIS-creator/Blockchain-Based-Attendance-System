@@ -4,17 +4,21 @@
 header('Content-Type: application/json');
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/cache_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
-$file = app_storage_migrate_file('revoked.json', __DIR__ . '/revoked.json');
-$data = admin_cached_json_file('revoked_tokens', $file, ['tokens'=>[], 'ips'=>[], 'macs'=>[]], 10);
-if (!is_array($data)) $data = ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
+$file = admin_storage_migrate_file('revoked.json', app_storage_file('revoked.json'));
+$data = admin_cached_json_file('revoked_tokens', $file, ['tokens' => [], 'ips' => [], 'macs' => []], 10);
+if (!is_array($data)) $data = ['tokens' => [], 'ips' => [], 'macs' => []];
 
 // Remove expired entries and build response
 $now = time();
 $cleaned = false;
-$resp = ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
-foreach (['tokens','ips','macs'] as $k) {
-	if (!isset($data[$k]) || !is_array($data[$k])) { $data[$k] = []; continue; }
+$resp = ['tokens' => [], 'ips' => [], 'macs' => []];
+foreach (['tokens', 'ips', 'macs'] as $k) {
+	if (!isset($data[$k]) || !is_array($data[$k])) {
+		$data[$k] = [];
+		continue;
+	}
 	foreach ($data[$k] as $key => $meta) {
 		$expiry = intval($meta['expiry'] ?? 0);
 		if ($expiry !== 0 && $expiry < $now) {
@@ -33,4 +37,4 @@ if ($cleaned) {
 	file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
 }
 
-echo json_encode(['ok'=>true,'revoked'=>$resp]);
+echo json_encode(['ok' => true, 'revoked' => $resp]);

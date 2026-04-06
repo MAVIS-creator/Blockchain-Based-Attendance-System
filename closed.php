@@ -3,12 +3,15 @@ session_start();
 
 require_once __DIR__ . '/admin/runtime_storage.php';
 $announcementFile = admin_storage_migrate_file('announcement.json');
-$announcement = ['enabled' => false, 'message' => ''];
+$announcement = ['enabled' => false, 'message' => '', 'severity' => 'info', 'updated_at' => null];
 if (file_exists($announcementFile)) {
   $json = json_decode(file_get_contents($announcementFile), true);
   if (is_array($json)) {
-    $announcement['enabled'] = !empty($json['enabled']);
-    $announcement['message'] = trim((string)($json['message'] ?? ''));
+    $announcement['enabled'] = isset($json['enabled']) ? (bool)$json['enabled'] : false;
+    $announcement['message'] = isset($json['message']) ? (string)$json['message'] : '';
+    $sev = isset($json['severity']) ? (string)$json['severity'] : 'info';
+    $announcement['severity'] = in_array($sev, ['info', 'warning', 'urgent'], true) ? $sev : 'info';
+    $announcement['updated_at'] = isset($json['updated_at']) ? $json['updated_at'] : null;
   }
 }
 ?>
@@ -38,6 +41,15 @@ if (file_exists($announcementFile)) {
       --primary: #1f5d99;
       --primary-2: #3b7db6;
       --soft: #f4f8fc;
+      --announce-info-bg: #eef6ff;
+      --announce-info-line: #cfe1f5;
+      --announce-info-text: #1d4f80;
+      --announce-warning-bg: #fff8e8;
+      --announce-warning-line: #f5dfad;
+      --announce-warning-text: #8a5a00;
+      --announce-urgent-bg: #ffeef0;
+      --announce-urgent-line: #f5c2c8;
+      --announce-urgent-text: #9f1d2c;
       --shadow: 0 18px 40px rgba(24, 39, 75, 0.08);
     }
 
@@ -49,14 +61,15 @@ if (file_exists($announcementFile)) {
       margin: 0;
       font-family: "Trebuchet MS", "Segoe UI", sans-serif;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       color: var(--text);
       background:
         radial-gradient(circle at 12% 14%, rgba(59, 125, 182, 0.22), transparent 26%),
         radial-gradient(circle at 88% 82%, rgba(30, 142, 106, 0.14), transparent 24%),
         linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
-      padding: 20px;
+      padding: 86px 20px 20px;
     }
 
     .card {
@@ -68,26 +81,105 @@ if (file_exists($announcementFile)) {
       max-width: 720px;
       width: 100%;
       padding: 28px;
+      margin-top: 58px;
       animation: rise-in 0.45s ease;
     }
 
-    .announcement-panel {
+    .alert-bar {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      background: #eef4ff;
+      color: #1e3a8a;
+      padding: 12px 20px;
       display: none;
-      margin: 0 auto 14px;
-      background: #eef6ff;
-      border: 1px solid #cfe1f5;
-      color: #1d4f80;
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 0.93rem;
-      line-height: 1.35;
-      text-align: left;
-      max-width: 560px;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-left: 4px solid #3b82f6;
+      border-bottom: 1px solid #dbeafe;
+      font-family: system-ui, sans-serif;
+      z-index: 999;
+      box-shadow: 0 6px 14px rgba(30, 58, 138, 0.1);
+      animation: slideDown 0.4s ease;
     }
 
-    .announcement-title {
-      font-weight: 700;
-      margin-right: 6px;
+    @keyframes slideDown {
+      from {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .alert-info {
+      background: #eef4ff;
+      border-left-color: #3b82f6;
+      color: #1e3a8a;
+    }
+
+    .alert-warning {
+      background: #fff8e8;
+      border-left-color: #f59e0b;
+      color: #8a5a00;
+    }
+
+    .alert-error {
+      background: #fef2f2;
+      border-left-color: #ef4444;
+      color: #7f1d1d;
+    }
+
+    .alert-success {
+      background: #ecfdf5;
+      border-left-color: #10b981;
+      color: #065f46;
+    }
+
+    .alert-body {
+      min-width: 0;
+      flex: 1;
+      display: grid;
+      gap: 3px;
+      text-align: left;
+    }
+
+    .alert-heading {
+      font-size: 0.86rem;
+      letter-spacing: 0.035em;
+      text-transform: uppercase;
+    }
+
+    .alert-message {
+      font-size: 0.95rem;
+      line-height: 1.35;
+      color: inherit;
+      overflow-wrap: anywhere;
+    }
+
+    .alert-meta {
+      opacity: 0.8;
+      font-size: 0.78rem;
+    }
+
+    .alert-bar button {
+      background: transparent;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0.6;
+      line-height: 1;
+      padding: 0 4px;
+      margin-left: 10px;
+      transition: opacity 0.2s ease;
+    }
+
+    .alert-bar button:hover {
+      opacity: 1;
     }
 
     .announcement-toast {
@@ -110,6 +202,42 @@ if (file_exists($announcementFile)) {
     .announcement-toast.show {
       opacity: 1;
       transform: translateY(0);
+    }
+
+    .page-footer {
+      margin: 3.15rem auto 0.25rem;
+      width: 100%;
+      border-top: 1px solid rgba(95, 109, 125, 0.16);
+      padding: 1rem 0 0.25rem;
+      text-align: center;
+      color: #3f4d5d;
+      font-size: 0.82rem;
+      margin-top: auto;
+    }
+
+    .page-footer-pill {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 0.42rem 0.9rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(216, 225, 235, 0.9);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 8px 18px rgba(24, 39, 75, 0.07);
+    }
+
+    .page-footer-title {
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-size: 0.74rem;
+      color: var(--primary);
+    }
+
+    .page-footer-subtitle {
+      font-size: 0.75rem;
+      color: #46566a;
     }
 
     @keyframes rise-in {
@@ -185,9 +313,14 @@ if (file_exists($announcementFile)) {
     }
 
     @media (max-width: 480px) {
+      body {
+        padding: 74px 14px 14px;
+      }
+
       .card {
         padding: 20px;
         border-radius: 14px;
+        margin-top: 48px;
       }
 
       h1 {
@@ -208,6 +341,18 @@ if (file_exists($announcementFile)) {
         padding: 9px 16px;
         font-size: 0.9rem;
       }
+
+      .alert-bar {
+        padding: 10px 12px;
+      }
+
+      .alert-message {
+        font-size: 0.9rem;
+      }
+
+      .page-footer {
+        margin-top: 2.35rem;
+      }
     }
 
     @media (max-width: 360px) {
@@ -224,12 +369,17 @@ if (file_exists($announcementFile)) {
 </head>
 
 <body>
-  <div class="card">
-    <div id="announcementPanel" class="announcement-panel" style="<?= !empty($announcement['enabled']) ? 'display:flex;' : 'display:none;' ?>">
-      <span class="announcement-title"><i class='bx bx-bell'></i> Announcement:</span>
-      <span id="announcementText"><?= htmlspecialchars($announcement['message'] !== '' ? $announcement['message'] : 'An important announcement is currently active.') ?></span>
+  <!-- Hybrid Announcement Model: Static Top Alert + Toast on Updates -->
+  <div id="announcementBanner" class="alert-bar alert-info" style="<?= !empty($announcement['enabled']) ? 'display:flex;' : 'display:none;' ?>">
+    <div class="alert-body">
+      <strong id="announcementBannerTitle" class="alert-heading">ℹ️ INFORMATION</strong>
+      <div id="announcementBannerText" class="alert-message"><?= htmlspecialchars($announcement['message'] !== '' ? $announcement['message'] : 'An important announcement is currently active.') ?></div>
+      <small id="announcementBannerMeta" class="alert-meta">System update • Just now</small>
     </div>
+    <button type="button" id="announcementBannerDismiss" aria-label="Dismiss announcement">×</button>
+  </div>
 
+  <div class="card">
     <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
     <h1>Attendance Closed</h1>
     <p>Your session was interrupted due to inactivity or tab changes. Attendance is now closed for fairness and exam integrity.</p>
@@ -239,21 +389,97 @@ if (file_exists($announcementFile)) {
     </div>
   </div>
 
-  <footer style="margin: 1.6rem auto 0; width: 100%; border-top: 1px solid rgba(95, 109, 125, 0.16); padding: 1rem 0 0.25rem; text-align: center; color: var(--muted, #64748b); font-size: 0.84rem;">
-    <div style="display:inline-flex;flex-direction:column;gap:4px;padding:0.35rem 0.9rem;border-radius:999px;background:rgba(255,255,255,0.72);backdrop-filter:blur(8px);box-shadow:0 8px 22px rgba(24, 39, 75, 0.05);">
-      <div style="font-weight:700;letter-spacing:0.03em;text-transform:uppercase;font-size:0.76rem;color:var(--primary);">Created by CYB 204 Group 5</div>
-      <div style="font-size:0.76rem;">(Headed by Maximus and Mavis)</div>
+  <footer class="page-footer">
+    <div class="page-footer-pill">
+      <div class="page-footer-title">Created by CYB 204 Group 5</div>
+      <div class="page-footer-subtitle">(Headed by Maximus and Mavis)</div>
     </div>
   </footer>
 
   <script>
-    const announcementPanel = document.getElementById('announcementPanel');
-    const announcementText = document.getElementById('announcementText');
+    const announcementBanner = document.getElementById('announcementBanner');
+    const announcementBannerDismiss = document.getElementById('announcementBannerDismiss');
+    const announcementBannerText = document.getElementById('announcementBannerText');
+    const announcementBannerTitle = document.getElementById('announcementBannerTitle');
+    const announcementBannerMeta = document.getElementById('announcementBannerMeta');
     let announcementInitialized = false;
+    let lastAnnouncementNotificationAt = 0;
+    const ANNOUNCEMENT_DISMISS_PREFIX = 'announcementDismissed:';
+    const ANNOUNCEMENT_ALERT_COOLDOWN_MS = 30 * 1000;
     let lastAnnouncementSignature = JSON.stringify({
       enabled: <?= !empty($announcement['enabled']) ? 'true' : 'false' ?>,
-      message: <?= json_encode((string)$announcement['message']) ?>
+      message: <?= json_encode((string)$announcement['message']) ?>,
+      severity: <?= json_encode((string)($announcement['severity'] ?? 'info')) ?>,
+      updated_at: <?= json_encode($announcement['updated_at'] ?? null) ?>
     });
+
+    function getSeverityMeta(severity) {
+      if (severity === 'urgent') {
+        return {
+          title: '🚨 URGENT ALERT',
+          toastLabel: 'Urgent',
+          cssClass: 'alert-error'
+        };
+      }
+      if (severity === 'warning') {
+        return {
+          title: '⚠️ WARNING',
+          toastLabel: 'Warning',
+          cssClass: 'alert-warning'
+        };
+      }
+      return {
+        title: 'ℹ️ INFORMATION',
+        toastLabel: 'Information',
+        cssClass: 'alert-info'
+      };
+    }
+
+    function extractMatricNumber(message) {
+      const match = String(message || '').match(/\b\d{6,}\b/);
+      return match ? match[0] : null;
+    }
+
+    function formatRelativeTimestamp(updatedAt) {
+      if (!updatedAt) return 'Just now';
+      const d = new Date(updatedAt);
+      if (Number.isNaN(d.getTime())) return 'Just now';
+      const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+      if (diff < 45) return 'Just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
+      return `${Math.floor(diff / 86400)} day(s) ago`;
+    }
+
+    function normalizeAnnouncementMessage(message) {
+      const text = String(message || '').trim();
+      if (!text) return 'An important announcement is currently active.';
+      return text
+        .replace(/\b\d{6,}\b/g, '')
+        .replace(/\b(issue\s+has\s+been\s+resolved)\b/gi, 'issue resolved successfully')
+        .replace(/\s+/g, ' ')
+        .replace(/^[-:;,\s]+|[-:;,\s]+$/g, '') || text;
+    }
+
+    function clearDismissFor(signature) {
+      try {
+        localStorage.removeItem(ANNOUNCEMENT_DISMISS_PREFIX + signature);
+      } catch (e) {}
+    }
+
+    function isDismissed(signature) {
+      try {
+        return localStorage.getItem(ANNOUNCEMENT_DISMISS_PREFIX + signature) === '1';
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function setDismissed(signature) {
+      try {
+        localStorage.setItem(ANNOUNCEMENT_DISMISS_PREFIX + signature, '1');
+      } catch (e) {}
+    }
 
     function playAnnouncementBeep() {
       try {
@@ -276,16 +502,26 @@ if (file_exists($announcementFile)) {
       }
     }
 
-    function showAnnouncementChangedNotice() {
+    function showAnnouncementChangedNotice(severityLabel) {
       const toast = document.createElement('div');
       toast.className = 'announcement-toast';
-      toast.textContent = '🔔 Announcement updated';
+      toast.textContent = `🔔 ${severityLabel} announcement updated`;
       document.body.appendChild(toast);
       requestAnimationFrame(() => toast.classList.add('show'));
       setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 220);
-      }, 2600);
+      }, 5200);
+    }
+
+    if (announcementBannerDismiss) {
+      announcementBannerDismiss.addEventListener('click', () => {
+        if (!lastAnnouncementSignature) return;
+        setDismissed(lastAnnouncementSignature);
+        if (announcementBanner) {
+          announcementBanner.style.display = 'none';
+        }
+      });
     }
 
     function fetchAnnouncement() {
@@ -296,21 +532,46 @@ if (file_exists($announcementFile)) {
         .then(data => {
           const enabled = !!(data && data.enabled);
           const msg = (data && data.message ? String(data.message) : '').trim();
+          const severity = (data && data.severity ? String(data.severity) : 'info').toLowerCase();
+          const normalizedSeverity = ['info', 'warning', 'urgent'].includes(severity) ? severity : 'info';
+          const updatedAt = data && data.updated_at ? String(data.updated_at) : '';
           const signature = JSON.stringify({
             enabled,
-            message: msg
+            message: msg,
+            severity: normalizedSeverity,
+            updated_at: updatedAt
           });
+          const meta = getSeverityMeta(normalizedSeverity);
+          const normalizedMessage = normalizeAnnouncementMessage(msg);
+          const matric = extractMatricNumber(msg);
+          const relativeUpdatedAt = formatRelativeTimestamp(updatedAt);
 
-          if (enabled) {
-            announcementText.textContent = msg || 'An important announcement is currently active.';
-            announcementPanel.style.display = 'block';
+          // Update top alert styling/content (Final Hybrid Model)
+          announcementBanner.classList.remove('alert-info', 'alert-warning', 'alert-error', 'alert-success');
+          announcementBanner.classList.add(meta.cssClass);
+
+          if (announcementBannerTitle) {
+            announcementBannerTitle.textContent = meta.title;
+          }
+          announcementBannerText.textContent = normalizedMessage;
+          announcementBannerMeta.textContent = matric ? `Matric No: ${matric} • ${relativeUpdatedAt}` : `System update • ${relativeUpdatedAt}`;
+
+          // Static top alert bar (remains visible while active)
+          if (enabled && !isDismissed(signature)) {
+            announcementBanner.style.display = 'flex';
           } else {
-            announcementPanel.style.display = 'none';
+            announcementBanner.style.display = 'none';
           }
 
+          // Toast notification on change (with cooldown)
           if (announcementInitialized && signature !== lastAnnouncementSignature) {
-            showAnnouncementChangedNotice();
-            playAnnouncementBeep();
+            clearDismissFor(signature);
+            const now = Date.now();
+            if ((now - lastAnnouncementNotificationAt) >= ANNOUNCEMENT_ALERT_COOLDOWN_MS) {
+              showAnnouncementChangedNotice(meta.toastLabel);
+              playAnnouncementBeep();
+              lastAnnouncementNotificationAt = now;
+            }
           }
           lastAnnouncementSignature = signature;
           announcementInitialized = true;

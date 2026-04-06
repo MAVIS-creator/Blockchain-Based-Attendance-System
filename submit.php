@@ -10,12 +10,38 @@ request_timing_start('submit.php');
 // ✅ Set timezone to Nigeria
 date_default_timezone_set('Africa/Lagos');
 
-// 🔒 Sanitize inputs
-$name = filter_var(trim($_POST['name']), FILTER_SANITIZE_STRING);
-$matric = filter_var(trim($_POST['matric']), FILTER_SANITIZE_STRING);
-$fingerprint = filter_var(trim($_POST['fingerprint']), FILTER_SANITIZE_STRING);
-$action = filter_var($_POST['action'], FILTER_SANITIZE_STRING);
-$course = isset($_POST['course']) ? filter_var($_POST['course'], FILTER_SANITIZE_STRING) : "General";
+function post_string($key, $default = '')
+{
+    if (!isset($_POST[$key])) {
+        return $default;
+    }
+
+    $value = $_POST[$key];
+    if (is_array($value)) {
+        return $default;
+    }
+
+    return trim((string)$value);
+}
+
+// Normalize inputs. Escape on output, validate where rules are strict.
+$name = post_string('name');
+$matric = post_string('matric');
+$fingerprint = post_string('fingerprint');
+$action = strtolower(post_string('action'));
+$course = post_string('course', 'General');
+
+if ($name === '' || $matric === '' || $fingerprint === '' || $action === '') {
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'message' => 'Missing required attendance fields.']);
+    exit;
+}
+
+if (!in_array($action, ['checkin', 'checkout'], true)) {
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'message' => 'Invalid attendance action supplied.']);
+    exit;
+}
 
 $ip = $_SERVER['REMOTE_ADDR'];
 $userAgent = $_SERVER['HTTP_USER_AGENT'];
@@ -34,7 +60,7 @@ if (strpos($fingerprint, '_') !== false) {
 }
 
 // ✅ Check attendance status
-$statusFile = app_storage_migrate_file('status.json', __DIR__ . '/status.json');
+$statusFile = admin_storage_migrate_file('status.json', app_storage_file('status.json'));
 $span = microtime(true);
 if (!file_exists($statusFile)) {
     header('Content-Type: application/json');
@@ -49,6 +75,28 @@ if (!is_array($status) || json_last_error() !== JSON_ERROR_NONE) {
     echo json_encode(['ok' => false, 'message' => 'Error reading status file.']);
     exit;
 }
+
+$normalizedStatus = [
+    'checkin' => !empty($status['checkin']),
+    'checkout' => !empty($status['checkout']),
+    'end_time' => isset($status['end_time']) && is_numeric($status['end_time']) ? (int)$status['end_time'] : null,
+];
+$activeModeConfigured = $normalizedStatus['checkin'] || $normalizedStatus['checkout'];
+$timerValid = $normalizedStatus['end_time'] !== null && $normalizedStatus['end_time'] > time();
+if ($activeModeConfigured && !$timerValid) {
+    $normalizedStatus = ['checkin' => false, 'checkout' => false, 'end_time' => null];
+}
+if (!$normalizedStatus['checkin'] && !$normalizedStatus['checkout']) {
+    $normalizedStatus['end_time'] = null;
+}
+if (($status['checkin'] ?? null) !== $normalizedStatus['checkin'] ||
+    ($status['checkout'] ?? null) !== $normalizedStatus['checkout'] ||
+    (($status['end_time'] ?? null) !== $normalizedStatus['end_time'])
+) {
+    @file_put_contents($statusFile, json_encode($normalizedStatus, JSON_PRETTY_PRINT), LOCK_EX);
+}
+
+$status = $normalizedStatus;
 
 if (!isset($status[$action]) || !$status[$action]) {
     header('Content-Type: application/json');
@@ -222,11 +270,7 @@ function link_fingerprint_if_missing_atomic($file, $matric, $hashedFingerprint)
 // -----------------------
 // Revocation enforcement (token / IP / MAC)
 // -----------------------
-$revokedFile = app_storage_file('revoked.json');
-if (!file_exists($revokedFile)) {
-    $legacyRevoked = __DIR__ . '/admin/revoked.json';
-    if (file_exists($legacyRevoked)) $revokedFile = $legacyRevoked;
-}
+$revokedFile = admin_storage_migrate_file('revoked.json', app_storage_file('revoked.json'));
 if (file_exists($revokedFile)) {
     $revokedData = json_decode(file_get_contents($revokedFile), true);
     if (is_array($revokedData)) {
@@ -386,7 +430,7 @@ if (!empty($settings['enforce_one_device_per_day'])) {
 }
 
 // Load/update fingerprints atomically (toggleable from settings)
-$fingerprintFile = app_storage_file('fingerprints.json');
+$fingerprintFile = admin_storage_migrate_file('fingerprints.json', app_storage_file('fingerprints.json'));
 $hashedFingerprint = hash('sha256', $fingerprint);
 if (!empty($settings['require_fingerprint_match'])) {
     // If fingerprint is already linked to this matric, check; otherwise link atomically

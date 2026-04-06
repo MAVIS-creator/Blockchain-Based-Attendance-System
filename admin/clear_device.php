@@ -138,7 +138,7 @@ foreach ($targets as $file) {
   }
   if ($matric !== '') {
     // fingerprints.json maps matric -> hashedFingerprint
-    $fpFile = app_storage_migrate_file('fingerprints.json', __DIR__ . '/fingerprints.json');
+    $fpFile = admin_storage_migrate_file('fingerprints.json', app_storage_file('fingerprints.json'));
     if (file_exists($fpFile)) {
       $fps = read_json($fpFile);
       if (isset($fps[$matric])) {

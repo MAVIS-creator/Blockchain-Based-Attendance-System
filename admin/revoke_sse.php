@@ -8,13 +8,14 @@ header('Cache-Control: no-cache');
 header('Connection: keep-alive');
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/cache_helpers.php';
+require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 @ini_set('output_buffering', 'off');
 @ini_set('zlib.output_compression', 0);
 set_time_limit(0);
 ob_implicit_flush(true);
 
-$file = app_storage_migrate_file('revoked.json', __DIR__ . '/revoked.json');
+$file = admin_storage_migrate_file('revoked.json', app_storage_file('revoked.json'));
 $lastMtime = file_exists($file) ? filemtime($file) : 0;
 
 // send an initial comment
@@ -24,31 +25,31 @@ while (true) {
     $mtime = file_exists($file) ? filemtime($file) : 0;
     if ($mtime > $lastMtime) {
         $lastMtime = $mtime;
-        $data = admin_cached_json_file('revoked_sse', $file, ['tokens'=>[], 'ips'=>[], 'macs'=>[]], 5);
+        $data = admin_cached_json_file('revoked_sse', $file, ['tokens' => [], 'ips' => [], 'macs' => []], 5);
         // filter expired same as revoked_tokens.php
         $now = time();
-        $resp = ['tokens'=>[], 'ips'=>[], 'macs'=>[]];
-        foreach (['tokens','ips','macs'] as $k) {
+        $resp = ['tokens' => [], 'ips' => [], 'macs' => []];
+        foreach (['tokens', 'ips', 'macs'] as $k) {
             if (!isset($data[$k]) || !is_array($data[$k])) continue;
             foreach ($data[$k] as $key => $meta) {
                 $expiry = intval($meta['expiry'] ?? 0);
-                if ($expiry !==0 && $expiry < $now) continue;
+                if ($expiry !== 0 && $expiry < $now) continue;
                 $resp[$k][$key] = $meta;
             }
         }
-        $payload = json_encode(['ok'=>true,'revoked'=>$resp]);
+        $payload = json_encode(['ok' => true, 'revoked' => $resp]);
         echo "event: revoked\n";
         // send data in lines and double newline
-        echo "data: " . str_replace("\n","\\n", $payload) . "\n\n";
+        echo "data: " . str_replace("\n", "\\n", $payload) . "\n\n";
     }
     // flush and sleep
-    @ob_flush(); @flush();
+    @ob_flush();
+    @flush();
     // keepalive comment every 25s
     sleep(2);
     // small heartbeat
     echo ": heartbeat\n\n";
-    @ob_flush(); @flush();
+    @ob_flush();
+    @flush();
     // prevent runaway loop issues; continue
 }
-
-?>

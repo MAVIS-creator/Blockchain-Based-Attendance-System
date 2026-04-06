@@ -1,5 +1,4 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "resources": [
     {
@@ -11,7 +10,6 @@
       "properties": {
         "state": "Enabled",
         "definition": {
-          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
           "triggers": {
             "recurrence": {
               "type": "Recurrence",

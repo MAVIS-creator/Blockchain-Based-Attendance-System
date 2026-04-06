@@ -33,7 +33,7 @@ if (!function_exists('admin_settings_key_file')) {
 if (!function_exists('admin_status_file')) {
   function admin_status_file()
   {
-    return app_storage_migrate_file('status.json', __DIR__ . '/../status.json');
+    return admin_storage_migrate_file('status.json', app_storage_file('status.json'));
   }
 }
 
@@ -81,10 +81,36 @@ if (!function_exists('admin_load_status_cached')) {
   {
     $file = admin_status_file();
     $status = admin_cached_json_file('status', $file, ['checkin' => false, 'checkout' => false, 'end_time' => null], $ttl);
-    if (!isset($status['end_time'])) {
-      $status['end_time'] = null;
+    if (!is_array($status)) {
+      $status = ['checkin' => false, 'checkout' => false, 'end_time' => null];
     }
-    return $status;
+
+    $normalized = [
+      'checkin' => !empty($status['checkin']),
+      'checkout' => !empty($status['checkout']),
+      'end_time' => isset($status['end_time']) && is_numeric($status['end_time']) ? (int)$status['end_time'] : null,
+    ];
+
+    $isActiveMode = $normalized['checkin'] || $normalized['checkout'];
+    $isTimerValid = $normalized['end_time'] !== null && $normalized['end_time'] > time();
+
+    // Rigid rule: active modes must always have a valid future end_time.
+    if ($isActiveMode && !$isTimerValid) {
+      $normalized = ['checkin' => false, 'checkout' => false, 'end_time' => null];
+    }
+
+    if (!$normalized['checkin'] && !$normalized['checkout']) {
+      $normalized['end_time'] = null;
+    }
+
+    if (($status['checkin'] ?? null) !== $normalized['checkin'] ||
+      ($status['checkout'] ?? null) !== $normalized['checkout'] ||
+      (($status['end_time'] ?? null) !== $normalized['end_time'])
+    ) {
+      @file_put_contents($file, json_encode($normalized, JSON_PRETTY_PRINT), LOCK_EX);
+    }
+
+    return $normalized;
   }
 }
 

@@ -4,7 +4,9 @@ $announcementFile = admin_storage_migrate_file('announcement.json');
 
 $announcement = [
     'enabled' => false,
-    'message' => ''
+    'message' => '',
+    'severity' => 'info',
+    'updated_at' => null
 ];
 
 if (file_exists($announcementFile)) {
@@ -12,9 +14,10 @@ if (file_exists($announcementFile)) {
     if (is_array($json)) {
         $announcement['enabled'] = $json['enabled'] ?? false;
         $announcement['message'] = $json['message'] ?? '';
+        $announcement['severity'] = in_array(($json['severity'] ?? 'info'), ['info', 'warning', 'urgent'], true) ? $json['severity'] : 'info';
+        $announcement['updated_at'] = $json['updated_at'] ?? null;
     }
 }
 
 header('Content-Type: application/json');
 echo json_encode($announcement);
-?>
