@@ -184,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
 
           <!-- Action Menu -->
           <div style="position:absolute;top:16px;right:16px;z-index:30;" class="action-menu">
-            <button type="button" class="action-menu-trigger" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;" onclick="toggleActionMenu(event, this)">
+            <button type="button" class="action-menu-trigger" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;">
               <span class="material-symbols-outlined" style="pointer-events: none; font-size:1rem;color:var(--on-surface-variant);">more_vert</span>
             </button>
             <form method="post" class="action-menu-content" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:10px;box-shadow:var(--shadow-ambient);padding:4px;z-index:60;min-width:160px;">
@@ -218,21 +218,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
 </div>
 
 <script>
-  function toggleActionMenu(e, trigger) {
-    if (e) {
+  document.addEventListener('click', (e) => {
+    // Handle action menu trigger clicks
+    const trigger = e.target.closest('.action-menu-trigger');
+    if (trigger) {
       e.preventDefault();
-      e.stopPropagation();
-    }
-    document.querySelectorAll('.action-menu-content').forEach(menu => {
-      if (menu !== trigger.nextElementSibling) {
-        menu.style.display = 'none';
+      
+      const menu = trigger.closest('.action-menu').querySelector('.action-menu-content');
+      
+      // Close all other menus
+      document.querySelectorAll('.action-menu-content').forEach(m => {
+        if (m !== menu) m.style.display = 'none';
+      });
+      
+      // Toggle current menu
+      if (menu) {
+        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
       }
-    });
-    const menu = trigger.nextElementSibling;
-    if (menu) {
-      menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+      return;
     }
-  }
+    
+    // Clicking outside completely closes any open menus
+    if (!e.target.closest('.action-menu')) {
+      document.querySelectorAll('.action-menu-content').forEach(m => m.style.display = 'none');
+    }
+  });
 
   function confirmResolve(e) {
     e.preventDefault();
@@ -243,12 +253,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
       });
     return false;
   }
-
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.action-menu')) {
-      document.querySelectorAll('.action-menu-content').forEach(m => m.style.display = 'none');
-    }
-  });
 
   <?php if (is_array($flashMessage) && !empty($flashMessage['title'])): ?>
     window.adminAlert(

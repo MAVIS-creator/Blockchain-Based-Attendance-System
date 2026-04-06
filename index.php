@@ -357,11 +357,16 @@ request_timing_span('load_announcement', $span);
         Need help?
         <a href="support.php" class="btn btn-accent"><i class='bx bx-message'></i> Support</a>
       </p>
-    </form>
-  </div>
+          </form>
+    </div>
 
+    <!-- Public Footer -->
+    <footer style="margin-top: 2rem; text-align: center; color: var(--muted, #64748b); font-size: 0.85rem; padding-bottom: 1.5rem;">
+      <div style="font-weight: 600; letter-spacing: 0.02em;">Created by CYB 204 Group 5</div>
+      <div style="font-size: 0.75rem; opacity: 0.85; margin-top: 4px;">(Headed by Maximus and Mavis)</div>
+    </footer>
 
-  <script src="./js/fp.min.js"></script>
+    <script src="./js/fp.min.js"></script>
   <script>
     const submitBtn = document.getElementById('submitBtn');
     const fingerprintInput = document.getElementById('fingerprint');
@@ -725,3 +730,4 @@ request_timing_span('load_announcement', $span);
 </body>
 
 </html>
+

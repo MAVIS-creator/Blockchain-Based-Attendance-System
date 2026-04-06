@@ -237,7 +237,12 @@ if (file_exists($announcementFile)) {
       <a class="btn btn-accent" href="index.php"><i class='bx bx-home'></i> Return Home</a>
       <a class="btn btn-primary" href="support.php"><i class='bx bx-message'></i> Contact Support</a>
     </div>
-  </div>
+    </div>
+
+  <footer style="margin-top: 2rem; text-align: center; color: var(--muted, #64748b); font-size: 0.85rem; padding-bottom: 1.5rem;">
+    <div style="font-weight: 600; letter-spacing: 0.02em;">Created by CYB 204 Group 5</div>
+    <div style="font-size: 0.75rem; margin-top: 4px;">(Headed by Maximus and Mavis)</div>
+  </footer>
 
   <script>
     const announcementPanel = document.getElementById('announcementPanel');
@@ -319,3 +324,4 @@ if (file_exists($announcementFile)) {
 </body>
 
 </html>
+

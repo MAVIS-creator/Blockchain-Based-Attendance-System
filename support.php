@@ -390,7 +390,13 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     </form>
 
     <a class="back-link <?= $blocked ? 'disabled-link' : '' ?>" href="<?= $blocked ? '#' : 'index.php' ?>"><i class='bx bx-chevron-left'></i> Back to Attendance</a>
-  </div>
+    </div>
+
+  <!-- Public Footer -->
+  <footer style="margin-top: 2rem; text-align: center; color: var(--muted, #64748b); font-size: 0.85rem; padding-bottom: 1.5rem;">
+    <div style="font-weight: 600; letter-spacing: 0.02em;">Created by CYB 204 Group 5</div>
+    <div style="font-size: 0.75rem; opacity: 0.85; margin-top: 4px;">(Headed by Maximus and Mavis)</div>
+  </footer>
 
   <!-- Add fingerprint script -->
   <script src="./js/fp.min.js"></script>
@@ -483,3 +489,4 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 </body>
 
 </html>
+
