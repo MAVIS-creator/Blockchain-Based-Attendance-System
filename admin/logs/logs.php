@@ -171,17 +171,17 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
 <!-- Data Table -->
 <div class="st-card" style="padding:0;overflow-x:auto;">
   <?php if (count($pagedEntries)): ?>
-    <table class="st-table" style="width:100%;min-width:900px;">
+    <table class="st-table" style="width:100%;">
       <thead>
         <tr>
           <th>Name</th>
           <th>Matric</th>
           <th>Check-In</th>
           <th>Check-Out</th>
-          <th>Fingerprint</th>
-          <th>IP</th>
-          <th>MAC</th>
-          <th>Device</th>
+          <th class="mobile-hide-col">Fingerprint</th>
+          <th class="mobile-hide-col">IP</th>
+          <th class="mobile-hide-col">MAC</th>
+          <th class="mobile-hide-col">Device</th>
         </tr>
       </thead>
       <tbody>
@@ -191,10 +191,10 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
             <td><span class="st-chip st-chip-neutral"><?= htmlspecialchars($row['matric']) ?></span></td>
             <td><?= htmlspecialchars(date('H:i:s', strtotime($row['check_in']))) ?></td>
             <td><?= htmlspecialchars(date('H:i:s', strtotime($row['check_out']))) ?></td>
-            <td style="font-family:monospace;font-size:0.8rem;color:var(--on-surface-variant);"><?= htmlspecialchars(substr($row['fingerprint'], 0, 16)) ?>...</td>
-            <td style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['ip']) ?></td>
-            <td style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['mac']) ?></td>
-            <td style="font-size:0.8rem;color:var(--on-surface-variant);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<?= htmlspecialchars($row['device']) ?>"><?= htmlspecialchars($row['device']) ?></td>
+            <td class="mobile-hide-col" style="font-family:monospace;font-size:0.8rem;color:var(--on-surface-variant);"><?= htmlspecialchars(substr($row['fingerprint'], 0, 16)) ?>...</td>
+            <td class="mobile-hide-col" style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['ip']) ?></td>
+            <td class="mobile-hide-col" style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['mac']) ?></td>
+            <td class="mobile-hide-col" style="font-size:0.8rem;color:var(--on-surface-variant);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<?= htmlspecialchars($row['device']) ?>"><?= htmlspecialchars($row['device']) ?></td>
           </tr>
         <?php endforeach; ?>
       </tbody>

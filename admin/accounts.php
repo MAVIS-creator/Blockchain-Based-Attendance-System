@@ -367,7 +367,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <thead>
         <tr>
           <th>Admin</th>
-          <th>Email</th>
+          <th class="mobile-hide-col">Email</th>
           <th>Role</th>
           <th style="text-align:right;">Actions</th>
         </tr>
@@ -382,7 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span style="color:var(--on-surface-variant);font-size:0.82rem;"><?= htmlspecialchars($info['name'] ?? $u) ?></span>
               </div>
             </td>
-            <td>
+            <td class="mobile-hide-col">
               <?php if (!empty($info['email'])): ?>
                 <a href="mailto:<?= htmlspecialchars($info['email']) ?>" style="color:var(--primary);font-weight:600;"><?= htmlspecialchars($info['email']) ?></a>
               <?php else: ?>

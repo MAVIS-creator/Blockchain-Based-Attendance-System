@@ -121,7 +121,7 @@ $todayFailed = $failedCounts[$todayStr] ?? 0;
 </div>
 
 <!-- Secondary Stats Row -->
-<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:24px;">
+<div class="hide-on-mobile" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:24px;">
   <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
     <div>
       <p class="st-label" style="margin-bottom:4px;">Total Attendance</p>

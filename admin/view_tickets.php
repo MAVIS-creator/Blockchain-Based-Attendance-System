@@ -261,7 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
   </div>
 </form>
 
-<div class="tickets-wrapper" style="grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));">
+<div class="tickets-wrapper" style="grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));">
   <?php
   $hasUnresolved = false;
   if (!empty($tickets)): ?>

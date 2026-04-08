@@ -17,7 +17,17 @@ if (file_exists($sessionsFile)) {
   $activeSessions = admin_load_sessions_cached(10);
   if (!is_array($activeSessions)) $activeSessions = [];
 
-  // If tracking is active but our session isn't in it, we were terminated
+  // If tracking is active but our session isn't in it, we might be hitting a stale APCu cache.
+  if (!isset($activeSessions[$currentSessionId])) {
+    // Force a real disk read to bypass identical mtime/size cache keys
+    $diskRaw = @file_get_contents($sessionsFile);
+    $diskSessions = $diskRaw ? json_decode($diskRaw, true) : [];
+    if (is_array($diskSessions) && isset($diskSessions[$currentSessionId])) {
+      $activeSessions = $diskSessions;
+    }
+  }
+
+  // If still not there, we were terminated
   if (!isset($activeSessions[$currentSessionId])) {
     // Destroy PHP session and logout
     session_unset();

@@ -4,15 +4,18 @@ $error = '';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/state_helpers.php';
 
+// Load environment variables via env_helpers if needed (already loaded by storage_helpers)
+
 // Ensure accounts file exists with a default superadmin (only on first run)
 $accountsFile = admin_accounts_file();
 if (!file_exists($accountsFile)) {
-    // Default superadmin: username Mavis with the password supplied by user
-    $defaultPassword = '.*123$<>Callmelater.,12';
+    // Default superadmin: loads from .env or uses default if not set
+    $defaultUser = app_env_value('ADMIN_DEFAULT_USER', 'Mavis');
+    $defaultPassword = app_env_value('ADMIN_DEFAULT_PASSWORD', '.*123$<>Callmelater.,12');
     $default = [
-        'Mavis' => [
+        $defaultUser => [
             'password' => password_hash($defaultPassword, PASSWORD_DEFAULT),
-            'name' => 'Mavis',
+            'name' => $defaultUser,
             'avatar' => null,
             'role' => 'superadmin'
         ]
@@ -25,12 +28,13 @@ $accounts = admin_load_accounts_cached(15);
 // Normalize accounts storage: if the file contains a sequential array (e.g. []), convert to associative
 if (!is_array($accounts)) $accounts = [];
 // If accounts file is empty or not keyed by username, ensure default superadmin exists
-if (!isset($accounts['Mavis'])) {
-    // Create Mavis only if not present
-    $defaultPassword = '.*123$<>Callmelater.,12';
-    $accounts['Mavis'] = [
+$defaultUser = app_env_value('ADMIN_DEFAULT_USER', 'Mavis');
+if (!isset($accounts[$defaultUser])) {
+    // Create default superadmin only if not present
+    $defaultPassword = app_env_value('ADMIN_DEFAULT_PASSWORD', '.*123$<>Callmelater.,12');
+    $accounts[$defaultUser] = [
         'password' => password_hash($defaultPassword, PASSWORD_DEFAULT),
-        'name' => 'Mavis',
+        'name' => $defaultUser,
         'avatar' => null,
         'role' => 'superadmin'
     ];
@@ -50,9 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // if not found but username requested is Mavis (case-insensitive), ensure Mavis exists (should have been created earlier)
-    if ($foundUser === null && strcasecmp($username, 'Mavis') === 0 && isset($accounts['Mavis'])) {
-        $foundUser = 'Mavis';
+    // if not found but username requested is default, ensure it exists (should have been created earlier)
+    $defaultUser = app_env_value('ADMIN_DEFAULT_USER', 'Mavis');
+    if ($foundUser === null && strcasecmp($username, $defaultUser) === 0 && isset($accounts[$defaultUser])) {
+        $foundUser = $defaultUser;
     }
 
     $authenticated = false;

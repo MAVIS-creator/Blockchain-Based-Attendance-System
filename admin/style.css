@@ -1999,6 +1999,10 @@ textarea:focus,
   .st-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .show-desktop-only {
+    display: none !important;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2015,11 +2019,51 @@ textarea:focus,
   }
 
   .stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat {
+    padding: var(--sp-3);
+  }
+
+  .stat .st-stat-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .st-stat-label {
+    margin-top: var(--sp-2);
+    font-size: 0.6rem;
+  }
+
+  .st-stat-value {
+    font-size: 1.3rem;
+  }
+
+  .st-stat-badge {
+    font-size: 0.55rem;
+    padding: 2px 6px;
   }
 
   .charts {
     grid-template-columns: 1fr;
+  }
+
+  .chart-wrapper {
+    min-height: 200px;
+  }
+
+  .recent-logs {
+    padding: var(--sp-4);
+  }
+
+  .log-list {
+    max-height: 240px;
+  }
+
+  .quick-actions {
+    display: none;
   }
 
   .status-card {
@@ -2036,12 +2080,20 @@ textarea:focus,
     padding: var(--sp-4);
   }
 
-  .quick-actions a {
-    padding: 10px 14px;
-    font-size: 0.82rem;
+  .ticket-card {
+    padding: var(--sp-3);
+  }
+
+  .footer {
+    padding: var(--sp-3) var(--sp-4);
+    font-size: 0.7rem;
   }
 
   .hide-on-mobile {
+    display: none !important;
+  }
+
+  .mobile-hide-col {
     display: none !important;
   }
 }

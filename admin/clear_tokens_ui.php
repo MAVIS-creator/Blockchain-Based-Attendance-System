@@ -112,15 +112,15 @@ unset($v);
           <p style="margin:0;color:var(--on-surface-variant);font-weight:600;">No active device blocks or tokens found.</p>
         </div>
       <?php else: ?>
-        <table class="st-table" style="width:100%;min-width:800px;">
+        <table class="st-table" style="width:100%;">
           <thead>
             <tr>
               <th>Token (Hash)</th>
               <th>First Event</th>
               <th>Last Event</th>
               <th>Count</th>
-              <th>Matched IPs</th>
-              <th>MACs</th>
+              <th class="mobile-hide-col">Matched IPs</th>
+              <th class="mobile-hide-col">MACs</th>
               <th style="text-align:right;">Actions</th>
             </tr>
           </thead>
@@ -133,10 +133,10 @@ unset($v);
                 <td style="font-size:0.85rem;white-space:nowrap;"><?= htmlspecialchars(date('M d, H:i:s', strtotime($info['first']))) ?></td>
                 <td style="font-size:0.85rem;white-space:nowrap;"><?= htmlspecialchars(date('M d, H:i:s', strtotime($info['last']))) ?></td>
                 <td><span class="st-chip st-chip-neutral"><?= intval($info['count']) ?></span></td>
-                <td style="font-family:monospace;font-size:0.8rem;color:var(--on-surface-variant);max-width:150px;overflow:hidden;text-overflow:ellipsis;">
+                <td class="mobile-hide-col" style="font-family:monospace;font-size:0.8rem;color:var(--on-surface-variant);max-width:150px;overflow:hidden;text-overflow:ellipsis;">
                   <?= htmlspecialchars(implode(', ', array_slice($info['ips'], 0, 2))) ?><?= count($info['ips']) > 2 ? '...' : '' ?>
                 </td>
-                <td style="font-family:monospace;font-size:0.8rem;color:var(--on-surface-variant);max-width:150px;overflow:hidden;text-overflow:ellipsis;">
+                <td class="mobile-hide-col" style="font-family:monospace;font-size:0.8rem;color:var(--on-surface-variant);max-width:150px;overflow:hidden;text-overflow:ellipsis;">
                   <?= htmlspecialchars(implode(', ', array_slice($info['macs'], 0, 1))) ?><?= count($info['macs']) > 1 ? '...' : '' ?>
                 </td>
                 <td style="text-align:right;white-space:nowrap;">
