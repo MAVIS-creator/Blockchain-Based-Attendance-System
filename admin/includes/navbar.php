@@ -26,6 +26,12 @@ $ticketCount = admin_support_ticket_count(15);
           <span class="material-symbols-outlined">analytics</span><span>Status</span>
         </a></li>
 
+      <?php if ($isSuperAdmin): ?>
+      <li><a href="index.php?page=status_debug" class="nav-item <?= $page == 'status_debug' ? 'active' : '' ?>">
+          <span class="material-symbols-outlined">troubleshoot</span><span>Diagnostics</span>
+        </a></li>
+      <?php endif; ?>
+
       <li class="nav-dropdown">
         <button class="nav-item dropdown-toggle" type="button" aria-haspopup="true">
           <span class="material-symbols-outlined">history_edu</span><span>Logs</span><i class='bx bx-chevron-down' style="font-size:0.8rem;margin-left:2px;"></i>
@@ -99,6 +105,12 @@ $ticketCount = admin_support_ticket_count(15);
               <span class="material-symbols-outlined" style="font-size:1.1rem;">person</span>Profile Settings
             </a>
             <?php if ($isSuperAdmin): ?>
+              <a href="index.php?page=roles">
+                <span class="material-symbols-outlined" style="font-size:1.1rem;">admin_panel_settings</span>Role Privileges
+              </a>
+              <a href="index.php?page=audit">
+                <span class="material-symbols-outlined" style="font-size:1.1rem;">policy</span>Action Audit Log
+              </a>
               <a href="index.php?page=accounts">
                 <span class="material-symbols-outlined" style="font-size:1.1rem;">group</span>Manage Accounts
               </a>

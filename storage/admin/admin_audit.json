@@ -1,0 +1,47 @@
+[
+    {
+        "timestamp": "2026-04-08 17:56:37",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Settings",
+        "action": "Announcement Updated",
+        "details": "Announcement Disabled (Severity: info). Message: 2023011748 Your Matric Number issue has been resolved,"
+    },
+    {
+        "timestamp": "2026-04-08 17:43:39",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Settings",
+        "action": "Settings Updated",
+        "details": "System settings were modified by admin."
+    },
+    {
+        "timestamp": "2026-04-08 17:34:00",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Settings",
+        "action": "Settings Updated",
+        "details": "System settings were modified by admin."
+    },
+    {
+        "timestamp": "2026-04-08 17:33:21",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Settings",
+        "action": "Settings Updated",
+        "details": "System settings were modified by admin."
+    },
+    {
+        "timestamp": "2026-04-08 17:32:21",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Settings",
+        "action": "Settings Updated",
+        "details": "System settings were modified by admin."
+    }
+]

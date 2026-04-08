@@ -58,6 +58,73 @@ if (!function_exists('admin_settings_audit_file')) {
   }
 }
 
+if (!function_exists('admin_permissions_file')) {
+  function admin_permissions_file()
+  {
+    return admin_storage_migrate_file('permissions.json');
+  }
+}
+
+if (!function_exists('admin_audit_file')) {
+  function admin_audit_file()
+  {
+    return admin_storage_migrate_file('admin_audit.json');
+  }
+}
+
+if (!function_exists('admin_log_action')) {
+  function admin_log_action($category, $action, $details)
+  {
+    $entry = [
+      'timestamp' => date('Y-m-d H:i:s'),
+      'admin' => $_SESSION['admin_user'] ?? 'system',
+      'role' => $_SESSION['admin_role'] ?? 'unknown',
+      'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
+      'category' => $category,
+      'action' => $action,
+      'details' => $details
+    ];
+
+    // Dual-write to Supabase if hybrid mode is enabled
+    $hybridFile = dirname(__DIR__) . '/hybrid_dual_write.php';
+    $isHybrid = false;
+    if (file_exists($hybridFile)) {
+      require_once $hybridFile;
+      if (function_exists('hybrid_enabled') && hybrid_enabled()) {
+        $isHybrid = true;
+        hybrid_dual_write('admin_audit', 'admin_audit_logs', [
+          'timestamp' => $entry['timestamp'],
+          'admin_user' => $entry['admin'],
+          'admin_role' => $entry['role'],
+          'ip_address' => $entry['ip'],
+          'category' => $entry['category'],
+          'action' => $entry['action'],
+          'details' => $entry['details']
+        ]);
+      }
+    }
+
+    // Write to local JSON:
+    // - Always write locally on localhost/dev (safe offline fallback)
+    // - On production with dual_write, SKIP local write (Supabase is primary; outbox handles failures)
+    $isLocal = function_exists('app_is_local_environment') && app_is_local_environment();
+
+    if (!$isHybrid || $isLocal) {
+      $auditFile = admin_audit_file();
+      $logs = file_exists($auditFile) ? json_decode(file_get_contents($auditFile), true) : [];
+      if (!is_array($logs)) $logs = [];
+
+      array_unshift($logs, $entry);
+      // Retain only the last 500 actions locally (Supabase holds the full history)
+      if (count($logs) > 500) {
+        $logs = array_slice($logs, 0, 500);
+      }
+
+      @file_put_contents($auditFile, json_encode($logs, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    }
+  }
+}
+
 if (!function_exists('admin_load_accounts_cached')) {
   function admin_load_accounts_cached($ttl = 15)
   {
@@ -76,11 +143,26 @@ if (!function_exists('admin_load_sessions_cached')) {
   }
 }
 
+if (!function_exists('admin_load_permissions_cached')) {
+  function admin_load_permissions_cached($ttl = 30)
+  {
+    $file = admin_permissions_file();
+    // Default allowed pages for the "admin" role
+    $defaultAllowed = [
+      'dashboard', 'status', 'request_timings', 'logs', 'accounts',
+      'support_tickets', 'announcement', 'profile_settings', 'manual_attendance'
+    ];
+    $permissions = admin_cached_json_file('permissions', $file, ['admin' => $defaultAllowed], $ttl);
+    return is_array($permissions) ? $permissions : ['admin' => $defaultAllowed];
+  }
+}
+
 if (!function_exists('admin_load_status_cached')) {
   function admin_load_status_cached($ttl = 10)
   {
     $file = admin_status_file();
     $status = admin_cached_json_file('status', $file, ['checkin' => false, 'checkout' => false, 'end_time' => null], $ttl);
+    $sourceWasArray = is_array($status);
     if (!is_array($status)) {
       $status = ['checkin' => false, 'checkout' => false, 'end_time' => null];
     }
@@ -103,9 +185,12 @@ if (!function_exists('admin_load_status_cached')) {
       $normalized['end_time'] = null;
     }
 
-    if (($status['checkin'] ?? null) !== $normalized['checkin'] ||
-      ($status['checkout'] ?? null) !== $normalized['checkout'] ||
-      (($status['end_time'] ?? null) !== $normalized['end_time'])
+    if ($sourceWasArray &&
+      (
+        ($status['checkin'] ?? null) !== $normalized['checkin'] ||
+        ($status['checkout'] ?? null) !== $normalized['checkout'] ||
+        (($status['end_time'] ?? null) !== $normalized['end_time'])
+      )
     ) {
       @file_put_contents($file, json_encode($normalized, JSON_PRETTY_PRINT), LOCK_EX);
     }

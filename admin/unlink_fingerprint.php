@@ -63,6 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $logEntry = "[" . date('Y-m-d H:i:s') . "] Matric $matric fingerprint unlinked by admin IP: " . ($_SERVER['REMOTE_ADDR'] ?? '') . "\n";
     file_put_contents($auditFile, $logEntry, FILE_APPEND | LOCK_EX);
 
+    require_once __DIR__ . '/state_helpers.php';
+    if (function_exists('admin_log_action')) {
+      admin_log_action('Settings', 'Unlink Fingerprint', "Unlinked fingerprint for Matric $matric.");
+    }
+
     $message = "Fingerprint for Matric Number $matric has been unlinked successfully.";
     $messageType = 'success';
 

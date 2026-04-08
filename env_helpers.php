@@ -78,6 +78,12 @@ if (!function_exists('app_load_env_layers')) {
       if (array_key_exists('HYBRID_ADMIN_READ', $baseEnv)) {
         $env['HYBRID_ADMIN_READ'] = $baseEnv['HYBRID_ADMIN_READ'];
       }
+      if (array_key_exists('SUPABASE_URL', $baseEnv) && trim((string)($env['SUPABASE_URL'] ?? '')) === '') {
+        $env['SUPABASE_URL'] = $baseEnv['SUPABASE_URL'];
+      }
+      if (array_key_exists('SUPABASE_SERVICE_ROLE_KEY', $baseEnv) && trim((string)($env['SUPABASE_SERVICE_ROLE_KEY'] ?? '')) === '') {
+        $env['SUPABASE_SERVICE_ROLE_KEY'] = $baseEnv['SUPABASE_SERVICE_ROLE_KEY'];
+      }
     }
 
     return $env;

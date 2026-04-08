@@ -6,7 +6,8 @@ app_storage_init();
 request_timing_start('index.php');
 $statusFile = admin_storage_migrate_file('status.json', app_storage_file('status.json'));
 $span = microtime(true);
-$status = json_decode(file_get_contents($statusFile), true);
+$rawStatus = @file_get_contents($statusFile);
+$status = $rawStatus !== false ? json_decode($rawStatus, true) : null;
 $status = is_array($status) ? $status : [];
 $normalizedStatus = [
   'checkin' => !empty($status['checkin']),
@@ -25,7 +26,9 @@ if (($status['checkin'] ?? null) !== $normalizedStatus['checkin'] ||
   ($status['checkout'] ?? null) !== $normalizedStatus['checkout'] ||
   (($status['end_time'] ?? null) !== $normalizedStatus['end_time'])
 ) {
-  @file_put_contents($statusFile, json_encode($normalizedStatus, JSON_PRETTY_PRINT), LOCK_EX);
+  if (is_array(json_decode((string)$rawStatus, true))) {
+    @file_put_contents($statusFile, json_encode($normalizedStatus, JSON_PRETTY_PRINT), LOCK_EX);
+  }
 }
 $status = $normalizedStatus;
 request_timing_span('load_status', $span);

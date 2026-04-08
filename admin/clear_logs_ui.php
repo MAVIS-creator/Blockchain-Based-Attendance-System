@@ -76,6 +76,35 @@ if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; 
     <div id="clearResult" style="margin-top:12px;font-size:0.85rem;"></div>
   </div>
 
+  <div class="st-card" style="margin-top:20px;">
+    <h3 style="margin:0 0 8px;font-size:1.1rem;color:var(--on-surface);display:flex;align-items:center;gap:6px;">
+      <span class="material-symbols-outlined" style="font-size:1.2rem;color:var(--primary);">manage_search</span> Filtered Test Log Cleanup
+    </h3>
+    <p style="font-size:0.85rem;color:var(--on-surface-variant);margin:0 0 16px;">Remove only matching log lines (for load-test entries) by keyword and optional action.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end;">
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--on-surface-variant);margin-bottom:6px;">Keyword (name/matric/fingerprint)</label>
+        <input id="filterKeyword" type="text" placeholder="e.g. Load Test or LT" value="Load Test" style="width:100%;padding:10px 12px;border:1px solid var(--outline-variant);border-radius:10px;background:var(--surface-container-lowest);">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--on-surface-variant);margin-bottom:6px;">Action filter</label>
+        <select id="filterAction" style="width:100%;padding:10px 12px;border:1px solid var(--outline-variant);border-radius:10px;background:var(--surface-container-lowest);">
+          <option value="all">All actions</option>
+          <option value="checkin">checkin</option>
+          <option value="checkout">checkout</option>
+          <option value="failed">failed</option>
+        </select>
+      </div>
+      <div>
+        <button id="clearFilteredBtn" class="st-btn st-btn-secondary" style="width:100%;">
+          <span class="material-symbols-outlined" style="font-size:1.1rem;">filter_alt_off</span> Clear Matching Lines
+        </button>
+      </div>
+    </div>
+    <div id="filteredResult" style="margin-top:12px;font-size:0.85rem;"></div>
+  </div>
+
 </div>
 
 <!-- Internal custom confirm modal replaced by SweetAlert via global window.adminConfirm, same logic -->
@@ -174,4 +203,49 @@ function executeClear(scopes) {
       })
       .catch(e=>{ document.getElementById('clearResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Error occurred during clearing.</span>'; });
 }
+
+document.getElementById('clearFilteredBtn').addEventListener('click', function(){
+  var keyword = (document.getElementById('filterKeyword').value || '').trim();
+  var action = (document.getElementById('filterAction').value || 'all').trim();
+
+  if (!keyword) {
+    if (window.adminAlert) window.adminAlert('Keyword required', 'Enter a keyword to match log lines.', 'warning');
+    return;
+  }
+
+  if (window.adminConfirm) {
+    window.adminConfirm('Confirm Filtered Cleanup', 'This removes only matching lines from .log files. Continue?', 'warning').then(function(ok){
+      if (!ok) return;
+
+      var body = new URLSearchParams();
+      body.append('mode', 'filter');
+      body.append('filter_keyword', keyword);
+      body.append('filter_action', action);
+      body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
+
+      document.getElementById('filteredResult').innerHTML = '<span style="color:var(--on-surface-variant);font-weight:600;">Processing filtered cleanup...</span>';
+
+      fetch('clear_logs.php', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN},
+        body: body.toString()
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (j && j.ok && j.result) {
+          var filesTouched = j.result.files_touched || 0;
+          var linesRemoved = j.result.lines_removed || 0;
+          var msg = 'Removed ' + linesRemoved + ' line(s) across ' + filesTouched + ' file(s).';
+          document.getElementById('filteredResult').innerHTML = '<span style="color:var(--success);font-weight:600;">✓ ' + msg + '</span>';
+          if (window.adminAlert) window.adminAlert('Filtered cleanup complete', msg, 'success');
+        } else {
+          document.getElementById('filteredResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Filtered cleanup failed.</span>';
+        }
+      })
+      .catch(function(){
+        document.getElementById('filteredResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Network error during filtered cleanup.</span>';
+      });
+    });
+  }
+});
 </script>

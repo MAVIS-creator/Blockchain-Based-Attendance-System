@@ -18,6 +18,7 @@ if ($activeCourse === 'General' && !file_exists($activeFile)) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['disable'])) {
         // Disable active course by saving empty JSON
+        if (function_exists('admin_log_action')) { admin_log_action('Courses', 'Active Course Changed', "Set active course to: " . ($course ?? 'unknown')); }
         file_put_contents($activeFile, json_encode(['course' => ''], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;
@@ -25,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $selected = $_POST['active_course'] ?? '';
     if (in_array($selected, $courses)) {
+        if (function_exists('admin_log_action')) { admin_log_action('Courses', 'Active Course Changed', "Set active course to: " . ($course ?? 'unknown')); }
         file_put_contents($activeFile, json_encode(['course' => $selected], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;

@@ -23,8 +23,8 @@ $announcementHistory = [];
 if (file_exists($announcementFile)) {
   $announcementData = admin_cached_json_file('announcement', $announcementFile, [], 15);
   if (is_array($announcementData)) {
-    $announcement = $announcementData;
-    $announcement['severity'] = in_array(($announcement['severity'] ?? 'info'), ['info', 'warning', 'urgent'], true) ? $announcement['severity'] : 'info';
+    $announcement = array_merge($announcement, $announcementData);
+    $announcement['severity'] = in_array(($announcement['severity'] ?? 'info'), ['info', 'warning', 'urgent'], true) ? (string)$announcement['severity'] : 'info';
   }
 }
 
@@ -75,6 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         $announcementHistory = array_values(array_slice($announcementHistory, 0, $announcementHistoryLimit));
         @file_put_contents($announcementHistoryFile, json_encode($announcementHistory, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+      }
+      require_once __DIR__ . '/state_helpers.php';
+      if (function_exists('admin_log_action')) {
+          $status = $enabled ? 'Enabled' : 'Disabled';
+          admin_log_action('Settings', 'Announcement Updated', "Announcement $status (Severity: $severity). Message: $message");
       }
       $successMsg = "Announcement updated successfully.";
     } else {

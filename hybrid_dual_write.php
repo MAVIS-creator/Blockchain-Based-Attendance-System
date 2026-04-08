@@ -31,10 +31,7 @@ if (!function_exists('hybrid_enabled')) {
 if (!function_exists('hybrid_storage_path')) {
   function hybrid_storage_path()
   {
-    $configured = trim((string)hybrid_env('STORAGE_PATH', ''));
-    if ($configured !== '') {
-      return rtrim($configured, '/\\');
-    }
+    // Keep one canonical resolver for both hybrid and file storage paths.
     return app_storage_path();
   }
 }
@@ -160,6 +157,14 @@ if (!function_exists('hybrid_supabase_update')) {
   {
     $resp = null;
     return hybrid_supabase_request('PATCH', $table, $filters, $payload, $resp, $err, ['Prefer: return=minimal']);
+  }
+}
+
+if (!function_exists('hybrid_supabase_delete')) {
+  function hybrid_supabase_delete($table, array $filters, &$err = null)
+  {
+    $resp = null;
+    return hybrid_supabase_request('DELETE', $table, $filters, null, $resp, $err, ['Prefer: return=minimal']);
   }
 }
 

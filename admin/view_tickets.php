@@ -153,9 +153,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['resolve_ticket'])) {
   }
   hybrid_mark_support_ticket_resolved($resolveTime);
   $resolved = resolve_ticket_atomic($ticketsFile, $resolveTime);
-  $_SESSION['admin_flash'] = $resolved
-    ? ['type' => 'success', 'title' => 'Resolved', 'text' => 'Ticket marked as resolved.']
-    : ['type' => 'error', 'title' => 'Resolve failed', 'text' => 'Could not update the ticket file.'];
+  
+  if ($resolved) {
+      require_once __DIR__ . '/state_helpers.php';
+      if (function_exists('admin_log_action')) {
+          admin_log_action('Settings', 'Ticket Resolved', "Support ticket resolved (Timestamp: $resolveTime)");
+      }
+      $_SESSION['admin_flash'] = ['type' => 'success', 'title' => 'Resolved', 'text' => 'Ticket marked as resolved.'];
+  } else {
+      $_SESSION['admin_flash'] = ['type' => 'error', 'title' => 'Resolve failed', 'text' => 'Could not update the ticket file.'];
+  }
   header("Location: index.php?page=support_tickets");
   exit;
 }
@@ -182,6 +189,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_action'], $_PO
   $line = "{$name} | {$matric} | {$action} | MANUAL | ::1 | UNKNOWN | {$timestamp} | Web Ticket Panel | {$activeCourse} | {$reason}\n";
 
   file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+
+  require_once __DIR__ . '/state_helpers.php';
+  if (function_exists('admin_log_action')) {
+      admin_log_action('Attendance', 'Manual Ticket Attendance', "Logged manual $action for $name ($matric). Reason: $reason");
+  }
   $_SESSION['admin_flash'] = ['type' => 'success', 'title' => 'Attendance recorded', 'text' => ucfirst($action) . ' was added from support tickets.'];
   header("Location: index.php?page=support_tickets");
   exit;
@@ -214,10 +226,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
   }
 
   if ($bulkAction === 'resolve') {
+    require_once __DIR__ . '/state_helpers.php';
+    if (function_exists('admin_log_action')) {
+        admin_log_action('Settings', 'Bulk Tickets Resolved', "Resolved {$updatedCount} support ticket(s).");
+    }
     $_SESSION['admin_flash'] = ['type' => 'success', 'title' => 'Bulk resolved', 'text' => "Resolved {$updatedCount} ticket(s)."];
   } elseif ($bulkAction === 'checkin') {
+    require_once __DIR__ . '/state_helpers.php';
+    if (function_exists('admin_log_action')) {
+        admin_log_action('Attendance', 'Bulk Tickets Check-In', "Checked in {$updatedCount} ticket(s). Logged {$loggedCount} entry/entries. Active Course: $activeCourse");
+    }
     $_SESSION['admin_flash'] = ['type' => 'success', 'title' => 'Bulk check-in', 'text' => "Checked in and resolved {$updatedCount} ticket(s). Logged {$loggedCount} attendance entry/entries."];
   } elseif ($bulkAction === 'checkout') {
+    require_once __DIR__ . '/state_helpers.php';
+    if (function_exists('admin_log_action')) {
+        admin_log_action('Attendance', 'Bulk Tickets Check-Out', "Checked out {$updatedCount} ticket(s). Logged {$loggedCount} entry/entries. Active Course: $activeCourse");
+    }
     $_SESSION['admin_flash'] = ['type' => 'success', 'title' => 'Bulk check-out', 'text' => "Checked out and resolved {$updatedCount} ticket(s). Logged {$loggedCount} attendance entry/entries."];
   } else {
     $_SESSION['admin_flash'] = ['type' => 'error', 'title' => 'Bulk action failed', 'text' => 'Unsupported bulk action.'];

@@ -1,128 +1,189 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
-if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; }
-
-// include csrf helper if present
-$csrfPath = __DIR__ . '/includes/csrf.php';
-if (file_exists($csrfPath)) require_once $csrfPath;
-
-require_once __DIR__ . '/../storage_helpers.php';
-require_once __DIR__ . '/runtime_storage.php';
-app_storage_init();
-
-// settings for retention (default fallback)
-$settingsFileAdmin = admin_storage_migrate_file('settings.json');
-$defaults = ['audit_retention_days' => 90];
-$settings = $defaults;
-if (file_exists($settingsFileAdmin)) {
-    $j = @json_decode(@file_get_contents($settingsFileAdmin), true);
-    if (is_array($j)) $settings = array_merge($settings, $j);
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_role'] !== 'superadmin') {
+    header('Location: login.php');
+    exit;
 }
 
-$auditFile = app_storage_migrate_file('logs/audit.log', __DIR__ . '/logs/audit.log');
+$auditSource = 'local';
+$allLogs = [];
 
-// Purge old entries when posted
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    header('Content-Type: application/json');
-    if (function_exists('csrf_check_request') && !csrf_check_request()) { echo json_encode(['ok'=>false,'error'=>'csrf_failed']); exit; }
-    $action = $_POST['action'] ?? $_GET['action'] ?? ''; 
-    if ($action === 'purge') {
-        $days = intval($_POST['days'] ?? $settings['audit_retention_days']);
-        if ($days <= 0) $days = $settings['audit_retention_days'];
-        $cut = strtotime("-" . intval($days) . " days");
-        if (!file_exists($auditFile)) { echo json_encode(['ok'=>true,'purged'=>0]); exit; }
-        $lines = file($auditFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        $kept = [];
-        $purged = 0;
-        foreach ($lines as $ln) {
-            // expect format: YYYY-MM-DD HH:MM:SS | ...
-            $ts = substr($ln, 0, 19);
-            $t = strtotime($ts);
-            if ($t === false || $t >= $cut) { $kept[] = $ln; } else { $purged++; }
+// Try Supabase first if hybrid admin read is enabled
+$hybridReadFile = __DIR__ . '/includes/hybrid_admin_read.php';
+if (file_exists($hybridReadFile)) {
+    require_once $hybridReadFile;
+    if (function_exists('hybrid_admin_read_enabled') && hybrid_admin_read_enabled()) {
+        $rows = null;
+        $err = null;
+        $ok = hybrid_supabase_select('admin_audit_logs', [
+            'select' => 'timestamp,admin_user,admin_role,ip_address,category,action,details',
+            'order' => 'timestamp.desc',
+            'limit' => '500'
+        ], $rows, $err);
+        if ($ok && is_array($rows) && count($rows) > 0) {
+            foreach ($rows as $row) {
+                $allLogs[] = [
+                    'timestamp' => str_replace('T', ' ', substr((string)($row['timestamp'] ?? ''), 0, 19)),
+                    'admin' => (string)($row['admin_user'] ?? ''),
+                    'role' => (string)($row['admin_role'] ?? ''),
+                    'ip' => (string)($row['ip_address'] ?? ''),
+                    'category' => (string)($row['category'] ?? ''),
+                    'action' => (string)($row['action'] ?? ''),
+                    'details' => (string)($row['details'] ?? '')
+                ];
+            }
+            $auditSource = 'supabase';
         }
-        file_put_contents($auditFile, implode("\n", $kept) . (count($kept) ? PHP_EOL : ''), LOCK_EX);
-        echo json_encode(['ok'=>true,'purged'=>$purged,'kept'=>count($kept)]);
-        exit;
-    }
-    echo json_encode(['ok'=>false,'error'=>'unknown_action']); exit;
-}
-
-// Read file for viewer
-$entries = [];
-if (file_exists($auditFile)) {
-    $lines = file($auditFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $ln) {
-        $parts = array_map('trim', explode('|', $ln));
-        $entries[] = $parts;
     }
 }
 
+// Fallback to local file
+if (empty($allLogs)) {
+    $auditFile = admin_audit_file();
+    $allLogs = file_exists($auditFile) ? json_decode(file_get_contents($auditFile), true) : [];
+    if (!is_array($allLogs)) $allLogs = [];
+}
+
+// Extract unique categories and admins for filter dropdowns
+$categories = array_unique(array_column($allLogs, 'category'));
+$admins = array_unique(array_column($allLogs, 'admin'));
+sort($categories);
+sort($admins);
 ?>
-<style>
-  .panel { max-width:1000px; margin:18px auto; padding:18px; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.06); }
-  table { width:100%; border-collapse:collapse; }
-  th, td { padding:8px; border-bottom:1px solid #f1f5f9; text-align:left; vertical-align:top; }
-  .muted { color:#6b7280 }
-</style>
 
-<div class="panel">
-  <h2>Audit Log Viewer</h2>
-  <p class="muted">Showing entries from <code><?= htmlspecialchars($auditFile) ?></code>. Total entries: <?= count($entries) ?></p>
-  <div style="margin-bottom:12px;">
-    <label>Retention days: <strong><?= intval($settings['audit_retention_days']) ?></strong></label>
-    <button id="purgeOld" class="btn btn-danger" style="margin-left:12px;padding:8px 12px;border-radius:8px;border:none;background:#ef4444;color:#fff;">Purge older</button>
-  </div>
-  <div style="overflow:auto; max-height:520px;">
-    <table>
-      <thead><tr><th style="min-width:160px">Timestamp</th><th>Action</th><th>Admin</th><th>Type</th><th>Target / Details</th></tr></thead>
-      <tbody>
-      <?php foreach ($entries as $e):
-          $ts = $e[0] ?? '';
-          $action = $e[1] ?? '';
-          $admin = $e[2] ?? '';
-          $type = $e[3] ?? '';
-          $details = array_slice($e, 4);
-      ?>
-        <tr>
-          <td><?= htmlspecialchars($ts) ?></td>
-          <td><?= htmlspecialchars($action) ?></td>
-          <td><?= htmlspecialchars($admin) ?></td>
-          <td><?= htmlspecialchars($type) ?></td>
-          <td><?= htmlspecialchars(implode(' | ', $details)) ?></td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
+<div class="content flex-grow-1 p-4 p-md-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Action Audit Log
+            <span style="font-size: 0.55rem; vertical-align: middle; padding: 3px 10px; border-radius: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-left: 8px;
+                <?= $auditSource === 'supabase' ? 'background: rgba(34,197,94,0.15); color: #16a34a;' : 'background: rgba(59,130,246,0.15); color: #2563eb;' ?>
+            "><?= $auditSource === 'supabase' ? '☁ SUPABASE' : '📁 LOCAL' ?></span>
+        </h1>
+    </div>
+
+    <!-- Filters -->
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
+        <div style="flex: 1; min-width: 180px;">
+            <label style="display:block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant); margin-bottom: 6px;">Filter by Admin</label>
+            <select id="filterAdmin" onchange="applyFilters()" style="width:100%; padding: 10px 14px; border: 1px solid var(--outline-variant); border-radius: var(--radius-m); background: var(--surface-container-lowest); color: var(--on-surface); font-size: 0.9rem;">
+                <option value="">All Admins</option>
+                <?php foreach ($admins as $a): ?>
+                    <option value="<?= htmlspecialchars($a) ?>"><?= htmlspecialchars($a) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div style="flex: 1; min-width: 180px;">
+            <label style="display:block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant); margin-bottom: 6px;">Filter by Category</label>
+            <select id="filterCategory" onchange="applyFilters()" style="width:100%; padding: 10px 14px; border: 1px solid var(--outline-variant); border-radius: var(--radius-m); background: var(--surface-container-lowest); color: var(--on-surface); font-size: 0.9rem;">
+                <option value="">All Categories</option>
+                <?php foreach ($categories as $c): ?>
+                    <option value="<?= htmlspecialchars($c) ?>"><?= htmlspecialchars($c) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div style="flex: 1; min-width: 180px;">
+            <label style="display:block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant); margin-bottom: 6px;">Search Details</label>
+            <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Search in actions & details..." style="width:100%; padding: 10px 14px; border: 1px solid var(--outline-variant); border-radius: var(--radius-m); background: var(--surface-container-lowest); color: var(--on-surface); font-size: 0.9rem;">
+        </div>
+    </div>
+
+    <!-- Results count -->
+    <div id="resultsCount" style="font-size: 0.85rem; color: var(--on-surface-variant); margin-bottom: 16px;"></div>
+
+    <?php if (empty($allLogs)): ?>
+        <div style="background: var(--surface-container-low); border: 1px solid var(--outline-variant); border-radius: var(--radius-xl); padding: 48px; text-align: center;">
+            <span class="material-symbols-outlined" style="font-size: 56px; color: var(--outline); margin-bottom: 16px; display: block;">policy</span>
+            <h3 style="font-weight: 700; color: var(--on-surface); margin-bottom: 8px;">No Audit Entries Yet</h3>
+            <p style="color: var(--on-surface-variant); font-size: 0.9rem;">Admin actions will be recorded here as they occur across the system.</p>
+        </div>
+    <?php else: ?>
+        <div style="background: var(--surface-container-low); border: 1px solid var(--outline-variant); border-radius: var(--radius-xl); overflow: hidden;">
+            <div style="overflow-x: auto;">
+                <table id="auditTable" style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+                    <thead>
+                        <tr style="background: var(--surface-container); border-bottom: 2px solid var(--outline-variant);">
+                            <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant);">Timestamp</th>
+                            <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant);">Admin</th>
+                            <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant);">Role</th>
+                            <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant);">Category</th>
+                            <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant);">Action</th>
+                            <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant);" class="mobile-hide-col">Details</th>
+                            <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant);" class="mobile-hide-col">IP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($allLogs as $i => $log): ?>
+                            <tr class="audit-row" 
+                                data-admin="<?= htmlspecialchars($log['admin'] ?? '') ?>"
+                                data-category="<?= htmlspecialchars($log['category'] ?? '') ?>"
+                                data-search="<?= htmlspecialchars(strtolower(($log['action'] ?? '') . ' ' . ($log['details'] ?? ''))) ?>"
+                                style="border-bottom: 1px solid var(--outline-variant); transition: background 0.15s;">
+                                <td style="padding: 12px 16px; white-space: nowrap; color: var(--on-surface-variant); font-size: 0.82rem;"><?= htmlspecialchars($log['timestamp'] ?? '-') ?></td>
+                                <td style="padding: 12px 16px; font-weight: 600; color: var(--on-surface);"><?= htmlspecialchars($log['admin'] ?? '-') ?></td>
+                                <td style="padding: 12px 16px;">
+                                    <?php
+                                    $roleStyle = (($log['role'] ?? '') === 'superadmin')
+                                        ? 'background: var(--primary-container); color: var(--on-primary-container);'
+                                        : 'background: var(--secondary-container); color: var(--on-secondary-container);';
+                                    ?>
+                                    <span style="display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; <?= $roleStyle ?>"><?= htmlspecialchars($log['role'] ?? '-') ?></span>
+                                </td>
+                                <td style="padding: 12px 16px;">
+                                    <span style="display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600;
+                                        <?php
+                                        $cat = strtolower($log['category'] ?? '');
+                                        if ($cat === 'attendance') echo 'background: rgba(34,197,94,0.12); color: #16a34a;';
+                                        elseif ($cat === 'accounts') echo 'background: rgba(59,130,246,0.12); color: #2563eb;';
+                                        elseif ($cat === 'tokens') echo 'background: rgba(249,115,22,0.12); color: #ea580c;';
+                                        elseif ($cat === 'settings') echo 'background: rgba(168,85,247,0.12); color: #9333ea;';
+                                        elseif ($cat === 'courses') echo 'background: rgba(236,72,153,0.12); color: #db2777;';
+                                        elseif ($cat === 'roles') echo 'background: rgba(20,184,166,0.12); color: #0d9488;';
+                                        else echo 'background: var(--surface-container); color: var(--on-surface-variant);';
+                                        ?>
+                                    "><?= htmlspecialchars($log['category'] ?? '-') ?></span>
+                                </td>
+                                <td style="padding: 12px 16px; font-weight: 500; color: var(--on-surface);"><?= htmlspecialchars($log['action'] ?? '-') ?></td>
+                                <td style="padding: 12px 16px; color: var(--on-surface-variant); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" class="mobile-hide-col" title="<?= htmlspecialchars($log['details'] ?? '') ?>"><?= htmlspecialchars($log['details'] ?? '-') ?></td>
+                                <td style="padding: 12px 16px; color: var(--on-surface-variant); font-family: monospace; font-size: 0.8rem;" class="mobile-hide-col"><?= htmlspecialchars($log['ip'] ?? '-') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>
 
 <script>
-document.getElementById('purgeOld').addEventListener('click', function(){
-  var days = <?= intval($settings['audit_retention_days']) ?>;
-  function doPurge(){
-    var body = new URLSearchParams(); body.append('action','purge'); body.append('days', String(days));
-    if (window.ADMIN_CSRF_TOKEN) body.append('csrf_token', window.ADMIN_CSRF_TOKEN);
-    fetch('audit.php', { method:'POST', body: body }).then(r=>r.json()).then(function(j){
-      if (j && j.ok) {
-        if (window.adminAlert) { window.adminAlert('Purge complete', 'Removed '+(j.purged||0)+' entries', 'success').then(()=>location.reload()); }
-        else if (window.Swal) { Swal.fire('Purge complete','Removed '+(j.purged||0)+' entries','success').then(()=>location.reload()); }
-        else { location.reload(); }
-      } else {
-        if (window.adminAlert) {
-          window.adminAlert('Purge failed', JSON.stringify(j),'error');
-        } else if (window.Swal) {
-          Swal.fire('Purge failed', JSON.stringify(j), 'error');
-        } else {
-          console.error('Purge failed', j);
-        }
-      }
-  }).catch(function(){ if (window.adminAlert) window.adminAlert('Purge failed','Network or server error','error'); else if (window.Swal) Swal.fire('Purge failed','Network or server error','error'); else console.error('Purge request failed'); });
-  }
+function applyFilters() {
+    const adminFilter = document.getElementById('filterAdmin').value.toLowerCase();
+    const categoryFilter = document.getElementById('filterCategory').value.toLowerCase();
+    const searchFilter = document.getElementById('filterSearch').value.toLowerCase();
+    const rows = document.querySelectorAll('.audit-row');
+    let visible = 0;
+    
+    rows.forEach(row => {
+        const admin = (row.dataset.admin || '').toLowerCase();
+        const category = (row.dataset.category || '').toLowerCase();
+        const search = (row.dataset.search || '').toLowerCase();
+        
+        let show = true;
+        if (adminFilter && admin !== adminFilter) show = false;
+        if (categoryFilter && category !== categoryFilter) show = false;
+        if (searchFilter && search.indexOf(searchFilter) === -1) show = false;
+        
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    
+    document.getElementById('resultsCount').textContent = 
+        `Showing ${visible} of ${rows.length} entries`;
+}
 
-  if (window.adminConfirm) {
-    window.adminConfirm('Purge audit entries', 'Purge audit entries older than '+days+' days?').then(function(ok){ if (!ok) return; doPurge(); });
-  } else {
-    if (!confirm('Purge audit entries older than '+days+' days?')) return; doPurge();
-  }
+// Add hover effect
+document.querySelectorAll('.audit-row').forEach(row => {
+    row.addEventListener('mouseenter', () => row.style.background = 'var(--surface-container)');
+    row.addEventListener('mouseleave', () => row.style.background = '');
 });
+
+// Init count
+applyFilters();
 </script>

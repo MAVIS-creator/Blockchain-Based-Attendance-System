@@ -16,6 +16,7 @@ if (function_exists('csrf_check_request') && !csrf_check_request()) {
 
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 app_storage_init();
 
 // Accept fingerprint or matric to clear device-blocking state for today
@@ -224,6 +225,17 @@ if (!empty($responses['cleared'])) {
     $maskedKey = mask_audit_value($rawKey);
     $line = "$timeStr | clear_device | $adminUser | file:$f | key:" . $maskedKey . " | from:$remoteIp" . PHP_EOL;
     file_put_contents($auditFile, $line, FILE_APPEND | LOCK_EX);
+  }
+
+  if (function_exists('admin_log_action')) {
+    $parts = [];
+    if ($fingerprint !== '') $parts[] = 'fingerprint';
+    if ($matric !== '') $parts[] = 'matric';
+    if ($token !== '') $parts[] = 'token';
+    if ($ip !== '') $parts[] = 'ip';
+    if ($mac !== '') $parts[] = 'mac';
+    $details = 'Cleared device/token blocks using keys: ' . implode(', ', $parts) . '; affected=' . count($responses['cleared']);
+    admin_log_action('Logs', 'Device State Cleared', $details);
   }
 }
 

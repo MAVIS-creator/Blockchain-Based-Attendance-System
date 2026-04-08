@@ -43,9 +43,24 @@ if (file_exists($sessionsFile)) {
 
 $page = $_GET['page'] ?? 'dashboard';
 
+// Enforce Role Permissions
+$currentRole = $_SESSION['admin_role'] ?? 'admin';
+if ($currentRole !== 'superadmin' && $page !== 'unauthorized') {
+    $permissions = admin_load_permissions_cached();
+    $allowedPages = $permissions[$currentRole] ?? [];
+    if (!in_array($page, $allowedPages, true)) {
+        header('Location: index.php?page=unauthorized');
+        exit;
+    }
+}
+
 $routes = [
   'dashboard'          => 'dashboard.php',
+  'unauthorized'       => 'unauthorized.php',
+  'roles'              => 'roles.php',
+  'audit'              => 'audit.php',
   'status'             => 'status.php',
+  'status_debug'       => 'status_debug.php',
   'request_timings'    => 'request_timings.php',
   'logs'               => 'logs/logs.php',
   'clear_logs_ui'      => 'clear_logs_ui.php',

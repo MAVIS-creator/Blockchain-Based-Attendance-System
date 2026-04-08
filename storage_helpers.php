@@ -17,6 +17,29 @@ if (!function_exists('app_storage_path')) {
       $configured = __DIR__ . '/storage';
     }
 
+    // Normalize configured path:
+    // - Absolute paths remain unchanged.
+    // - Relative paths are resolved predictably from project root.
+    // - On Azure Linux App Service, allow "home/..." shorthand => "/home/...".
+    $hasDrivePrefix = strlen($configured) > 2
+      && ctype_alpha($configured[0])
+      && $configured[1] === ':'
+      && ($configured[2] === '\\' || $configured[2] === '/');
+    $isUnixAbsolute = isset($configured[0]) && $configured[0] === '/';
+    $isUncPath = strncmp($configured, '\\\\', 2) === 0 || strncmp($configured, '//', 2) === 0;
+    $isAbsolute = $hasDrivePrefix || $isUnixAbsolute || $isUncPath;
+    if (!$isAbsolute) {
+      $looksLikeAzureHome = preg_match('#^home[\\/]#i', $configured) === 1;
+      $isAzureAppService = getenv('WEBSITE_SITE_NAME') !== false || getenv('WEBSITE_INSTANCE_ID') !== false;
+      $isLinuxRuntime = DIRECTORY_SEPARATOR === '/';
+
+      if ($looksLikeAzureHome && $isAzureAppService && $isLinuxRuntime) {
+        $configured = DIRECTORY_SEPARATOR . ltrim($configured, '/\\');
+      } else {
+        $configured = __DIR__ . DIRECTORY_SEPARATOR . $configured;
+      }
+    }
+
     $normalized = rtrim($configured, '/\\');
     if ($normalized === '') {
       $normalized = __DIR__ . '/storage';

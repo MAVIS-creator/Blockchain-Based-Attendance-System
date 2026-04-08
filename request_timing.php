@@ -2,6 +2,42 @@
 
 require_once __DIR__ . '/storage_helpers.php';
 
+if (!function_exists('request_timing_hybrid_ready')) {
+  function request_timing_hybrid_ready()
+  {
+    $hybridFile = __DIR__ . '/hybrid_dual_write.php';
+    if (!file_exists($hybridFile)) {
+      return false;
+    }
+    require_once $hybridFile;
+    return function_exists('hybrid_enabled') && function_exists('hybrid_dual_write');
+  }
+}
+
+if (!function_exists('request_timing_mirror_supabase')) {
+  function request_timing_mirror_supabase(array $ctx)
+  {
+    if (!request_timing_hybrid_ready() || !hybrid_enabled()) {
+      return;
+    }
+
+    $payload = [
+      'route' => (string)($ctx['route'] ?? 'unknown'),
+      'started_at_epoch' => (float)($ctx['started_at'] ?? microtime(true)),
+      'finished_at' => (string)($ctx['finished_at'] ?? date('c')),
+      'duration_ms' => (float)($ctx['duration_ms'] ?? 0),
+      'method' => (string)($ctx['method'] ?? ''),
+      'uri' => (string)($ctx['uri'] ?? ''),
+      'status_code' => isset($ctx['status_code']) ? (int)$ctx['status_code'] : null,
+      'memory_peak_mb' => isset($ctx['memory_peak_mb']) ? (float)$ctx['memory_peak_mb'] : null,
+      'meta' => isset($ctx['meta']) && is_array($ctx['meta']) ? $ctx['meta'] : [],
+      'spans' => isset($ctx['spans']) && is_array($ctx['spans']) ? $ctx['spans'] : [],
+    ];
+
+    hybrid_dual_write('request_timing', 'request_timings', $payload);
+  }
+}
+
 if (!function_exists('request_timing_enabled')) {
   function request_timing_enabled()
   {
@@ -244,5 +280,6 @@ if (!function_exists('request_timing_flush')) {
 
     $logFile = app_storage_file('logs/request_timing.jsonl');
     @file_put_contents($logFile, json_encode($ctx, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
+    request_timing_mirror_supabase($ctx);
   }
 }

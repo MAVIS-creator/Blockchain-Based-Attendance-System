@@ -362,6 +362,9 @@ if (!file_exists($settingsFile)) {
     'checkin_time_start' => '',
     'checkin_time_end' => '',
     'enforce_one_device_per_day' => false,
+    'load_test_relax_enabled' => false,
+    'load_test_relax_minutes' => 30,
+    'load_test_relax_until' => null,
     // new keys
     'ip_whitelist' => [],
     'encrypted_settings' => false,
@@ -403,6 +406,9 @@ $settings = array_replace([
   'checkin_time_start' => '',
   'checkin_time_end' => '',
   'enforce_one_device_per_day' => false,
+  'load_test_relax_enabled' => false,
+  'load_test_relax_minutes' => 30,
+  'load_test_relax_until' => null,
   'ip_whitelist' => [],
   'encrypted_settings' => false,
   'device_cooldown_seconds' => 0,
@@ -508,6 +514,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $checkinStart = trim($_POST['checkin_time_start'] ?? '');
     $checkinEnd = trim($_POST['checkin_time_end'] ?? '');
     $enforceOneDevice = isset($_POST['enforce_one_device_per_day']) && $_POST['enforce_one_device_per_day'] === '1';
+    $loadTestRelaxEnabled = isset($_POST['load_test_relax_enabled']) && $_POST['load_test_relax_enabled'] === '1';
+    $loadTestRelaxMinutes = intval($_POST['load_test_relax_minutes'] ?? ($settings['load_test_relax_minutes'] ?? 30));
 
     // new fields
     $ipWhitelistRaw = trim($_POST['ip_whitelist'] ?? '');
@@ -526,6 +534,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($backupRetention < 1) $backupRetention = 1;
     if ($blockedTokensRetention < 1) $blockedTokensRetention = 1;
     if ($blockedTokensRetention > 3650) $blockedTokensRetention = 3650;
+    if ($loadTestRelaxMinutes < 1) $loadTestRelaxMinutes = 1;
+    if ($loadTestRelaxMinutes > 720) $loadTestRelaxMinutes = 720;
 
     // if critical fields are changing and encryption toggle or max_admins changed, require reauth
     $critical = false;
@@ -542,6 +552,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $settings['checkin_time_start'] = $checkinStart;
       $settings['checkin_time_end'] = $checkinEnd;
       $settings['enforce_one_device_per_day'] = $enforceOneDevice;
+      $settings['load_test_relax_enabled'] = $loadTestRelaxEnabled;
+      $settings['load_test_relax_minutes'] = $loadTestRelaxMinutes;
+      $settings['load_test_relax_until'] = $loadTestRelaxEnabled ? (time() + ($loadTestRelaxMinutes * 60)) : null;
       $settings['ip_whitelist'] = $ipWhitelist;
       $settings['encrypted_settings'] = $encryptedSettings;
       $settings['device_cooldown_seconds'] = $deviceCooldown;
@@ -811,9 +824,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <div id="tab-advanced" class="st-tab-content hidden overflow-x-hidden">
-    <form method="POST" class="grid grid-cols-1 xl:grid-cols-12 gap-6 max-w-full">
+    <form method="POST" class="grid grid-cols-1 xl:grid-cols-2 gap-6 max-w-full items-start">
       <?php csrf_field(); ?>
-      <section class="xl:col-span-8 min-w-0 bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-5 border border-outline-variant/20">
+      <section class="min-w-0 bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-5 border border-outline-variant/20 h-full">
         <h3 class="text-lg font-semibold">Network &amp; Security</h3>
         <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="encrypted_settings" value="1" <?= ($settings['encrypted_settings'] ?? false) ? 'checked' : '' ?>> Encrypted settings</label>
         <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="encrypt_logs" value="1" <?= ($settings['encrypt_logs'] ?? false) ? 'checked' : '' ?>> Encrypt logs</label>
@@ -823,16 +836,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
       </section>
 
-      <section class="xl:col-span-4 min-w-0 bg-surface-container-low p-6 rounded-xl space-y-4">
+      <section class="min-w-0 bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant/20 space-y-4 h-full">
         <h3 class="text-lg font-semibold">Device &amp; Anti-spam</h3>
         <div>
           <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Device cooldown (seconds)</label>
           <input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="device_cooldown_seconds" value="<?= htmlspecialchars($settings['device_cooldown_seconds'] ?? 0) ?>">
         </div>
         <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="user_agent_lock" value="1" <?= ($settings['user_agent_lock'] ?? false) ? 'checked' : '' ?>> Lock by user agent</label>
+
+        <?php
+        $loadTestRelaxUntil = isset($settings['load_test_relax_until']) && is_numeric($settings['load_test_relax_until']) ? (int)$settings['load_test_relax_until'] : 0;
+        $loadTestRelaxActive = !empty($settings['load_test_relax_enabled']) && $loadTestRelaxUntil > time();
+        ?>
+        <div class="rounded-lg border border-outline-variant/20 bg-surface-container-lowest p-4 space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <label class="flex items-center gap-3 font-medium">
+              <input class="w-5 h-5" type="checkbox" name="load_test_relax_enabled" value="1" <?= !empty($settings['load_test_relax_enabled']) ? 'checked' : '' ?>>
+              Load-test relax mode
+            </label>
+            <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold <?= $loadTestRelaxActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' ?>">
+              <span class="w-2 h-2 rounded-full <?= $loadTestRelaxActive ? 'bg-emerald-500' : 'bg-slate-400' ?>"></span>
+              <?= $loadTestRelaxActive ? 'ACTIVE' : 'INACTIVE' ?>
+            </span>
+          </div>
+          <div>
+            <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Timer (minutes)</label>
+            <input class="mt-2 w-full bg-surface-container-low border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" min="1" max="720" name="load_test_relax_minutes" value="<?= htmlspecialchars((string)($settings['load_test_relax_minutes'] ?? 30)) ?>">
+          </div>
+          <p class="text-xs text-on-surface-variant">
+            While active, submit duplicate/device anti-spam checks are relaxed to support controlled load tests.
+            <?= $loadTestRelaxUntil > 0 ? 'Current window ends: ' . htmlspecialchars(date('Y-m-d H:i:s', $loadTestRelaxUntil)) : 'No active window set yet.' ?>
+          </p>
+        </div>
       </section>
 
-      <section class="xl:col-span-7 min-w-0 bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4 border border-outline-variant/20">
+      <section class="min-w-0 bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4 border border-outline-variant/20 h-full">
         <h3 class="text-lg font-semibold">Geo-fencing</h3>
         <div class="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
           <p class="text-sm text-on-surface-variant">Geo-fence configuration was moved out of System Settings.</p>
@@ -846,14 +884,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
       </section>
 
-      <section class="xl:col-span-5 min-w-0 bg-surface-container-low p-6 rounded-xl space-y-4">
+      <section class="min-w-0 bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant/20 space-y-4 h-full">
         <h3 class="text-lg font-semibold">Backups &amp; Retention</h3>
         <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="auto_backup" value="1" <?= ($settings['auto_backup'] ?? true) ? 'checked' : '' ?>> Enable auto backup</label>
         <div><label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Backup retention</label><input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" name="backup_retention" value="<?= htmlspecialchars($settings['backup_retention'] ?? 10) ?>"></div>
         <div><label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Blocked token retention (days)</label><input class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" type="number" min="1" max="3650" name="blocked_tokens_retention_days" value="<?= htmlspecialchars($settings['blocked_tokens_retention_days'] ?? 30) ?>"></div>
       </section>
 
-      <div class="xl:col-span-12 flex justify-end gap-4 border-t border-outline-variant/20 pt-4">
+      <div class="xl:col-span-2 flex justify-end gap-4 border-t border-outline-variant/20 pt-4">
         <button class="px-8 py-2.5 rounded-lg bg-gradient-to-br from-primary to-primary-container text-white font-semibold text-sm" type="submit" name="save_settings">Commit to Chain</button>
       </div>
     </form>
@@ -1068,6 +1106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $adminCount = count($acct);
     $status = admin_load_status_cached(10);
     $settingsAuditFile = admin_settings_audit_file();
+    if (function_exists('admin_log_action')) { admin_log_action('Settings', 'Settings Updated', 'System settings were modified by admin.'); };
     $lastAudit = admin_recent_text_lines_cached('settings_audit_recent', $settingsAuditFile, 10, 10);
     $backups = admin_backup_files_cached('settings_*.json', 20);
     usort($backups, function ($a, $b) {

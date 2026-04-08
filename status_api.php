@@ -40,10 +40,12 @@ $decoded = json_decode($raw, true);
 $normalized = normalize_effective_status($decoded);
 
 if (
-  !is_array($decoded) ||
-  ($decoded['checkin'] ?? null) !== $normalized['checkin'] ||
-  ($decoded['checkout'] ?? null) !== $normalized['checkout'] ||
-  (($decoded['end_time'] ?? null) !== $normalized['end_time'])
+  is_array($decoded) &&
+  (
+    ($decoded['checkin'] ?? null) !== $normalized['checkin'] ||
+    ($decoded['checkout'] ?? null) !== $normalized['checkout'] ||
+    (($decoded['end_time'] ?? null) !== $normalized['end_time'])
+  )
 ) {
   @file_put_contents($statusFile, json_encode($normalized, JSON_PRETTY_PRINT), LOCK_EX);
 }

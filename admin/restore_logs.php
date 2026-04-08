@@ -22,6 +22,7 @@ if (function_exists('csrf_check_request') && !csrf_check_request()) {
 
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 app_storage_init();
 
 $tmp = $_FILES['backup']['tmp_name'];
@@ -66,5 +67,9 @@ if (file_exists($tempDir . '/admin_fingerprints.json')) {
 
 // cleanup
 // (we won't recursively delete tempDir to avoid permission issues; rely on system temp cleanup)
+
+if (function_exists('admin_log_action')) {
+  admin_log_action('Logs', 'Backup Restored', "Restored backup archive: {$name}");
+}
 
 echo json_encode(['ok' => true, 'message' => 'Restore complete']);

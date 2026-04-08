@@ -9,24 +9,74 @@ require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/cache_helpers.php';
+require_once __DIR__ . '/includes/hybrid_admin_read.php';
+require_once __DIR__ . '/../hybrid_dual_write.php';
 app_storage_init();
 csrf_token();
 
 $timingFile = app_storage_file('logs/request_timing.jsonl');
 $message = '';
+$timingSource = 'local';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!csrf_check_request()) {
     http_response_code(403);
     $message = 'Invalid CSRF token.';
   } elseif (isset($_POST['clear_timings'])) {
-    file_put_contents($timingFile, '', LOCK_EX);
-    $message = 'Timing log cleared.';
+    $localCleared = file_put_contents($timingFile, '', LOCK_EX) !== false;
+    $remoteCleared = true;
+    $remoteAttempted = function_exists('hybrid_admin_read_enabled') && hybrid_admin_read_enabled() && function_exists('hybrid_supabase_delete');
+
+    if ($remoteAttempted) {
+      $err = null;
+      $remoteCleared = hybrid_supabase_delete('request_timings', ['id' => 'gt.0'], $err);
+      if (!$remoteCleared) {
+        $message = 'Local timings cleared, but Supabase clear failed.';
+      }
+    }
+
+    if ($message === '') {
+      if ($localCleared && $remoteCleared && $remoteAttempted) {
+        $message = 'Local and Supabase timing logs cleared.';
+      } elseif ($localCleared) {
+        $message = 'Timing log cleared.';
+      } else {
+        $message = 'Failed to clear timing log.';
+      }
+    }
   }
 }
 
 $records = [];
-if (file_exists($timingFile)) {
+
+if (function_exists('hybrid_admin_read_enabled') && hybrid_admin_read_enabled()) {
+  $rows = null;
+  $err = null;
+  $ok = hybrid_supabase_select('request_timings', [
+    'select' => 'route,started_at_epoch,finished_at,duration_ms,method,uri,status_code,memory_peak_mb,meta,spans',
+    'order' => 'finished_at.desc',
+    'limit' => '300'
+  ], $rows, $err);
+  if ($ok && is_array($rows) && count($rows) > 0) {
+    foreach ($rows as $row) {
+      $records[] = [
+        'route' => (string)($row['route'] ?? 'unknown'),
+        'started_at' => isset($row['started_at_epoch']) ? (float)$row['started_at_epoch'] : null,
+        'finished_at' => (string)($row['finished_at'] ?? ''),
+        'duration_ms' => isset($row['duration_ms']) ? (float)$row['duration_ms'] : 0,
+        'method' => (string)($row['method'] ?? ''),
+        'uri' => (string)($row['uri'] ?? ''),
+        'status_code' => isset($row['status_code']) ? (int)$row['status_code'] : null,
+        'memory_peak_mb' => isset($row['memory_peak_mb']) ? (float)$row['memory_peak_mb'] : 0,
+        'meta' => is_array($row['meta'] ?? null) ? $row['meta'] : [],
+        'spans' => is_array($row['spans'] ?? null) ? $row['spans'] : [],
+      ];
+    }
+    $timingSource = 'supabase';
+  }
+}
+
+if (empty($records) && file_exists($timingFile)) {
   $lines = admin_cached_file_lines('request_timings_lines', $timingFile, 10);
   $lines = array_slice($lines, -300);
   foreach ($lines as $line) {
@@ -66,7 +116,11 @@ uasort($routeStats, function ($a, $b) {
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
   <div>
-    <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);margin:0;">Request Timings</h2>
+    <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);margin:0;">Request Timings
+      <span style="font-size: 0.55rem; vertical-align: middle; padding: 3px 10px; border-radius: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-left: 8px;
+        <?= $timingSource === 'supabase' ? 'background: rgba(34,197,94,0.15); color: #16a34a;' : 'background: rgba(59,130,246,0.15); color: #2563eb;' ?>
+      "><?= $timingSource === 'supabase' ? 'SUPABASE' : 'LOCAL' ?></span>
+    </h2>
     <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Recent request durations and recorded spans from live traffic.</p>
   </div>
   <form method="post" style="margin:0;">

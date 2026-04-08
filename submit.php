@@ -137,6 +137,12 @@ if (!in_array($deviceIdentityMode, ['mac', 'ip', 'both'], true)) {
     $deviceIdentityMode = (!isset($settings['prefer_mac']) || (bool)$settings['prefer_mac']) ? 'mac' : 'ip';
 }
 
+$loadTestRelaxUntil = isset($settings['load_test_relax_until']) && is_numeric($settings['load_test_relax_until'])
+    ? (int)$settings['load_test_relax_until']
+    : 0;
+$loadTestRelaxActive = !empty($settings['load_test_relax_enabled']) && $loadTestRelaxUntil > time();
+request_timing_note('load_test_relax_active', $loadTestRelaxActive ? 'true' : 'false');
+
 // Helper: respond JSON and exit
 function fail($code, $message)
 {
@@ -385,7 +391,7 @@ if ($deviceIdentityMode === 'ip') {
 // Device cooldown
 // -----------------------
 $now = time();
-if (!empty($settings['device_cooldown_seconds']) && intval($settings['device_cooldown_seconds']) > 0) {
+if (!$loadTestRelaxActive && !empty($settings['device_cooldown_seconds']) && intval($settings['device_cooldown_seconds']) > 0) {
     $cool = intval($settings['device_cooldown_seconds']);
     $cdFile = app_storage_file('logs/device_cooldowns_' . $today . '.json');
     $cdData = read_store($cdFile, !empty($settings['encrypt_logs']));
@@ -403,7 +409,7 @@ if (!empty($settings['device_cooldown_seconds']) && intval($settings['device_coo
 // -----------------------
 // User-agent lock
 // -----------------------
-if (!empty($settings['user_agent_lock'])) {
+if (!$loadTestRelaxActive && !empty($settings['user_agent_lock'])) {
     $uaFile = app_storage_file('logs/fp_useragent_' . $today . '.json');
     $uaData = read_store($uaFile, !empty($settings['encrypt_logs']));
     $uaHash = hash('sha256', $userAgent);
@@ -417,7 +423,7 @@ if (!empty($settings['user_agent_lock'])) {
 // -----------------------
 // Enforce one device per fingerprint per day
 // -----------------------
-if (!empty($settings['enforce_one_device_per_day'])) {
+if (!$loadTestRelaxActive && !empty($settings['enforce_one_device_per_day'])) {
     $mapFile = app_storage_file('logs/fp_devices_' . $today . '.json');
     $mapData = read_store($mapFile, !empty($settings['encrypt_logs']));
     $devList = isset($mapData[$fingerprint]) ? (array)$mapData[$fingerprint] : [];
@@ -463,43 +469,45 @@ $lines = file_exists($logFile) ? file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKI
 request_timing_note('existing_log_lines', is_array($lines) ? count($lines) : 0);
 
 // 🔐 Check for duplicate actions
-foreach ($lines as $line) {
-    $fields = array_map('trim', explode('|', $line));
-    // Support old logs (without MAC) and new logs (with MAC).
-    if (count($fields) < 7) continue;
+if (!$loadTestRelaxActive) {
+    foreach ($lines as $line) {
+        $fields = array_map('trim', explode('|', $line));
+        // Support old logs (without MAC) and new logs (with MAC).
+        if (count($fields) < 7) continue;
 
-    // Possible formats:
-    // Old: Name | Matric | Action | Fingerprint | IP | Timestamp | UserAgent
-    // New: Name | Matric | Action | Fingerprint | IP | MAC | Timestamp | UserAgent
-    if (count($fields) === 7) {
-        list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logTimestamp, $logUserAgent) = $fields;
-        $logMac = 'UNKNOWN';
-    } else {
-        list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
-    }
-    if ($logMatric === $matric && $logAction === $action) {
-        header('Content-Type: application/json');
-        echo json_encode(['ok' => false, 'message' => "This Matric Number has already submitted $action today."]);
-        exit;
-    }
+        // Possible formats:
+        // Old: Name | Matric | Action | Fingerprint | IP | Timestamp | UserAgent
+        // New: Name | Matric | Action | Fingerprint | IP | MAC | Timestamp | UserAgent
+        if (count($fields) === 7) {
+            list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logTimestamp, $logUserAgent) = $fields;
+            $logMac = 'UNKNOWN';
+        } else {
+            list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
+        }
+        if ($logMatric === $matric && $logAction === $action) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => false, 'message' => "This Matric Number has already submitted $action today."]);
+            exit;
+        }
 
-    $sameMac = isset($logMac) && $logMac !== 'UNKNOWN' && $mac !== 'UNKNOWN' && $logMac === $mac && $logAction === $action;
-    $sameIp = ($logIp === $ip && $logAction === $action && $ip !== '127.0.0.1');
+        $sameMac = isset($logMac) && $logMac !== 'UNKNOWN' && $mac !== 'UNKNOWN' && $logMac === $mac && $logAction === $action;
+        $sameIp = ($logIp === $ip && $logAction === $action && $ip !== '127.0.0.1');
 
-    $sameDevice = false;
-    if ($deviceIdentityMode === 'both') {
-        $sameDevice = $sameIp || $sameMac;
-    } elseif ($deviceIdentityMode === 'ip') {
-        $sameDevice = $sameIp;
-    } else {
-        // mac mode: prefer MAC, fallback to IP when MAC is unavailable
-        $sameDevice = ($mac !== 'UNKNOWN') ? $sameMac : $sameIp;
-    }
+        $sameDevice = false;
+        if ($deviceIdentityMode === 'both') {
+            $sameDevice = $sameIp || $sameMac;
+        } elseif ($deviceIdentityMode === 'ip') {
+            $sameDevice = $sameIp;
+        } else {
+            // mac mode: prefer MAC, fallback to IP when MAC is unavailable
+            $sameDevice = ($mac !== 'UNKNOWN') ? $sameMac : $sameIp;
+        }
 
-    if ($sameDevice) {
-        header('Content-Type: application/json');
-        echo json_encode(['ok' => false, 'message' => "This device has already submitted $action today."]);
-        exit;
+        if ($sameDevice) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => false, 'message' => "This device has already submitted $action today."]);
+            exit;
+        }
     }
 }
 

@@ -8,6 +8,7 @@ if (empty($_SESSION['admin_logged_in'])) {
 
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
+require_once __DIR__ . '/state_helpers.php';
 app_storage_init();
 
 $admin = __DIR__;
@@ -55,6 +56,10 @@ if (is_dir($secure)) {
 if (file_exists($fingerprints)) $zip->addFile($fingerprints, 'admin_fingerprints.json');
 
 $zip->close();
+
+if (function_exists('admin_log_action')) {
+  admin_log_action('Logs', 'Backup Created', "Created backup archive: {$zipName}");
+}
 
 header('Content-Type: application/json');
 echo json_encode(['ok' => true, 'file' => $zipName]);

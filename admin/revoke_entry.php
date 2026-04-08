@@ -70,5 +70,10 @@ foreach ($added as $type) {
 	file_put_contents($auditFile, $line, FILE_APPEND | LOCK_EX);
 }
 
+require_once __DIR__ . '/state_helpers.php';
+if (function_exists('admin_log_action') && count($added) > 0) {
+    admin_log_action('Tokens', 'Entry Revoked', 'Revoked: ' . implode(', ', $added) . ' for ' . $days . ' days.');
+}
+
 header('Content-Type: application/json');
 echo json_encode(['ok' => true, 'added' => $added, 'counts' => ['tokens' => count($data['tokens']), 'ips' => count($data['ips']), 'macs' => count($data['macs'])]]);

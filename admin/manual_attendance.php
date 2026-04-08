@@ -259,6 +259,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 file_put_contents($logFile, $logLine, FILE_APPEND | LOCK_EX);
 
+                if (function_exists('admin_log_action')) {
+                    admin_log_action('Attendance', 'Manual Submission', "Added manual {$action} for {$name} ({$matric}). Reason: {$reason}");
+                }
+
                 $success = true;
             }
         }
