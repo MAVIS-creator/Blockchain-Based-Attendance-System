@@ -54,5 +54,12 @@
         "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/145.0.0.0 Safari\/537.36 Edg\/145.0.0.0",
         "login_time": 1775448400,
         "last_activity": 1775448779
+    },
+    "einbbjonhciefglj8f0t8j3lta": {
+        "user": "Mavis",
+        "ip": "::1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/146.0.0.0 Safari\/537.36",
+        "login_time": 1775646931,
+        "last_activity": 1775647481
     }
 }

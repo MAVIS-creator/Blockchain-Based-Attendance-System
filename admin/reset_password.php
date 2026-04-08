@@ -74,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
@@ -81,14 +82,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $validToken) {
     <link rel="stylesheet" href="style.css">
     <style>
         body { background: var(--surface-container-lowest); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 24px; }
-        .login-card { background: var(--surface); border-radius: 20px; padding: 40px; width: 100%; max-width: 440px; box-shadow: 0 12px 32px rgba(11, 23, 41, 0.08); border: 1px solid var(--outline-variant); }
+        .login-card { background: var(--surface); border-radius: 20px; padding: 40px; width: 100%; max-width: 440px; box-sizing: border-box; box-shadow: 0 12px 32px rgba(11, 23, 41, 0.08); border: 1px solid var(--outline-variant); }
         .login-card h1 { color: var(--on-surface); font-size: 1.8rem; font-weight: 800; margin: 0 0 8px; text-align: center; letter-spacing: -0.03em; }
         .login-card p.subtitle { color: var(--on-surface-variant); text-align: center; margin: 0 0 32px; font-size: 0.95rem; }
         .st-input-group { margin-bottom: 20px; }
         .st-input-group label { display: block; font-weight: 600; color: var(--on-surface-variant); margin-bottom: 8px; font-size: 0.85rem; }
-        .st-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--outline-variant); background: var(--surface-container-low); color: var(--on-surface); font-family: 'Inter', sans-serif; font-size: 0.95rem; transition: all 0.2s ease; }
+        .st-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--outline-variant); background: var(--surface-container-low); color: var(--on-surface); font-family: 'Inter', sans-serif; font-size: 0.95rem; box-sizing: border-box; transition: all 0.2s ease; }
         .st-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(31, 93, 153, 0.15); background: var(--surface); }
-        .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--primary); color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; }
+        .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--primary); color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; box-sizing: border-box; transition: all 0.2s ease; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; }
         .submit-btn:hover { background: var(--primary-container); transform: translateY(-1px); }
         .error-msg { background: var(--error-container); color: var(--error); padding: 12px 16px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
         .success-msg { background: #dcfce7; color: #166534; padding: 12px 16px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }

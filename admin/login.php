@@ -112,6 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
@@ -134,6 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 40px;
             width: 100%;
             max-width: 440px;
+            box-sizing: border-box;
             box-shadow: 0 12px 32px rgba(11, 23, 41, 0.08);
             border: 1px solid var(--outline-variant);
         }
@@ -175,6 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: var(--on-surface);
             font-family: 'Inter', sans-serif;
             font-size: 0.95rem;
+            box-sizing: border-box;
             transition: all 0.2s ease;
         }
 
@@ -219,6 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
+            box-sizing: border-box;
             transition: all 0.2s ease;
             display: flex;
             justify-content: center;

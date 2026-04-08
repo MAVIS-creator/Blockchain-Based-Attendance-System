@@ -267,13 +267,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 
+<?php
+$isStandalone = basename($_SERVER['PHP_SELF']) === 'manual_attendance.php';
+if ($isStandalone):
+?>
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manual Attendance (God Mode)</title>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<?php endif; ?>
     <style>
         :root {
             --bg-light: linear-gradient(120deg, #f9fafb, #e0f2fe);
@@ -312,7 +317,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .manual-form {
-            width: 600px;
+            width: 100%;
+            max-width: 600px;
+            box-sizing: border-box;
             margin: 80px auto 60px auto;
             background: var(--card-bg);
             backdrop-filter: blur(12px);
@@ -340,7 +347,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .manual-form input[type="text"] {
-            width: 550px;
+            width: 100%;
+            box-sizing: border-box;
             padding: 14px;
             margin-bottom: 22px;
             border-radius: 12px;
@@ -373,7 +381,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .manual-form textarea {
-            width: 550px;
+            width: 100%;
+            box-sizing: border-box;
             padding: 14px;
             margin-bottom: 22px;
             border-radius: 12px;
@@ -393,9 +402,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #ffffff;
         }
     </style>
+<?php if ($isStandalone): ?>
 </head>
-
 <body>
+<?php endif; ?>
 
     <button class="palette-btn" onclick="togglePalette()"><i class='bx bx-adjust'></i> Switch Palette</button>
 
@@ -448,7 +458,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     </script>
-
+<?php if ($isStandalone): ?>
 </body>
-
 </html>
+<?php endif; ?>

@@ -130,6 +130,7 @@ img {
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;
 }
 
 /* ─────────────────────────────────────────
@@ -738,7 +739,7 @@ details.sidebar-group ul li a::before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--sp-3) var(--sp-5);
+  padding: var(--sp-3) var(--sp-8);
   background: var(--surface-container-lowest);
   border-bottom: 1px solid rgba(194, 199, 209, 0.2);
   position: sticky;
@@ -1978,6 +1979,10 @@ textarea:focus,
     padding: var(--sp-4);
   }
 
+  .page-header {
+    padding: var(--sp-3) var(--sp-4);
+  }
+
   .desktop-navbar {
     display: none;
   }
@@ -1999,6 +2004,10 @@ textarea:focus,
 @media (max-width: 640px) {
   .content-wrapper {
     padding: var(--sp-3);
+  }
+
+  .page-header {
+    padding: var(--sp-3) var(--sp-3);
   }
 
   .st-stats-grid {
@@ -2030,6 +2039,10 @@ textarea:focus,
   .quick-actions a {
     padding: 10px 14px;
     font-size: 0.82rem;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
   }
 }
 

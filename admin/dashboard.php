@@ -52,7 +52,7 @@ $todayFailed = $failedCounts[$todayStr] ?? 0;
     <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">System Overview</h2>
     <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Blockchain-verified attendance records for current semester.</p>
   </div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;">
+  <div style="display:flex;flex-wrap:wrap;gap:8px;" class="hide-on-mobile">
     <a href="index.php?page=settings" class="st-btn st-btn-ghost st-btn-sm">
       <span class="material-symbols-outlined" style="font-size:16px;">settings</span> Settings
     </a>
