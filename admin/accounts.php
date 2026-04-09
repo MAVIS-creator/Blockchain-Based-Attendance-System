@@ -90,7 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           'role' => $role
         ];
         file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        if (function_exists('admin_log_action')) { admin_log_action('Accounts', 'Account Created', "Created admin account: {$username} (role: {$role})"); }
+        if (function_exists('admin_log_action')) {
+          admin_log_action('Accounts', 'Account Created', "Created admin account: {$username} (role: {$role})");
+        }
         $message = "Admin account '{$username}' created with role '{$role}'.";
       }
     }
@@ -114,7 +116,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
           unset($accounts[$target]);
           file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-          if (function_exists('admin_log_action')) { admin_log_action('Accounts', 'Account Deleted', "Deleted admin account: {$target}"); }
+          if (function_exists('admin_log_action')) {
+            admin_log_action('Accounts', 'Account Deleted', "Deleted admin account: {$target}");
+          }
           $message = "Admin account '{$target}' deleted.";
         }
       }
@@ -138,7 +142,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       } else {
         $accounts[$currentUser]['password'] = password_hash($new, PASSWORD_DEFAULT);
         file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        if (function_exists('admin_log_action')) { admin_log_action('Accounts', 'Password Changed', "Admin changed their own password."); }
+        if (function_exists('admin_log_action')) {
+          admin_log_action('Accounts', 'Password Changed', "Admin changed their own password.");
+        }
         $message = 'Your password has been changed.';
       }
     }
@@ -152,7 +158,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
       $accounts[$target]['password'] = password_hash($new, PASSWORD_DEFAULT);
       file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-      if (function_exists('admin_log_action')) { admin_log_action('Accounts', 'Password Reset', "Password reset for account: {$target}"); }
+      if (function_exists('admin_log_action')) {
+        admin_log_action('Accounts', 'Password Reset', "Password reset for account: {$target}");
+      }
       $message = "Password updated for {$target}.";
     }
   } elseif ($action === 'update_role') {
@@ -175,7 +183,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       } else {
         $accounts[$target]['role'] = $newRole;
         file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        if (function_exists('admin_log_action')) { admin_log_action('Accounts', 'Role Updated', "Updated role for {$target}: {$oldRole} -> {$newRole}"); }
+        if (function_exists('admin_log_action')) {
+          admin_log_action('Accounts', 'Role Updated', "Updated role for {$target}: {$oldRole} -> {$newRole}");
+        }
         $message = "Role updated for {$target}.";
       }
     }

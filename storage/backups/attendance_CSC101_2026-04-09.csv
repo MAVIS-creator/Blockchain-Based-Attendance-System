@@ -1,0 +1,3 @@
+Name,Matric,Action,Datetime,Course
+"﻿Alice Test",MAT1001,checkin,"2026-04-09 09:10:00",CSC101
+"Bob Test",MAT1002,checkout,"2026-04-09 10:00:00",CSC101

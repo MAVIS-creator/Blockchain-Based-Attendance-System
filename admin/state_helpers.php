@@ -200,8 +200,14 @@ if (!function_exists('admin_load_permissions_cached')) {
     $file = admin_permissions_file();
     // Default allowed pages for the "admin" role
     $defaultAllowed = [
-      'dashboard', 'status', 'request_timings', 'logs',
-      'support_tickets', 'announcement', 'profile_settings', 'manual_attendance'
+      'dashboard',
+      'status',
+      'request_timings',
+      'logs',
+      'support_tickets',
+      'announcement',
+      'profile_settings',
+      'manual_attendance'
     ];
     $permissions = admin_cached_json_file('permissions', $file, ['admin' => $defaultAllowed], $ttl);
     if (!is_array($permissions)) {
@@ -259,7 +265,8 @@ if (!function_exists('admin_load_status_cached')) {
       $normalized['end_time'] = null;
     }
 
-    if ($sourceWasArray &&
+    if (
+      $sourceWasArray &&
       (
         ($status['checkin'] ?? null) !== $normalized['checkin'] ||
         ($status['checkout'] ?? null) !== $normalized['checkout'] ||

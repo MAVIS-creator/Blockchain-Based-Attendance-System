@@ -84,6 +84,13 @@ if (!function_exists('app_load_env_layers')) {
       if (array_key_exists('SUPABASE_SERVICE_ROLE_KEY', $baseEnv) && trim((string)($env['SUPABASE_SERVICE_ROLE_KEY'] ?? '')) === '') {
         $env['SUPABASE_SERVICE_ROLE_KEY'] = $baseEnv['SUPABASE_SERVICE_ROLE_KEY'];
       }
+
+      // Preserve SMTP transport settings from base .env when local overrides are blank.
+      foreach (['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'SMTP_PORT', 'SMTP_SECURE', 'FROM_EMAIL', 'AUTO_SEND_RECIPIENT'] as $smtpKey) {
+        if (array_key_exists($smtpKey, $baseEnv) && trim((string)($env[$smtpKey] ?? '')) === '') {
+          $env[$smtpKey] = $baseEnv[$smtpKey];
+        }
+      }
     }
 
     return $env;

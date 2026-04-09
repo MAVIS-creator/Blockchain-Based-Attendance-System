@@ -46,12 +46,12 @@ $page = $_GET['page'] ?? 'dashboard';
 // Enforce Role Permissions
 $currentRole = $_SESSION['admin_role'] ?? 'admin';
 if ($currentRole !== 'superadmin' && $page !== 'unauthorized') {
-    $permissions = admin_load_permissions_cached();
-    $allowedPages = $permissions[$currentRole] ?? [];
-    if (!in_array($page, $allowedPages, true)) {
-        header('Location: index.php?page=unauthorized');
-        exit;
-    }
+  $permissions = admin_load_permissions_cached();
+  $allowedPages = $permissions[$currentRole] ?? [];
+  if (!in_array($page, $allowedPages, true)) {
+    header('Location: index.php?page=unauthorized');
+    exit;
+  }
 }
 
 $routes = [];
