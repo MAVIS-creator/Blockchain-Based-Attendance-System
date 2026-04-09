@@ -7,6 +7,38 @@ require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+// CLI options:
+//   php auto_send_logs.php [YYYY-MM-DD] [--force] [--dry-run] [--recipient=email] [--format=csv|pdf]
+$argList = isset($argv) && is_array($argv) ? array_slice($argv, 1) : [];
+$date = date('Y-m-d');
+$forceRun = false;
+$dryRun = false;
+$recipientOverride = '';
+$formatOverride = '';
+
+foreach ($argList as $arg) {
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $arg)) {
+        $date = $arg;
+        continue;
+    }
+    if ($arg === '--force') {
+        $forceRun = true;
+        continue;
+    }
+    if ($arg === '--dry-run') {
+        $dryRun = true;
+        continue;
+    }
+    if (strpos($arg, '--recipient=') === 0) {
+        $recipientOverride = trim(substr($arg, strlen('--recipient=')));
+        continue;
+    }
+    if (strpos($arg, '--format=') === 0) {
+        $formatOverride = strtolower(trim(substr($arg, strlen('--format='))));
+        continue;
+    }
+}
+
 $settingsFile = admin_storage_migrate_file('settings.json');
 $keyFile = admin_storage_migrate_file('.settings_key');
 
@@ -29,13 +61,14 @@ function load_settings_file($settingsFile,$keyFile){
 
 $settings = load_settings_file($settingsFile,$keyFile) ?: [];
 // require auto_send enabled
-if (empty($settings['auto_send']['enabled'])) exit("Auto-send not enabled\n");
-$recipient = $settings['auto_send']['recipient'] ?? '';
+if (empty($settings['auto_send']['enabled']) && !$forceRun) exit("Auto-send not enabled (use --force for test runs)\n");
+$recipient = $recipientOverride !== '' ? $recipientOverride : ($settings['auto_send']['recipient'] ?? '');
 if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) exit("No valid recipient configured\n");
 
-// Determine date - default: today (script intended to run at end of class window)
-$date = $argv[1] ?? date('Y-m-d');
-$format = $settings['auto_send']['format'] ?? 'csv';
+$format = $formatOverride !== '' ? $formatOverride : ($settings['auto_send']['format'] ?? 'csv');
+if (!in_array($format, ['csv', 'pdf'], true)) {
+    $format = 'csv';
+}
 
 // Build the groups that should exist for today
 // We'll need to scan all courses from logs and select groups for this date
@@ -73,9 +106,27 @@ if (empty($selectedGroups)){
     exit("No log groups found for date {$date}\n");
 }
 
+if ($dryRun) {
+    echo "Auto-send DRY RUN for date {$date}\n";
+    echo "Recipient: {$recipient}\n";
+    echo "Format: {$format}\n";
+    echo "Selected groups: " . implode(', ', $selectedGroups) . "\n";
+    exit(0);
+}
+
+// Simulate authenticated admin POST with valid CSRF
+$_SESSION['admin_logged_in'] = true;
+$_SESSION['admin_user'] = $_SESSION['admin_user'] ?? 'system_auto_send';
+$_SESSION['admin_role'] = $_SESSION['admin_role'] ?? 'superadmin';
+$_SERVER['REQUEST_METHOD'] = 'POST';
+$_SERVER['REMOTE_ADDR'] = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+require_once __DIR__ . '/includes/csrf.php';
+$csrfToken = csrf_token();
+
 // Simulate POST request to send_logs_email.php
 $_POST = [
   'send_logs' => '1',
+    'csrf_token' => $csrfToken,
   'recipient' => $recipient,
   'format' => $format,
   'selected_groups' => $selectedGroups,
@@ -87,9 +138,26 @@ ob_start();
 require __DIR__ . '/send_logs_email.php';
 $output = ob_get_clean();
 
+$sendSuccess = isset($success) && is_string($success) && trim($success) !== '';
+$sendError = isset($error) && is_string($error) ? trim($error) : '';
+
 echo "Auto-send attempted for date {$date}\n";
 echo "Selected groups: " . implode(', ', $selectedGroups) . "\n";
-echo "Output:\n$output\n";
+if ($sendSuccess) {
+    echo "Result: SUCCESS\n";
+    echo "Message: {$success}\n";
+} else {
+    echo "Result: FAILED\n";
+    echo "Message: " . ($sendError !== '' ? $sendError : 'Unknown error (inspect rendered output).') . "\n";
+}
+
+if (!$sendSuccess) {
+    $snippet = trim(strip_tags((string)$output));
+    if ($snippet !== '') {
+        echo "Rendered output snippet:\n" . mb_substr($snippet, 0, 1200) . "\n";
+    }
+    exit(1);
+}
 
 // Note: schedule this script to run after your class ends. On Windows, use Task Scheduler; on Linux use cron.
 // Example cron (run at 23:05 daily): 5 23 * * * /usr/bin/php /path/to/admin/auto_send_logs.php

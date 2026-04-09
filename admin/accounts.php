@@ -15,6 +15,24 @@ if (!file_exists($settingsFile)) file_put_contents($settingsFile, json_encode(['
 
 $accounts = admin_load_accounts_cached(15);
 $settings = admin_load_settings_cached(15) ?: ['prefer_mac' => true, 'max_admins' => 5];
+$permissions = admin_load_permissions_cached(15);
+
+$availableRoles = ['superadmin', 'admin'];
+if (is_array($permissions)) {
+  foreach (array_keys($permissions) as $roleKey) {
+    if (is_string($roleKey) && $roleKey !== '') {
+      $availableRoles[] = $roleKey;
+    }
+  }
+}
+$availableRoles = array_values(array_unique($availableRoles));
+usort($availableRoles, function ($a, $b) {
+  $order = ['superadmin' => 0, 'admin' => 1];
+  $ai = $order[$a] ?? 10;
+  $bi = $order[$b] ?? 10;
+  if ($ai !== $bi) return $ai <=> $bi;
+  return strcmp($a, $b);
+});
 
 require_once __DIR__ . '/includes/csrf.php';
 csrf_token();
@@ -30,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   $action = $_POST['action'] ?? '';
-  $privileged = in_array($action, ['create', 'delete', 'set_password'], true);
+  $privileged = in_array($action, ['create', 'delete', 'set_password', 'update_role'], true);
   if ($privileged && $currentRole !== 'superadmin') {
     $errors[] = 'Only super-admins can perform that action.';
   }
@@ -40,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fullname = trim($_POST['fullname'] ?? '');
     $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
+    $role = strtolower(trim((string)($_POST['role'] ?? 'admin')));
 
     if ($username === '' || !preg_match('/^[a-zA-Z0-9_\-]{3,30}$/', $username)) {
       $errors[] = 'Username must be 3-30 chars, letters/numbers/_/- only.';
@@ -49,6 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($password === '' || strlen($password) < 6) {
       $errors[] = 'Password must be at least 6 characters.';
+    }
+    if (!in_array($role, $availableRoles, true)) {
+      $errors[] = 'Selected role is invalid.';
     }
 
     $maxAdmins = intval($settings['max_admins'] ?? 5);
@@ -65,11 +87,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           'name' => $fullname ?: $username,
           'email' => $email,
           'avatar' => null,
-          'role' => 'admin'
+          'role' => $role
         ];
         file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        if (function_exists('admin_log_action')) { admin_log_action('Accounts', 'Account Created', "Created admin account: {$username}"); }
-        $message = "Admin account '{$username}' created.";
+        if (function_exists('admin_log_action')) { admin_log_action('Accounts', 'Account Created', "Created admin account: {$username} (role: {$role})"); }
+        $message = "Admin account '{$username}' created with role '{$role}'.";
       }
     }
   } elseif ($action === 'delete') {
@@ -132,6 +154,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
       if (function_exists('admin_log_action')) { admin_log_action('Accounts', 'Password Reset', "Password reset for account: {$target}"); }
       $message = "Password updated for {$target}.";
+    }
+  } elseif ($action === 'update_role') {
+    $target = trim($_POST['target'] ?? '');
+    $newRole = strtolower(trim((string)($_POST['new_role'] ?? 'admin')));
+
+    if ($target === '' || !isset($accounts[$target])) {
+      $errors[] = 'Target user does not exist.';
+    } elseif (!in_array($newRole, $availableRoles, true)) {
+      $errors[] = 'Selected role is invalid.';
+    } else {
+      $oldRole = (string)($accounts[$target]['role'] ?? 'admin');
+      $superCount = 0;
+      foreach ($accounts as $a) {
+        if (($a['role'] ?? 'admin') === 'superadmin') $superCount++;
+      }
+
+      if ($oldRole === 'superadmin' && $newRole !== 'superadmin' && $superCount <= 1) {
+        $errors[] = 'Cannot demote the last super-admin.';
+      } else {
+        $accounts[$target]['role'] = $newRole;
+        file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        if (function_exists('admin_log_action')) { admin_log_action('Accounts', 'Role Updated', "Updated role for {$target}: {$oldRole} -> {$newRole}"); }
+        $message = "Role updated for {$target}.";
+      }
     }
   }
 }
@@ -223,6 +269,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     display: inline-flex;
     gap: 6px;
     align-items: center;
+  }
+
+  .accounts-role-form {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .accounts-role-select {
+    min-width: 120px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--outline-variant);
+    background: var(--surface-container-lowest);
+    color: var(--on-surface);
+    font-size: 0.82rem;
   }
 
   .accounts-reset-input {
@@ -404,6 +466,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   <span class="accounts-self-chip">YOU</span>
                 <?php else: ?>
                   <div class="accounts-actions">
+                    <form method="POST" class="accounts-role-form" style="margin:0;">
+                      <?php csrf_field(); ?>
+                      <input type="hidden" name="action" value="update_role">
+                      <input type="hidden" name="target" value="<?= htmlspecialchars($u) ?>">
+                      <select name="new_role" class="accounts-role-select">
+                        <?php foreach ($availableRoles as $roleOption): ?>
+                          <option value="<?= htmlspecialchars($roleOption) ?>" <?= (($info['role'] ?? 'admin') === $roleOption) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($roleOption) ?>
+                          </option>
+                        <?php endforeach; ?>
+                      </select>
+                      <button type="submit" class="st-btn st-btn-sm" style="background:#2563eb;color:#fff;">Role</button>
+                    </form>
                     <form method="POST" class="accounts-reset-form" style="margin:0;">
                       <?php csrf_field(); ?>
                       <input type="hidden" name="action" value="set_password">
@@ -466,6 +541,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="full">
               <label class="st-label" style="margin-bottom:6px;display:block;">Temporary Password</label>
               <input name="password" type="password" placeholder="Minimum 6 characters" required minlength="6">
+            </div>
+            <div class="full">
+              <label class="st-label" style="margin-bottom:6px;display:block;">Role</label>
+              <select name="role" required>
+                <?php foreach ($availableRoles as $roleOption): ?>
+                  <option value="<?= htmlspecialchars($roleOption) ?>" <?= $roleOption === 'admin' ? 'selected' : '' ?>><?= htmlspecialchars($roleOption) ?></option>
+                <?php endforeach; ?>
+              </select>
             </div>
           </div>
           <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">

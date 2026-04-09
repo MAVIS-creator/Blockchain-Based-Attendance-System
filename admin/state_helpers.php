@@ -72,6 +72,57 @@ if (!function_exists('admin_audit_file')) {
   }
 }
 
+if (!function_exists('admin_route_catalog')) {
+  function admin_route_catalog()
+  {
+    return [
+      'dashboard' => ['file' => 'dashboard.php', 'label' => 'Dashboard', 'superadmin_only' => false],
+      'unauthorized' => ['file' => 'unauthorized.php', 'label' => 'Unauthorized', 'superadmin_only' => true, 'assignable' => false],
+      'roles' => ['file' => 'roles.php', 'label' => 'Role Privileges', 'superadmin_only' => true],
+      'audit' => ['file' => 'audit.php', 'label' => 'Action Audit Log', 'superadmin_only' => true],
+      'status' => ['file' => 'status.php', 'label' => 'Status Monitor', 'superadmin_only' => false],
+      'status_debug' => ['file' => 'status_debug.php', 'label' => 'Status Diagnostics', 'superadmin_only' => true],
+      'request_timings' => ['file' => 'request_timings.php', 'label' => 'Request Timings', 'superadmin_only' => false],
+      'logs' => ['file' => 'logs/logs.php', 'label' => 'General Logs', 'superadmin_only' => false],
+      'clear_logs_ui' => ['file' => 'clear_logs_ui.php', 'label' => 'Clear / Backup Logs', 'superadmin_only' => false],
+      'clear_tokens_ui' => ['file' => 'clear_tokens_ui.php', 'label' => 'Access Tokens Management', 'superadmin_only' => false],
+      'failed_attempts' => ['file' => 'logs/failed_attempts.php', 'label' => 'Failed Verification Logs', 'superadmin_only' => false],
+      'accounts' => ['file' => 'accounts.php', 'label' => 'Manage Accounts', 'superadmin_only' => true],
+      'settings' => ['file' => 'settings.php', 'label' => 'System Settings', 'superadmin_only' => true],
+      'chain' => ['file' => 'chain.php', 'label' => 'Blockchain Ledger', 'superadmin_only' => false],
+      'add_course' => ['file' => 'courses/add.php', 'label' => 'Add Course', 'superadmin_only' => false],
+      'set_active' => ['file' => 'courses/set_active.php', 'label' => 'Set Active Course', 'superadmin_only' => false],
+      'manual_attendance' => ['file' => 'manual_attendance.php', 'label' => 'Manual Attendance Tool', 'superadmin_only' => false],
+      'geofence' => ['file' => 'geofence.php', 'label' => 'Geo-fence', 'superadmin_only' => true],
+      'support_tickets' => ['file' => 'view_tickets.php', 'label' => 'Support Tickets', 'superadmin_only' => false],
+      'unlink_fingerprint' => ['file' => 'unlink_fingerprint.php', 'label' => 'Unlink Fingerprints', 'superadmin_only' => false],
+      'announcement' => ['file' => 'announcement.php', 'label' => 'Broadcast Announcements', 'superadmin_only' => false],
+      'patcher' => ['file' => 'patcher.php', 'label' => 'Patcher Studio', 'superadmin_only' => false],
+      'send_logs_email' => ['file' => 'send_logs_email.php', 'label' => 'Email Reports', 'superadmin_only' => false],
+      'profile_settings' => ['file' => 'profile_settings.php', 'label' => 'Profile Settings', 'superadmin_only' => false],
+    ];
+  }
+}
+
+if (!function_exists('admin_assignable_pages')) {
+  function admin_assignable_pages()
+  {
+    $catalog = admin_route_catalog();
+    $assignable = [];
+    foreach ($catalog as $pageId => $meta) {
+      $isSuperOnly = !empty($meta['superadmin_only']);
+      $isExplicitlyAssignable = array_key_exists('assignable', $meta) ? !empty($meta['assignable']) : true;
+      if (!$isSuperOnly && $isExplicitlyAssignable) {
+        $assignable[$pageId] = [
+          'label' => (string)($meta['label'] ?? ucwords(str_replace('_', ' ', $pageId))),
+          'file' => (string)($meta['file'] ?? ''),
+        ];
+      }
+    }
+    return $assignable;
+  }
+}
+
 if (!function_exists('admin_log_action')) {
   function admin_log_action($category, $action, $details)
   {
@@ -149,11 +200,34 @@ if (!function_exists('admin_load_permissions_cached')) {
     $file = admin_permissions_file();
     // Default allowed pages for the "admin" role
     $defaultAllowed = [
-      'dashboard', 'status', 'request_timings', 'logs', 'accounts',
+      'dashboard', 'status', 'request_timings', 'logs',
       'support_tickets', 'announcement', 'profile_settings', 'manual_attendance'
     ];
     $permissions = admin_cached_json_file('permissions', $file, ['admin' => $defaultAllowed], $ttl);
-    return is_array($permissions) ? $permissions : ['admin' => $defaultAllowed];
+    if (!is_array($permissions)) {
+      return ['admin' => $defaultAllowed];
+    }
+
+    $assignableKeys = array_fill_keys(array_keys(admin_assignable_pages()), true);
+    $normalized = [];
+    foreach ($permissions as $role => $pages) {
+      if (!is_string($role) || $role === '' || !is_array($pages)) {
+        continue;
+      }
+      $sanitizedPages = [];
+      foreach ($pages as $pageId) {
+        if (is_string($pageId) && isset($assignableKeys[$pageId])) {
+          $sanitizedPages[$pageId] = true;
+        }
+      }
+      $normalized[$role] = array_keys($sanitizedPages);
+    }
+
+    if (!isset($normalized['admin'])) {
+      $normalized['admin'] = $defaultAllowed;
+    }
+
+    return $normalized;
   }
 }
 

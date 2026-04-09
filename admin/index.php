@@ -54,32 +54,10 @@ if ($currentRole !== 'superadmin' && $page !== 'unauthorized') {
     }
 }
 
-$routes = [
-  'dashboard'          => 'dashboard.php',
-  'unauthorized'       => 'unauthorized.php',
-  'roles'              => 'roles.php',
-  'audit'              => 'audit.php',
-  'status'             => 'status.php',
-  'status_debug'       => 'status_debug.php',
-  'request_timings'    => 'request_timings.php',
-  'logs'               => 'logs/logs.php',
-  'clear_logs_ui'      => 'clear_logs_ui.php',
-  'clear_tokens_ui'    => 'clear_tokens_ui.php',
-  'failed_attempts'    => 'logs/failed_attempts.php',
-  'accounts'           => 'accounts.php',
-  'settings'           => 'settings.php',
-  'chain'              => 'chain.php',
-  'add_course'         => 'courses/add.php',
-  'set_active'         => 'courses/set_active.php',
-  'manual_attendance'  => 'manual_attendance.php',
-  'geofence'           => 'geofence.php',
-  'support_tickets'    => 'view_tickets.php',
-  'unlink_fingerprint' => 'unlink_fingerprint.php',
-  'announcement'       => 'announcement.php',
-  'patcher'            => 'patcher.php',
-  'send_logs_email'   => 'send_logs_email.php',
-  'profile_settings'  => 'profile_settings.php'
-];
+$routes = [];
+foreach (admin_route_catalog() as $pageId => $meta) {
+  $routes[$pageId] = (string)($meta['file'] ?? '');
+}
 $view = $routes[$page] ?? 'dashboard.php';
 ?>
 
