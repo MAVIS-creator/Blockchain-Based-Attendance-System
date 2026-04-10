@@ -124,20 +124,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (function_exists('admin_log_action')) {
           admin_log_action('Accounts', 'Account Created', "Created admin account: {$username} (role: {$role})");
         }
-        
+
         $emailSent = false;
         if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            require_once __DIR__ . '/../env_helpers.php';
-            $ENV = app_load_env_layers(__DIR__ . '/../.env');
+          require_once __DIR__ . '/../env_helpers.php';
+          $ENV = app_load_env_layers(__DIR__ . '/../.env');
 
-            $loginLink = app_public_url('/admin/login.php');
-            
-            $subject = "Your Admin Account Details";
-            $headers = "MIME-Version: 1.0\r\n";
-            $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-            $headers .= "From: Admin System <noreply@" . $host . ">\r\n";
-            
-            $htmlMsg = "
+          $loginLink = app_public_url('/admin/login.php');
+
+          $subject = "Your Admin Account Details";
+          $headers = "MIME-Version: 1.0\r\n";
+          $headers .= "Content-type: text/html; charset=UTF-8\r\n";
+          $headers .= "From: Admin System <noreply@" . $host . ">\r\n";
+
+          $htmlMsg = "
             <html>
             <body style='font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px;'>
               <div style='max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);'>
@@ -159,42 +159,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </body>
             </html>
             ";
-            // $ENV loaded above
-            $smtpHost = trim((string)($ENV['SMTP_HOST'] ?? ''));
-            $smtpUser = trim((string)($ENV['SMTP_USER'] ?? ''));
-            $smtpPass = trim((string)($ENV['SMTP_PASS'] ?? ''));
-            $smtpConfigured = ($smtpHost !== '' && $smtpUser !== '' && $smtpPass !== '');
+          // $ENV loaded above
+          $smtpHost = trim((string)($ENV['SMTP_HOST'] ?? ''));
+          $smtpUser = trim((string)($ENV['SMTP_USER'] ?? ''));
+          $smtpPass = trim((string)($ENV['SMTP_PASS'] ?? ''));
+          $smtpConfigured = ($smtpHost !== '' && $smtpUser !== '' && $smtpPass !== '');
 
-            if ($smtpConfigured && file_exists(__DIR__ . '/../vendor/autoload.php')) {
-                require_once __DIR__ . '/../vendor/autoload.php';
-                if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
-                    try {
-                        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-                        $mail->isSMTP();
-                        $mail->Host = $smtpHost;
-                        $mail->Port = intval($ENV['SMTP_PORT'] ?? 587);
-                        $secure = $ENV['SMTP_SECURE'] ?? '';
-                        if ($secure) $mail->SMTPSecure = $secure;
-                        $mail->SMTPAuth = true;
-                        $mail->Username = $smtpUser;
-                        $mail->Password = $smtpPass;
+          if ($smtpConfigured && file_exists(__DIR__ . '/../vendor/autoload.php')) {
+            require_once __DIR__ . '/../vendor/autoload.php';
+            if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
+              try {
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                $mail->isSMTP();
+                $mail->Host = $smtpHost;
+                $mail->Port = intval($ENV['SMTP_PORT'] ?? 587);
+                $secure = $ENV['SMTP_SECURE'] ?? '';
+                if ($secure) $mail->SMTPSecure = $secure;
+                $mail->SMTPAuth = true;
+                $mail->Username = $smtpUser;
+                $mail->Password = $smtpPass;
 
-                        $fromEmail = $ENV['FROM_EMAIL'] ?? 'no-reply@example.com';
-                        $fromName = $ENV['FROM_NAME'] ?? 'Attendance System';
-                        $mail->setFrom($fromEmail, $fromName);
-                        $mail->addAddress($email);
-                        $mail->Subject = $subject;
-                        $mail->isHTML(true);
-                        $mail->Body = trim($htmlMsg);
-                        $mail->send();
-                        $emailSent = true;
-                    } catch (\Exception $e) {
-                        $emailSent = false;
-                    }
-                }
-            } else {
-                $emailSent = @mail($email, $subject, trim($htmlMsg), $headers);
+                $fromEmail = $ENV['FROM_EMAIL'] ?? 'no-reply@example.com';
+                $fromName = $ENV['FROM_NAME'] ?? 'Attendance System';
+                $mail->setFrom($fromEmail, $fromName);
+                $mail->addAddress($email);
+                $mail->Subject = $subject;
+                $mail->isHTML(true);
+                $mail->Body = trim($htmlMsg);
+                $mail->send();
+                $emailSent = true;
+              } catch (\Exception $e) {
+                $emailSent = false;
+              }
             }
+          } else {
+            $emailSent = @mail($email, $subject, trim($htmlMsg), $headers);
+          }
         }
 
         $message = "Admin account '{$username}' created with role '{$role}'." . ($emailSent ? " Email delivery dispatched." : ($email ? " Email delivery failed (check mail config)." : ""));

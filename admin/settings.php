@@ -611,11 +611,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $settings['auto_send']['enabled'] = isset($_POST['auto_send_enabled']) && $_POST['auto_send_enabled'] === '1';
       $settings['auto_send']['recipient'] = trim($_POST['auto_send_recipient'] ?? ($settings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? '')));
       $settings['auto_send']['format'] = trim($_POST['auto_send_format'] ?? $settings['auto_send']['format'] ?? 'csv');
-        $personalityMode = strtolower(trim((string)($_POST['sentinel_personality_mode'] ?? ($settings['sentinel_personality_mode'] ?? 'balanced'))));
-        if (!in_array($personalityMode, ['serious', 'balanced', 'playful'], true)) {
-          $personalityMode = 'balanced';
-        }
-        $settings['sentinel_personality_mode'] = $personalityMode;
+      $personalityMode = strtolower(trim((string)($_POST['sentinel_personality_mode'] ?? ($settings['sentinel_personality_mode'] ?? 'balanced'))));
+      if (!in_array($personalityMode, ['serious', 'balanced', 'playful'], true)) {
+        $personalityMode = 'balanced';
+      }
+      $settings['sentinel_personality_mode'] = $personalityMode;
 
       // save (respect encryption flag)
       save_settings($settingsFile, $keyFile, $settings, $settings['encrypted_settings'] ?? false);
