@@ -52,19 +52,19 @@ $needsReview = array_values(array_filter($rows, function ($r) {
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;">
     <?php foreach ($rows as $row): ?>
       <?php
-        $classification = (string)($row['classification'] ?? 'unknown');
-        $severityBg = '#eef6ff';
-        $severityLine = '#cfe1f5';
-        $severityText = '#1d4f80';
-        if ($classification === 'blocked_revoked_device' || $classification === 'duplicate_or_fraudulent_sequence') {
-          $severityBg = '#ffeef0';
-          $severityLine = '#f5c2c8';
-          $severityText = '#9f1d2c';
-        } elseif ($classification === 'network_ip_rotation' || $classification === 'new_or_suspicious_device') {
-          $severityBg = '#fff8e8';
-          $severityLine = '#f5dfad';
-          $severityText = '#8a5a00';
-        }
+      $classification = (string)($row['classification'] ?? 'unknown');
+      $severityBg = '#eef6ff';
+      $severityLine = '#cfe1f5';
+      $severityText = '#1d4f80';
+      if ($classification === 'blocked_revoked_device' || $classification === 'duplicate_or_fraudulent_sequence') {
+        $severityBg = '#ffeef0';
+        $severityLine = '#f5c2c8';
+        $severityText = '#9f1d2c';
+      } elseif ($classification === 'network_ip_rotation' || $classification === 'new_or_suspicious_device') {
+        $severityBg = '#fff8e8';
+        $severityLine = '#f5dfad';
+        $severityText = '#8a5a00';
+      }
       ?>
       <article style="padding:12px;border-radius:12px;background:<?= $severityBg ?>;border:1px solid <?= $severityLine ?>;color:<?= $severityText ?>;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">

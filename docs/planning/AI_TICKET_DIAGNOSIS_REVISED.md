@@ -1,7 +1,7 @@
 # AI Ticket Diagnosis + Auto-Operations Plan (REVISED)
 
-**Status:** Foundation Not Yet Started  
-**Last Updated:** 2026-04-09  
+**Status:** Foundation Not Yet Started
+**Last Updated:** 2026-04-09
 **Current Impl Phase:** 0 (Planning Complete → Ready for Phase 1)
 
 ---
@@ -9,6 +9,7 @@
 ## Actual Current Infrastructure
 
 ### ✅ Already Exists
+
 - **Public Ticket Submission:** `support.php` with fingerprint + IP capture
 - **Admin Ticket Processing:** `admin/view_tickets.php` with bulk resolve/checkin/out actions
 - **Ticket Storage:** `storage/admin/support_tickets.json` (array of ticket objects)
@@ -16,6 +17,7 @@
   ```
   name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
   ```
+
   - Field 0: name
   - Field 1: matric
   - Field 2: action (checkin/checkout)
@@ -33,6 +35,7 @@
 - **Audit Logging:** `admin_log_action()` function + `storage/admin/admin_audit.json`
 
 ### ❌ Does NOT Yet Exist
+
 - `src/AiServiceIdentity.php`
 - `src/AiTicketDiagnoser.php`
 - `src/AiCapabilityChecker.php`
@@ -55,6 +58,7 @@
 ## Ticket Diagnosis Engine (Detailed Spec)
 
 When a support ticket is submitted via `support.php`, it includes:
+
 ```json
 {
   "name": "Student Name",
@@ -70,6 +74,7 @@ When a support ticket is submitted via `support.php`, it includes:
 ### Diagnosis Rules (Logic Derived from view_tickets.php)
 
 **Step 1: Check Device Recognition**
+
 ```php
 // From view_tickets.php lines 317-328:
 $logLines = file($logFile, FILE_SKIP_EMPTY_LINES);
@@ -78,6 +83,7 @@ $ipMatch = checkLogMatch($logLines, $ticket['ip'], 4);           // field 4 = ip
 ```
 
 **Step 2: Check Revocation**
+
 ```php
 $revokedFile = 'storage/admin/revoked.json';
 $revoked = json_decode(file_get_contents($revokedFile), true);
@@ -86,6 +92,7 @@ $isRevoked = in_array($ticket['fingerprint'], $revoked['tokens'] ?? [])
 ```
 
 **Step 3: Message Pattern Analysis**
+
 ```php
 $keywords = ['cant', 'can\'t', 'cannot', 'fail', 'blocked', 'issue', 'error', 'won\'t'];
 $msgLower = strtolower($ticket['message']);
@@ -96,14 +103,15 @@ $isAttendanceFailure = $hasAttendanceKeyword && $hasFailureKeyword;
 
 ### Classification Matrix
 
-| fpMatch | ipMatch | isRevoked | Message Type | **Classification** | **Risk** | **Auto-Approvable?** | **Action** |
-|---------|---------|-----------|--------------|---|---|---|---|
-| TRUE | TRUE | FALSE | attendance fail | STALE_SESSION | LOW | ✅ **YES** | Auto-resolve, notify student attendance found in logs |
-| TRUE | FALSE | FALSE | attendance fail | IP_ROTATION | MEDIUM | ⚠ depends | If recent ticket from same matric, approve; else pending |
-| FALSE | FALSE | FALSE | any | NEW_BROWSER | MEDIUM | ❌ NO | Pending approval, send verification |
-| TRUE/FALSE | TRUE/FALSE | TRUE | any | BLOCKED | HIGH | ❌ **NO** | Reject, notify device revoked |
+| fpMatch    | ipMatch    | isRevoked | Message Type    | **Classification** | **Risk** | **Auto-Approvable?** | **Action**                                               |
+| ---------- | ---------- | --------- | --------------- | ------------------ | -------- | -------------------- | -------------------------------------------------------- |
+| TRUE       | TRUE       | FALSE     | attendance fail | STALE_SESSION      | LOW      | ✅ **YES**           | Auto-resolve, notify student attendance found in logs    |
+| TRUE       | FALSE      | FALSE     | attendance fail | IP_ROTATION        | MEDIUM   | ⚠ depends            | If recent ticket from same matric, approve; else pending |
+| FALSE      | FALSE      | FALSE     | any             | NEW_BROWSER        | MEDIUM   | ❌ NO                | Pending approval, send verification                      |
+| TRUE/FALSE | TRUE/FALSE | TRUE      | any             | BLOCKED            | HIGH     | ❌ **NO**            | Reject, notify device revoked                            |
 
 **Special Cases:**
+
 - **No Message Pattern Match** (e.g., "Hi", "Hello") → UNCLEAR, require approval regardless of fpMatch
 - **Duplicate Tickets** (same fingerprint within 30 min) → SPAM, rate-limit (max 3 auto-approvals per device per hour)
 - **Message Abuse** (offensive text, SQL injection patterns) → BLOCKED, reject automatically
@@ -130,6 +138,7 @@ All conditions must be TRUE to auto-approve:
 ### Public-Side (index.php / submit.php)
 
 When attendance submission fails due to unknown fingerprint:
+
 ```
 1. Detect: device.fingerprint NOT in today's logs
 2. Show error: "Having issues with attendance? Please contact support for help."
@@ -144,6 +153,7 @@ When attendance submission fails due to unknown fingerprint:
 **Endpoint:** `GET /ticket_status_api.php`
 
 **Params:**
+
 ```json
 {
   "fingerprint": "device_abc123xyz...",
@@ -152,30 +162,33 @@ When attendance submission fails due to unknown fingerprint:
 ```
 
 **Verification:**
+
 1. Load support_tickets.json
 2. Find ticket(s) with matching fingerprint
 3. Verify IP matches ticket's recorded IP
 4. Return ONLY that device's data
 
 **Response:**
+
 ```json
 {
   "status": 200,
   "found": true,
   "ticket": {
     "message": "Your device was not recognized. We're checking if it's an access issue.",
-    "status": "auto_approved",  // or "pending", "resolved", "rejected"
+    "status": "auto_approved", // or "pending", "resolved", "rejected"
     "guidance": "Our system found you've already marked attendance today. Please refresh your browser.",
     "can_retry": true,
     "timestamp": "2026-04-09 14:30:00"
   },
-  "announcement": null  // or targeted announcement obj
+  "announcement": null // or targeted announcement obj
 }
 ```
 
 ### Device-Targeted Announcements
 
 Extend `announcement.json` schema:
+
 ```json
 {
   "id": "auto_ai_20260409_001",
@@ -184,7 +197,7 @@ Extend `announcement.json` schema:
   "message": "Your device appears new to our system. Please verify your identity.",
   "enabled": true,
   "severity": "info",
-  "target_fingerprint": "device_abc123xyz...",  // null = broadcast; set = device-only
+  "target_fingerprint": "device_abc123xyz...", // null = broadcast; set = device-only
   "auto_generated_by": "system_ai_operator",
   "created_for_ticket": "2026-04-09 14:30:00"
 }
@@ -199,6 +212,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 ### Phase 1: Foundation (AI Service Identity + Diagnosis)
 
 **New Files to Create:**
+
 - `src/AiServiceIdentity.php` — AI account model
 - `src/AiTicketDiagnoser.php` — Diagnosis logic
 - `src/AiCapabilityChecker.php` — Permission checker
@@ -237,6 +251,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
      - `logs.export` (for auto-send integration)
 
 4. **Create `storage/admin/ai_accounts.json`**
+
    ```json
    {
      "system_ai_operator": {
@@ -256,6 +271,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
    ```
 
 5. **Create `storage/admin/ai_permissions.json`**
+
    ```json
    {
      "system_ai_operator": {
@@ -275,6 +291,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
    - Extend with: `ai_permissions_file()` → returns ai_permissions.json path
 
 **Testing (Acceptance Criteria):**
+
 - [ ] `AiServiceIdentity::load('system_ai_operator')` returns object with can_login=false
 - [ ] `ai_can('system_ai_operator', 'ticket.resolve_stale_session')` returns true
 - [ ] `ai_can('system_ai_operator', 'ticket.resolve_new_browser')` returns false
@@ -286,6 +303,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 ### Phase 2: Action Queue + Ticket Integration
 
 **New Files:**
+
 - `admin/includes/ticket_helpers.php` — Extracted logic from view_tickets.php
 - `src/AiActionRouter.php` — Maps diagnosis to action
 - `src/AiPolicyGuard.php` — Auto-approval gates
@@ -298,7 +316,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 
 1. **Extract `admin/includes/ticket_helpers.php`**
    - From `admin/view_tickets.php`, extract:
-     - `resolve_ticket_atomic($ticketsFile, $resolveTime)` →  refactor as `ticket_resolve($resolveTime)`
+     - `resolve_ticket_atomic($ticketsFile, $resolveTime)` → refactor as `ticket_resolve($resolveTime)`
      - `bulk_update_tickets_atomic(...)` → refactor as `ticket_add_attendance($name, $matric, $action, $reason, $course)`
    - Helper: `get_support_tickets($resolved=null)` → load from file
    - Helper: `ticket_get($timestamp)` → load single ticket
@@ -345,6 +363,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
    - Method: `result_append($result_obj)` → appends to ai_action_results.jsonl
 
 **Testing:**
+
 - [ ] `ticket_resolve()` updates support_tickets.json atomically
 - [ ] `ticket_add_attendance()` logs to storage/logs/YYYY-MM-DD.log
 - [ ] Router classifies test tickets correctly
@@ -357,6 +376,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 ### Phase 3: Ticket Processor + Public API
 
 **New Files:**
+
 - `admin/ai_ticket_processor.php` — Cron-able diagnosis runner
 - `ticket_status_api.php` — Public device status query endpoint
 
@@ -397,6 +417,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
    - Use existing ticket_helpers.php functions
 
 **Testing:**
+
 - [ ] Processor auto-approves 3 known-device test tickets
 - [ ] Processor queues 2 new-browser test tickets
 - [ ] ticket_status_api returns only matching fingerprint's data
@@ -407,6 +428,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 ### Phase 4: Admin UI + Targeted Announcements
 
 **New Files:**
+
 - `admin/ai_actions.php` — Admin approval/review page
 - Enhanced `admin/announcement.php` — Add target_fingerprint field
 
@@ -430,6 +452,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
    - Schema update: add `target_fingerprint` field to announcement.json
 
 **Testing:**
+
 - [ ] Superadmin can view pending AI actions
 - [ ] Can approve/reject with custom reason
 - [ ] Approved action executes on confirm
@@ -441,6 +464,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 ### Phase 5: Chat Reply Capability (Optional)
 
 **New Files:**
+
 - `src/AiChatResponder.php` — Chat analysis + reply generation
 
 **Detailed Tasks:**
@@ -451,6 +475,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
    - Marks replies with `auto_replied_by: 'system_ai_operator'`
 
 **Testing:**
+
 - [ ] Common issues get AI replies
 - [ ] Non-matching messages not auto-replied
 
@@ -459,6 +484,7 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 ### Phase 6: Hardening + Security
 
 **Enhanced:**
+
 - All AI endpoints with HMAC signature validation
 - Rate limiting (max 10 auto-approvals per device per day)
 - Replay nonce tracking
@@ -469,15 +495,17 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 ## Task Checklist (Execution Order)
 
 ### Phase 1
+
 - [ ] 1.1 Create `src/AiServiceIdentity.php`
 - [ ] 1.2 Create `src/AiTicketDiagnoser.php`
 - [ ] 1.3 Create `src/AiCapabilityChecker.php`
 - [ ] 1.4 Create `storage/admin/ai_accounts.json`
 - [ ] 1.5 Create `storage/admin/ai_permissions.json`
-- [ ] 1.6 Update `admin/state_helpers.php` with ai_*_file() helpers
+- [ ] 1.6 Update `admin/state_helpers.php` with ai\_\*\_file() helpers
 - [ ] 1.7 Test diagnosis on 5 sample tickets
 
 ### Phase 2
+
 - [ ] 2.1 Create `admin/includes/ticket_helpers.php` (extract from view_tickets.php)
 - [ ] 2.2 Create `src/AiActionRouter.php`
 - [ ] 2.3 Create `src/AiPolicyGuard.php`
@@ -488,21 +516,25 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 - [ ] 2.8 Test action routing and execution
 
 ### Phase 3
+
 - [ ] 3.1 Create `admin/ai_ticket_processor.php`
 - [ ] 3.2 Create `ticket_status_api.php`
 - [ ] 3.3 Test end-to-end: ticket → diagnosis → auto-approval → resolve
 
 ### Phase 4
+
 - [ ] 4.1 Create `admin/ai_actions.php`
 - [ ] 4.2 Enhance `admin/announcement.php` with target_fingerprint
 - [ ] 4.3 Update `get_announcement.php` to filter by fingerprint
 - [ ] 4.4 Test targeted announcements
 
 ### Phase 5 (Optional)
+
 - [ ] 5.1 Create `src/AiChatResponder.php`
 - [ ] 5.2 Integrate into chat flow
 
 ### Phase 6
+
 - [ ] 6.1 Add HMAC request signing
 - [ ] 6.2 Add rate limiting
 - [ ] 6.3 Full test suite
@@ -540,15 +572,17 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 ## Key Differences from Original Plan
 
 ✅ **Now Reflects Reality:**
+
 - Specific log field indices (fingerprint=3, ip=4)
 - Actual existing permission system in state_helpers.php
-- No ticket_helpers.php yet (must extract/create) 
+- No ticket_helpers.php yet (must extract/create)
 - No separate TicketRouter.php (use AiActionRouter instead)
 - Dual-write support already in place (hybrid_dual_write.php)
 - Audit system uses admin_log_action() function
 - Public API should NOT expose fingerprint mismatch (show generic "contact support")
 
 ✅ **Scope Clarifications:**
+
 - AI diagnosis runs on **unresolved tickets** (either on-demand or cron)
 - Auto-approval only for **STALE_SESSION** classification
 - IP_ROTATION requires **recency check** (same matric, ticket within 1 hour)
@@ -560,14 +594,15 @@ On public site announcement fetch: filter where `target_fingerprint` is null OR 
 ## Next Step: Phase 1 Implementation
 
 Ready to proceed? Confirm:
+
 1. Diagnosis rules (5 classifications) approved ✅
 2. Auto-approval conditions acceptable ✅
 3. Device-isolated messaging approach correct ✅
 
 Then start Phase 1 with:
+
 - AiServiceIdentity.php
 - AiTicketDiagnoser.php with 5 classification logic
 - AiCapabilityChecker.php
 - Initial ai_accounts.json + ai_permissions.json
 - Tests on sample tickets
-

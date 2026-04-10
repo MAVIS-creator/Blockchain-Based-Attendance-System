@@ -100,8 +100,10 @@ foreach ($aiDiagRows as $row) {
   }
 
   $cls = (string)($row['classification'] ?? '');
-  if (in_array($cls, ['network_ip_rotation', 'new_or_suspicious_device', 'duplicate_or_fraudulent_sequence', 'blocked_revoked_device'], true)
-    || empty($row['ticket_resolved'])) {
+  if (
+    in_array($cls, ['network_ip_rotation', 'new_or_suspicious_device', 'duplicate_or_fraudulent_sequence', 'blocked_revoked_device'], true)
+    || empty($row['ticket_resolved'])
+  ) {
     $aiPendingReviewCount++;
   }
 }

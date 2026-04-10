@@ -3,10 +3,11 @@
 ## Objective
 
 Build an **intelligent ticket analysis and auto-remediation system** that:
+
 1. Diagnoses why a student can't mark attendance based on fingerprint/IP analysis
 2. Auto-approves low-risk remediation ticket actions if conditions are met
 3. Sends targeted device-specific announcements (not broadcast)
-4. Tells students on public site: *"Having issues? Contact admin for support"*
+4. Tells students on public site: _"Having issues? Contact admin for support"_
 5. Optionally replies to chat messages for common issues (in the admin page i mean)
 6. All powered by a dedicated non-login **AI Service Account** with explicit, auditable permissions
 
@@ -23,18 +24,22 @@ Build an **intelligent ticket analysis and auto-remediation system** that:
 ## Current State Analysis (from view_tickets.php code)
 
 ### Existing Fingerprint/IP Matching Logic
+
 In `admin/view_tickets.php` lines 317-328:
+
 ```php
 $fpMatch = $fp ? checkLogMatch($logLines, $fp, 3) : false;  // field 3 in log
 $ipMatch = $ip ? checkLogMatch($logLines, $ip, 4) : false;  // field 4 in log
 ```
 
 **Standard log format:**
+
 ```
 name | matric | action | FINGERPRINT | IP | MAC | timestamp | userAgent | course | reason
 ```
 
 So:
+
 - Field 0: name
 - Field 1: matric
 - Field 2: action (checkin/checkout)
@@ -44,7 +49,9 @@ So:
 - ...
 
 ### Current Ticket Card Display
+
 Shows:
+
 - Student name + matric
 - Message (support issue description)
 - **Fingerprint match status** (green ✓ if found in today's logs, red × if not)
@@ -127,17 +134,21 @@ All of these must be TRUE to auto-approve a ticket remediation:
 ## Device-Isolated Announcement Channel
 
 ### Public-Side Behavior (on attendance submission failure)
+
 When student tries to submit attendance and system detects their device fingerprint is NOT in logs:
+
 - Show error message: **"Having issues with attendance? [Possible causes: Browser cache, Device change, Session expired. Contact admin for support.]"**
 - Show support ticket form to report it
 - Do NOT broadcast to all students
 
 ### Ticket Status API (new endpoint)
+
 **Path:** `ticket_status_api.php`
 
 **Purpose:** Allow a device to query its own ticket status without exposing other devices' tickets
 
 **Input:**
+
 ```json
 {
   "fingerprint": "abc123...",
@@ -147,16 +158,18 @@ When student tries to submit attendance and system detects their device fingerpr
 ```
 
 **Verification:**
+
 - Get ticket for this fingerprint
 - Verify IP matches that ticket's IP
 - Return ONLY that device's ticket + any targeted AI announcements for that device
 - Do NOT return other tickets
 
 **Output:**
+
 ```json
 {
   "ticket_found": true,
-  "status": "pending_ai_review",  // or "resolved", "auto_approved", "awaiting_approval"
+  "status": "pending_ai_review", // or "resolved", "auto_approved", "awaiting_approval"
   "message": "Your device was not recognized. We're checking if it's an access issue.",
   "guidance": "Please clear your browser cache and try again, or contact admin.",
   "estimated_time": "5-10 minutes"
@@ -170,9 +183,11 @@ When student tries to submit attendance and system detects their device fingerpr
 When AI diagnoses a device issue, it can send a **targeted announcement** bound to that device's fingerprint:
 
 **Storage:** `admin/announcement.json`
+
 - Add field: `target_fingerprint` (null = broadcast to all; or specific fingerprint = only that device)
 
 **Example:**
+
 ```json
 {
   "id": "auto_ai_12345",
@@ -186,6 +201,7 @@ When AI diagnoses a device issue, it can send a **targeted announcement** bound 
 ```
 
 **On public site:**
+
 - When user loads with fingerprint `device_abc123xyz`, fetch announcements
 - Show only announcements where `target_fingerprint` is null OR matches their fingerprint
 - Other announcements hidden from that device
@@ -195,6 +211,7 @@ When AI diagnoses a device issue, it can send a **targeted announcement** bound 
 ## Chat Message Reply Capability (Phase 6 - Optional)
 
 For common attendance issues, AI can optionally reply in `admin/chat.json`:
+
 - Pattern match: "I can't mark attendance", "attendance fails", etc.
 - Generate standard reply: "I understand. Have you tried clearing your browser cache? If that doesn't work, submit a support ticket and our team will help."
 - Mark as `auto_replied_by: "system_ai_operator"`
@@ -205,7 +222,9 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 ## Implementation Structure
 
 ### Phase 1: Foundation (AI Service Identity + Diagnosis Engine)
+
 **Files:**
+
 - `src/AiTicketDiagnoser.php` — diagnosis logic (fpMatch, ipMatch, revoked check, classification)
 - `src/AiServiceIdentity.php` — AI account model + non-login enforcement
 - `src/AiCapabilityChecker.php` — permission checker
@@ -213,6 +232,7 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 - `storage/admin/ai_permissions.json` — capability matrix
 
 **Tasks:**
+
 - [ ] Create AiServiceIdentity model (system_ai_operator, cannot login, explicit permissions)
 - [ ] Create AiTicketDiagnoser class with diagnosis rules A/B/C/D
 - [ ] Create AiCapabilityChecker with `ai_can($identity, $capability)` helper
@@ -220,6 +240,7 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 - [ ] Initialize JSON storage files with seed data
 
 **Acceptance:**
+
 - AI identity cannot authenticate via admin login
 - Can query its own capabilities
 - Diagnosis rules classify test tickets correctly
@@ -227,7 +248,9 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 ---
 
 ### Phase 2: Ticket Auto-Processing + Queue
+
 **Files:**
+
 - `src/AiActionRouter.php` — routes intent to action type
 - `src/AiPolicyGuard.php` — checks auto-approval conditions
 - `src/AiActionExecutor.php` — executes approved actions (resolve, add attendance, etc.)
@@ -235,6 +258,7 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 - `storage/admin/ai_action_results.jsonl` — outcomes
 
 **Tasks:**
+
 - [ ] Create AiActionRouter (maps ticket → diagnosis → action intent)
 - [ ] Create AiPolicyGuard with auto-approval gates
 - [ ] Create AiActionExecutor that calls existing ticket helpers
@@ -242,6 +266,7 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 - [ ] Integrate with `admin/view_tickets.php` ticket resolution logic
 
 **Acceptance:**
+
 - A known device ticket is auto-resolved if conditions met
 - A suspicious ticket is queued for approval, not auto-resolved
 - Every action creates audit log entry
@@ -250,12 +275,15 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 ---
 
 ### Phase 3: Public-Side Messaging + Ticket Status API
+
 **Files:**
+
 - `ticket_status_api.php` — new public endpoint for device status queries
 - Enhanced `index.php` (attendance form) — show guidance message on failure
 - Updated `admin/send_logs_email.php` — optional integration with auto-send
 
 **Tasks:**
+
 - [ ] Create ticket_status_api.php with fingerprint/IP verification
 - [ ] Implement device-isolated query logic
 - [ ] Add public-side "Contact admin for support" message to attendance form
@@ -263,6 +291,7 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 - [ ] Test isolation: verify device A cannot see device B's announcements
 
 **Acceptance:**
+
 - Student on new device sees "Contact admin" message, not "Access Denied"
 - ticket_status_api returns only that device's ticket
 - Announcements targeting specific fingerprints do not cross-leak
@@ -270,12 +299,15 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 ---
 
 ### Phase 4: Device-Isolated Announcements
+
 **Files:**
+
 - Enhanced `admin/announcement.php` — add `target_fingerprint` field to UI
 - Enhanced `admin/announcement.json` schema — support target field
 - Public HTML/JS that fetches announcements — filter by fingerprint
 
 **Tasks:**
+
 - [ ] Add `target_fingerprint` column to announcement storage
 - [ ] Update announcement create/edit UI to optionally target a device
 - [ ] Update public announcement fetch to filter by matching fingerprints
@@ -283,6 +315,7 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 - [ ] Test: verify only matching device sees the announcement
 
 **Acceptance:**
+
 - Superadmin can manually create device-targeted announcements
 - AI can create them automatically on ticket diagnosis
 - Public site only shows announcements meant for that device
@@ -290,17 +323,21 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 ---
 
 ### Phase 5: Chat Reply Capability (Optional)
+
 **Files:**
+
 - `src/AiChatResponder.php` — chat message analysis + reply generation
 - Enhanced `admin/chat.json` — support `auto_replied_by` field
 
 **Tasks:**
+
 - [ ] Create AiChatResponder with pattern matching for common attendance issues
 - [ ] Integrate into chat processing flow
 - [ ] Mark auto-replies as generated by `system_ai_operator`
 - [ ] Allow student to escalate to ticket if auto-reply doesn't solve it
 
 **Acceptance:**
+
 - Common pattern messages get AI replies
 - AI replies are marked as such
 - Audit logged
@@ -308,10 +345,13 @@ For common attendance issues, AI can optionally reply in `admin/chat.json`:
 ---
 
 ### Phase 6: Hardening + Security
+
 **Files:**
+
 - Enhanced logging and rate limiting throughout
 
 **Tasks:**
+
 - [ ] HMAC signing for internal AI action endpoints
 - [ ] Replay nonce tracking in queue
 - [ ] Rate limiting: max 10 auto-approvals per device per day

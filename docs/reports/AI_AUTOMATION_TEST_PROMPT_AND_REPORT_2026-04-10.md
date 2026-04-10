@@ -13,6 +13,7 @@ You are validating the FULL AI automation pipeline for a PHP attendance system (
 Run all checks and report pass/fail for each section.
 
 SECTION A — Public-side guidance / widget-like helper behavior
+
 1. Open `index.php` and verify helper guidance text is present and visible to students:
    - should instruct students to contact support if attendance fails
    - should include a direct link/button to `support.php`
@@ -23,6 +24,7 @@ SECTION A — Public-side guidance / widget-like helper behavior
 4. Confirm this behaves like a widget-style assistant cue (contextual help shown without needing admin page).
 
 SECTION B — Course-aware attendance enforcement
+
 1. Validate same-day same-action duplicate blocking is course-scoped:
    - duplicate for same course/action/day should fail
    - different course same day should pass
@@ -30,6 +32,7 @@ SECTION B — Course-aware attendance enforcement
    - cannot checkout for course X without checkin for course X
 
 SECTION C — Support ticket AI processing
+
 1. Create or use unresolved support tickets with diverse contexts:
    - known session issue
    - new/suspicious device (fingerprint mismatch)
@@ -42,22 +45,26 @@ SECTION C — Support ticket AI processing
    - ticket resolution state updates correctly
 
 SECTION D — Fingerprint-targeted responses
+
 1. Confirm `announcement_targets.json` contains targeted entries.
 2. Confirm targeted message is specific to fingerprint context (not generic clone text).
 3. Confirm `ticket_status_api.php` returns device-isolated data only.
 
 SECTION E — AI provider/fallback behavior
+
 1. Verify provider modes available: rules/groq/openrouter/gemini/auto.
 2. In `auto`, verify fallback chain: Groq -> OpenRouter -> Gemini -> Rules.
 3. Confirm diagnostics include provider/model/latency metadata.
 4. Confirm metrics file tracks success/failure and avg latency per provider.
 
 SECTION F — Admin chat AI assist
+
 1. Post attendance-related/admin-help message in chat (`@ai` or support keywords).
 2. Confirm AI auto-reply appears with useful operational guidance.
 3. Confirm reply metadata includes provider/model/latency.
 
 SECTION G — Admin configuration + dashboard health
+
 1. In admin settings, verify selector exists for `AI_AUTOMATION_PROVIDER` (rules/groq/openrouter/gemini/auto).
 2. Save each mode and confirm `.env` update.
 3. On dashboard, verify AI card shows:
@@ -66,19 +73,22 @@ SECTION G — Admin configuration + dashboard health
    - pending review count
 
 Output required:
+
 - Summary table (Section A-G) with PASS/FAIL
 - Successful attempts report (counts + examples)
 - Error attempts report (counts + root causes + suggested fixes)
 - Public-side UX findings (what student sees when issues happen)
 - Final go/no-go recommendation.
-"""
+  """
 
 ## 2) Actual Run Report (This Session)
 
 ### Run command
+
 - `php admin/ai_ticket_processor.php 5`
 
 ### Raw result
+
 - ok: true
 - processed: 1
 - classification: `new_or_suspicious_device`
@@ -89,12 +99,14 @@ Output required:
 ## 3) Successful Attempts Report
 
 ### Processor execution
+
 - Attempts: 1
 - Success: 1
 - Failed: 0
 - Success rate: 100%
 
 ### Successful example
+
 - Ticket timestamp: `2026-04-04 19:20:24`
 - Matric: `2023001932`
 - Fingerprint: `ccbf1cf9938d5e6be2c06a1dfa186491`
@@ -107,6 +119,7 @@ Output required:
 - Targeted announcement created: yes (`announcement_id=ai_20260410144151_b612a89b`)
 
 ### Metrics snapshot (`ai_provider_metrics.json`)
+
 - Provider: groq
 - Samples: 2
 - Success: 2
@@ -117,10 +130,12 @@ Output required:
 ## 4) Error Attempts Report
 
 ### Processor-level errors
+
 - Count: 0
 - Last run status: no processor errors
 
 ### Provider/API errors
+
 - Count: 0 recorded
 - Notes: no Groq failure recorded in metrics for this run
 

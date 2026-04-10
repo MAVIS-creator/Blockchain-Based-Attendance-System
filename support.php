@@ -713,9 +713,9 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     function fetchAnnouncement() {
       const fpField = document.getElementById('fingerprint');
       const fpForAnnouncement = fpField && fpField.value ? fpField.value : '';
-      const annUrl = fpForAnnouncement
-        ? `get_announcement.php?fingerprint=${encodeURIComponent(fpForAnnouncement)}`
-        : 'get_announcement.php';
+      const annUrl = fpForAnnouncement ?
+        `get_announcement.php?fingerprint=${encodeURIComponent(fpForAnnouncement)}` :
+        'get_announcement.php';
 
       fetch(annUrl, {
           cache: 'no-store'

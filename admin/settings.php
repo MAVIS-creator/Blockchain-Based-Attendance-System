@@ -1125,7 +1125,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $adminCount = count($acct);
     $status = admin_load_status_cached(10);
     $settingsAuditFile = admin_settings_audit_file();
-    if (function_exists('admin_log_action')) { admin_log_action('Settings', 'Settings Updated', 'System settings were modified by admin.'); };
+    if (function_exists('admin_log_action')) {
+      admin_log_action('Settings', 'Settings Updated', 'System settings were modified by admin.');
+    };
     $lastAudit = admin_recent_text_lines_cached('settings_audit_recent', $settingsAuditFile, 10, 10);
     $backups = admin_backup_files_cached('settings_*.json', 20);
     usort($backups, function ($a, $b) {

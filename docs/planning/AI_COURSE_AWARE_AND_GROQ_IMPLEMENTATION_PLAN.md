@@ -3,6 +3,7 @@
 ## Scope
 
 Implement Option 1 (course-aware attendance fencing) and extend AI automation with:
+
 - Admin page for AI suggestions/review signals
 - Groq provider integration with fast-response preference and rules fallback
 

@@ -945,9 +945,9 @@ request_timing_span('load_announcement', $span);
 
     function fetchAnnouncement() {
       const fpForAnnouncement = (fingerprintInput && fingerprintInput.value) ? fingerprintInput.value : '';
-      const annUrl = fpForAnnouncement
-        ? `get_announcement.php?fingerprint=${encodeURIComponent(fpForAnnouncement)}`
-        : 'get_announcement.php';
+      const annUrl = fpForAnnouncement ?
+        `get_announcement.php?fingerprint=${encodeURIComponent(fpForAnnouncement)}` :
+        'get_announcement.php';
 
       fetch(annUrl, {
           cache: 'no-store'

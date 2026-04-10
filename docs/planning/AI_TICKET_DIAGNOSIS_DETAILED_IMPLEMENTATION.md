@@ -1,7 +1,7 @@
 # AI Ticket Diagnosis + Auto-Operations Plan (DETAILED - ACTUAL CODE PATTERNS)
 
-**Status:** Foundation Not Yet Started  
-**Last Updated:** 2026-04-09 (After Full Codebase Scan)  
+**Status:** Foundation Not Yet Started
+**Last Updated:** 2026-04-09 (After Full Codebase Scan)
 **Current Implementation Phase:** 0 (Planning Complete → Ready for Phase 1)
 
 ---
@@ -93,6 +93,7 @@ file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
 ```
 
 **Check Pattern:**
+
 ```php
 $revokedFile = admin_storage_migrate_file('revoked.json');  // or storage/admin/revoked_tokens.json
 $revoked = json_decode(file_get_contents($revokedFile), true);
@@ -103,6 +104,7 @@ $isRevoked = in_array($ticket['fingerprint'], $revoked['tokens'] ?? [])
 ### E. Announcement Structure (actual storage/admin/announcement.json)
 
 **Current (Single Broadcast):**
+
 ```json
 {
   "message": "2023011748 Your Matric Number issue has been resolved,",
@@ -113,19 +115,21 @@ $isRevoked = in_array($ticket['fingerprint'], $revoked['tokens'] ?? [])
 ```
 
 **Proposed (with target_fingerprint):**
+
 ```json
 {
   "message": "Your device was not recognized. Please verify...",
   "enabled": true,
   "severity": "info",
   "updated_at": "2026-04-09T14:30:00+01:00",
-  "target_fingerprint": "device_abc123xyz...",  // NEW: null = broadcast, set = device-only
-  "auto_generated_by": "system_ai_operator",    // NEW: marks AI-created announcements
-  "created_for_ticket": "2026-04-09 14:30:00"   // NEW: links to original ticket
+  "target_fingerprint": "device_abc123xyz...", // NEW: null = broadcast, set = device-only
+  "auto_generated_by": "system_ai_operator", // NEW: marks AI-created announcements
+  "created_for_ticket": "2026-04-09 14:30:00" // NEW: links to original ticket
 }
 ```
 
 Or **as array** if multiple announcements:
+
 ```json
 [
   {
@@ -173,6 +177,7 @@ Or **as array** if multiple announcements:
 ### G. How Public Site Fetches Announcements (index.php lines 686-1010)
 
 **Backend:** `get_announcement.php` (lines 1-20)
+
 ```php
 <?php
 require_once __DIR__ . '/admin/runtime_storage.php';
@@ -200,33 +205,36 @@ echo json_encode($announcement);
 ```
 
 **Frontend:** Polls every 10 seconds
+
 ```javascript
 function fetchAnnouncement() {
-  fetch('get_announcement.php', {
-    method: 'GET'
+  fetch("get_announcement.php", {
+    method: "GET",
   })
-  .then(res => res.json())
-  .then(data => {
-    // Handle announcement update
-    // Update banner based on change detection
-  })
-  .catch(err => {
-    console.error("Announcement fetch error:", err);
-  });
+    .then((res) => res.json())
+    .then((data) => {
+      // Handle announcement update
+      // Update banner based on change detection
+    })
+    .catch((err) => {
+      console.error("Announcement fetch error:", err);
+    });
 }
 
 fetchAnnouncement();
-setInterval(fetchAnnouncement, 10000);  // Poll every 10 seconds
+setInterval(fetchAnnouncement, 10000); // Poll every 10 seconds
 ```
 
 ### H. Auto-Send-Logs Pattern (from admin/auto_send_logs.php)
 
 **CLI Arguments Accepted:**
+
 ```bash
 php admin/auto_send_logs.php [YYYY-MM-DD] [--force] [--dry-run] [--recipient=email] [--format=csv|pdf]
 ```
 
 **Parsing Logic (lines 9-23):**
+
 ```php
 $argList = isset($argv) && is_array($argv) ? array_slice($argv, 1) : [];
 $date = date('Y-m-d');
@@ -260,12 +268,13 @@ foreach ($argList as $arg) {
 ```
 
 **Settings Check (lines 30-34):**
+
 ```php
 $settings = load_settings_file($settingsFile, $keyFile) ?: [];
-if (empty($settings['auto_send']['enabled']) && !$forceRun) 
+if (empty($settings['auto_send']['enabled']) && !$forceRun)
   exit("Auto-send not enabled (use --force for test runs)\n");
 $recipient = $recipientOverride !== '' ? $recipientOverride : ($settings['auto_send']['recipient'] ?? '');
-if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) 
+if (!filter_var($recipient, FILTER_VALIDATE_EMAIL))
   exit("No valid recipient configured\n");
 ```
 
@@ -289,21 +298,21 @@ class AiTicketDiagnoser
     $fp = $ticket['fingerprint'] ?? '';
     $ip = $ticket['ip'] ?? '';
     $message = $ticket['message'] ?? '';
-    
+
     // Step 1: Check if device is known (in logs)
     $fpMatch = self::checkLogMatch($logLines, $fp, 3);
     $ipMatch = self::checkLogMatch($logLines, $ip, 4);
-    
+
     // Step 2: Check if device is revoked
     $isRevoked = self::checkRevoked($fp, $ip, $revokedData);
-    
+
     // Step 3: Analyze message
     $msgAnalysis = self::analyzeMessage($message);
-    
+
     // Step 4: Classify
     $classification = self::classify($fpMatch, $ipMatch, $isRevoked, $msgAnalysis);
     $confidence = self::confidenceScore($classification);
-    
+
     return [
       'classification' => $classification,
       'fpMatch' => $fpMatch,
@@ -314,7 +323,7 @@ class AiTicketDiagnoser
       'autoApprovable' => ($confidence >= 0.85) && ($classification === 'STALE_SESSION')
     ];
   }
-  
+
   private static function checkLogMatch($logLines, $needle, $index)
   {
     if (!$needle) return false;
@@ -326,20 +335,20 @@ class AiTicketDiagnoser
     }
     return false;
   }
-  
+
   private static function checkRevoked($fp, $ip, $revokedData)
   {
     return in_array($fp, $revokedData['tokens'] ?? [])
         || in_array($ip, $revokedData['ips'] ?? []);
   }
-  
+
   private static function analyzeMessage($message)
   {
     $lower = strtolower($message);
     $hasAttenda = preg_match('/(attend|mark|submit|check)/i', $message);
     $hasFailure = preg_match('/(cant|can\'t|cannot|fail|error|block|won\'t|issue)/i', $message);
     $hasKeyword = $hasAttenda && $hasFailure;
-    
+
     return [
       'text' => $message,
       'hasAttendanceKeyword' => (bool)$hasAttenda,
@@ -348,28 +357,28 @@ class AiTicketDiagnoser
       'keywordScore' => $hasKeyword ? 1.0 : 0.3
     ];
   }
-  
+
   private static function classify($fpMatch, $ipMatch, $isRevoked, $msgAnalysis)
   {
     if ($isRevoked) {
       return 'BLOCKED';
     }
-    
+
     if ($fpMatch && $ipMatch) {
       return 'STALE_SESSION';
     }
-    
+
     if ($fpMatch && !$ipMatch) {
       return 'IP_ROTATION';
     }
-    
+
     if (!$fpMatch && !$ipMatch) {
       return 'NEW_BROWSER';
     }
-    
+
     return 'UNCLEAR';
   }
-  
+
   private static function confidenceScore($classification)
   {
     return match($classification) {
@@ -396,9 +405,9 @@ class AiServiceIdentity
   public $created_at;
   public $capabilities = [];
   public $can_login = false;  // ALWAYS FALSE FOR AI
-  
+
   private static $loadedIdentities = [];
-  
+
   public function __construct($id, $name, $capabilities = [], $created_at = null)
   {
     $this->id = $id;
@@ -407,7 +416,7 @@ class AiServiceIdentity
     $this->created_at = $created_at ?: date('Y-m-d H:i:s');
     $this->can_login = false;  // ENFORCE: AI cannot login
   }
-  
+
   /**
    * Load AI identity from ai_accounts.json
    */
@@ -416,23 +425,23 @@ class AiServiceIdentity
     if (isset(self::$loadedIdentities[$id])) {
       return self::$loadedIdentities[$id];
     }
-    
+
     $file = admin_storage_migrate_file('ai_accounts.json');
     if (!file_exists($file)) {
       return null;
     }
-    
+
     $data = json_decode(file_get_contents($file), true);
     if (!isset($data[$id])) {
       return null;
     }
-    
+
     $rec = $data[$id];
     $identity = new self($id, $rec['name'] ?? $id, $rec['capabilities'] ?? []);
     self::$loadedIdentities[$id] = $identity;
     return $identity;
   }
-  
+
   /**
    * Enforce: AI identities cannot authenticate via login
    */
@@ -452,29 +461,29 @@ class AiServiceIdentity
 class AiCapabilityChecker
 {
   private static $permissionsCache = [];
-  
+
   /**
    * Check if AI identity has capability
    */
   public static function can($serviceId, $capability)
   {
     if (!$serviceId) return false;
-    
+
     $perms = self::loadPermissions($serviceId);
     return $perms[$capability] ?? false;
   }
-  
+
   private static function loadPermissions($serviceId)
   {
     if (isset(self::$permissionsCache[$serviceId])) {
       return self::$permissionsCache[$serviceId];
     }
-    
+
     $file = admin_storage_migrate_file('ai_permissions.json');
     if (!file_exists($file)) {
       return [];
     }
-    
+
     $data = json_decode(file_get_contents($file), true);
     $perms = $data[$serviceId] ?? [];
     self::$permissionsCache[$serviceId] = $perms;
@@ -496,6 +505,7 @@ if (!function_exists('ai_can')) {
 ### Phase 1D: Storage Files (Seed Data)
 
 **File:** `storage/admin/ai_accounts.json`
+
 ```json
 {
   "system_ai_operator": {
@@ -517,6 +527,7 @@ if (!function_exists('ai_can')) {
 ```
 
 **File:** `storage/admin/ai_permissions.json`
+
 ```json
 {
   "system_ai_operator": {
@@ -573,6 +584,7 @@ if (!function_exists('ai_action_results_file')) {
 ### Pattern: Device-Specific Announcement in JSON
 
 **Option A: Single broadcast + devices array**
+
 ```json
 {
   "broadcast": {
@@ -591,6 +603,7 @@ if (!function_exists('ai_action_results_file')) {
 ```
 
 **Option B (Simpler): Announcements array with target field**
+
 ```json
 [
   {
@@ -612,6 +625,7 @@ if (!function_exists('ai_action_results_file')) {
 ### How Public Site Filters by Device
 
 **Modified `get_announcement.php`:**
+
 ```php
 <?php
 require_once __DIR__ . '/admin/runtime_storage.php';
@@ -620,8 +634,8 @@ $fingerprint = trim($_GET['fingerprint'] ?? '');
 $announcementFile = admin_storage_migrate_file('announcement.json');
 
 // Load data
-$data = file_exists($announcementFile) 
-  ? json_decode(file_get_contents($announcementFile), true) 
+$data = file_exists($announcementFile)
+  ? json_decode(file_get_contents($announcementFile), true)
   : [];
 
 // If single object (broadcast), return it
@@ -667,11 +681,12 @@ echo json_encode($result);
 ```
 
 **Frontend receives fingerprint in form field, passes to api:**
+
 ```javascript
-const fingerprint = document.getElementById('fingerprint').value;
+const fingerprint = document.getElementById("fingerprint").value;
 fetch(`get_announcement.php?fingerprint=${encodeURIComponent(fingerprint)}`)
-  .then(res => res.json())
-  .then(data => {
+  .then((res) => res.json())
+  .then((data) => {
     // Update banner based on data
   });
 ```
@@ -705,7 +720,7 @@ class AiChatResponder
       'confidence' => 0.80
     ]
   ];
-  
+
   /**
    * Analyze user message and generate AI reply if pattern matched
    */
@@ -721,10 +736,10 @@ class AiChatResponder
         ];
       }
     }
-    
+
     return null;  // No pattern matched
   }
-  
+
   /**
    * Append AI reply to chat.json
    */
@@ -734,7 +749,7 @@ class AiChatResponder
     if (!$result || !$result['should_auto_reply']) {
       return null;
     }
-    
+
     $reply = [
       'user' => 'system_ai_operator',
       'name' => 'System AI Operator',
@@ -744,7 +759,7 @@ class AiChatResponder
       'pattern_matched' => $result['pattern_matched'],
       'confidence' => $result['confidence']
     ];
-    
+
     // Append atomically
     $fp = fopen($chatFile, 'c+');
     if (!$fp) return false;
@@ -752,24 +767,24 @@ class AiChatResponder
       fclose($fp);
       return false;
     }
-    
+
     rewind($fp);
     $raw = stream_get_contents($fp);
     $messages = json_decode($raw ?: '[]', true);
     if (!is_array($messages)) $messages = [];
-    
+
     $messages[] = $reply;
     if (count($messages) > 1000) {
       $messages = array_slice($messages, -1000);
     }
-    
+
     rewind($fp);
     ftruncate($fp, 0);
     fwrite($fp, json_encode($messages, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     fflush($fp);
     flock($fp, LOCK_UN);
     fclose($fp);
-    
+
     return $reply;
   }
 }
@@ -876,19 +891,23 @@ TOTAL MODIFIED: ~10 lines
 ## X. Integration Points for Later Phases
 
 **Phase 2** will wire these into:
+
 - `src/AiActionRouter.php` → uses diagnoser output
 - `src/AiPolicyGuard.php` → uses capability checker
 - `src/AiActionExecutor.php` → uses ticket_helpers
 
 **Phase 3** will create:
+
 - `admin/ai_ticket_processor.php` → runs diagnosis on unresolved tickets
 - `ticket_status_api.php` → device-isolated query
 
 **Phase 4** will extend:
+
 - `admin/announcement.php` → add target_fingerprint UI
 - `get_announcement.php` → filter by device fingerprint
 
 **Phase 5** will use:
+
 - `src/AiChatResponder.php` → auto-reply to chats
 
 ---
@@ -911,6 +930,7 @@ TOTAL MODIFIED: ~10 lines
 ## XII. Appendix: Code Snippets Ready to Use
 
 ### Template: Atomic File Write Pattern
+
 ```php
 $fp = fopen($file, 'c+');
 if (!$fp || !flock($fp, LOCK_EX)) {
@@ -933,14 +953,15 @@ return true;
 ```
 
 ### Template: Log Entry Append (Simple)
+
 ```php
 $line = "{$name} | {$matric} | {$action} | {$fp} | {$ip} | {$mac} | {$ts} | {$ua} | {$course} | {$reason}\n";
 file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
 ```
 
 ### Template: Field Extraction from Log
+
 ```php
 $fields = array_map('trim', explode('|', $line));
 // fields[0]=name, [1]=matric, [2]=action, [3]=fingerprint, [4]=ip, [5]=mac, [6]=ts, [7]=ua, [8]=course, [9]=reason
 ```
-
