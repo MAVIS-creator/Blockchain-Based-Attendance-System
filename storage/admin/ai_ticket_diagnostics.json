@@ -1,0 +1,30 @@
+[
+    {
+        "ticket_timestamp": "2026-04-04 19:20:24",
+        "name": "Akintunde",
+        "matric": "2023001932",
+        "fingerprint": "ccbf1cf9938d5e6be2c06a1dfa186491",
+        "ip": "::1",
+        "course": "General",
+        "requested_action": "",
+        "issue_type": "general_system_complaint",
+        "classification": "new_or_suspicious_device",
+        "decision_reason": "No fingerprint or IP match in daily logs.",
+        "confidence": 0.68,
+        "fpMatch": false,
+        "ipMatch": false,
+        "revoked": false,
+        "suggested_admin_action": "Ticket ID: 2023001932 \nCourse: General \nClassification: New or Suspicious Device \nConfidence: 0.68 \nFP Match: False \nIP Match: False \nRevoked: False \nCheck-in Count: 0 \nCheck-out Count: 0 \n\nAction: Flag the device as suspicious for further investigation.",
+        "attendance_added": false,
+        "ticket_resolved": true,
+        "announcement_sent": true,
+        "announcement_id": "ai_20260410144151_b612a89b",
+        "ai_provider": "groq",
+        "ai_model": "llama-3.1-8b-instant",
+        "ai_latency_ms": 4639,
+        "fingerprint_ai_provider": "groq",
+        "fingerprint_ai_model": "llama-3.1-8b-instant",
+        "fingerprint_ai_latency_ms": 1100,
+        "processed_at": "2026-04-10T14:41:51+02:00"
+    }
+]

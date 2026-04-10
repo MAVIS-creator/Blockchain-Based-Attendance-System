@@ -645,11 +645,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'SUPABASE_SERVICE_ROLE_KEY' => trim($_POST['env_supabase_service_role_key'] ?? ($ENV_BASE['SUPABASE_SERVICE_ROLE_KEY'] ?? '')),
         'HYBRID_MODE' => $hybridMode,
         'HYBRID_ADMIN_READ' => $hybridAdminRead,
+        'AI_AUTOMATION_PROVIDER' => trim($_POST['env_ai_automation_provider'] ?? ($ENV_BASE['AI_AUTOMATION_PROVIDER'] ?? 'auto')),
         'STORAGE_PATH' => trim($_POST['env_storage_path'] ?? ($ENV_BASE['STORAGE_PATH'] ?? '')),
         'POLYGON_PRIVATE_KEY' => trim($_POST['env_polygon_private_key'] ?? ($ENV_BASE['POLYGON_PRIVATE_KEY'] ?? '')),
         'SMTP_USER' => trim($_POST['env_smtp_user'] ?? ($ENV_BASE['SMTP_USER'] ?? '')),
         'SMTP_PASS' => trim($_POST['env_smtp_pass'] ?? ($ENV_BASE['SMTP_PASS'] ?? '')),
       ];
+
+      $updates['AI_AUTOMATION_PROVIDER'] = strtolower($updates['AI_AUTOMATION_PROVIDER']);
+      if (!in_array($updates['AI_AUTOMATION_PROVIDER'], ['rules', 'groq', 'openrouter', 'gemini', 'auto'], true)) {
+        $updates['AI_AUTOMATION_PROVIDER'] = 'auto';
+      }
 
       if ($updates['SUPABASE_URL'] !== '' && !preg_match('#^https?://#i', $updates['SUPABASE_URL'])) {
         $errors[] = 'SUPABASE_URL must start with http:// or https://';
@@ -990,6 +996,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span class="text-sm font-medium">HYBRID_ADMIN_READ</span>
               </label>
             </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">AI_AUTOMATION_PROVIDER</label>
+            <?php $selectedAiProvider = strtolower((string)resolve_env_value_for_ui('AI_AUTOMATION_PROVIDER', $ENV, $ENV_BASE, 'auto')); ?>
+            <select class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" name="env_ai_automation_provider">
+              <option value="auto" <?= $selectedAiProvider === 'auto' ? 'selected' : '' ?>>auto (Groq → OpenRouter → Gemini → Rules)</option>
+              <option value="groq" <?= $selectedAiProvider === 'groq' ? 'selected' : '' ?>>groq</option>
+              <option value="openrouter" <?= $selectedAiProvider === 'openrouter' ? 'selected' : '' ?>>openrouter</option>
+              <option value="gemini" <?= $selectedAiProvider === 'gemini' ? 'selected' : '' ?>>gemini</option>
+              <option value="rules" <?= $selectedAiProvider === 'rules' ? 'selected' : '' ?>>rules</option>
+            </select>
+            <p class="text-xs text-on-surface-variant mt-2">Switch AI automation provider directly from UI. Changes are written to <code>.env</code>.</p>
           </div>
 
           <div>

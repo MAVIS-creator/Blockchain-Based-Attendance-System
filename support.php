@@ -49,6 +49,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   $matric = trim($_POST['matric'] ?? '');
   $message = trim($_POST['message'] ?? '');
   $fingerprint = trim($_POST['fingerprint'] ?? '');
+  $course = trim((string)($_POST['course'] ?? 'General'));
+  $course = $course !== '' ? $course : 'General';
+  $requestedAction = strtolower(trim((string)($_POST['requested_action'] ?? '')));
+  if (!in_array($requestedAction, ['checkin', 'checkout'], true)) {
+    $requestedAction = '';
+  }
   $ip = $_SERVER['REMOTE_ADDR'];
 
   if ($name && $matric && $message) {
@@ -58,6 +64,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
       'matric' => $matric,
       'message' => $message,
       'fingerprint' => $fingerprint,
+      'course' => $course,
+      'requested_action' => $requestedAction,
       'ip' => $ip,
       'timestamp' => $createdAt,
       'resolved' => false
@@ -71,6 +79,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         'matric' => $matric,
         'message' => $message,
         'fingerprint' => $fingerprint,
+        'course' => $course,
+        'requested_action' => $requestedAction,
         'ip' => $ip,
         'created_at_local' => $createdAt,
         'resolved' => false
@@ -500,6 +510,12 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
     <h2><i class='bx bx-ticket'></i> Submit Support Ticket</h2>
 
+    <div style="padding:10px 12px;border:1px solid var(--info-line);border-radius:10px;background:var(--info-bg);color:var(--info-text);font-size:0.84rem;line-height:1.45;margin:0 0 14px 0;">
+      <strong style="display:block;margin-bottom:4px;">Quick help tips</strong>
+      Include your <em>course</em> and failed action (<em>checkin</em> or <em>checkout</em>) for faster AI-assisted review.
+      Responses are device-targeted, so updates show on the same fingerprinted phone/browser session where the issue happened.
+    </div>
+
     <?php if ($success): ?>
       <div class="success-message">
         ✅ Your ticket has been submitted successfully!
@@ -522,6 +538,18 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       <div class="input-group">
         <label for="matric"><i class='bx bx-id-card'></i> Matric Number</label>
         <input type="text" id="matric" name="matric" placeholder="e.g., 2023000000" required />
+      </div>
+      <div class="input-group">
+        <label for="course"><i class='bx bx-book-open'></i> Course (optional)</label>
+        <input type="text" id="course" name="course" placeholder="e.g., CSC401" />
+      </div>
+      <div class="input-group">
+        <label for="requested_action"><i class='bx bx-transfer-alt'></i> Failed Action (optional)</label>
+        <select id="requested_action" name="requested_action">
+          <option value="">Not sure</option>
+          <option value="checkin">Check-in failed</option>
+          <option value="checkout">Check-out failed</option>
+        </select>
       </div>
       <div class="input-group">
         <label for="message"><i class='bx bx-message'></i> Message</label>
@@ -683,7 +711,13 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     }
 
     function fetchAnnouncement() {
-      fetch('get_announcement.php', {
+      const fpField = document.getElementById('fingerprint');
+      const fpForAnnouncement = fpField && fpField.value ? fpField.value : '';
+      const annUrl = fpForAnnouncement
+        ? `get_announcement.php?fingerprint=${encodeURIComponent(fpForAnnouncement)}`
+        : 'get_announcement.php';
+
+      fetch(annUrl, {
           cache: 'no-store'
         })
         .then(res => res.json())

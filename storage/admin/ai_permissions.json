@@ -1,0 +1,11 @@
+{
+  "system_ai_operator": {
+    "ticket.read": true,
+    "ticket.diagnose": true,
+    "ticket.resolve": true,
+    "ticket.add_attendance": true,
+    "announcement.write_targeted": true,
+    "logs.export": true,
+    "chat.admin_assist": true
+  }
+}

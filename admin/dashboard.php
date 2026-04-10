@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/hybrid_admin_read.php';
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/cache_helpers.php';
+require_once __DIR__ . '/../env_helpers.php';
 require_once __DIR__ . '/../request_timing.php';
 app_storage_init();
 request_timing_start('admin/dashboard.php');
@@ -42,6 +43,95 @@ $activeCourse = admin_active_course_name_cached(15);
 $todayStr = $today->format('Y-m-d');
 $todayCount = $dailyCounts[$todayStr] ?? 0;
 $todayFailed = $failedCounts[$todayStr] ?? 0;
+
+$aiDiagFile = function_exists('ai_ticket_diagnostics_file')
+  ? ai_ticket_diagnostics_file()
+  : admin_storage_migrate_file('ai_ticket_diagnostics.json');
+$aiDiagRows = file_exists($aiDiagFile)
+  ? admin_cached_json_file('dashboard_ai_diagnostics', $aiDiagFile, [], 10)
+  : [];
+if (!is_array($aiDiagRows)) {
+  $aiDiagRows = [];
+}
+$aiDiagRows = array_slice($aiDiagRows, 0, 400);
+
+$configuredProvider = strtolower((string)app_env_value('AI_AUTOMATION_PROVIDER', 'rules'));
+if (!in_array($configuredProvider, ['rules', 'groq', 'openrouter', 'gemini', 'auto'], true)) {
+  $configuredProvider = 'rules';
+}
+
+$aiProviderActive = $configuredProvider;
+$aiLatencySamples = [];
+$aiPendingReviewCount = 0;
+
+if (!empty($aiDiagRows)) {
+  $aiProviderActive = (string)($aiDiagRows[0]['ai_provider'] ?? 'rules');
+}
+
+$metricsFile = app_storage_file('admin/ai_provider_metrics.json');
+$metricsRows = file_exists($metricsFile)
+  ? admin_cached_json_file('dashboard_ai_provider_metrics', $metricsFile, [], 10)
+  : [];
+if (!is_array($metricsRows)) {
+  $metricsRows = [];
+}
+
+if (empty($aiDiagRows) && !empty($metricsRows)) {
+  $latestProvider = '';
+  $latestTs = 0;
+  foreach ($metricsRows as $providerName => $metric) {
+    if (!is_array($metric)) continue;
+    $ts = strtotime((string)($metric['updated_at'] ?? '')) ?: 0;
+    if ($ts > $latestTs) {
+      $latestTs = $ts;
+      $latestProvider = (string)$providerName;
+    }
+  }
+  if ($latestProvider !== '') {
+    $aiProviderActive = $latestProvider;
+  }
+}
+
+foreach ($aiDiagRows as $row) {
+  if (!is_array($row)) continue;
+  $lat = (int)($row['ai_latency_ms'] ?? 0);
+  if ($lat > 0) {
+    $aiLatencySamples[] = $lat;
+  }
+
+  $cls = (string)($row['classification'] ?? '');
+  if (in_array($cls, ['network_ip_rotation', 'new_or_suspicious_device', 'duplicate_or_fraudulent_sequence', 'blocked_revoked_device'], true)
+    || empty($row['ticket_resolved'])) {
+    $aiPendingReviewCount++;
+  }
+}
+
+$aiAvgLatencyMs = !empty($aiLatencySamples)
+  ? (int)round(array_sum($aiLatencySamples) / count($aiLatencySamples))
+  : 0;
+
+if ($aiAvgLatencyMs === 0 && !empty($metricsRows)) {
+  $sum = 0.0;
+  $count = 0;
+  foreach ($metricsRows as $metric) {
+    if (!is_array($metric)) continue;
+    $avg = (float)($metric['avg_ms'] ?? 0);
+    if ($avg > 0) {
+      $sum += $avg;
+      $count++;
+    }
+  }
+  if ($count > 0) {
+    $aiAvgLatencyMs = (int)round($sum / $count);
+  }
+}
+
+$aiProviderBadgeText = htmlspecialchars($aiProviderActive);
+if (empty($aiDiagRows) && !empty($metricsRows)) {
+  $aiProviderBadgeText = htmlspecialchars($aiProviderActive) . ' (last-run)';
+} elseif (empty($aiDiagRows) && empty($metricsRows)) {
+  $aiProviderBadgeText = htmlspecialchars($configuredProvider) . ' (configured)';
+}
 ?>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -149,6 +239,18 @@ $todayFailed = $failedCounts[$todayStr] ?? 0;
       <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= str_pad($newSupportCount, 2, '0', STR_PAD_LEFT) ?></p>
     </div>
     <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">confirmation_number</span>
+  </div>
+
+  <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+    <div>
+      <p class="st-label" style="margin-bottom:6px;">AI Automation Health</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        <span class="st-stat-badge info">Provider: <?= $aiProviderBadgeText ?></span>
+        <span class="st-stat-badge success">Avg: <?= (int)$aiAvgLatencyMs ?>ms</span>
+        <span class="st-stat-badge <?= $aiPendingReviewCount > 0 ? 'danger' : 'success' ?>">Pending: <?= (int)$aiPendingReviewCount ?></span>
+      </div>
+    </div>
+    <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">smart_toy</span>
   </div>
 </div>
 

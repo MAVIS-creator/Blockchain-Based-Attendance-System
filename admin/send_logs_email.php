@@ -408,11 +408,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])) {
   </div>
 </div>
 <?php if ($error || $success): ?>
-<script>
-  window.adminAlert(
-    <?= json_encode($success ? 'Success' : 'Action failed') ?>,
-    <?= json_encode($success ?: $error) ?>,
-    <?= json_encode($success ? 'success' : 'error') ?>
-  );
-</script>
+  <script>
+    window.adminAlert(
+      <?= json_encode($success ? 'Success' : 'Action failed') ?>,
+      <?= json_encode($success ?: $error) ?>,
+      <?= json_encode($success ? 'success' : 'error') ?>
+    );
+  </script>
 <?php endif; ?>

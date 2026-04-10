@@ -30,6 +30,8 @@ $matric = post_string('matric');
 $fingerprint = post_string('fingerprint');
 $action = strtolower(post_string('action'));
 $course = post_string('course', 'General');
+$course = $course !== '' ? $course : 'General';
+$courseNormalized = strtolower(trim($course));
 
 if ($name === '' || $matric === '' || $fingerprint === '' || $action === '') {
     header('Content-Type: application/json');
@@ -481,12 +483,14 @@ if (!$loadTestRelaxActive) {
         if (count($fields) === 7) {
             list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logTimestamp, $logUserAgent) = $fields;
             $logMac = 'UNKNOWN';
+            $logCourse = 'general';
         } else {
             list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
+            $logCourse = isset($fields[8]) ? strtolower(trim((string)$fields[8])) : 'general';
         }
-        if ($logMatric === $matric && $logAction === $action) {
+        if ($logMatric === $matric && $logAction === $action && $logCourse === $courseNormalized) {
             header('Content-Type: application/json');
-            echo json_encode(['ok' => false, 'message' => "This Matric Number has already submitted $action today."]);
+            echo json_encode(['ok' => false, 'message' => "This Matric Number has already submitted $action for {$course} today."]);
             exit;
         }
 
@@ -503,9 +507,9 @@ if (!$loadTestRelaxActive) {
             $sameDevice = ($mac !== 'UNKNOWN') ? $sameMac : $sameIp;
         }
 
-        if ($sameDevice) {
+        if ($sameDevice && $logCourse === $courseNormalized) {
             header('Content-Type: application/json');
-            echo json_encode(['ok' => false, 'message' => "This device has already submitted $action today."]);
+            echo json_encode(['ok' => false, 'message' => "This device has already submitted $action for {$course} today."]);
             exit;
         }
     }
@@ -519,7 +523,9 @@ if ($action === "checkout") {
         $fields = array_map('trim', explode('|', $line));
         if (count($fields) < 4) continue;
 
-        if ($fields[1] === $matric && $fields[2] === "checkin") {
+        $lineCourse = isset($fields[8]) ? strtolower(trim((string)$fields[8])) : 'general';
+
+        if ($fields[1] === $matric && $fields[2] === "checkin" && $lineCourse === $courseNormalized) {
             $hasCheckedIn = true;
             break;
         }
@@ -530,7 +536,7 @@ if ($action === "checkout") {
         $failedLogEntry = "$name | $matric | failed | $fingerprint | $ip | $mac | $today " . date("H:i:s") . " | $userAgent | $course | NO_CHECKIN\n";
         file_put_contents($failedLog, $failedLogEntry, FILE_APPEND | LOCK_EX);
         header('Content-Type: application/json');
-        echo json_encode(['ok' => false, 'message' => 'You cannot check out without checking in first.']);
+        echo json_encode(['ok' => false, 'message' => "You cannot check out for {$course} without checking in first."]);
         exit;
     }
 }

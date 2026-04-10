@@ -119,6 +119,12 @@ function can_view_sidebar($pageId, $isSuperAdmin, $allowedPages) {
         </a></li>
       <?php endif; ?>
 
+      <?php if (can_view_sidebar('ai_suggestions', $isSuperAdmin, $allowedPages)): ?>
+      <li><a href="index.php?page=ai_suggestions" class="<?= $page == 'ai_suggestions' ? 'active' : '' ?>">
+          <span class="material-symbols-outlined">smart_toy</span><span class="label-text">AI Suggestions</span>
+        </a></li>
+      <?php endif; ?>
+
       <?php if ($isSuperAdmin): ?>
         <li style="margin-top: 16px; margin-bottom: 8px;"><div style="padding-left: 20px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--outline);">Superadmin Tools</div></li>
         

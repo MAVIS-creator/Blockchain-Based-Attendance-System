@@ -527,7 +527,7 @@ request_timing_span('load_announcement', $span);
 
       <button id="submitBtn" class="btn btn-primary" type="submit" disabled>Submit Attendance</button>
       <p class="support-row">
-        Need help?
+        Need help? If attendance fails, open Support with your course + failed action. AI sends device-specific updates to your fingerprinted session.
         <a href="support.php" class="btn btn-accent"><i class='bx bx-message'></i> Support</a>
       </p>
     </form>
@@ -944,7 +944,12 @@ request_timing_span('load_announcement', $span);
     }
 
     function fetchAnnouncement() {
-      fetch('get_announcement.php', {
+      const fpForAnnouncement = (fingerprintInput && fingerprintInput.value) ? fingerprintInput.value : '';
+      const annUrl = fpForAnnouncement
+        ? `get_announcement.php?fingerprint=${encodeURIComponent(fpForAnnouncement)}`
+        : 'get_announcement.php';
+
+      fetch(annUrl, {
           cache: 'no-store'
         })
         .then(res => res.json())

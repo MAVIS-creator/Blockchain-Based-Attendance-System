@@ -1,0 +1,10 @@
+{
+    "groq": {
+        "avg_ms": 2869.5,
+        "samples": 2,
+        "success": 2,
+        "failure": 0,
+        "last_ms": 1100,
+        "updated_at": "2026-04-10T14:41:51+02:00"
+    }
+}

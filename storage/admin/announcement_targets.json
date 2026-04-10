@@ -1,0 +1,15 @@
+[
+    {
+        "id": "ai_20260410144151_b612a89b",
+        "enabled": true,
+        "severity": "warning",
+        "message": "Hi there, it looks like we're having some issues with our system's cache. This might be affecting how you access certain features. To help resolve this, our IT team would like you to enable APCu in your PHP runtime. This should improve how our system handles requests and make things run more smoothly for you.",
+        "target_fingerprint": "ccbf1cf9938d5e6be2c06a1dfa186491",
+        "auto_generated_by": "system_ai_operator",
+        "updated_at": "2026-04-10T14:41:51+02:00",
+        "created_for_ticket": "2026-04-04 19:20:24",
+        "matric": "2023001932",
+        "classification": "new_or_suspicious_device",
+        "confidence": 0.68
+    }
+]

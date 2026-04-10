@@ -72,6 +72,41 @@ if (!function_exists('admin_audit_file')) {
   }
 }
 
+if (!function_exists('ai_accounts_file')) {
+  function ai_accounts_file()
+  {
+    return admin_storage_migrate_file('ai_accounts.json');
+  }
+}
+
+if (!function_exists('ai_permissions_file')) {
+  function ai_permissions_file()
+  {
+    return admin_storage_migrate_file('ai_permissions.json');
+  }
+}
+
+if (!function_exists('ai_targeted_announcements_file')) {
+  function ai_targeted_announcements_file()
+  {
+    return admin_storage_migrate_file('announcement_targets.json');
+  }
+}
+
+if (!function_exists('ai_ticket_diagnostics_file')) {
+  function ai_ticket_diagnostics_file()
+  {
+    return admin_storage_migrate_file('ai_ticket_diagnostics.json');
+  }
+}
+
+if (!function_exists('ai_auto_send_tracker_file')) {
+  function ai_auto_send_tracker_file()
+  {
+    return admin_storage_migrate_file('ai_auto_send_tracker.json');
+  }
+}
+
 if (!function_exists('admin_route_catalog')) {
   function admin_route_catalog()
   {
@@ -95,6 +130,7 @@ if (!function_exists('admin_route_catalog')) {
       'manual_attendance' => ['file' => 'manual_attendance.php', 'label' => 'Manual Attendance Tool', 'superadmin_only' => false],
       'geofence' => ['file' => 'geofence.php', 'label' => 'Geo-fence', 'superadmin_only' => true],
       'support_tickets' => ['file' => 'view_tickets.php', 'label' => 'Support Tickets', 'superadmin_only' => false],
+      'ai_suggestions' => ['file' => 'ai_suggestions.php', 'label' => 'AI Suggestions', 'superadmin_only' => false],
       'unlink_fingerprint' => ['file' => 'unlink_fingerprint.php', 'label' => 'Unlink Fingerprints', 'superadmin_only' => false],
       'announcement' => ['file' => 'announcement.php', 'label' => 'Broadcast Announcements', 'superadmin_only' => false],
       'patcher' => ['file' => 'patcher.php', 'label' => 'Patcher Studio', 'superadmin_only' => false],
@@ -205,6 +241,7 @@ if (!function_exists('admin_load_permissions_cached')) {
       'request_timings',
       'logs',
       'support_tickets',
+      'ai_suggestions',
       'announcement',
       'profile_settings',
       'manual_attendance'
@@ -231,6 +268,8 @@ if (!function_exists('admin_load_permissions_cached')) {
 
     if (!isset($normalized['admin'])) {
       $normalized['admin'] = $defaultAllowed;
+    } else {
+      $normalized['admin'] = array_values(array_unique(array_merge($defaultAllowed, $normalized['admin'])));
     }
 
     return $normalized;

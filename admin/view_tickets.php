@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/hybrid_admin_read.php';
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/cache_helpers.php';
+require_once __DIR__ . '/state_helpers.php';
 app_storage_init();
 $pageCsrfToken = csrf_token();
 $flashMessage = $_SESSION['admin_flash'] ?? null;
@@ -29,6 +30,16 @@ if (is_array($hybridTickets)) {
 $today = date('Y-m-d');
 $logFile = app_storage_file("logs/{$today}.log");
 $logLines = admin_cached_file_lines('support_ticket_today_log', $logFile, 15);
+$aiDiagnosticsFile = function_exists('ai_ticket_diagnostics_file')
+  ? ai_ticket_diagnostics_file()
+  : admin_storage_migrate_file('ai_ticket_diagnostics.json');
+$aiDiagnostics = file_exists($aiDiagnosticsFile)
+  ? admin_cached_json_file('ai_ticket_diagnostics', $aiDiagnosticsFile, [], 15)
+  : [];
+if (!is_array($aiDiagnostics)) {
+  $aiDiagnostics = [];
+}
+$recentAiDiagnostics = array_slice($aiDiagnostics, 0, 8);
 
 function checkLogMatch($logLines, $needle, $index)
 {
@@ -257,8 +268,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
   <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">
     <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">confirmation_number</span>Support Tickets
   </h2>
-  <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Review and resolve student support requests. Source: <strong><?= htmlspecialchars($ticketsSource) ?></strong></p>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:4px;">
+    <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:0;">Review and resolve student support requests. Source: <strong><?= htmlspecialchars($ticketsSource) ?></strong></p>
+    <a href="index.php?page=ai_suggestions" class="st-btn st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+      <span class="material-symbols-outlined" style="font-size:1rem;">smart_toy</span>
+      View AI Suggestions
+    </a>
+  </div>
 </div>
+
+<?php if (!empty($recentAiDiagnostics)): ?>
+  <div style="margin:0 0 16px 0;padding:14px;background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <strong style="font-size:0.95rem;color:var(--on-surface);display:inline-flex;align-items:center;gap:6px;">
+        <span class="material-symbols-outlined" style="font-size:1.05rem;">smart_toy</span>
+        AI Diagnostics (Recent)
+      </strong>
+      <span style="font-size:0.78rem;color:var(--on-surface-variant);">Last <?= (int)count($recentAiDiagnostics) ?> processed ticket(s)</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;">
+      <?php foreach ($recentAiDiagnostics as $diag): ?>
+        <?php
+        $diagClass = (string)($diag['classification'] ?? 'unknown');
+        $diagConf = isset($diag['confidence']) ? (float)$diag['confidence'] : 0.0;
+        $diagSeverityBg = '#eef6ff';
+        $diagSeverityLine = '#cfe1f5';
+        $diagSeverityText = '#1d4f80';
+        if ($diagClass === 'blocked_revoked_device' || $diagClass === 'duplicate_or_fraudulent_sequence') {
+          $diagSeverityBg = '#ffeef0';
+          $diagSeverityLine = '#f5c2c8';
+          $diagSeverityText = '#9f1d2c';
+        } elseif ($diagClass === 'network_ip_rotation' || $diagClass === 'new_or_suspicious_device') {
+          $diagSeverityBg = '#fff8e8';
+          $diagSeverityLine = '#f5dfad';
+          $diagSeverityText = '#8a5a00';
+        }
+        ?>
+        <div style="padding:10px;border-radius:10px;background:<?= $diagSeverityBg ?>;border:1px solid <?= $diagSeverityLine ?>;color:<?= $diagSeverityText ?>;">
+          <div style="font-size:0.82rem;font-weight:700;margin-bottom:4px;word-break:break-word;"><?= htmlspecialchars($diagClass) ?></div>
+          <div style="font-size:0.78rem;opacity:0.9;margin-bottom:4px;">Confidence: <?= htmlspecialchars(number_format($diagConf, 2)) ?></div>
+          <div style="font-size:0.78rem;opacity:0.9;margin-bottom:4px;word-break:break-word;">Matric: <?= htmlspecialchars((string)($diag['matric'] ?? '-')) ?></div>
+          <div style="font-size:0.76rem;opacity:0.85;line-height:1.4;word-break:break-word;"><?= htmlspecialchars((string)($diag['suggested_admin_action'] ?? 'Review diagnostics.')) ?></div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+<?php endif; ?>
 
 <form id="bulkTicketForm" method="post" style="margin:0 0 16px 0;">
   <?php csrf_field(); ?>
