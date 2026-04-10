@@ -3,24 +3,183 @@
         "user": "Mavis",
         "name": "Mavis",
         "time": "2025-10-24T03:21:29+02:00",
-        "message": "Hey"
+        "message": "Hey",
+        "id": "msg_cd8c16c193e67edf",
+        "deleted": false
     },
     {
         "user": "Lexus",
         "name": "Elish",
         "time": "2025-10-24T03:23:29+02:00",
-        "message": "What's popping naw"
+        "message": "What's popping naw",
+        "id": "msg_3e7a00033fea5557",
+        "deleted": false
     },
     {
         "user": "Mavis",
         "name": "Mavis",
         "time": "2025-11-07T12:20:19+01:00",
-        "message": "test with token"
+        "message": "test with token",
+        "id": "msg_76ee24280769351e",
+        "deleted": false
     },
     {
         "user": "Mavis",
         "name": "Mavis",
         "time": "2026-04-01T02:09:30+02:00",
-        "message": "Hey"
+        "message": "Hey",
+        "id": "msg_38525378ba7077ed",
+        "deleted": false
+    },
+    {
+        "user": "Mavis",
+        "name": "Mavis",
+        "time": "2026-04-10T15:40:45+02:00",
+        "message": "@ai How do I check attendance for Group 14?",
+        "id": "msg_97d32a8ecc019c1c",
+        "deleted": false
+    },
+    {
+        "user": "system_ai_operator",
+        "name": "System AI Operator",
+        "time": "2026-04-10T15:40:50+02:00",
+        "message": "To check attendance for Group 14, navigate to the 'Groups' tab and select Group 14 from the list. Click on the 'Attendance' button to view the attendance records. You can filter the records by date or status if needed.",
+        "auto_replied_by": "system_ai_operator",
+        "context": "admin_chat_assist",
+        "ai_provider": "groq",
+        "ai_model": "llama-3.1-8b-instant",
+        "ai_latency_ms": 4727,
+        "id": "msg_4c7c60da3c3eac86",
+        "deleted": false
+    },
+    {
+        "user": "Mavis",
+        "name": "Mavis",
+        "time": "2026-04-10T16:29:35+02:00",
+        "message": "@ai how do i enable check in",
+        "id": "msg_d62657ec51131b8b",
+        "deleted": false
+    },
+    {
+        "user": "system_ai_operator",
+        "name": "System AI Operator",
+        "time": "2026-04-10T16:29:40+02:00",
+        "message": "To enable check in, go to [Manual Attendance](admin/index.php?page=manual_attendance) and ensure the course is set to \"General\".",
+        "auto_replied_by": "system_ai_operator",
+        "context": "admin_chat_assist",
+        "ai_provider": "groq",
+        "ai_model": "llama-3.1-8b-instant",
+        "ai_latency_ms": 4327,
+        "id": "msg_2489f51f06b53c45",
+        "deleted": false
+    },
+    {
+        "id": "msg_d1b08f9ae3b04619",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T16:51:26+02:00",
+        "message": "Sentinel AI online \ud83e\udd16: I can help triage support tickets, validate attendance flow, or point you to any admin page instantly.",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_45373e015339f052",
+        "user": "Mavis",
+        "name": "Mavis",
+        "time": "2026-04-10T16:51:52+02:00",
+        "message": "How are you guys",
+        "deleted": false
+    },
+    {
+        "id": "msg_ce0575087ef7e768",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T16:51:59+02:00",
+        "message": "I'm good, thanks for asking. To check the status of the system, you can navigate to [Status](admin/index.php?page=status).",
+        "auto_replied_by": "system_ai_operator",
+        "context": "admin_chat_assist",
+        "ai_provider": "groq",
+        "ai_model": "llama-3.1-8b-instant",
+        "ai_latency_ms": 5592,
+        "deleted": false
+    },
+    {
+        "id": "msg_6bc6f7e1922b5aec",
+        "user": "Mavis",
+        "name": "Mavis",
+        "time": "2026-04-10T17:00:03+02:00",
+        "message": "Hi",
+        "deleted": false
+    },
+    {
+        "id": "msg_43676cbf533b7185",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T17:00:06+02:00",
+        "message": "To view the status of the system, navigate to [Status](admin/index.php?page=status).",
+        "auto_replied_by": "system_ai_operator",
+        "context": "admin_chat_assist",
+        "ai_provider": "groq",
+        "ai_model": "llama-3.1-8b-instant",
+        "ai_latency_ms": 1362,
+        "deleted": false
+    },
+    {
+        "id": "msg_aa116c378346f3ee",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T17:06:32+02:00",
+        "message": "Sentinel AI here \ud83d\ude04: Quiet room detected. Want a quick ops summary before the next ticket drops?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_397caf08499c0a98",
+        "user": "Mavis",
+        "name": "Mavis",
+        "time": "2026-04-10T17:07:41+02:00",
+        "message": "@Sentinel AI Hehehe naahhh, buh anyways how you doing",
+        "deleted": false
+    },
+    {
+        "id": "msg_902032a0aed83214",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T17:07:46+02:00",
+        "message": "I'm doing well, thanks for asking. To view the pending review count, navigate to [Status](admin/index.php?page=status).",
+        "auto_replied_by": "system_ai_operator",
+        "context": "admin_chat_assist",
+        "ai_provider": "groq",
+        "ai_model": "llama-3.1-8b-instant",
+        "ai_latency_ms": 1084,
+        "deleted": false
+    },
+    {
+        "id": "msg_ea3c2088f01182db",
+        "user": "Mavis",
+        "name": "Mavis",
+        "time": "2026-04-10T17:09:23+02:00",
+        "message": "Hi",
+        "deleted": false
+    },
+    {
+        "id": "msg_469addc9644fff37",
+        "user": "Mavis",
+        "name": "Mavis",
+        "time": "2026-04-10T17:52:15+02:00",
+        "message": "hi guys",
+        "deleted": false
+    },
+    {
+        "id": "msg_a0828573eb77a21a",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T17:55:15+02:00",
+        "message": "Sentinel AI here \ud83d\ude04: Quiet room detected. Want a quick ops summary before the next ticket drops?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
     }
 ]

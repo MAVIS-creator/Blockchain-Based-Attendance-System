@@ -92,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_name'] = $accounts[$usernameToUse]['name'] ?? $usernameToUse;
         $_SESSION['admin_avatar'] = $accounts[$usernameToUse]['avatar'] ?? null;
         $_SESSION['admin_role'] = $accounts[$usernameToUse]['role'] ?? 'admin';
+        $_SESSION['needs_tour'] = !empty($accounts[$usernameToUse]['needs_tour']);
         // Track session
         $sessionsFile = admin_sessions_file();
         $activeSessions = admin_load_sessions_cached(10);

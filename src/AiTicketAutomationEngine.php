@@ -213,9 +213,16 @@ class AiTicketAutomationEngine
       'ai_provider' => (string)($aiSuggestion['provider'] ?? 'rules'),
       'ai_model' => (string)($aiSuggestion['model'] ?? 'rules-v1'),
       'ai_latency_ms' => (int)($aiSuggestion['latency_ms'] ?? 0),
+      'site_context_enabled' => !empty($aiSuggestion['site_context_enabled']),
+      'site_context_version' => (string)($aiSuggestion['site_context_version'] ?? 'site-context-v1'),
+      'site_context_source_count' => (int)($aiSuggestion['site_context_source_count'] ?? 0),
+      'site_context_indexed_pages' => (int)($aiSuggestion['site_context_indexed_pages'] ?? 0),
+      'site_context_last_scan_at' => (string)($aiSuggestion['site_context_last_scan_at'] ?? ''),
       'fingerprint_ai_provider' => (string)($aiFingerprintResponse['provider'] ?? 'rules'),
       'fingerprint_ai_model' => (string)($aiFingerprintResponse['model'] ?? 'rules-fingerprint-v1'),
       'fingerprint_ai_latency_ms' => (int)($aiFingerprintResponse['latency_ms'] ?? 0),
+      'fingerprint_site_context_enabled' => !empty($aiFingerprintResponse['site_context_enabled']),
+      'fingerprint_site_context_source_count' => (int)($aiFingerprintResponse['site_context_source_count'] ?? 0),
       'processed_at' => date('c')
     ]);
 
@@ -273,6 +280,9 @@ class AiTicketAutomationEngine
         'ai_provider' => (string)($chatReply['provider'] ?? 'rules'),
         'ai_model' => (string)($chatReply['model'] ?? 'rules-chat-v1'),
         'ai_latency_ms' => (int)($chatReply['latency_ms'] ?? 0),
+        'site_context_enabled' => !empty($chatReply['site_context_enabled']),
+        'site_context_source_count' => (int)($chatReply['site_context_source_count'] ?? 0),
+        'site_context_indexed_pages' => (int)($chatReply['site_context_indexed_pages'] ?? 0),
       ]);
     }
 

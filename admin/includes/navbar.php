@@ -27,9 +27,9 @@ $ticketCount = admin_support_ticket_count(15);
         </a></li>
 
       <?php if ($isSuperAdmin): ?>
-      <li><a href="index.php?page=status_debug" class="nav-item <?= $page == 'status_debug' ? 'active' : '' ?>">
-          <span class="material-symbols-outlined">troubleshoot</span><span>Diagnostics</span>
-        </a></li>
+        <li><a href="index.php?page=status_debug" class="nav-item <?= $page == 'status_debug' ? 'active' : '' ?>">
+            <span class="material-symbols-outlined">troubleshoot</span><span>Diagnostics</span>
+          </a></li>
       <?php endif; ?>
 
       <li class="nav-dropdown">
@@ -74,6 +74,8 @@ $ticketCount = admin_support_ticket_count(15);
                 <span class="nav-badge" style="margin-left:auto;background:var(--error);color:#fff;border-radius:10px;padding:2px 6px;font-size:0.7rem;font-weight:700;"><?= $ticketCount ?></span>
               <?php endif; ?>
             </a></li>
+          <li><a href="index.php?page=ai_suggestions" class="<?= $page == 'ai_suggestions' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">smart_toy</span>AI Suggestions</a></li>
+          <li><a href="index.php?page=ai_context_preview" class="<?= $page == 'ai_context_preview' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">visibility</span>AI Context Preview</a></li>
         </ul>
       </li>
     </ul>

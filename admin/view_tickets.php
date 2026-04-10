@@ -11,6 +11,7 @@ require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/cache_helpers.php';
 require_once __DIR__ . '/state_helpers.php';
+require_once __DIR__ . '/includes/ai_recommendation_formatter.php';
 app_storage_init();
 $pageCsrfToken = csrf_token();
 $flashMessage = $_SESSION['admin_flash'] ?? null;
@@ -308,7 +309,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
           <div style="font-size:0.82rem;font-weight:700;margin-bottom:4px;word-break:break-word;"><?= htmlspecialchars($diagClass) ?></div>
           <div style="font-size:0.78rem;opacity:0.9;margin-bottom:4px;">Confidence: <?= htmlspecialchars(number_format($diagConf, 2)) ?></div>
           <div style="font-size:0.78rem;opacity:0.9;margin-bottom:4px;word-break:break-word;">Matric: <?= htmlspecialchars((string)($diag['matric'] ?? '-')) ?></div>
-          <div style="font-size:0.76rem;opacity:0.85;line-height:1.4;word-break:break-word;"><?= htmlspecialchars((string)($diag['suggested_admin_action'] ?? 'Review diagnostics.')) ?></div>
+          <div style="font-size:0.76rem;opacity:0.95;line-height:1.45;word-break:break-word;color:var(--on-surface);margin-top:6px;">
+            <?= ai_recommendation_render_html((string)($diag['suggested_admin_action'] ?? 'Review diagnostics.')) ?>
+          </div>
         </div>
       <?php endforeach; ?>
     </div>

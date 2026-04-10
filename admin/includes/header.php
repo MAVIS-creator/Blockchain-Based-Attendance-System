@@ -262,7 +262,8 @@ if (file_exists($csrfPath)) {
           location.reload();
         }
       }).catch(function() {
-        /* ignore network errors silently */ });
+        /* ignore network errors silently */
+      });
     }
 
     function refreshCurrent() {
@@ -280,7 +281,8 @@ if (file_exists($csrfPath)) {
           console.info('Refreshed ' + currentPage);
         })
         .catch(function() {
-          /* ignore */ });
+          /* ignore */
+        });
     }
     // Chat: fetch and render
     function renderChat(messages) {
@@ -352,14 +354,14 @@ if (file_exists($csrfPath)) {
   <style>
     .chat_button {
       position: fixed;
-      right: 24px;
-      bottom: 24px;
-      height: 56px;
-      width: 56px;
+      right: 18px;
+      bottom: 18px;
+      height: 54px;
+      width: 54px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--primary-container));
+      background: linear-gradient(135deg, #0f4c88, #2368ab);
       border: none;
-      box-shadow: 0 6px 20px rgba(0, 69, 123, 0.2);
+      box-shadow: 0 14px 26px rgba(15, 76, 136, 0.32);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -370,7 +372,7 @@ if (file_exists($csrfPath)) {
 
     .chat_button:hover {
       transform: translateY(-3px);
-      box-shadow: 0 10px 30px rgba(0, 69, 123, 0.3);
+      box-shadow: 0 18px 34px rgba(15, 76, 136, 0.36);
     }
 
     .chat_button .material-symbols-outlined {
@@ -380,94 +382,349 @@ if (file_exists($csrfPath)) {
 
     #chatbar.chat_box {
       position: fixed;
-      right: 24px;
-      bottom: 92px;
-      width: 360px;
-      max-height: 520px;
-      background: var(--surface-container-lowest);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-elevated);
+      right: 18px;
+      bottom: 84px;
+      width: min(360px, calc(100vw - 28px));
+      height: min(500px, calc(100vh - 140px));
+      background: #ffffff;
+      border-radius: 14px;
+      box-shadow: 0 24px 48px rgba(24, 39, 75, 0.16);
       overflow: hidden;
       z-index: 10000;
       display: none;
       flex-direction: column;
-      border: 1px solid var(--outline-variant);
+      border: 1px solid rgba(194, 199, 209, 0.45);
     }
 
     .chat_box_header {
-      padding: 14px 16px;
-      background: var(--primary);
+      padding: 11px 12px;
+      background: linear-gradient(135deg, #0f4c88, #2368ab);
       color: #fff;
       font-weight: 700;
-      letter-spacing: 0.05em;
-      font-size: 0.85rem;
+      font-size: 0.86rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .chat_header_identity {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .chat_header_avatar {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .chat_header_avatar .material-symbols-outlined {
+      color: #fff;
+      font-size: 19px;
+    }
+
+    .chat_header_status_dot {
+      position: absolute;
+      right: -1px;
+      bottom: -1px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #16a34a;
+      border: 2px solid #0f4c88;
+    }
+
+    .chat_header_text {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .chat_header_title {
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chat_header_subtitle {
+      color: rgba(232, 242, 255, 0.84);
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+    }
+
+    .chat_header_actions {
+      display: inline-flex;
+      gap: 2px;
+    }
+
+    .chat_header_btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.18s ease;
+      padding: 0;
+    }
+
+    .chat_header_btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .chat_header_btn .material-symbols-outlined {
+      font-size: 18px;
     }
 
     .chat_box_body {
-      padding: 16px;
-      max-height: 360px;
+      padding: 14px;
+      flex: 1;
       overflow-y: auto;
-      background: var(--surface-container-low);
+      background: linear-gradient(180deg, #f8fbff, #f1f5fb);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .chat_box_body .msg {
       position: relative;
-      max-width: 85%;
-      padding: 10px 14px;
+      max-width: 88%;
+      padding: 10px 12px;
       border-radius: 12px;
-      font-size: 0.9rem;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
     }
 
     .chat_box_body .msg.self {
       align-self: flex-end;
-      background: #059669;
+      background: linear-gradient(135deg, #0f4c88, #2467a8);
       color: #fff;
-      border-bottom-right-radius: 4px;
+      border-bottom-right-radius: 6px;
     }
 
     .chat_box_body .msg.other {
       align-self: flex-start;
-      background: var(--surface-container-lowest);
+      background: #ffffff;
       color: var(--on-surface);
-      border: 1px solid var(--outline-variant);
-      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(194, 199, 209, 0.55);
+      border-bottom-left-radius: 6px;
+    }
+
+    .chat_message_name {
+      font-size: 0.8rem;
+      font-weight: 800;
+      margin-bottom: 3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .chat_message_time {
+      font-size: 0.68rem;
+      opacity: 0.78;
+      font-weight: 600;
+      float: right;
+      margin-left: 8px;
+    }
+
+    .chat_meta_deleted {
+      font-style: italic;
+      opacity: 0.82;
+      font-size: 0.8rem;
+    }
+
+    .chat_typing_row {
+      align-self: flex-start;
+      max-width: 92%;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: #eef3fb;
+      border: 1px solid rgba(194, 199, 209, 0.7);
+      color: #334155;
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 0.76rem;
+      font-weight: 600;
+    }
+
+    .chat_typing_row.show {
+      display: inline-flex;
+    }
+
+    .chat_typing_dots {
+      display: inline-flex;
+      gap: 4px;
+      margin-left: 2px;
+    }
+
+    .chat_typing_dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #475569;
+      opacity: 0.35;
+      animation: chatTypingPulse 1.2s infinite ease-in-out;
+    }
+
+    .chat_typing_dot:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .chat_typing_dot:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    @keyframes chatTypingPulse {
+
+      0%,
+      80%,
+      100% {
+        opacity: 0.35;
+        transform: translateY(0);
+      }
+
+      40% {
+        opacity: 1;
+        transform: translateY(-2px);
+      }
     }
 
     .chat_box_footer {
-      padding: 10px;
+      padding: 10px 10px 8px;
+      border-top: 1px solid rgba(194, 199, 209, 0.38);
+      background: #ffffff;
+    }
+
+    .chat_input_row {
       display: flex;
-      gap: 8px;
       align-items: center;
-      border-top: 1px solid var(--outline-variant);
-      background: var(--surface-container-lowest);
+      gap: 7px;
     }
 
     .chat_box_footer input {
       flex: 1;
       padding: 10px 12px;
-      border-radius: var(--radius-md);
+      border-radius: 10px;
       border: 1px solid var(--outline-variant);
       font-family: inherit;
+      background: #f8fafc;
+      font-size: 0.86rem;
     }
 
-    .chat_box_footer button {
-      background: var(--primary);
+    .chat_send_btn {
+      background: linear-gradient(135deg, #0f4c88, #2368ab);
       color: #fff;
       border: none;
-      padding: 9px 16px;
-      border-radius: var(--radius-md);
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .chat_action_row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 7px;
+      padding-left: 2px;
+    }
+
+    .chat_icon_btn {
+      border: none;
+      background: transparent;
+      color: var(--on-surface-variant);
+      border-radius: 8px;
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+      padding: 0;
+    }
+
+    .chat_icon_btn:hover {
+      background: #eef3fb;
+      color: #0f4c88;
+    }
+
+    .chat_icon_btn .material-symbols-outlined {
+      font-size: 18px;
+    }
+
+    .chat_emoji_panel {
+      margin-top: 6px;
+      display: none;
+      flex-wrap: wrap;
+      gap: 4px;
+      background: #f8fafc;
+      border: 1px solid var(--outline-variant);
+      border-radius: 10px;
+      padding: 6px;
+      max-height: 96px;
+      overflow-y: auto;
+    }
+
+    .chat_emoji_panel.open {
+      display: flex;
+    }
+
+    .chat_emoji_item {
+      border: none;
+      background: transparent;
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chat_emoji_item:hover {
+      background: #e8eff9;
     }
 
     @media (max-width:480px) {
       #chatbar.chat_box {
-        right: 12px;
-        left: 12px;
-        bottom: 90px;
+        right: 10px;
+        left: 10px;
+        bottom: 78px;
         width: auto;
+        height: min(470px, calc(100vh - 112px));
+      }
+
+      .chat_button {
+        right: 12px;
+        bottom: 12px;
       }
     }
   </style>
@@ -479,11 +736,36 @@ if (file_exists($csrfPath)) {
     </button>
 
     <div id="chatbar" class="chat_box">
-      <div class="chat_box_header">MESSAGES</div>
+      <div class="chat_box_header">
+        <div class="chat_header_identity">
+          <span class="chat_header_avatar">
+            <span class="material-symbols-outlined">smart_toy</span>
+            <span class="chat_header_status_dot"></span>
+          </span>
+          <span class="chat_header_text">
+            <span class="chat_header_title">Sentinel AI</span>
+            <span class="chat_header_subtitle">active assistant</span>
+          </span>
+        </div>
+        <div class="chat_header_actions">
+          <button id="chatMinBtn" class="chat_header_btn" aria-label="Minimize chat"><span class="material-symbols-outlined">remove</span></button>
+          <button id="chatCloseBtn" class="chat_header_btn" aria-label="Close chat"><span class="material-symbols-outlined">close</span></button>
+        </div>
+      </div>
       <div id="chatBody" class="chat_box_body"></div>
       <div class="chat_box_footer">
-        <input type="text" id="MsgInput" placeholder="Enter Message">
-        <button id="MsgSend" aria-label="Send message"><span class="material-symbols-outlined" style="font-size:18px;">send</span></button>
+        <div class="chat_input_row">
+          <input type="text" id="MsgInput" placeholder="Describe your issue...">
+          <button id="MsgSend" class="chat_send_btn" aria-label="Send message"><span class="material-symbols-outlined" style="font-size:18px;">send</span></button>
+        </div>
+        <div class="chat_action_row">
+          <button id="MsgAttach" class="chat_icon_btn" aria-label="Attach file"><span class="material-symbols-outlined">attach_file</span></button>
+          <button id="MsgEmoji" class="chat_icon_btn" aria-label="Insert emoji"><span class="material-symbols-outlined">mood</span></button>
+          <button id="MsgGallery" class="chat_icon_btn" aria-label="Choose image"><span class="material-symbols-outlined">image</span></button>
+        </div>
+        <div id="chatEmojiPanel" class="chat_emoji_panel" aria-label="Emoji picker"></div>
+        <input type="file" id="MsgGalleryInput" accept="image/*" style="display:none;">
+        <input type="file" id="MsgAttachInput" style="display:none;">
       </div>
     </div>
   </div>
@@ -496,22 +778,136 @@ if (file_exists($csrfPath)) {
       var icon = document.getElementById('chatOpen');
       var msgInput = document.getElementById('MsgInput');
       var msgSend = document.getElementById('MsgSend');
+      var msgEmoji = document.getElementById('MsgEmoji');
+      var msgGallery = document.getElementById('MsgGallery');
+      var msgAttach = document.getElementById('MsgAttach');
+      var msgGalleryInput = document.getElementById('MsgGalleryInput');
+      var msgAttachInput = document.getElementById('MsgAttachInput');
+      var chatEmojiPanel = document.getElementById('chatEmojiPanel');
+      var chatMinBtn = document.getElementById('chatMinBtn');
+      var chatCloseBtn = document.getElementById('chatCloseBtn');
       var chatBody = document.getElementById('chatBody');
       var badge = document.getElementById('chatBadge');
       var currentUser = <?= json_encode($_SESSION['admin_user'] ?? '') ?>;
-      var currentRole = <?= json_encode($_SESSION['admin_role'] ?? 'admin') ?>;
+      var previousMessageIds = {};
+      var hasBootstrapped = false;
+      var unseenIncomingCount = 0;
+      var forceScrollToBottom = false;
+      var typingTimer = null;
+      var typingHeartbeatAt = 0;
+      var typingActive = false;
+      var emojiList = ['😀', '😁', '😂', '😊', '😍', '👍', '🙏', '🔥', '✅', '🎉', '🤖', '💡', '📌', '📎', '📷', '⚠️', '🚀', '👀'];
+
+      function isNearBottom(el, thresholdPx) {
+        if (!el) return true;
+        var threshold = typeof thresholdPx === 'number' ? thresholdPx : 64;
+        return (el.scrollHeight - (el.scrollTop + el.clientHeight)) <= threshold;
+      }
+
+      function closeEmojiPanel() {
+        if (chatEmojiPanel) {
+          chatEmojiPanel.classList.remove('open');
+        }
+      }
+
+      function appendToInput(text) {
+        if (!msgInput) return;
+        msgInput.value = (msgInput.value + text).trim();
+        msgInput.focus();
+      }
+
+      function bootstrapEmojiPanel() {
+        if (!chatEmojiPanel) return;
+        chatEmojiPanel.innerHTML = '';
+        emojiList.forEach(function(em) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'chat_emoji_item';
+          btn.textContent = em;
+          btn.addEventListener('click', function() {
+            appendToInput(' ' + em + ' ');
+            closeEmojiPanel();
+          });
+          chatEmojiPanel.appendChild(btn);
+        });
+      }
+
+      bootstrapEmojiPanel();
+
+      function buildChatLink(url, label) {
+        var safeUrl = String(url || '').trim();
+        if (/^admin\//i.test(safeUrl)) {
+          safeUrl = safeUrl.replace(/^admin\//i, '');
+        }
+        if (/^\/admin\//i.test(safeUrl)) {
+          safeUrl = safeUrl.replace(/^\/admin\//i, '');
+        }
+
+        var allowed = /^https?:\/\//i.test(safeUrl) || /^index\.php\?page=[\w_-]+/i.test(safeUrl) || /^\.\/index\.php\?page=[\w_-]+/i.test(safeUrl) || /^\/?index\.php\?page=[\w_-]+/i.test(safeUrl);
+        if (!allowed) {
+          return escapeHtml(String(label || safeUrl || 'link'));
+        }
+        var safeLabel = String(label || safeUrl);
+        var isExternal = /^https?:\/\//i.test(safeUrl);
+        var target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+        return '<a href="' + escapeHtml(safeUrl) + '"' + target + ' style="color:inherit;text-decoration:underline;text-underline-offset:2px;word-break:break-all;pointer-events:auto;">' + escapeHtml(safeLabel) + '</a>';
+      }
+
+      function renderMessageText(raw) {
+        var text = String(raw || '');
+        var tokenMap = [];
+        text = text.replace(/\[([^\]]+)\]\(([^\s)]+)\)/gi, function(_, label, url) {
+          var token = '@@LINK_' + tokenMap.length + '@@';
+          tokenMap.push({
+            token: token,
+            html: buildChatLink(url, label)
+          });
+          return token;
+        });
+
+        var escaped = escapeHtml(text);
+        escaped = escaped.replace(/(https?:\/\/[^\s<]+|(?:\/?admin\/index\.php\?page=[\w_-]+)|(?:\/?index\.php\?page=[\w_-]+))/gi, function(url) {
+          return buildChatLink(url, url);
+        });
+
+        escaped = escaped.replace(/(<\/a>)([\.,!?;:]+)/gi, '$2$1');
+
+        tokenMap.forEach(function(t) {
+          escaped = escaped.replace(t.token, t.html);
+        });
+        return escaped;
+      }
+
+      function showUnreadPopup(count) {
+        if (!count || count < 1 || typeof Swal === 'undefined') return;
+        Swal.fire({
+          toast: true,
+          position: 'bottom-end',
+          timer: 2600,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          icon: 'info',
+          title: count === 1 ? 'New chat message' : (count + ' new chat messages'),
+          text: 'Tap chat to view the latest updates.'
+        });
+      }
 
       function openChatBox() {
         if (!isOpen) {
           chatbar.style.display = 'flex';
           isOpen = true;
           icon.textContent = 'close';
+          forceScrollToBottom = true;
+          unseenIncomingCount = 0;
+          badge.style.display = 'none';
+          closeEmojiPanel();
           fetchAndRender();
           startPolling();
         } else {
           chatbar.style.display = 'none';
           isOpen = false;
           icon.textContent = 'chat';
+          closeEmojiPanel();
           stopPolling();
         }
       }
@@ -520,6 +916,7 @@ if (file_exists($csrfPath)) {
 
       function renderMessages(messages) {
         if (!chatBody) return;
+        var shouldAutoStick = forceScrollToBottom || isNearBottom(chatBody, 72);
         chatBody.innerHTML = '';
         messages.forEach(function(m) {
           var div = document.createElement('div');
@@ -527,75 +924,192 @@ if (file_exists($csrfPath)) {
           div.className = cls;
           var d = new Date(m.time);
           var rel = d.toLocaleTimeString();
-          var iso = d.toISOString();
           var title = d.toString();
-          var content = '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">';
-          content += '<strong style="font-size:0.95rem;">' + escapeHtml(m.name) + '</strong> <span title="' + escapeHtml(title) + '" style="font-size:0.75rem;opacity:0.75;margin-left:8px;">' + escapeHtml(rel) + '</span>';
-          content += '</div>';
-          content += '<div style="margin-bottom:4px;line-height:1.4;">' + escapeHtml(m.message) + '</div>';
-          if (currentRole === 'superadmin') {
-            content += '<div style="text-align:right;margin-top:4px;"><button data-time="' + escapeHtml(m.time) + '" class="delete-msg" style="background:none;border:none;cursor:pointer;font-size:0.75rem;padding:0;text-decoration:none;font-weight:600;' + (cls.indexOf('self') > -1 ? 'color:#ffcfcf;' : 'color:var(--error);') + '">Delete</button></div>';
+          var content = '<div><span class="chat_message_name">' + escapeHtml(m.name) + '</span><span class="chat_message_time" title="' + escapeHtml(title) + '">' + escapeHtml(rel) + '</span></div>';
+          if (m.deleted) {
+            var deletedBy = String(m.deleted_by || '');
+            var deletedByName = String(m.deleted_by_name || m.name || 'An admin');
+            var deletedText = (deletedBy === currentUser) ? 'You deleted this message' : (deletedByName + ' deleted this message');
+            content += '<div class="chat_meta_deleted">' + escapeHtml(deletedText) + '</div>';
+          } else {
+            content += '<div style="margin-bottom:4px;line-height:1.4;word-break:break-word;">' + renderMessageText(m.message) + '</div>';
+          }
+          if (!m.deleted && String(m.user || '') === String(currentUser)) {
+            content += '<div style="text-align:right;margin-top:4px;"><button data-id="' + escapeHtml(m.id || '') + '" data-time="' + escapeHtml(m.time || '') + '" class="delete-msg" style="background:none;border:none;cursor:pointer;font-size:0.75rem;padding:0;text-decoration:none;font-weight:600;' + (cls.indexOf('self') > -1 ? 'color:#ffcfcf;' : 'color:var(--error);') + '">Delete</button></div>';
           }
           div.innerHTML = content;
           chatBody.appendChild(div);
         });
-        chatBody.scrollTop = chatBody.scrollHeight;
+        var typingNode = document.createElement('div');
+        typingNode.id = 'chatTypingRow';
+        typingNode.className = 'chat_typing_row';
+        typingNode.innerHTML = '<span id="chatTypingLabel">Typing</span><span class="chat_typing_dots"><span class="chat_typing_dot"></span><span class="chat_typing_dot"></span><span class="chat_typing_dot"></span></span>';
+        chatBody.appendChild(typingNode);
+        if (shouldAutoStick) {
+          chatBody.scrollTop = chatBody.scrollHeight;
+        }
+        forceScrollToBottom = false;
       }
 
-      var lastCount = 0;
+      function renderTypingState(data) {
+        var row = document.getElementById('chatTypingRow');
+        var label = document.getElementById('chatTypingLabel');
+        if (!row || !label) return;
+
+        data = data || {};
+        var names = [];
+        if (Array.isArray(data.typing)) {
+          data.typing.forEach(function(t) {
+            var n = String((t && t.name) || '').trim();
+            if (n) names.push(n);
+          });
+        }
+        if (data.ai_typing) {
+          names.push('Sentinel AI');
+        }
+
+        if (!names.length) {
+          row.classList.remove('show');
+          return;
+        }
+
+        var shown = names.slice(0, 2).join(', ');
+        if (names.length > 2) {
+          shown += ' +' + (names.length - 2) + ' more';
+        }
+        label.textContent = shown + ' typing';
+        row.classList.add('show');
+        if (isNearBottom(chatBody, 72)) {
+          chatBody.scrollTop = chatBody.scrollHeight;
+        }
+      }
+
+      function fetchTypingState() {
+        return fetch('chat_typing.php', {
+          cache: 'no-store'
+        }).then(function(r) {
+          if (!r.ok) throw new Error('Network');
+          return r.json();
+        }).then(function(data) {
+          renderTypingState(data || {});
+        }).catch(function() {
+          renderTypingState({});
+        });
+      }
+
+      function postTypingState(isTyping) {
+        var payload = {
+          typing: !!isTyping
+        };
+        if (window.ADMIN_CSRF_TOKEN) payload.csrf_token = window.ADMIN_CSRF_TOKEN;
+        return fetch('chat_typing.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        }).catch(function() {});
+      }
+
+      function stopTypingHeartbeat() {
+        if (typingTimer) {
+          clearInterval(typingTimer);
+          typingTimer = null;
+        }
+        if (typingActive) {
+          typingActive = false;
+          postTypingState(false);
+        }
+      }
+
+      function ensureTypingHeartbeat() {
+        var now = Date.now();
+        if (!typingActive || (now - typingHeartbeatAt) > 1800) {
+          typingActive = true;
+          typingHeartbeatAt = now;
+          postTypingState(true);
+        }
+        if (!typingTimer) {
+          typingTimer = setInterval(function() {
+            if (!isOpen || !msgInput || !msgInput.value.trim()) {
+              stopTypingHeartbeat();
+              return;
+            }
+            typingHeartbeatAt = Date.now();
+            postTypingState(true);
+          }, 2000);
+        }
+      }
 
       function fetchAndRender() {
         window.fetchChat().then(function(messages) {
           messages = messages || [];
-          if (!isOpen) {
-            if (messages.length > lastCount) {
-              var diff = messages.length - lastCount;
-              badge.style.display = 'inline-block';
-              badge.textContent = diff;
+          var newIncoming = 0;
+          var nextIds = {};
+          messages.forEach(function(m) {
+            var id = String(m.id || m.time || '');
+            if (id) {
+              nextIds[id] = true;
+              if (hasBootstrapped && !previousMessageIds[id] && String(m.user || '') !== String(currentUser) && !m.deleted) {
+                newIncoming++;
+              }
             }
+          });
+          previousMessageIds = nextIds;
+
+          if (!isOpen && hasBootstrapped && newIncoming > 0) {
+            unseenIncomingCount += newIncoming;
+            badge.style.display = 'inline-block';
+            badge.textContent = String(unseenIncomingCount);
+            showUnreadPopup(newIncoming);
           } else {
             badge.style.display = 'none';
-            lastCount = messages.length;
+            unseenIncomingCount = 0;
           }
+
+          hasBootstrapped = true;
           renderMessages(messages);
-          if (currentRole === 'superadmin') {
-            Array.from(document.getElementsByClassName('delete-msg')).forEach(function(btn) {
-              btn.addEventListener('click', function() {
-                var t = this.getAttribute('data-time');
-                if (!t) return;
-                window.adminConfirm('Delete message', 'Delete this message?').then(function(ok) {
-                  if (!ok) return;
-                  var payload = {
-                    time: t
-                  };
-                  if (window.ADMIN_CSRF_TOKEN) payload.csrf_token = window.ADMIN_CSRF_TOKEN;
-                  fetch('chat_delete.php', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify(payload)
-                    })
-                    .then(function(r) {
-                      return r.json();
-                    })
-                    .then(function(r) {
-                      if (r && r.ok) fetchAndRender();
-                      else window.adminAlert('Delete failed', JSON.stringify(r), 'error');
-                    })
-                    .catch(function() {
-                      window.adminAlert('Delete failed', 'Network or server error', 'error');
-                    });
-                });
+          Array.from(document.getElementsByClassName('delete-msg')).forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var t = this.getAttribute('data-time');
+              var id = this.getAttribute('data-id');
+              if (!t && !id) return;
+              window.adminConfirm('Delete message', 'Delete this message?').then(function(ok) {
+                if (!ok) return;
+                var payload = {
+                  id: id,
+                  time: t
+                };
+                if (window.ADMIN_CSRF_TOKEN) payload.csrf_token = window.ADMIN_CSRF_TOKEN;
+                fetch('chat_delete.php', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                  })
+                  .then(function(r) {
+                    return r.json();
+                  })
+                  .then(function(r) {
+                    if (r && r.ok) fetchAndRender();
+                    else window.adminAlert('Delete failed', (r && r.error) ? r.error : JSON.stringify(r), 'error');
+                  })
+                  .catch(function() {
+                    window.adminAlert('Delete failed', 'Network or server error', 'error');
+                  });
               });
             });
-          }
+          });
+          fetchTypingState();
         });
       }
 
       function send() {
         var v = msgInput.value.trim();
         if (!v) return;
+        stopTypingHeartbeat();
+        forceScrollToBottom = true;
         msgInput.value = '';
         window.postChat(v).then(function(res) {
           if (res && res.ok) {
@@ -605,12 +1119,99 @@ if (file_exists($csrfPath)) {
       }
 
       msgSend.addEventListener('click', send);
+      if (msgEmoji) {
+        msgEmoji.addEventListener('click', function() {
+          if (!chatEmojiPanel) return;
+          chatEmojiPanel.classList.toggle('open');
+        });
+      }
+
+      if (msgGallery && msgGalleryInput) {
+        msgGallery.addEventListener('click', function() {
+          closeEmojiPanel();
+          msgGalleryInput.click();
+        });
+        msgGalleryInput.addEventListener('change', function() {
+          var file = this.files && this.files[0] ? this.files[0] : null;
+          if (!file) return;
+          appendToInput(' 📷 image: ' + file.name + ' ');
+          this.value = '';
+        });
+      }
+
+      if (msgAttach && msgAttachInput) {
+        msgAttach.addEventListener('click', function() {
+          closeEmojiPanel();
+          msgAttachInput.click();
+        });
+        msgAttachInput.addEventListener('change', function() {
+          var file = this.files && this.files[0] ? this.files[0] : null;
+          if (!file) return;
+          appendToInput(' 📎 file: ' + file.name + ' ');
+          this.value = '';
+        });
+      }
+
+      if (chatMinBtn) {
+        chatMinBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (isOpen) openChatBox();
+        });
+      }
+
+      if (chatCloseBtn) {
+        chatCloseBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (isOpen) openChatBox();
+        });
+      }
+
+      document.addEventListener('click', function(e) {
+        if (!chatEmojiPanel || !msgEmoji) return;
+        if (!chatEmojiPanel.contains(e.target) && e.target !== msgEmoji && !msgEmoji.contains(e.target)) {
+          closeEmojiPanel();
+        }
+      });
+
       msgInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
           e.preventDefault();
           send();
         }
       });
+
+      msgInput.addEventListener('input', function() {
+        if (!isOpen) return;
+        if (msgInput.value.trim()) {
+          ensureTypingHeartbeat();
+        } else {
+          stopTypingHeartbeat();
+        }
+      });
+
+      msgInput.addEventListener('blur', function() {
+        if (!msgInput.value.trim()) {
+          stopTypingHeartbeat();
+        }
+      });
+
+      if (chatBody) {
+        chatBody.addEventListener('wheel', function() {
+          if (!isNearBottom(chatBody, 72)) {
+            forceScrollToBottom = false;
+          }
+        }, {
+          passive: true
+        });
+
+        chatBody.addEventListener('touchmove', function() {
+          if (!isNearBottom(chatBody, 72)) {
+            forceScrollToBottom = false;
+          }
+        }, {
+          passive: true
+        });
+      }
 
       var pollTimer = null;
 
@@ -623,11 +1224,637 @@ if (file_exists($csrfPath)) {
         if (!pollTimer) return;
         clearInterval(pollTimer);
         pollTimer = null;
+        stopTypingHeartbeat();
       }
 
       window.openChatBox = openChatBox;
       window.sendChatMessage = send;
+      fetchAndRender();
+      startPolling();
 
     })();
   </script>
 <?php endif; ?>
+
+<?php
+$h_permissions = admin_load_permissions_cached();
+$h_isSuper = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'superadmin';
+$h_allowed = $h_isSuper ? [] : ($h_permissions[$_SESSION['admin_role'] ?? 'admin'] ?? []);
+function h_can_view($pageId)
+{
+  global $h_isSuper, $h_allowed;
+  return $h_isSuper || in_array($pageId, $h_allowed, true);
+}
+?>
+<script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/js/shepherd.min.js"></script>
+<style>
+  .shepherd-element {
+    z-index: 1000000;
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .shepherd-title {
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .shepherd-button {
+    background: var(--primary);
+    color: #fff;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    padding: 6px 12px;
+    cursor: pointer;
+    border: none;
+  }
+
+  .shepherd-button-secondary {
+    background: var(--surface-container-highest);
+    color: var(--on-surface);
+    border: 1px solid var(--outline-variant);
+    cursor: pointer;
+  }
+
+  .shepherd-text {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--on-surface-variant);
+  }
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const steps = [];
+    steps.push({
+      id: 'intro',
+      title: 'Welcome to the Platform!',
+      text: 'Let\'s take a quick tour of your day-to-day administrative tools. You can exit this at any time.',
+      attachTo: {
+        element: 'h1',
+        on: 'bottom'
+      },
+      buttons: [{
+        text: 'Skip',
+        action: function() {
+          window.tour.cancel();
+        },
+        secondary: true,
+        classes: 'shepherd-button-secondary'
+      }, {
+        text: 'Next',
+        action: function() {
+          window.tour.next();
+        },
+        classes: 'shepherd-button'
+      }]
+    });
+    <?php if (h_can_view('dashboard')): ?>
+      steps.push({
+        id: 'dashboard',
+        title: 'Live Dashboard',
+        text: 'Your command center. Monitor daily attendance flow, latency, and AI Ticket resolution metrics in real-time.',
+        attachTo: {
+          element: 'a[href="index.php?page=dashboard"]',
+          on: 'right'
+        },
+        buttons: [{
+          text: 'Back',
+          action: function() {
+            window.tour.back();
+          },
+          secondary: true,
+          classes: 'shepherd-button-secondary'
+        }, {
+          text: 'Next',
+          action: function() {
+            window.tour.next();
+          },
+          classes: 'shepherd-button'
+        }]
+      });
+    <?php endif; ?>
+    <?php if (h_can_view('status')): ?>
+      steps.push({
+        id: 'status',
+        title: 'Attendance Status',
+        text: 'The most important switch! Come here to Enable or Disable Live Check-in/out modes.',
+        attachTo: {
+          element: 'a[href="index.php?page=status"]',
+          on: 'right'
+        },
+        buttons: [{
+          text: 'Back',
+          action: function() {
+            window.tour.back();
+          },
+          secondary: true,
+          classes: 'shepherd-button-secondary'
+        }, {
+          text: 'Next',
+          action: function() {
+            window.tour.next();
+          },
+          classes: 'shepherd-button'
+        }]
+      });
+    <?php endif; ?>
+    <?php if (h_can_view('set_active')): ?>
+      steps.push({
+        id: 'set_active',
+        title: 'Active Course',
+        text: 'Before enabling attendance, you must set which Course is actively receiving logs right now.',
+        attachTo: {
+          element: 'a[href="index.php?page=set_active"]',
+          on: 'right'
+        },
+        buttons: [{
+          text: 'Back',
+          action: function() {
+            window.tour.back();
+          },
+          secondary: true,
+          classes: 'shepherd-button-secondary'
+        }, {
+          text: 'Next',
+          action: function() {
+            window.tour.next();
+          },
+          classes: 'shepherd-button'
+        }]
+      });
+    <?php endif; ?>
+    <?php if (h_can_view('manual_attendance')): ?>
+      steps.push({
+        id: 'manual_attendance',
+        title: 'Manual Override',
+        text: 'If a student has a valid excuse, securely mark their attendance here.',
+        attachTo: {
+          element: 'a[href="index.php?page=manual_attendance"]',
+          on: 'right'
+        },
+        buttons: [{
+          text: 'Back',
+          action: function() {
+            window.tour.back();
+          },
+          secondary: true,
+          classes: 'shepherd-button-secondary'
+        }, {
+          text: 'Next',
+          action: function() {
+            window.tour.next();
+          },
+          classes: 'shepherd-button'
+        }]
+      });
+    <?php endif; ?>
+    <?php if (h_can_view('failed_attempts')): ?>
+      steps.push({
+        id: 'failed_attempts',
+        title: 'Security Logs',
+        text: 'Review logs for students blocked by the Zero Trust network.',
+        attachTo: {
+          element: 'a[href="index.php?page=failed_attempts"]',
+          on: 'right'
+        },
+        buttons: [{
+          text: 'Back',
+          action: function() {
+            window.tour.back();
+          },
+          secondary: true,
+          classes: 'shepherd-button-secondary'
+        }, {
+          text: 'Next',
+          action: function() {
+            window.tour.next();
+          },
+          classes: 'shepherd-button'
+        }]
+      });
+    <?php endif; ?>
+    <?php if (h_can_view('support_tickets')): ?>
+      steps.push({
+        id: 'support_tickets',
+        title: 'AI Support Desk',
+        text: 'Review automated AI ticket resolutions and student complaints.',
+        attachTo: {
+          element: 'a[href="index.php?page=support_tickets"]',
+          on: 'right'
+        },
+        buttons: [{
+          text: 'Back',
+          action: function() {
+            window.tour.back();
+          },
+          secondary: true,
+          classes: 'shepherd-button-secondary'
+        }, {
+          text: 'Next',
+          action: function() {
+            window.tour.next();
+          },
+          classes: 'shepherd-button'
+        }]
+      });
+    <?php endif; ?>
+    <?php if (h_can_view('announcement')): ?>
+      steps.push({
+        id: 'announcement',
+        title: 'Broadcasts',
+        text: 'Post announcements or instantly target a specific student screen.',
+        attachTo: {
+          element: 'a[href="index.php?page=announcement"]',
+          on: 'right'
+        },
+        buttons: [{
+          text: 'Back',
+          action: function() {
+            window.tour.back();
+          },
+          secondary: true,
+          classes: 'shepherd-button-secondary'
+        }, {
+          text: 'Next',
+          action: function() {
+            window.tour.next();
+          },
+          classes: 'shepherd-button'
+        }]
+      });
+    <?php endif; ?>
+    steps.push({
+      id: 'ai_copilot',
+      title: 'AI Navigation & Chat',
+      text: 'Pro Tip: Press Cmd+K anywhere to Search! Click the sidebar chat bubble for help.',
+      attachTo: {
+        element: '#chatToggle',
+        on: 'top-left'
+      },
+      buttons: [{
+        text: 'Finish',
+        action: function() {
+          window.tour.complete();
+        },
+        classes: 'shepherd-button'
+      }]
+    });
+
+    var needsTour = <?= json_encode(!empty($_SESSION['needs_tour'])) ?>;
+    if (typeof Shepherd !== 'undefined' && needsTour) {
+      window.tour = new Shepherd.Tour({
+        useModalOverlay: true,
+        defaultStepOptions: {
+          cancelIcon: {
+            enabled: true
+          },
+          scrollTo: {
+            behavior: 'smooth',
+            block: 'center'
+          }
+        }
+      });
+      steps.forEach(s => window.tour.addStep(s));
+
+      function completeBackendTour() {
+        fetch('api_tour_complete.php', {
+          method: 'POST',
+          body: '{}'
+        }).catch(() => {});
+      }
+      window.tour.on('complete', completeBackendTour);
+      window.tour.on('cancel', completeBackendTour);
+
+      setTimeout(() => {
+        window.tour.start();
+      }, 1500);
+    }
+  });
+</script>
+
+<!-- Cmd+K Command Palette UI -->
+<style>
+  .palette-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 999999;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10vh;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .palette-overlay.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  .palette-box {
+    background: var(--surface);
+    width: 90%;
+    max-width: 600px;
+    border-radius: var(--radius-xl);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--outline-variant);
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .palette-overlay.active .palette-box {
+    transform: scale(1);
+  }
+
+  .palette-search-wrapper {
+    display: flex;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--outline-variant);
+    background: var(--surface-container-low);
+  }
+
+  .palette-search-wrapper span {
+    color: var(--on-surface-variant);
+    font-size: 1.5rem;
+    margin-right: 12px;
+  }
+
+  .palette-input {
+    border: none;
+    background: transparent;
+    width: 100%;
+    font-size: 1.2rem;
+    color: var(--on-surface);
+    outline: none;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .palette-input::placeholder {
+    color: var(--on-surface-variant);
+    opacity: 0.7;
+  }
+
+  .palette-results {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  .palette-item {
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    color: var(--on-surface);
+    transition: background 0.1s ease;
+    text-decoration: none;
+    border-left: 3px solid transparent;
+  }
+
+  .palette-item:hover,
+  .palette-item.active-item {
+    background: var(--surface-container-high);
+    border-left-color: var(--primary);
+  }
+
+  .palette-item-icon {
+    color: var(--on-surface-variant);
+    font-size: 1.2rem;
+  }
+
+  .palette-item-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .palette-item-desc {
+    font-size: 0.8rem;
+    color: var(--on-surface-variant);
+    flex: 1;
+    text-align: right;
+  }
+
+  #ai-palette-loading {
+    padding: 16px;
+    text-align: center;
+    color: var(--on-surface-variant);
+    font-size: 0.9rem;
+    display: none;
+  }
+</style>
+
+<div class="palette-overlay" id="cmdKOverlay">
+  <div class="palette-box">
+    <div class="palette-search-wrapper">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text" class="palette-input" id="cmdKInput" placeholder="Navigate or ask AI (e.g., 'how to add course?')" autocomplete="off" spellcheck="false" />
+      <span style="font-size: 0.7rem; color: var(--on-surface-variant); background: var(--surface-container-high); padding: 4px 8px; border-radius: 4px; font-weight: bold;">ESC</span>
+    </div>
+    <div id="ai-palette-loading"><span class="material-symbols-outlined" style="animation: spin 1s linear infinite; vertical-align: middle;">sync</span> AI Processing...</div>
+    <div class="palette-results" id="cmdKResults"></div>
+  </div>
+</div>
+
+<script>
+  const staticRoutes = [{
+      id: 'dashboard',
+      title: 'Dashboard',
+      desc: 'Overview metrics',
+      url: 'index.php?page=dashboard',
+      icon: 'dashboard'
+    },
+    {
+      id: 'status',
+      title: 'Status Control',
+      desc: 'Checkin/checkout mode',
+      url: 'index.php?page=status',
+      icon: 'analytics'
+    },
+    {
+      id: 'settings',
+      title: 'Settings',
+      desc: 'System configuration',
+      url: 'index.php?page=settings',
+      icon: 'settings'
+    },
+    {
+      id: 'roles',
+      title: 'Roles',
+      desc: 'Manage permissions',
+      url: 'index.php?page=roles',
+      icon: 'admin_panel_settings'
+    },
+    {
+      id: 'accounts',
+      title: 'Accounts',
+      desc: 'Manage admins',
+      url: 'index.php?page=accounts',
+      icon: 'group'
+    },
+    {
+      id: 'logs',
+      title: 'Logs',
+      desc: 'View general logs',
+      url: 'index.php?page=logs',
+      icon: 'history_edu'
+    },
+    {
+      id: 'support_tickets',
+      title: 'Support Tickets',
+      desc: 'Resolve complaints',
+      url: 'index.php?page=support_tickets',
+      icon: 'support_agent'
+    }
+  ];
+
+  const overlay = document.getElementById('cmdKOverlay');
+  const input = document.getElementById('cmdKInput');
+  const results = document.getElementById('cmdKResults');
+  const loading = document.getElementById('ai-palette-loading');
+
+  let debounceTimer;
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      openPalette();
+    }
+    if (e.key === 'Escape' && overlay.classList.contains('active')) {
+      closePalette();
+    }
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closePalette();
+  });
+
+  function openPalette() {
+    overlay.classList.add('active');
+    input.value = '';
+    renderResults(staticRoutes);
+    setTimeout(() => input.focus(), 50);
+  }
+
+  function closePalette() {
+    overlay.classList.remove('active');
+    input.blur();
+  }
+
+  input.addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    if (!q) {
+      renderResults(staticRoutes);
+      return;
+    }
+    const localMatches = staticRoutes.filter(r => r.title.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q));
+    renderResults(localMatches);
+
+    clearTimeout(debounceTimer);
+    if (q.length > 5 && q.includes(' ')) {
+      debounceTimer = setTimeout(() => {
+        queryAIPalette(q);
+      }, 600);
+    }
+  });
+
+  function queryAIPalette(text) {
+    if (!text) return;
+    loading.style.display = 'block';
+    fetch('api_nav_assistant.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: text
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        loading.style.display = 'none';
+        if (data.ok && data.results && data.results.length > 0) {
+          renderResults(data.results.map(r => ({
+            title: r.title,
+            desc: 'AI Nav Suggestion \u2728',
+            url: r.url,
+            icon: 'auto_awesome'
+          })));
+        }
+      })
+      .catch(() => loading.style.display = 'none');
+  }
+
+  function renderResults(list) {
+    results.innerHTML = '';
+    if (list.length === 0) {
+      results.innerHTML = '<div style="padding:24px;text-align:center;color:var(--on-surface-variant);">No rapid jumps found... press enter to let AI process this!</div>';
+      return;
+    }
+    list.forEach((item, index) => {
+      const div = document.createElement('a');
+      div.className = 'palette-item' + (index === 0 ? ' active-item' : '');
+      div.href = item.url;
+      const icon = document.createElement('span');
+      icon.className = 'material-symbols-outlined palette-item-icon';
+      icon.textContent = item.icon || 'arrow_forward';
+
+      const title = document.createElement('span');
+      title.className = 'palette-item-title';
+      title.textContent = item.title || 'Untitled';
+
+      const desc = document.createElement('span');
+      desc.className = 'palette-item-desc';
+      desc.textContent = item.desc || '';
+
+      div.appendChild(icon);
+      div.appendChild(title);
+      div.appendChild(desc);
+      results.appendChild(div);
+    });
+  }
+
+  input.addEventListener('keydown', (e) => {
+    const items = Array.from(results.querySelectorAll('.palette-item'));
+    const activeIdx = items.findIndex(i => i.classList.contains('active-item'));
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (activeIdx < items.length - 1) {
+        if (activeIdx >= 0) items[activeIdx].classList.remove('active-item');
+        items[activeIdx + 1].classList.add('active-item');
+        items[activeIdx + 1].scrollIntoView({
+          block: 'nearest'
+        });
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (activeIdx > 0) {
+        items[activeIdx].classList.remove('active-item');
+        items[activeIdx - 1].classList.add('active-item');
+        items[activeIdx - 1].scrollIntoView({
+          block: 'nearest'
+        });
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIdx >= 0) {
+        window.location.href = items[activeIdx].href;
+      } else {
+        queryAIPalette(input.value.trim());
+      }
+    }
+  });
+</script>

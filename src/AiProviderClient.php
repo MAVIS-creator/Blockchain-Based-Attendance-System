@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../env_helpers.php';
+require_once __DIR__ . '/AiSiteStructureContext.php';
 
 class AiProviderClient
 {
@@ -30,30 +31,34 @@ class AiProviderClient
 
   public static function suggestTicketResolution(array $ticket, array $diagnosis)
   {
-    $prompt = self::buildPrompt($ticket, $diagnosis, 'admin');
+    $site = self::getSiteContextBundle('admin');
+    $prompt = self::buildPrompt($ticket, $diagnosis, 'admin', (string)($site['context'] ?? ''));
     $systemPrompt = 'You are an attendance support operations assistant. Respond with concise admin action guidance in plain text. Keep it practical and niche-specific to attendance ops.';
     $res = self::queryWithFallback($prompt, $systemPrompt, $ticket, 'ticket_resolution');
     if (!empty($res['ok'])) {
-      return $res;
+      return self::applyContextMeta($res, $site);
     }
 
-    return self::ruleBasedSuggestion($ticket, $diagnosis);
+    return self::applyContextMeta(self::ruleBasedSuggestion($ticket, $diagnosis), $site);
   }
 
   public static function suggestFingerprintResponse(array $ticket, array $diagnosis)
   {
-    $prompt = self::buildPrompt($ticket, $diagnosis, 'student_fingerprint_message');
+    $site = self::getSiteContextBundle('student_fingerprint_message');
+    $prompt = self::buildPrompt($ticket, $diagnosis, 'student_fingerprint_message', (string)($site['context'] ?? ''));
     $systemPrompt = 'You are Attendance AI. Generate one short direct student-facing message tailored to this specific fingerprint context. Be warm, specific, and avoid generic wording. Plain text only.';
     $res = self::queryWithFallback($prompt, $systemPrompt, $ticket, 'fingerprint_response');
     if (!empty($res['ok'])) {
-      return $res;
+      return self::applyContextMeta($res, $site);
     }
 
-    return self::ruleBasedFingerprintResponse($ticket, $diagnosis);
+    return self::applyContextMeta(self::ruleBasedFingerprintResponse($ticket, $diagnosis), $site);
   }
 
   public static function suggestAdminChatReply($adminMessage, array $context = [])
   {
+    $adminMessageRaw = trim((string)$adminMessage);
+    $adminMessageLower = strtolower($adminMessageRaw);
     $ticket = [
       'message' => (string)$adminMessage,
       'fingerprint' => (string)($context['fingerprint'] ?? ''),
@@ -72,17 +77,118 @@ class AiProviderClient
       'checkoutCount' => (int)($context['checkoutCount'] ?? 0),
     ];
 
-    $prompt = "Admin chat message: " . trim((string)$adminMessage) . "\n"
-      . "Context: pending_review_count=" . (int)($context['pending_review_count'] ?? 0) . ", provider_mode=" . self::providerMode() . ".\n"
-      . self::buildPrompt($ticket, $diagnosis, 'admin_chat');
+    $site = self::getSiteContextBundle('admin_chat');
+    $recentMessages = isset($context['recent_messages']) && is_array($context['recent_messages']) ? $context['recent_messages'] : [];
+    $recentMessagesText = '';
+    if (!empty($recentMessages)) {
+      $lines = [];
+      foreach ($recentMessages as $row) {
+        if (!is_array($row)) {
+          continue;
+        }
+        $name = trim((string)($row['name'] ?? 'Admin'));
+        $message = trim((string)($row['message'] ?? ''));
+        if ($message === '') {
+          continue;
+        }
+        $lines[] = '- ' . ($name !== '' ? $name : 'Admin') . ': ' . $message;
+      }
+      if (!empty($lines)) {
+        $recentMessagesText = "Recent chat context:\n" . implode("\n", array_slice($lines, -6)) . "\n";
+      }
+    }
+    $assistantName = trim((string)($context['assistant_name'] ?? 'Sentinel AI'));
+    if ($assistantName === '') {
+      $assistantName = 'Sentinel AI';
+    }
 
-    $systemPrompt = 'You are the internal Attendance AI assistant for admins. Reply like a real AI assistant but focused on this platform operations. Keep response under 4 short sentences, plain text only.';
+    $prompt = "Admin chat message: " . $adminMessageRaw . "\n"
+      . "Context: pending_review_count=" . (int)($context['pending_review_count'] ?? 0) . ", provider_mode=" . self::providerMode() . ".\n"
+      . $recentMessagesText
+      . self::buildPrompt($ticket, $diagnosis, 'admin_chat', (string)($site['context'] ?? ''));
+
+    $allowHumor = !empty($context['allow_humor']);
+    $allowGreetingFiller = (bool)preg_match('/\b(hello|hi|hey|good\s+(morning|afternoon|evening)|how\s+are\s+you|who\s+are\s+you|can\s+you|could\s+you|what\s+can\s+you\s+do)\b/i', $adminMessageRaw);
+
+    $humorRule = $allowHumor
+      ? 'Humor mode is enabled: dry, subtle humor is allowed only when relevant. Never joke about users, errors, incidents, or failures.'
+      : 'Humor mode is disabled: keep tone neutral and operational.';
+    $emojiRule = $allowHumor
+      ? 'Emojis are allowed only in admin chat humor replies and only when contextually appropriate. Use at most one subtle emoji.'
+      : 'Do not use emojis.';
+    $greetingRule = $allowGreetingFiller
+      ? 'Because the admin asked in a conversational tone, one brief greeting/filler clause is allowed before the core answer.'
+      : 'Skip greetings/filler and answer directly.';
+
+    $systemPrompt = $assistantName
+      . ' is Sentinel AI, the internal System Guardian and Operations Assistant for admins. '
+      . 'Tone: calm, observant, precise, quietly authoritative. Not chatty. '
+      . 'Response format: Observation -> Conclusion -> Action (if needed), in 2-4 short sentences. '
+      . 'Confidence policy: high confidence = direct statement; medium confidence = recommend targeted review; low confidence = escalate clearly. '
+      . 'If explaining navigation, include a markdown link like [Go to Status](index.php?page=status). Use plain text and markdown links only. '
+      . $greetingRule . ' ' . $emojiRule . ' ' . $humorRule;
     $res = self::queryWithFallback($prompt, $systemPrompt, $ticket, 'admin_chat_reply');
     if (!empty($res['ok'])) {
+      return self::applyContextMeta($res, $site);
+    }
+
+    return self::applyContextMeta(self::ruleBasedAdminChatResponse($adminMessage, $context), $site);
+  }
+
+  private static function getSiteContextBundle($audience)
+  {
+    if (!class_exists('AiSiteStructureContext') || !method_exists('AiSiteStructureContext', 'getBundle')) {
+      return ['enabled' => false, 'context' => '', 'meta' => []];
+    }
+    $bundle = AiSiteStructureContext::getBundle((string)$audience);
+    return is_array($bundle) ? $bundle : ['enabled' => false, 'context' => '', 'meta' => []];
+  }
+
+  private static function applyContextMeta(array $response, array $bundle)
+  {
+    $meta = (isset($bundle['meta']) && is_array($bundle['meta'])) ? $bundle['meta'] : [];
+    $response['site_context_enabled'] = !empty($bundle['enabled']);
+    $response['site_context_version'] = (string)($meta['version'] ?? 'site-context-v1');
+    $response['site_context_source_count'] = (int)($meta['source_count'] ?? 0);
+    $response['site_context_indexed_pages'] = (int)($meta['indexed_pages'] ?? 0);
+    $response['site_context_last_scan_at'] = (string)($meta['last_scan_at'] ?? '');
+    return $response;
+  }
+
+  public static function suggestAdminNavigationHelp($adminQuery, array $context = [])
+  {
+    $ticket = [
+      'message' => (string)$adminQuery,
+      'fingerprint' => 'admin_nav',
+      'timestamp' => date('c'),
+      'matric' => 'admin',
+      'course' => 'Navigation',
+      'requested_action' => 'navigating',
+    ];
+
+    $prompt = "Admin asked: " . trim((string)$adminQuery) . "\n"
+      . "Context: They are looking for a page in the admin dashboard. The available pages are: Dashboard, Status, Logs, Request Timings, Chain, Failed Attempts, Clear / Backup, Clear Tokens, Email Logs, Add Course, Set Active Course, Manual Attendance, Geo-fence, Announcement, Unlink Fingerprint, Patcher, Support Tickets, AI Suggestions, Role Privileges, Action Audit Log, Manage Accounts, System Settings.";
+
+    $systemPrompt = "You are the Attendance Admin Command Palette Navigation Assistant. "
+      . "Your only goal is to guide the admin to the exact page they need. "
+      . "Give a highly concise 1-2 sentence response. "
+      . "Return the answer in plain text. Format your response exactly like this: "
+      . "[Your helpful sentence] => [Target Page]. "
+      . "Example: 'To enable check-in mode, go to the Status page. => Status'.";
+
+    $res = self::queryWithFallback($prompt, $systemPrompt, $ticket, 'admin_nav_help');
+
+    if (!empty($res['ok']) && trim((string)$res['suggestion']) !== '') {
       return $res;
     }
 
-    return self::ruleBasedAdminChatResponse($adminMessage, $context);
+    return [
+      'ok' => true,
+      'provider' => 'rules',
+      'model' => 'rules-nav-v1',
+      'latency_ms' => 0,
+      'suggestion' => 'I can help you navigate. Use the Sidebar or type a specific keyword (e.g. Logs, Course, Settings) => Dashboard'
+    ];
   }
 
   private static function metricsFile()
@@ -444,7 +550,7 @@ class AiProviderClient
     ];
   }
 
-  private static function buildPrompt(array $ticket, array $diagnosis, $audience = 'admin')
+  private static function buildPrompt(array $ticket, array $diagnosis, $audience = 'admin', $siteContext = '')
   {
     $matric = (string)($ticket['matric'] ?? 'unknown');
     $course = (string)($ticket['course'] ?? 'General');
@@ -457,7 +563,7 @@ class AiProviderClient
     $style = $styles[$seed % count($styles)];
     $fpShort = substr($fingerprint, 0, 8);
 
-    return sprintf(
+    $basePrompt = sprintf(
       "Audience=%s. Response style=%s. Keep response non-generic and tailored to fingerprint segment %s. Ticket context: matric=%s, course=%s, requested_action=%s, classification=%s, confidence=%.2f, fpMatch=%s, ipMatch=%s, revoked=%s, checkinCount=%d, checkoutCount=%d, student_message=%s",
       $audience,
       $style,
@@ -474,6 +580,15 @@ class AiProviderClient
       (int)($diagnosis['checkoutCount'] ?? 0),
       $message !== '' ? $message : 'none'
     );
+
+    $siteContext = trim((string)$siteContext);
+    if ($siteContext === '') {
+      return $basePrompt;
+    }
+
+    return $basePrompt
+      . "\n\nUse this site structure/navigation context for direct, source-backed answers (never guess routes):\n"
+      . $siteContext;
   }
 
   private static function ruleBasedSuggestion(array $ticket, array $diagnosis)
@@ -595,14 +710,34 @@ class AiProviderClient
   private static function ruleBasedAdminChatResponse($adminMessage, array $context = [])
   {
     $msg = strtolower(trim((string)$adminMessage));
-    $reply = 'I can help. Share matric, course, and failed action (checkin/checkout) and I will suggest the safest next step.';
+    $allowHumor = !empty($context['allow_humor']);
+    $isGreeting = (bool)preg_match('/\b(hello|hi|hey|good\s+(morning|afternoon|evening))\b/i', (string)$adminMessage);
+    $isCapabilityRequest = (bool)preg_match('/\b(what\s+can\s+you\s+do|capabilit(y|ies)|apart\s+from\s+tickets?|apart\s+from\s+announcements?|help\s+with\s+what)\b/i', (string)$adminMessage);
+
+    $reply = 'Observation: input context is limited. Conclusion: a precise recommendation requires matric, course, and failed action. Action: share those fields for exact next-step guidance.';
+
+    if ($isCapabilityRequest) {
+      return [
+        'ok' => true,
+        'provider' => 'rules',
+        'model' => 'rules-chat-v1',
+        'latency_ms' => 0,
+        'suggestion' => 'Beyond tickets and announcements, I can: (1) map admins to exact dashboard pages with route links, (2) summarize pending-review patterns and likely root causes, (3) advise checkin/checkout rule enforcement and guardrails, (4) assess fingerprint/IP/device mismatch risk, (5) suggest course-scoped remediation order, and (6) generate concise operator-ready next actions from current chat context.'
+      ];
+    }
 
     if (strpos($msg, 'pending') !== false || strpos($msg, 'review') !== false) {
-      $reply = 'Current priority is unresolved high-risk diagnostics first, then IP-rotation cases. I can summarize exact tickets if you want.';
+      $reply = 'Observation: unresolved high-risk diagnostics are present. Conclusion: queue health is constrained by priority incidents. Action: resolve revoked-device and fraud-sequence cases first, then process IP-rotation reviews.';
     } elseif (strpos($msg, 'fingerprint') !== false || strpos($msg, 'device') !== false) {
-      $reply = 'For fingerprint mismatches, verify identity first. If it is a new device, keep manual review; if known with stable history, apply guarded remediation.';
+      $reply = 'Observation: fingerprint/device mismatch is the active signal. Conclusion: identity verification is required before attendance writes. Action: keep new-device cases in manual review; allow guarded remediation only for verified known-device history.';
     } elseif (strpos($msg, 'checkin') !== false || strpos($msg, 'checkout') !== false) {
-      $reply = 'I recommend course-scoped validation: no duplicate checkin, no checkout without prior checkin, and no duplicate checkout.';
+      $reply = 'Observation: attendance action validation is requested. Conclusion: course-scoped guardrails must be enforced. Action: block duplicate checkin, block checkout without prior checkin, and block duplicate checkout.';
+    } elseif ($isGreeting) {
+      $reply = 'Hello. Sentinel AI is online and ready to assist with operations diagnostics and route guidance.';
+    }
+
+    if ($allowHumor && (strpos($msg, 'joke') !== false || strpos($msg, 'humor') !== false || strpos($msg, 'funny') !== false)) {
+      $reply = 'Observation: duplicate attempt detected. Conclusion: the system remains unconvinced. Action: verify the prior attendance record before retrying. 🙂';
     }
 
     return [

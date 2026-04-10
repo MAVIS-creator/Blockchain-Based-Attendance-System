@@ -4,6 +4,11 @@ require_once __DIR__ . '/../admin/state_helpers.php';
 
 class AiAdminChatAssistant
 {
+  private static function chatMessageId()
+  {
+    return 'msg_' . bin2hex(random_bytes(8));
+  }
+
   public static function postInsight($message, array $meta = [])
   {
     $message = trim((string)$message);
@@ -21,12 +26,14 @@ class AiAdminChatAssistant
     }
 
     $entry = [
+      'id' => self::chatMessageId(),
       'user' => 'system_ai_operator',
-      'name' => 'System AI Operator',
+      'name' => 'Sentinel AI',
       'time' => date('c'),
       'message' => $message,
       'auto_replied_by' => 'system_ai_operator',
       'context' => 'support_ticket_diagnostics',
+      'deleted' => false,
     ];
 
     foreach ($meta as $k => $v) {

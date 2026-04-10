@@ -32,6 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $error = 'That role name is reserved and cannot be created.';
     } elseif (isset($permissions[$role])) {
       $error = 'Role already exists.';
+    } elseif (count($permissions) >= 12) { // 10 custom roles + 2 built-in
+      $error = 'Maximum limit of 10 custom roles reached. Please delete an old role first.';
     } else {
       $permissions[$role] = ['dashboard', 'status', 'profile_settings'];
       if (@file_put_contents($permissionsFile, json_encode($permissions, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) !== false) {

@@ -2,6 +2,7 @@
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/cache_helpers.php';
 require_once __DIR__ . '/state_helpers.php';
+require_once __DIR__ . '/includes/ai_recommendation_formatter.php';
 app_storage_init();
 
 $diagFile = function_exists('ai_ticket_diagnostics_file')
@@ -33,6 +34,9 @@ $needsReview = array_values(array_filter($rows, function ($r) {
   <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">
     Real-time AI recommendations for support tickets. High-risk or unresolved items are listed first for admin action.
   </p>
+  <p style="color:var(--on-surface-variant);font-size:0.82rem;margin:6px 0 0;">
+    <strong>Note:</strong> The <em>Recommendation</em> field on each card is the AI-generated review plan for that ticket.
+  </p>
 </div>
 
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px 0;">
@@ -42,6 +46,10 @@ $needsReview = array_values(array_filter($rows, function ($r) {
     <span class="material-symbols-outlined" style="font-size:1rem;">confirmation_number</span>
     Open Support Tickets
   </a>
+</div>
+
+<div style="margin:0 0 14px 0;padding:10px 12px;border-radius:10px;background:var(--surface-container-lowest);border:1px dashed var(--outline-variant);color:var(--on-surface-variant);font-size:0.8rem;">
+  If this page is not visible in your sidebar, ask superadmin to enable <strong>AI Suggestions</strong> for your role in <code>index.php?page=roles</code>.
 </div>
 
 <?php if (empty($rows)): ?>
@@ -78,7 +86,12 @@ $needsReview = array_values(array_filter($rows, function ($r) {
           <div><strong>Requested:</strong> <?= htmlspecialchars((string)($row['requested_action'] ?? 'n/a')) ?></div>
           <div><strong>FP/IP:</strong> <?= !empty($row['fpMatch']) ? 'match' : 'no-fp-match' ?> / <?= !empty($row['ipMatch']) ? 'match' : 'no-ip-match' ?></div>
           <div><strong>AI:</strong> <?= htmlspecialchars((string)($row['ai_provider'] ?? 'rules')) ?> · <?= htmlspecialchars((string)($row['ai_model'] ?? 'rules-v1')) ?> · <?= (int)($row['ai_latency_ms'] ?? 0) ?>ms</div>
-          <div><strong>Recommendation:</strong> <?= htmlspecialchars((string)($row['suggested_admin_action'] ?? 'Review needed.')) ?></div>
+          <div>
+            <strong>Recommendation:</strong>
+            <div style="margin-top:4px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.55);border:1px solid rgba(0,0,0,0.06);color:var(--on-surface);">
+              <?= ai_recommendation_render_html((string)($row['suggested_admin_action'] ?? 'Review needed.')) ?>
+            </div>
+          </div>
           <div><strong>Status:</strong> <?= !empty($row['ticket_resolved']) ? 'resolved' : 'needs admin review' ?></div>
           <div><strong>At:</strong> <?= htmlspecialchars((string)($row['processed_at'] ?? '-')) ?></div>
         </div>

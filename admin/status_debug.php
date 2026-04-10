@@ -188,12 +188,24 @@ $publicState = ($publicIndexRedirect || $publicIndexClosed) ? 'CLOSED' : 'OPEN';
   <div class="st-card" style="margin-bottom:24px;">
     <p style="font-weight:700;color:var(--on-surface);margin:0 0 12px;">Public Endpoint Probe</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
-      <div><strong>`status_api.php`</strong><div><?= htmlspecialchars($publicStatusApiUrl) ?></div></div>
-      <div><strong>`status_api.php` code</strong><div><?= htmlspecialchars((string)($publicStatusProbe['status_code'] ?? 'n/a')) ?></div></div>
-      <div><strong>Public JSON</strong><div><?= is_array($publicStatusJson) ? htmlspecialchars(json_encode($publicStatusJson)) : 'invalid / unavailable' ?></div></div>
-      <div><strong>Public JSON error</strong><div><?= htmlspecialchars($publicStatusJsonError !== '' ? $publicStatusJsonError : 'none') ?></div></div>
-      <div><strong>`index.php`</strong><div><?= htmlspecialchars($publicIndexUrl) ?></div></div>
-      <div><strong>Public site state</strong><div style="color:<?= $publicState === 'OPEN' ? '#059669' : '#dc2626' ?>;font-weight:700;"><?= $publicState ?></div></div>
+      <div><strong>`status_api.php`</strong>
+        <div><?= htmlspecialchars($publicStatusApiUrl) ?></div>
+      </div>
+      <div><strong>`status_api.php` code</strong>
+        <div><?= htmlspecialchars((string)($publicStatusProbe['status_code'] ?? 'n/a')) ?></div>
+      </div>
+      <div><strong>Public JSON</strong>
+        <div><?= is_array($publicStatusJson) ? htmlspecialchars(json_encode($publicStatusJson)) : 'invalid / unavailable' ?></div>
+      </div>
+      <div><strong>Public JSON error</strong>
+        <div><?= htmlspecialchars($publicStatusJsonError !== '' ? $publicStatusJsonError : 'none') ?></div>
+      </div>
+      <div><strong>`index.php`</strong>
+        <div><?= htmlspecialchars($publicIndexUrl) ?></div>
+      </div>
+      <div><strong>Public site state</strong>
+        <div style="color:<?= $publicState === 'OPEN' ? '#059669' : '#dc2626' ?>;font-weight:700;"><?= $publicState ?></div>
+      </div>
     </div>
     <div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--surface-container-low);color:var(--on-surface);">
       <strong>Public-side result:</strong>
@@ -212,12 +224,24 @@ $publicState = ($publicIndexRedirect || $publicIndexClosed) ? 'CLOSED' : 'OPEN';
   <div class="st-card" style="margin-bottom:24px;">
     <p style="font-weight:700;color:var(--on-surface);margin:0 0 12px;">Public Logic Normalized Status</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
-      <div><strong>checkin</strong><div><?= !empty($publicNormalized['checkin']) ? 'true' : 'false' ?></div></div>
-      <div><strong>checkout</strong><div><?= !empty($publicNormalized['checkout']) ? 'true' : 'false' ?></div></div>
-      <div><strong>end_time</strong><div><?= isset($publicNormalized['end_time']) && $publicNormalized['end_time'] !== null ? htmlspecialchars((string)$publicNormalized['end_time']) : 'null' ?></div></div>
-      <div><strong>end_time human</strong><div><?= isset($publicNormalized['end_time']) && $publicNormalized['end_time'] !== null ? htmlspecialchars(date('Y-m-d H:i:s', (int)$publicNormalized['end_time'])) : 'null' ?></div></div>
-      <div><strong>active_mode_configured</strong><div><?= $activeModeConfigured ? 'true' : 'false' ?></div></div>
-      <div><strong>timer_valid</strong><div><?= $timerValid ? 'true' : 'false' ?></div></div>
+      <div><strong>checkin</strong>
+        <div><?= !empty($publicNormalized['checkin']) ? 'true' : 'false' ?></div>
+      </div>
+      <div><strong>checkout</strong>
+        <div><?= !empty($publicNormalized['checkout']) ? 'true' : 'false' ?></div>
+      </div>
+      <div><strong>end_time</strong>
+        <div><?= isset($publicNormalized['end_time']) && $publicNormalized['end_time'] !== null ? htmlspecialchars((string)$publicNormalized['end_time']) : 'null' ?></div>
+      </div>
+      <div><strong>end_time human</strong>
+        <div><?= isset($publicNormalized['end_time']) && $publicNormalized['end_time'] !== null ? htmlspecialchars(date('Y-m-d H:i:s', (int)$publicNormalized['end_time'])) : 'null' ?></div>
+      </div>
+      <div><strong>active_mode_configured</strong>
+        <div><?= $activeModeConfigured ? 'true' : 'false' ?></div>
+      </div>
+      <div><strong>timer_valid</strong>
+        <div><?= $timerValid ? 'true' : 'false' ?></div>
+      </div>
     </div>
     <div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--surface-container-low);color:var(--on-surface);">
       <strong>Interpretation:</strong> <?= htmlspecialchars($redirectReason) ?>
@@ -227,25 +251,51 @@ $publicState = ($publicIndexRedirect || $publicIndexClosed) ? 'CLOSED' : 'OPEN';
   <div class="st-card" style="margin-bottom:24px;">
     <p style="font-weight:700;color:var(--on-surface);margin:0 0 12px;">Raw File State</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
-      <div><strong>exists</strong><div><?= $rawExists ? 'true' : 'false' ?></div></div>
-      <div><strong>readable</strong><div><?= $rawReadable ? 'true' : 'false' ?></div></div>
-      <div><strong>raw checkin</strong><div><?= htmlspecialchars(var_export($rawCheckin, true)) ?></div></div>
-      <div><strong>raw checkout</strong><div><?= htmlspecialchars(var_export($rawCheckout, true)) ?></div></div>
-      <div><strong>raw end_time</strong><div><?= htmlspecialchars(var_export($rawEndTime, true)) ?></div></div>
-      <div><strong>json error</strong><div><?= htmlspecialchars($jsonError !== '' ? $jsonError : 'none') ?></div></div>
+      <div><strong>exists</strong>
+        <div><?= $rawExists ? 'true' : 'false' ?></div>
+      </div>
+      <div><strong>readable</strong>
+        <div><?= $rawReadable ? 'true' : 'false' ?></div>
+      </div>
+      <div><strong>raw checkin</strong>
+        <div><?= htmlspecialchars(var_export($rawCheckin, true)) ?></div>
+      </div>
+      <div><strong>raw checkout</strong>
+        <div><?= htmlspecialchars(var_export($rawCheckout, true)) ?></div>
+      </div>
+      <div><strong>raw end_time</strong>
+        <div><?= htmlspecialchars(var_export($rawEndTime, true)) ?></div>
+      </div>
+      <div><strong>json error</strong>
+        <div><?= htmlspecialchars($jsonError !== '' ? $jsonError : 'none') ?></div>
+      </div>
     </div>
   </div>
 
   <div class="st-card" style="margin-bottom:24px;">
     <p style="font-weight:700;color:var(--on-surface);margin:0 0 12px;">Storage Write Diagnostics</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
-      <div><strong>storage dir</strong><div style="word-break:break-all;"><?= htmlspecialchars($statusDir) ?></div></div>
-      <div><strong>dir exists</strong><div><?= $statusDirExists ? 'true' : 'false' ?></div></div>
-      <div><strong>dir writable</strong><div style="color:<?= $statusDirWritable ? '#059669' : '#dc2626' ?>;"><?= $statusDirWritable ? 'true' : 'false' ?></div></div>
-      <div><strong>status writable</strong><div style="color:<?= $statusFileWritable ? '#059669' : '#dc2626' ?>;"><?= $statusFileWritable ? 'true' : 'false' ?></div></div>
-      <div><strong>probe write</strong><div style="color:<?= $writeProbeOk ? '#059669' : '#dc2626' ?>;"><?= $writeProbeOk ? 'ok' : 'failed' ?></div></div>
-      <div><strong>probe read-back</strong><div style="color:<?= $writeProbeReadBackMatches ? '#059669' : '#dc2626' ?>;"><?= $writeProbeReadBackMatches ? 'match' : 'mismatch' ?></div></div>
-      <div><strong>probe error</strong><div><?= htmlspecialchars($writeProbeError !== '' ? $writeProbeError : 'none') ?></div></div>
+      <div><strong>storage dir</strong>
+        <div style="word-break:break-all;"><?= htmlspecialchars($statusDir) ?></div>
+      </div>
+      <div><strong>dir exists</strong>
+        <div><?= $statusDirExists ? 'true' : 'false' ?></div>
+      </div>
+      <div><strong>dir writable</strong>
+        <div style="color:<?= $statusDirWritable ? '#059669' : '#dc2626' ?>;"><?= $statusDirWritable ? 'true' : 'false' ?></div>
+      </div>
+      <div><strong>status writable</strong>
+        <div style="color:<?= $statusFileWritable ? '#059669' : '#dc2626' ?>;"><?= $statusFileWritable ? 'true' : 'false' ?></div>
+      </div>
+      <div><strong>probe write</strong>
+        <div style="color:<?= $writeProbeOk ? '#059669' : '#dc2626' ?>;"><?= $writeProbeOk ? 'ok' : 'failed' ?></div>
+      </div>
+      <div><strong>probe read-back</strong>
+        <div style="color:<?= $writeProbeReadBackMatches ? '#059669' : '#dc2626' ?>;"><?= $writeProbeReadBackMatches ? 'match' : 'mismatch' ?></div>
+      </div>
+      <div><strong>probe error</strong>
+        <div><?= htmlspecialchars($writeProbeError !== '' ? $writeProbeError : 'none') ?></div>
+      </div>
     </div>
   </div>
 

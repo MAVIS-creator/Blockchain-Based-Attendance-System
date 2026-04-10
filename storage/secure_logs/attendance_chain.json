@@ -1,0 +1,14 @@
+[
+    {
+        "timestamp": "2026-04-10 14:03:45",
+        "name": "Test Student A",
+        "matric": "9999990001",
+        "action": "checkin",
+        "fingerprint": "ccbf1cf9938d5e6be2c06a1dfa186491_753491e5-91a4-442a-ba62-37e71657286d",
+        "ip": "::1",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        "course": "Group 14",
+        "prevHash": null,
+        "hash": "f52eaf5906d7e102a688d38f68d9e96c01c6797290e19219eeae0343d9bd4021"
+    }
+]

@@ -111,7 +111,7 @@ sort($admins);
                     </thead>
                     <tbody>
                         <?php foreach ($allLogs as $i => $log): ?>
-                            <tr class="audit-row" 
+                            <tr class="audit-row"
                                 data-admin="<?= htmlspecialchars($log['admin'] ?? '') ?>"
                                 data-category="<?= htmlspecialchars($log['category'] ?? '') ?>"
                                 data-search="<?= htmlspecialchars(strtolower(($log['action'] ?? '') . ' ' . ($log['details'] ?? ''))) ?>"
@@ -153,37 +153,37 @@ sort($admins);
 </div>
 
 <script>
-function applyFilters() {
-    const adminFilter = document.getElementById('filterAdmin').value.toLowerCase();
-    const categoryFilter = document.getElementById('filterCategory').value.toLowerCase();
-    const searchFilter = document.getElementById('filterSearch').value.toLowerCase();
-    const rows = document.querySelectorAll('.audit-row');
-    let visible = 0;
-    
-    rows.forEach(row => {
-        const admin = (row.dataset.admin || '').toLowerCase();
-        const category = (row.dataset.category || '').toLowerCase();
-        const search = (row.dataset.search || '').toLowerCase();
-        
-        let show = true;
-        if (adminFilter && admin !== adminFilter) show = false;
-        if (categoryFilter && category !== categoryFilter) show = false;
-        if (searchFilter && search.indexOf(searchFilter) === -1) show = false;
-        
-        row.style.display = show ? '' : 'none';
-        if (show) visible++;
+    function applyFilters() {
+        const adminFilter = document.getElementById('filterAdmin').value.toLowerCase();
+        const categoryFilter = document.getElementById('filterCategory').value.toLowerCase();
+        const searchFilter = document.getElementById('filterSearch').value.toLowerCase();
+        const rows = document.querySelectorAll('.audit-row');
+        let visible = 0;
+
+        rows.forEach(row => {
+            const admin = (row.dataset.admin || '').toLowerCase();
+            const category = (row.dataset.category || '').toLowerCase();
+            const search = (row.dataset.search || '').toLowerCase();
+
+            let show = true;
+            if (adminFilter && admin !== adminFilter) show = false;
+            if (categoryFilter && category !== categoryFilter) show = false;
+            if (searchFilter && search.indexOf(searchFilter) === -1) show = false;
+
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        document.getElementById('resultsCount').textContent =
+            `Showing ${visible} of ${rows.length} entries`;
+    }
+
+    // Add hover effect
+    document.querySelectorAll('.audit-row').forEach(row => {
+        row.addEventListener('mouseenter', () => row.style.background = 'var(--surface-container)');
+        row.addEventListener('mouseleave', () => row.style.background = '');
     });
-    
-    document.getElementById('resultsCount').textContent = 
-        `Showing ${visible} of ${rows.length} entries`;
-}
 
-// Add hover effect
-document.querySelectorAll('.audit-row').forEach(row => {
-    row.addEventListener('mouseenter', () => row.style.background = 'var(--surface-container)');
-    row.addEventListener('mouseleave', () => row.style.background = '');
-});
-
-// Init count
-applyFilters();
+    // Init count
+    applyFilters();
 </script>

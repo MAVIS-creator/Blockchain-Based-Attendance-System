@@ -251,6 +251,12 @@ if (empty($aiDiagRows) && !empty($metricsRows)) {
         <span class="st-stat-badge success">Avg: <?= (int)$aiAvgLatencyMs ?>ms</span>
         <span class="st-stat-badge <?= $aiPendingReviewCount > 0 ? 'danger' : 'success' ?>">Pending: <?= (int)$aiPendingReviewCount ?></span>
       </div>
+      <div style="margin-top:8px;">
+        <a href="index.php?page=ai_suggestions" class="st-btn st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+          <span class="material-symbols-outlined" style="font-size:16px;">smart_toy</span>
+          Open AI Review Queue / Plan
+        </a>
+      </div>
     </div>
     <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">smart_toy</span>
   </div>

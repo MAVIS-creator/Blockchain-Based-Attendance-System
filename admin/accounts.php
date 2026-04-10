@@ -87,13 +87,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           'name' => $fullname ?: $username,
           'email' => $email,
           'avatar' => null,
-          'role' => $role
+          'role' => $role,
+          'needs_tour' => true
         ];
         file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         if (function_exists('admin_log_action')) {
           admin_log_action('Accounts', 'Account Created', "Created admin account: {$username} (role: {$role})");
         }
-        $message = "Admin account '{$username}' created with role '{$role}'.";
+        
+        $emailSent = false;
+        if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            require_once __DIR__ . '/../env_helpers.php';
+            $ENV = app_load_env_layers(__DIR__ . '/../.env');
+
+            if (!empty($ENV['APP_URL'])) {
+                $loginLink = rtrim($ENV['APP_URL'], '/') . '/admin/login.php';
+            } else {
+                $proto = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'];
+                $reqUri = $_SERVER['REQUEST_URI'];
+                $dir = dirname($reqUri);
+                if (substr($dir, -6) === '/admin') {
+                    $dir = substr($dir, 0, -6);
+                }
+                $loginLink = $proto . '://' . $host . rtrim($dir, '/') . '/admin/login.php';
+            }
+            
+            $subject = "Your Admin Account Details";
+            $headers = "MIME-Version: 1.0\r\n";
+            $headers .= "Content-type: text/html; charset=UTF-8\r\n";
+            $headers .= "From: Admin System <noreply@" . $host . ">\r\n";
+            
+            $htmlMsg = "
+            <html>
+            <body style='font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px;'>
+              <div style='max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);'>
+                <h2 style='color: #111827; margin-top: 0;'>Welcome to the Admin Portal</h2>
+                <p style='color: #4b5563; font-size: 16px;'>Hello <strong>" . htmlspecialchars($fullname ?: $username) . "</strong>,</p>
+                <p style='color: #4b5563; font-size: 16px;'>An administrator account has been provisioned for you.</p>
+                <div style='background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px dashed #d1d5db;'>
+                  <p style='margin: 5px 0; color: #111827;'><strong>Username:</strong> " . htmlspecialchars($username) . "</p>
+                  <p style='margin: 5px 0; color: #111827;'><strong>Temporary Password:</strong> " . htmlspecialchars($password) . "</p>
+                  <p style='margin: 5px 0; color: #111827;'><strong>Role Level:</strong> " . htmlspecialchars($role) . "</p>
+                </div>
+                <div style='text-align: center; margin: 30px 0;'>
+                  <a href='{$loginLink}' style='background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>Access Dashboard</a>
+                </div>
+                <p style='color: #dc2626; font-size: 14px; font-weight: bold; background-color: #fef2f2; padding: 10px; border-radius: 6px; border: 1px solid #fca5a5;'>
+                  🚨 SECURITY ACTION REQUIRED: Please change your temporary password immediately upon logging in via the Profile Settings page.
+                </p>
+              </div>
+            </body>
+            </html>
+            ";
+            // $ENV loaded above
+            $smtpHost = trim((string)($ENV['SMTP_HOST'] ?? ''));
+            $smtpUser = trim((string)($ENV['SMTP_USER'] ?? ''));
+            $smtpPass = trim((string)($ENV['SMTP_PASS'] ?? ''));
+            $smtpConfigured = ($smtpHost !== '' && $smtpUser !== '' && $smtpPass !== '');
+
+            if ($smtpConfigured && file_exists(__DIR__ . '/../vendor/autoload.php')) {
+                require_once __DIR__ . '/../vendor/autoload.php';
+                if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
+                    try {
+                        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                        $mail->isSMTP();
+                        $mail->Host = $smtpHost;
+                        $mail->Port = intval($ENV['SMTP_PORT'] ?? 587);
+                        $secure = $ENV['SMTP_SECURE'] ?? '';
+                        if ($secure) $mail->SMTPSecure = $secure;
+                        $mail->SMTPAuth = true;
+                        $mail->Username = $smtpUser;
+                        $mail->Password = $smtpPass;
+
+                        $fromEmail = $ENV['FROM_EMAIL'] ?? 'no-reply@example.com';
+                        $fromName = $ENV['FROM_NAME'] ?? 'Attendance System';
+                        $mail->setFrom($fromEmail, $fromName);
+                        $mail->addAddress($email);
+                        $mail->Subject = $subject;
+                        $mail->isHTML(true);
+                        $mail->Body = trim($htmlMsg);
+                        $mail->send();
+                        $emailSent = true;
+                    } catch (\Exception $e) {
+                        $emailSent = false;
+                    }
+                }
+            } else {
+                $emailSent = @mail($email, $subject, trim($htmlMsg), $headers);
+            }
+        }
+
+        $message = "Admin account '{$username}' created with role '{$role}'." . ($emailSent ? " Email delivery dispatched." : ($email ? " Email delivery failed (check mail config)." : ""));
       }
     }
   } elseif ($action === 'delete') {

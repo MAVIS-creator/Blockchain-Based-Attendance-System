@@ -18,6 +18,31 @@ require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/../src/AiProviderClient.php';
 require_once __DIR__ . '/state_helpers.php';
 
+if (!function_exists('chat_message_id')) {
+    function chat_message_id()
+    {
+        return 'msg_' . bin2hex(random_bytes(8));
+    }
+}
+
+if (!function_exists('chat_ai_queue_load')) {
+    function chat_ai_queue_load($queueFile)
+    {
+        if (!file_exists($queueFile)) {
+            return [];
+        }
+        $rows = json_decode((string)@file_get_contents($queueFile), true);
+        return is_array($rows) ? $rows : [];
+    }
+}
+
+if (!function_exists('chat_ai_queue_save')) {
+    function chat_ai_queue_save($queueFile, array $rows)
+    {
+        @file_put_contents($queueFile, json_encode(array_values($rows), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    }
+}
+
 // parse and validate
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $msg = trim($data['message'] ?? '');
@@ -34,10 +59,12 @@ $chatFile = admin_storage_migrate_file('chat.json');
 if (!file_exists($chatFile)) file_put_contents($chatFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
 
 $entry = [
+    'id' => chat_message_id(),
     'user' => $_SESSION['admin_user'] ?? 'unknown',
     'name' => $_SESSION['admin_name'] ?? ($_SESSION['admin_user'] ?? 'unknown'),
     'time' => date('c'),
-    'message' => $msg
+    'message' => $msg,
+    'deleted' => false,
 ];
 
 // safe append with file locking and trimming to last 1000 messages
@@ -65,11 +92,26 @@ function should_trigger_ai_chat_reply($msg)
 {
     $msg = strtolower(trim((string)$msg));
     if ($msg === '') return false;
-    if (strpos($msg, '@ai') !== false || strpos($msg, 'system ai') !== false) {
+    if (
+        strpos($msg, '@ai') !== false
+        || strpos($msg, 'sentinel ai') !== false
+        || strpos($msg, 'system ai') !== false
+        || strpos($msg, 'ai ') !== false
+        || strpos($msg, ' ai') !== false
+    ) {
         return true;
     }
 
-    return (bool)preg_match('/(attendance|ticket|fingerprint|device|checkin|checkout|support|error|issue|failed|blocked|revoked)/i', $msg);
+    if (strpos($msg, '?') !== false) {
+        return true;
+    }
+
+    if (preg_match('/(status|ticket|support|error|issue|attendance|checkin|checkout|course|logs|diagnostics|verification)/i', $msg)) {
+        return true;
+    }
+
+    // AI can still join lightly sometimes in normal conversation, but not every message.
+    return (mb_strlen($msg) > 28) && (mt_rand(1, 100) <= 22);
 }
 
 function ai_pending_review_count_from_diag()
@@ -97,34 +139,37 @@ function ai_pending_review_count_from_diag()
 }
 
 if (should_trigger_ai_chat_reply($msg)) {
-    $last = end($messages);
     $recentAiReply = false;
-    if (is_array($last) && (($last['user'] ?? '') === 'system_ai_operator')) {
-        $recentTs = strtotime((string)($last['time'] ?? ''));
-        if ($recentTs !== false && (time() - $recentTs) < 15) {
-            $recentAiReply = true;
+    for ($i = count($messages) - 1; $i >= 0; $i--) {
+        $candidate = $messages[$i] ?? null;
+        if (!is_array($candidate)) {
+            continue;
+        }
+        if (($candidate['user'] ?? '') === 'system_ai_operator') {
+            $recentTs = strtotime((string)($candidate['time'] ?? ''));
+            if ($recentTs !== false && (time() - $recentTs) < 25) {
+                $recentAiReply = true;
+            }
+            break;
         }
     }
 
     if (!$recentAiReply) {
-        $aiReply = AiProviderClient::suggestAdminChatReply($msg, [
+        $queueFile = admin_chat_ai_queue_file();
+        $queue = chat_ai_queue_load($queueFile);
+        $queue[] = [
+            'id' => 'queue_' . bin2hex(random_bytes(6)),
+            'message_id' => (string)$entry['id'],
+            'message' => (string)$msg,
+            'queued_at' => date('c'),
+            'run_after' => date('c', time() + 2),
             'pending_review_count' => ai_pending_review_count_from_diag(),
-        ]);
-
-        $aiText = !empty($aiReply['ok']) ? trim((string)($aiReply['suggestion'] ?? '')) : '';
-        if ($aiText !== '') {
-            $messages[] = [
-                'user' => 'system_ai_operator',
-                'name' => 'System AI Operator',
-                'time' => date('c'),
-                'message' => $aiText,
-                'auto_replied_by' => 'system_ai_operator',
-                'context' => 'admin_chat_assist',
-                'ai_provider' => (string)($aiReply['provider'] ?? 'rules'),
-                'ai_model' => (string)($aiReply['model'] ?? 'rules-chat-v1'),
-                'ai_latency_ms' => (int)($aiReply['latency_ms'] ?? 0),
-            ];
+            'requested_by' => (string)($_SESSION['admin_user'] ?? 'unknown'),
+        ];
+        if (count($queue) > 80) {
+            $queue = array_slice($queue, -80);
         }
+        chat_ai_queue_save($queueFile, $queue);
     }
 }
 

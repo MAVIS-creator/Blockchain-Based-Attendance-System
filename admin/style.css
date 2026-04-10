@@ -98,6 +98,12 @@ body {
   min-height: 100vh;
 }
 
+@media (min-width: 1024px) {
+  html {
+    font-size: 15px;
+  }
+}
+
 a {
   text-decoration: none;
   color: inherit;

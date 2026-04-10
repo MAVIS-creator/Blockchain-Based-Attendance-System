@@ -51,6 +51,20 @@ if (!function_exists('admin_chat_file')) {
   }
 }
 
+if (!function_exists('admin_chat_typing_file')) {
+  function admin_chat_typing_file()
+  {
+    return admin_storage_migrate_file('chat_typing.json');
+  }
+}
+
+if (!function_exists('admin_chat_ai_queue_file')) {
+  function admin_chat_ai_queue_file()
+  {
+    return admin_storage_migrate_file('chat_ai_queue.json');
+  }
+}
+
 if (!function_exists('admin_settings_audit_file')) {
   function admin_settings_audit_file()
   {
@@ -131,6 +145,7 @@ if (!function_exists('admin_route_catalog')) {
       'geofence' => ['file' => 'geofence.php', 'label' => 'Geo-fence', 'superadmin_only' => true],
       'support_tickets' => ['file' => 'view_tickets.php', 'label' => 'Support Tickets', 'superadmin_only' => false],
       'ai_suggestions' => ['file' => 'ai_suggestions.php', 'label' => 'AI Suggestions', 'superadmin_only' => false],
+      'ai_context_preview' => ['file' => 'ai_context_preview.php', 'label' => 'AI Context Preview', 'superadmin_only' => false],
       'unlink_fingerprint' => ['file' => 'unlink_fingerprint.php', 'label' => 'Unlink Fingerprints', 'superadmin_only' => false],
       'announcement' => ['file' => 'announcement.php', 'label' => 'Broadcast Announcements', 'superadmin_only' => false],
       'patcher' => ['file' => 'patcher.php', 'label' => 'Patcher Studio', 'superadmin_only' => false],
@@ -242,6 +257,7 @@ if (!function_exists('admin_load_permissions_cached')) {
       'logs',
       'support_tickets',
       'ai_suggestions',
+      'ai_context_preview',
       'announcement',
       'profile_settings',
       'manual_attendance'

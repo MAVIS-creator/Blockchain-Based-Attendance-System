@@ -1,6 +1,9 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
-if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; }
+if (empty($_SESSION['admin_logged_in'])) {
+  header('Location: login.php');
+  exit;
+}
 ?>
 
 <div style="max-width:900px;margin:0 auto;">
@@ -110,86 +113,103 @@ if (empty($_SESSION['admin_logged_in'])) { header('Location: login.php'); exit; 
 <!-- Internal custom confirm modal replaced by SweetAlert via global window.adminConfirm, same logic -->
 
 <script>
-  document.getElementById('backupBtn').addEventListener('click', function(){
+  document.getElementById('backupBtn').addEventListener('click', function() {
     var btn = this;
     const ogHtml = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:1.1rem;animation:spin 1s linear infinite;">refresh</span> Creating...';
-    fetch('backup_logs.php', { method:'POST', headers: {'X-CSRF-Token': window.ADMIN_CSRF_TOKEN } })
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        btn.disabled=false;
-        btn.innerHTML=ogHtml;
-        if (j && j.ok && j.file) {
-          document.getElementById('backupResult').innerHTML = '<span style="color:var(--success);font-weight:600;">Backup created:</span> <a href="download_backup.php?file='+encodeURIComponent(j.file)+'" target="_blank" style="color:var(--primary);text-decoration:none;">'+j.file+'</a>';
-        } else {
-          document.getElementById('backupResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Backup failed:</span> '+JSON.stringify(j);
+    fetch('backup_logs.php', {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': window.ADMIN_CSRF_TOKEN
         }
       })
-      .catch(function(e){
-        btn.disabled=false;
-        btn.innerHTML=ogHtml;
-        document.getElementById('backupResult').innerHTML='<span style="color:var(--error);font-weight:600;">Network error.</span>';
+      .then(function(r) {
+        return r.json();
+      })
+      .then(function(j) {
+        btn.disabled = false;
+        btn.innerHTML = ogHtml;
+        if (j && j.ok && j.file) {
+          document.getElementById('backupResult').innerHTML = '<span style="color:var(--success);font-weight:600;">Backup created:</span> <a href="download_backup.php?file=' + encodeURIComponent(j.file) + '" target="_blank" style="color:var(--primary);text-decoration:none;">' + j.file + '</a>';
+        } else {
+          document.getElementById('backupResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Backup failed:</span> ' + JSON.stringify(j);
+        }
+      })
+      .catch(function(e) {
+        btn.disabled = false;
+        btn.innerHTML = ogHtml;
+        document.getElementById('backupResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Network error.</span>';
       });
   });
 
-document.getElementById('restoreForm').addEventListener('submit', function(e){
-  e.preventDefault();
-  var fd = new FormData(this);
-  if (window.ADMIN_CSRF_TOKEN) fd.append('csrf_token', window.ADMIN_CSRF_TOKEN);
-  document.getElementById('restoreResult').innerHTML = '<span style="color:var(--on-surface-variant);">Uploading and restoring...</span>';
-  fetch('restore_logs.php', { method:'POST', body: fd }).then(r=>r.json()).then(j=>{
-    if (j && j.ok) document.getElementById('restoreResult').innerHTML = '<span style="color:var(--success);font-weight:600;">Restore successful.</span>';
-    else document.getElementById('restoreResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Restore failed:</span> '+JSON.stringify(j);
-  }).catch(err=> document.getElementById('restoreResult').innerHTML='<span style="color:var(--error);font-weight:600;">Restore transfer error.</span>');
-});
-
-var fileInput = document.querySelector('#restoreForm input[type=file]');
-var fileLabel = document.getElementById('fileLabel');
-if (fileInput) {
-  fileInput.addEventListener('change', function(){
-    var f = this.files && this.files[0];
-    if (f) {
-      fileLabel.textContent = f.name + ' (' + Math.round(f.size/1024) + 'KB)';
-      fileLabel.parentElement.style.borderColor = 'var(--success)';
-      fileLabel.parentElement.style.background = 'var(--success-container)';
-    } else {
-      fileLabel.textContent = 'Choose ZIP file…';
-      fileLabel.parentElement.style.borderColor = 'var(--outline-variant)';
-      fileLabel.parentElement.style.background = 'var(--surface-container-lowest)';
-    }
+  document.getElementById('restoreForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var fd = new FormData(this);
+    if (window.ADMIN_CSRF_TOKEN) fd.append('csrf_token', window.ADMIN_CSRF_TOKEN);
+    document.getElementById('restoreResult').innerHTML = '<span style="color:var(--on-surface-variant);">Uploading and restoring...</span>';
+    fetch('restore_logs.php', {
+      method: 'POST',
+      body: fd
+    }).then(r => r.json()).then(j => {
+      if (j && j.ok) document.getElementById('restoreResult').innerHTML = '<span style="color:var(--success);font-weight:600;">Restore successful.</span>';
+      else document.getElementById('restoreResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Restore failed:</span> ' + JSON.stringify(j);
+    }).catch(err => document.getElementById('restoreResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Restore transfer error.</span>');
   });
-}
 
-document.getElementById('clearSelectedBtn').addEventListener('click', function(){
-  var scopes = [];
-  if (document.getElementById('scopeLogs').checked) scopes.push('logs');
-  if (document.getElementById('scopeBackups').checked) scopes.push('backups');
-  if (document.getElementById('scopeChain').checked) scopes.push('chain');
-  if (document.getElementById('scopeFingerprints').checked) scopes.push('fingerprints');
-
-  if (!scopes.length) {
-    if (window.adminAlert) window.adminAlert('Select items','Select something to clear','warning');
-    return;
-  }
-
-  if (window.adminConfirm) {
-    window.adminConfirm('Confirm Clear', 'This will permanently delete selected items. Proceed?', 'warning').then(function(ok){
-      if (!ok) return;
-      executeClear(scopes);
+  var fileInput = document.querySelector('#restoreForm input[type=file]');
+  var fileLabel = document.getElementById('fileLabel');
+  if (fileInput) {
+    fileInput.addEventListener('change', function() {
+      var f = this.files && this.files[0];
+      if (f) {
+        fileLabel.textContent = f.name + ' (' + Math.round(f.size / 1024) + 'KB)';
+        fileLabel.parentElement.style.borderColor = 'var(--success)';
+        fileLabel.parentElement.style.background = 'var(--success-container)';
+      } else {
+        fileLabel.textContent = 'Choose ZIP file…';
+        fileLabel.parentElement.style.borderColor = 'var(--outline-variant)';
+        fileLabel.parentElement.style.background = 'var(--surface-container-lowest)';
+      }
     });
   }
-});
 
-function executeClear(scopes) {
+  document.getElementById('clearSelectedBtn').addEventListener('click', function() {
+    var scopes = [];
+    if (document.getElementById('scopeLogs').checked) scopes.push('logs');
+    if (document.getElementById('scopeBackups').checked) scopes.push('backups');
+    if (document.getElementById('scopeChain').checked) scopes.push('chain');
+    if (document.getElementById('scopeFingerprints').checked) scopes.push('fingerprints');
+
+    if (!scopes.length) {
+      if (window.adminAlert) window.adminAlert('Select items', 'Select something to clear', 'warning');
+      return;
+    }
+
+    if (window.adminConfirm) {
+      window.adminConfirm('Confirm Clear', 'This will permanently delete selected items. Proceed?', 'warning').then(function(ok) {
+        if (!ok) return;
+        executeClear(scopes);
+      });
+    }
+  });
+
+  function executeClear(scopes) {
     var body = new URLSearchParams();
     body.append('scope', scopes.join(','));
     body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
 
     document.getElementById('clearResult').innerHTML = '<span style="color:var(--on-surface-variant);font-weight:600;">Processing...</span>';
 
-    fetch('clear_logs.php', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN }, body: body.toString() })
-      .then(r=>r.json()).then(j=>{
+    fetch('clear_logs.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRF-Token': window.ADMIN_CSRF_TOKEN
+        },
+        body: body.toString()
+      })
+      .then(r => r.json()).then(j => {
         if (j && j.ok) {
           var deletedCount = j.result && j.result.deleted ? j.result.deleted.length : 0;
           var errorCount = j.result && j.result.errors ? j.result.errors.length : 0;
@@ -201,51 +221,58 @@ function executeClear(scopes) {
           document.getElementById('clearResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Failed to clear items.</span> ' + (j.error || '');
         }
       })
-      .catch(e=>{ document.getElementById('clearResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Error occurred during clearing.</span>'; });
-}
-
-document.getElementById('clearFilteredBtn').addEventListener('click', function(){
-  var keyword = (document.getElementById('filterKeyword').value || '').trim();
-  var action = (document.getElementById('filterAction').value || 'all').trim();
-
-  if (!keyword) {
-    if (window.adminAlert) window.adminAlert('Keyword required', 'Enter a keyword to match log lines.', 'warning');
-    return;
-  }
-
-  if (window.adminConfirm) {
-    window.adminConfirm('Confirm Filtered Cleanup', 'This removes only matching lines from .log files. Continue?', 'warning').then(function(ok){
-      if (!ok) return;
-
-      var body = new URLSearchParams();
-      body.append('mode', 'filter');
-      body.append('filter_keyword', keyword);
-      body.append('filter_action', action);
-      body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
-
-      document.getElementById('filteredResult').innerHTML = '<span style="color:var(--on-surface-variant);font-weight:600;">Processing filtered cleanup...</span>';
-
-      fetch('clear_logs.php', {
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-Token': window.ADMIN_CSRF_TOKEN},
-        body: body.toString()
-      })
-      .then(function(r){ return r.json(); })
-      .then(function(j){
-        if (j && j.ok && j.result) {
-          var filesTouched = j.result.files_touched || 0;
-          var linesRemoved = j.result.lines_removed || 0;
-          var msg = 'Removed ' + linesRemoved + ' line(s) across ' + filesTouched + ' file(s).';
-          document.getElementById('filteredResult').innerHTML = '<span style="color:var(--success);font-weight:600;">✓ ' + msg + '</span>';
-          if (window.adminAlert) window.adminAlert('Filtered cleanup complete', msg, 'success');
-        } else {
-          document.getElementById('filteredResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Filtered cleanup failed.</span>';
-        }
-      })
-      .catch(function(){
-        document.getElementById('filteredResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Network error during filtered cleanup.</span>';
+      .catch(e => {
+        document.getElementById('clearResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Error occurred during clearing.</span>';
       });
-    });
   }
-});
+
+  document.getElementById('clearFilteredBtn').addEventListener('click', function() {
+    var keyword = (document.getElementById('filterKeyword').value || '').trim();
+    var action = (document.getElementById('filterAction').value || 'all').trim();
+
+    if (!keyword) {
+      if (window.adminAlert) window.adminAlert('Keyword required', 'Enter a keyword to match log lines.', 'warning');
+      return;
+    }
+
+    if (window.adminConfirm) {
+      window.adminConfirm('Confirm Filtered Cleanup', 'This removes only matching lines from .log files. Continue?', 'warning').then(function(ok) {
+        if (!ok) return;
+
+        var body = new URLSearchParams();
+        body.append('mode', 'filter');
+        body.append('filter_keyword', keyword);
+        body.append('filter_action', action);
+        body.append('csrf_token', window.ADMIN_CSRF_TOKEN || '');
+
+        document.getElementById('filteredResult').innerHTML = '<span style="color:var(--on-surface-variant);font-weight:600;">Processing filtered cleanup...</span>';
+
+        fetch('clear_logs.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRF-Token': window.ADMIN_CSRF_TOKEN
+            },
+            body: body.toString()
+          })
+          .then(function(r) {
+            return r.json();
+          })
+          .then(function(j) {
+            if (j && j.ok && j.result) {
+              var filesTouched = j.result.files_touched || 0;
+              var linesRemoved = j.result.lines_removed || 0;
+              var msg = 'Removed ' + linesRemoved + ' line(s) across ' + filesTouched + ' file(s).';
+              document.getElementById('filteredResult').innerHTML = '<span style="color:var(--success);font-weight:600;">✓ ' + msg + '</span>';
+              if (window.adminAlert) window.adminAlert('Filtered cleanup complete', msg, 'success');
+            } else {
+              document.getElementById('filteredResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Filtered cleanup failed.</span>';
+            }
+          })
+          .catch(function() {
+            document.getElementById('filteredResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Network error during filtered cleanup.</span>';
+          });
+      });
+    }
+  });
 </script>
