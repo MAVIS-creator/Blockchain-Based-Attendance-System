@@ -390,7 +390,8 @@ if (!file_exists($settingsFile)) {
       'enabled' => false,
       'recipient' => '',
       'format' => 'csv'
-    ]
+    ],
+    'sentinel_personality_mode' => 'balanced'
   ];
   save_settings($settingsFile, $keyFile, $default, false);
 }
@@ -432,7 +433,8 @@ $settings = array_replace([
     'enabled' => false,
     'recipient' => '',
     'format' => 'csv'
-  ]
+  ],
+  'sentinel_personality_mode' => 'balanced'
 ], is_array($settings) ? $settings : []);
 
 // Backward compatibility: old boolean prefer_mac -> new mode
@@ -580,6 +582,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $settings['auto_send']['enabled'] = isset($_POST['auto_send_enabled']) && $_POST['auto_send_enabled'] === '1';
       $settings['auto_send']['recipient'] = trim($_POST['auto_send_recipient'] ?? ($settings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? '')));
       $settings['auto_send']['format'] = trim($_POST['auto_send_format'] ?? $settings['auto_send']['format'] ?? 'csv');
+        $personalityMode = strtolower(trim((string)($_POST['sentinel_personality_mode'] ?? ($settings['sentinel_personality_mode'] ?? 'balanced'))));
+        if (!in_array($personalityMode, ['serious', 'balanced', 'playful'], true)) {
+          $personalityMode = 'balanced';
+        }
+        $settings['sentinel_personality_mode'] = $personalityMode;
 
       // save (respect encryption flag)
       save_settings($settingsFile, $keyFile, $settings, $settings['encrypted_settings'] ?? false);
@@ -733,12 +740,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </script>
 
 <div class="font-body text-on-surface bg-surface p-6 rounded-xl">
+  <style>
+    .st-settings-tabbar {
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+
+    .st-settings-tabbar .st-tab {
+      flex: 0 0 auto;
+    }
+
+    @media (max-width: 768px) {
+      .st-settings-tabbar {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        padding: 8px !important;
+      }
+
+      .st-settings-tabbar .st-tab {
+        width: 100%;
+        min-width: 0;
+        padding: 10px 10px !important;
+        font-size: 0.8rem;
+        text-align: center;
+      }
+
+      .font-body.text-on-surface.bg-surface {
+        padding: 16px !important;
+      }
+    }
+  </style>
   <div class="mb-8">
     <h1 class="text-[1.75rem] font-bold tracking-tight">System Settings</h1>
     <p class="text-on-surface-variant mt-1">Exact Stitch screen structure mapped to live settings endpoints.</p>
   </div>
 
-  <div class="bg-surface-container-low p-1.5 rounded-xl flex gap-1 mb-8 overflow-x-auto whitespace-nowrap">
+  <div class="st-settings-tabbar bg-surface-container-low p-1.5 rounded-xl flex gap-1 mb-8 overflow-x-auto whitespace-nowrap">
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-semibold transition-all bg-white text-primary shadow-sm" onclick="openTab(event, 'tab-general')">General</button>
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-templates')">Templates</button>
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-advanced')">Advanced &amp; Security</button>
@@ -780,6 +820,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div><label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Check-in Start</label><input class="mt-2 w-full bg-surface-container-low border-none rounded-lg text-sm py-2.5" type="time" name="checkin_time_start" value="<?= htmlspecialchars($settings['checkin_time_start'] ?? '') ?>"></div>
           <div><label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Check-in End</label><input class="mt-2 w-full bg-surface-container-low border-none rounded-lg text-sm py-2.5" type="time" name="checkin_time_end" value="<?= htmlspecialchars($settings['checkin_time_end'] ?? '') ?>"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Sentinel AI Personality Mode</label>
+            <?php $sentinelPersonalityMode = strtolower((string)($settings['sentinel_personality_mode'] ?? 'balanced')); ?>
+            <select class="mt-2 w-full bg-surface-container-low border-none rounded-lg text-sm py-2.5" name="sentinel_personality_mode">
+              <option value="serious" <?= $sentinelPersonalityMode === 'serious' ? 'selected' : '' ?>>Serious (minimal humor)</option>
+              <option value="balanced" <?= $sentinelPersonalityMode === 'balanced' ? 'selected' : '' ?>>Balanced (professional + light personality)</option>
+              <option value="playful" <?= $sentinelPersonalityMode === 'playful' ? 'selected' : '' ?>>Playful (more humor and banter)</option>
+            </select>
+            <p class="text-xs text-on-surface-variant mt-2">Controls how funny/light Sentinel sounds during idle proactive messages.</p>
+          </div>
         </div>
 
         <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/20">

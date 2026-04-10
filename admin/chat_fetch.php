@@ -49,10 +49,25 @@ if (!function_exists('active_admin_users_count')) {
 if (!function_exists('build_idle_sentinel_message')) {
     function build_idle_sentinel_message(array $messages)
     {
+        $personalityMode = 'balanced';
+        try {
+            $settings = admin_load_settings_cached(15);
+            $candidate = strtolower(trim((string)($settings['sentinel_personality_mode'] ?? 'balanced')));
+            if (in_array($candidate, ['serious', 'balanced', 'playful'], true)) {
+                $personalityMode = $candidate;
+            }
+        } catch (\Throwable $e) {
+            $personalityMode = 'balanced';
+        }
+
         $latestHuman = '';
+        $lastIdleMessage = '';
         for ($i = count($messages) - 1; $i >= 0; $i--) {
             $m = $messages[$i] ?? null;
             if (!is_array($m) || !empty($m['deleted'])) continue;
+            if ((string)($m['user'] ?? '') === 'system_ai_operator' && (string)($m['context'] ?? '') === 'idle_proactive' && $lastIdleMessage === '') {
+                $lastIdleMessage = trim((string)($m['message'] ?? ''));
+            }
             if ((string)($m['user'] ?? '') === 'system_ai_operator') continue;
             $latestHuman = strtolower(trim((string)($m['message'] ?? '')));
             if ($latestHuman !== '') break;
@@ -65,13 +80,59 @@ if (!function_exists('build_idle_sentinel_message')) {
             if (preg_match('/(checkin|checkout|attendance|course)/i', $latestHuman)) {
                 return 'Sentinel AI ping 🚀: Need a quick attendance sanity-check? I can help verify check-in/out flow in one shot.';
             }
+            if (preg_match('/(hello|hi|hey|yo|sup|how are you)/i', $latestHuman)) {
+                $smallTalkPool = [
+                    'Sentinel AI waving 👋: I can keep you company with a 20-second ops summary, a tiny joke, or a mini dashboard tour. Your pick?',
+                    'Sentinel AI here 😎: Want a quick laugh, quick game, or quick system pulse-check while things are calm?',
+                    'Sentinel AI check-in 🎯: We can do a fast page tour, a one-liner joke, or a support queue snapshot.'
+                ];
+                return $smallTalkPool[array_rand($smallTalkPool)];
+            }
         }
 
         $pool = [
             'Sentinel AI online 🤖: I can help triage support tickets, validate attendance flow, or point you to any admin page instantly.',
             'Sentinel AI here 😄: Quiet room detected. Want a quick ops summary before the next ticket drops?',
-            'Sentinel AI check-in ✅: I can jump in with fast diagnostics whenever you drop a message.'
+            'Sentinel AI check-in ✅: I can jump in with fast diagnostics whenever you drop a message.',
+            'Sentinel AI pit stop 🛠️: Want me to run a rapid health rundown (status, pending tickets, and suspicious attempts)?',
+            'Sentinel AI mini-game 🎮: Choose one — 10-second joke, one admin tip, or lightning tour of useful pages.',
+            'Sentinel AI lounge mode ☕: I can share a quick joke, surface urgent tasks, or prep your next ticket response.',
+            'Sentinel AI nudge 📌: Need a super quick walkthrough of Dashboard → Status → Support Tickets?',
+            'Sentinel AI vibe check 😄: Calm shift right now — should I drop a joke or a short ops snapshot?',
+            'Sentinel AI alert-lite 🚦: I can do a 3-point summary: attendance flow, review queue, and security events.'
         ];
+
+        $seriousPool = [
+            'Sentinel AI status: I can provide a concise operations summary (attendance flow, review queue, security alerts).',
+            'Sentinel AI standing by: Request a quick diagnostic snapshot when ready.',
+            'Sentinel AI available: I can prioritize pending support tickets and suggest next actions.'
+        ];
+
+        $playfulPool = [
+            'Sentinel AI on snack break 🍿: want a quick joke, a mini tour, or an ops speed-run?',
+            'Sentinel AI mood boost 😄: I can drop one tiny joke, then we blitz through your priority queue.',
+            'Sentinel AI arcade mode 🎮: pick one — fun fact, admin tip, or 30-second dashboard tour.'
+        ];
+
+        if ($personalityMode === 'serious') {
+            $pool = $seriousPool;
+        } elseif ($personalityMode === 'playful') {
+            $pool = array_merge($pool, $playfulPool);
+        }
+
+        if (!empty($_SESSION['needs_tour'])) {
+            $pool[] = 'Sentinel AI onboarder 🧭: Since this is still a fresh session, I can guide a quick tour of your key pages.';
+        }
+
+        if ($lastIdleMessage !== '') {
+            $filtered = array_values(array_filter($pool, function ($line) use ($lastIdleMessage) {
+                return trim((string)$line) !== $lastIdleMessage;
+            }));
+            if (!empty($filtered)) {
+                $pool = $filtered;
+            }
+        }
+
         return $pool[array_rand($pool)];
     }
 }

@@ -892,6 +892,33 @@ if (file_exists($csrfPath)) {
         });
       }
 
+      function toPreviewText(raw) {
+        var text = String(raw || '');
+        text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+        text = text.replace(/\s+/g, ' ').trim();
+        if (text.length > 140) {
+          text = text.slice(0, 137) + '...';
+        }
+        return text;
+      }
+
+      function showAiPopup(newAiMessages) {
+        if (!Array.isArray(newAiMessages) || !newAiMessages.length || typeof Swal === 'undefined') return;
+        var latest = newAiMessages[newAiMessages.length - 1] || {};
+        var preview = toPreviewText(latest.message || 'New message from Sentinel AI');
+        var suffix = newAiMessages.length > 1 ? (' +' + (newAiMessages.length - 1) + ' more') : '';
+        Swal.fire({
+          toast: true,
+          position: 'bottom-end',
+          timer: 4200,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          icon: 'info',
+          title: 'Sentinel AI' + suffix,
+          text: preview
+        });
+      }
+
       function openChatBox() {
         if (!isOpen) {
           chatbar.style.display = 'flex';
@@ -1045,6 +1072,7 @@ if (file_exists($csrfPath)) {
         window.fetchChat().then(function(messages) {
           messages = messages || [];
           var newIncoming = 0;
+          var newAiMessages = [];
           var nextIds = {};
           messages.forEach(function(m) {
             var id = String(m.id || m.time || '');
@@ -1052,6 +1080,9 @@ if (file_exists($csrfPath)) {
               nextIds[id] = true;
               if (hasBootstrapped && !previousMessageIds[id] && String(m.user || '') !== String(currentUser) && !m.deleted) {
                 newIncoming++;
+                if (String(m.user || '') === 'system_ai_operator') {
+                  newAiMessages.push(m);
+                }
               }
             }
           });
@@ -1065,6 +1096,10 @@ if (file_exists($csrfPath)) {
           } else {
             badge.style.display = 'none';
             unseenIncomingCount = 0;
+          }
+
+          if (hasBootstrapped && newAiMessages.length > 0) {
+            showAiPopup(newAiMessages);
           }
 
           hasBootstrapped = true;
@@ -1245,6 +1280,242 @@ function h_can_view($pageId)
   global $h_isSuper, $h_allowed;
   return $h_isSuper || in_array($pageId, $h_allowed, true);
 }
+
+$h_tour_catalog = [
+  [
+    'id' => 'dashboard',
+    'page' => 'dashboard',
+    'title' => 'Live Dashboard',
+    'text' => 'Your command center for attendance activity and operational health.',
+    'selector' => 'a[href="index.php?page=dashboard"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'status',
+    'page' => 'status',
+    'title' => 'Attendance Status',
+    'text' => 'Enable or pause check-in and check-out modes from this control point.',
+    'selector' => 'a[href="index.php?page=status"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'set_active',
+    'page' => 'set_active',
+    'title' => 'Active Course',
+    'text' => 'Set the active course before opening attendance windows.',
+    'selector' => 'a[href="index.php?page=set_active"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'manual_attendance',
+    'page' => 'manual_attendance',
+    'title' => 'Manual Attendance',
+    'text' => 'Use controlled manual override for valid attendance exceptions.',
+    'selector' => 'a[href="index.php?page=manual_attendance"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'support_tickets',
+    'page' => 'support_tickets',
+    'title' => 'Support Tickets',
+    'text' => 'Review student complaints and resolution workflow from one queue.',
+    'selector' => 'a[href="index.php?page=support_tickets"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'ai_suggestions',
+    'page' => 'ai_suggestions',
+    'title' => 'AI Suggestions',
+    'text' => 'Inspect AI recommendations, confidence, and required manual-review actions.',
+    'selector' => 'a[href="index.php?page=ai_suggestions"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'request_timings',
+    'page' => 'request_timings',
+    'title' => 'Request Timings',
+    'text' => 'Track latency and identify slow admin routes quickly.',
+    'selector' => 'a[href="index.php?page=request_timings"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'logs',
+    'page' => 'logs',
+    'title' => 'General Logs',
+    'text' => 'Browse attendance activity and operational records.',
+    'selector' => 'a[href="index.php?page=logs"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'failed_attempts',
+    'page' => 'failed_attempts',
+    'title' => 'Failed Attempts',
+    'text' => 'Review blocked and suspicious attempts for security monitoring.',
+    'selector' => 'a[href="index.php?page=failed_attempts"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'announcement',
+    'page' => 'announcement',
+    'title' => 'Announcements',
+    'text' => 'Broadcast important updates to students instantly.',
+    'selector' => 'a[href="index.php?page=announcement"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'unlink_fingerprint',
+    'page' => 'unlink_fingerprint',
+    'title' => 'Unlink Fingerprint',
+    'text' => 'Safely unlink biometric mapping when remediation is required.',
+    'selector' => 'a[href="index.php?page=unlink_fingerprint"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'status_debug',
+    'page' => 'status_debug',
+    'title' => 'Status Diagnostics',
+    'text' => 'Deep-dive debug panel for advanced operational diagnostics.',
+    'selector' => 'a[href="index.php?page=status_debug"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'roles',
+    'page' => 'roles',
+    'title' => 'Role Privileges',
+    'text' => 'Manage role permissions and governance boundaries.',
+    'selector' => 'a[href="index.php?page=roles"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'accounts',
+    'page' => 'accounts',
+    'title' => 'Manage Accounts',
+    'text' => 'Create, update, and secure admin accounts by role.',
+    'selector' => 'a[href="index.php?page=accounts"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'audit',
+    'page' => 'audit',
+    'title' => 'Action Audit Log',
+    'text' => 'Track privileged changes for accountability and compliance.',
+    'selector' => 'a[href="index.php?page=audit"]',
+    'position' => 'right',
+  ],
+  [
+    'id' => 'settings',
+    'page' => 'settings',
+    'title' => 'System Settings',
+    'text' => 'Configure system-level behavior, automation, and platform defaults.',
+    'selector' => 'a[href="index.php?page=settings"]',
+    'position' => 'right',
+  ],
+];
+
+$h_tour_steps_for_role = [];
+foreach ($h_tour_catalog as $tourStep) {
+  $tourPage = (string)($tourStep['page'] ?? '');
+  if ($tourPage !== '' && h_can_view($tourPage)) {
+    $h_tour_steps_for_role[] = $tourStep;
+  }
+}
+
+$h_currentRole = strtolower((string)($_SESSION['admin_role'] ?? 'admin'));
+$h_opsPages = ['dashboard', 'status', 'set_active', 'manual_attendance', 'support_tickets', 'ai_suggestions', 'announcement', 'logs', 'request_timings', 'failed_attempts', 'unlink_fingerprint'];
+$h_govPages = ['roles', 'accounts', 'audit', 'settings', 'status_debug'];
+
+$h_roleProfiles = [
+  'superadmin' => 'governance-first',
+  'admin' => 'operations-first',
+  'operator' => 'operations-first',
+  'operations' => 'operations-first',
+  'ops' => 'operations-first',
+  'reviewer' => 'operations-first',
+  'support' => 'operations-first',
+  'auditor' => 'governance-first',
+  'governance' => 'governance-first',
+  'compliance' => 'governance-first',
+];
+
+$h_profile = $h_roleProfiles[$h_currentRole] ?? null;
+if ($h_profile === null) {
+  $h_sourcePages = $h_isSuper
+    ? array_map(static function ($row) {
+      return (string)($row['page'] ?? '');
+    }, $h_tour_catalog)
+    : (is_array($h_allowed) ? array_map('strval', $h_allowed) : []);
+
+  $h_opsCount = count(array_intersect($h_sourcePages, $h_opsPages));
+  $h_govCount = count(array_intersect($h_sourcePages, $h_govPages));
+
+  $h_profile = ($h_govCount > 0 && $h_govCount >= $h_opsCount)
+    ? 'governance-first'
+    : 'operations-first';
+}
+
+$h_profileOrder = [
+  'operations-first' => [
+    'dashboard',
+    'status',
+    'set_active',
+    'manual_attendance',
+    'support_tickets',
+    'ai_suggestions',
+    'announcement',
+    'request_timings',
+    'logs',
+    'failed_attempts',
+    'unlink_fingerprint',
+    'roles',
+    'accounts',
+    'audit',
+    'settings',
+    'status_debug',
+  ],
+  'governance-first' => [
+    'roles',
+    'accounts',
+    'audit',
+    'settings',
+    'status_debug',
+    'dashboard',
+    'status',
+    'support_tickets',
+    'ai_suggestions',
+    'request_timings',
+    'logs',
+    'failed_attempts',
+    'set_active',
+    'manual_attendance',
+    'announcement',
+    'unlink_fingerprint',
+  ],
+];
+
+$h_selectedOrder = $h_profileOrder[$h_profile] ?? $h_profileOrder['operations-first'];
+$h_rank = [];
+foreach ($h_selectedOrder as $idx => $pageId) {
+  $h_rank[(string)$pageId] = (int)$idx;
+}
+
+foreach ($h_tour_steps_for_role as $idx => $step) {
+  $h_tour_steps_for_role[$idx]['_orig_idx'] = $idx;
+}
+
+usort($h_tour_steps_for_role, static function ($a, $b) use ($h_rank) {
+  $aPage = (string)($a['page'] ?? '');
+  $bPage = (string)($b['page'] ?? '');
+  $aRank = $h_rank[$aPage] ?? 10000;
+  $bRank = $h_rank[$bPage] ?? 10000;
+  if ($aRank === $bRank) {
+    return ((int)($a['_orig_idx'] ?? 0)) <=> ((int)($b['_orig_idx'] ?? 0));
+  }
+  return $aRank <=> $bRank;
+});
+
+foreach ($h_tour_steps_for_role as $idx => $step) {
+  unset($h_tour_steps_for_role[$idx]['_orig_idx']);
+}
 ?>
 <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/js/shepherd.min.js"></script>
 <style>
@@ -1288,6 +1559,36 @@ function h_can_view($pageId)
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     const steps = [];
+    const rolePageTourSteps = <?= json_encode($h_tour_steps_for_role, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    const navButtons = [{
+      text: 'Back',
+      action: function() {
+        window.tour.back();
+      },
+      secondary: true,
+      classes: 'shepherd-button-secondary'
+    }, {
+      text: 'Next',
+      action: function() {
+        window.tour.next();
+      },
+      classes: 'shepherd-button'
+    }];
+
+    function pushRoleStep(stepConfig) {
+      if (!stepConfig || !stepConfig.id || !stepConfig.selector) return;
+      steps.push({
+        id: stepConfig.id,
+        title: stepConfig.title || 'Module',
+        text: stepConfig.text || 'Important workspace module.',
+        attachTo: {
+          element: stepConfig.selector,
+          on: stepConfig.position || 'right'
+        },
+        buttons: navButtons
+      });
+    }
+
     steps.push({
       id: 'intro',
       title: 'Welcome to the Platform!',
@@ -1311,181 +1612,7 @@ function h_can_view($pageId)
         classes: 'shepherd-button'
       }]
     });
-    <?php if (h_can_view('dashboard')): ?>
-      steps.push({
-        id: 'dashboard',
-        title: 'Live Dashboard',
-        text: 'Your command center. Monitor daily attendance flow, latency, and AI Ticket resolution metrics in real-time.',
-        attachTo: {
-          element: 'a[href="index.php?page=dashboard"]',
-          on: 'right'
-        },
-        buttons: [{
-          text: 'Back',
-          action: function() {
-            window.tour.back();
-          },
-          secondary: true,
-          classes: 'shepherd-button-secondary'
-        }, {
-          text: 'Next',
-          action: function() {
-            window.tour.next();
-          },
-          classes: 'shepherd-button'
-        }]
-      });
-    <?php endif; ?>
-    <?php if (h_can_view('status')): ?>
-      steps.push({
-        id: 'status',
-        title: 'Attendance Status',
-        text: 'The most important switch! Come here to Enable or Disable Live Check-in/out modes.',
-        attachTo: {
-          element: 'a[href="index.php?page=status"]',
-          on: 'right'
-        },
-        buttons: [{
-          text: 'Back',
-          action: function() {
-            window.tour.back();
-          },
-          secondary: true,
-          classes: 'shepherd-button-secondary'
-        }, {
-          text: 'Next',
-          action: function() {
-            window.tour.next();
-          },
-          classes: 'shepherd-button'
-        }]
-      });
-    <?php endif; ?>
-    <?php if (h_can_view('set_active')): ?>
-      steps.push({
-        id: 'set_active',
-        title: 'Active Course',
-        text: 'Before enabling attendance, you must set which Course is actively receiving logs right now.',
-        attachTo: {
-          element: 'a[href="index.php?page=set_active"]',
-          on: 'right'
-        },
-        buttons: [{
-          text: 'Back',
-          action: function() {
-            window.tour.back();
-          },
-          secondary: true,
-          classes: 'shepherd-button-secondary'
-        }, {
-          text: 'Next',
-          action: function() {
-            window.tour.next();
-          },
-          classes: 'shepherd-button'
-        }]
-      });
-    <?php endif; ?>
-    <?php if (h_can_view('manual_attendance')): ?>
-      steps.push({
-        id: 'manual_attendance',
-        title: 'Manual Override',
-        text: 'If a student has a valid excuse, securely mark their attendance here.',
-        attachTo: {
-          element: 'a[href="index.php?page=manual_attendance"]',
-          on: 'right'
-        },
-        buttons: [{
-          text: 'Back',
-          action: function() {
-            window.tour.back();
-          },
-          secondary: true,
-          classes: 'shepherd-button-secondary'
-        }, {
-          text: 'Next',
-          action: function() {
-            window.tour.next();
-          },
-          classes: 'shepherd-button'
-        }]
-      });
-    <?php endif; ?>
-    <?php if (h_can_view('failed_attempts')): ?>
-      steps.push({
-        id: 'failed_attempts',
-        title: 'Security Logs',
-        text: 'Review logs for students blocked by the Zero Trust network.',
-        attachTo: {
-          element: 'a[href="index.php?page=failed_attempts"]',
-          on: 'right'
-        },
-        buttons: [{
-          text: 'Back',
-          action: function() {
-            window.tour.back();
-          },
-          secondary: true,
-          classes: 'shepherd-button-secondary'
-        }, {
-          text: 'Next',
-          action: function() {
-            window.tour.next();
-          },
-          classes: 'shepherd-button'
-        }]
-      });
-    <?php endif; ?>
-    <?php if (h_can_view('support_tickets')): ?>
-      steps.push({
-        id: 'support_tickets',
-        title: 'AI Support Desk',
-        text: 'Review automated AI ticket resolutions and student complaints.',
-        attachTo: {
-          element: 'a[href="index.php?page=support_tickets"]',
-          on: 'right'
-        },
-        buttons: [{
-          text: 'Back',
-          action: function() {
-            window.tour.back();
-          },
-          secondary: true,
-          classes: 'shepherd-button-secondary'
-        }, {
-          text: 'Next',
-          action: function() {
-            window.tour.next();
-          },
-          classes: 'shepherd-button'
-        }]
-      });
-    <?php endif; ?>
-    <?php if (h_can_view('announcement')): ?>
-      steps.push({
-        id: 'announcement',
-        title: 'Broadcasts',
-        text: 'Post announcements or instantly target a specific student screen.',
-        attachTo: {
-          element: 'a[href="index.php?page=announcement"]',
-          on: 'right'
-        },
-        buttons: [{
-          text: 'Back',
-          action: function() {
-            window.tour.back();
-          },
-          secondary: true,
-          classes: 'shepherd-button-secondary'
-        }, {
-          text: 'Next',
-          action: function() {
-            window.tour.next();
-          },
-          classes: 'shepherd-button'
-        }]
-      });
-    <?php endif; ?>
+    rolePageTourSteps.forEach(pushRoleStep);
     steps.push({
       id: 'ai_copilot',
       title: 'AI Navigation & Chat',
@@ -1501,6 +1628,59 @@ function h_can_view($pageId)
         },
         classes: 'shepherd-button'
       }]
+    });
+
+    function resolveVisibleElement(selector) {
+      const matches = Array.from(document.querySelectorAll(selector));
+      if (!matches.length) return null;
+      const visible = matches.find((el) => {
+        if (!(el instanceof HTMLElement)) return false;
+        const style = window.getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden' && el.getClientRects().length > 0;
+      });
+      return visible || matches[0];
+    }
+
+    function resolveTourTarget(selector) {
+      if (typeof selector !== 'string') return selector;
+      const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+      if (!isMobile) {
+        return resolveVisibleElement(selector);
+      }
+
+      const hrefMatch = selector.match(/a\[href=['\"]([^'\"]+)['\"]\]/i);
+      if (hrefMatch && hrefMatch[1]) {
+        const sidebarTarget = resolveVisibleElement(`.sidebar a[href="${hrefMatch[1]}"]`);
+        if (sidebarTarget) return sidebarTarget;
+      }
+      return resolveVisibleElement(selector);
+    }
+
+    steps.forEach((step) => {
+      if (!step.attachTo || !step.attachTo.element) return;
+      const target = resolveTourTarget(step.attachTo.element);
+      if (target) {
+        step.attachTo.element = target;
+      }
+
+      const existingBeforeShow = step.beforeShowPromise;
+      step.beforeShowPromise = function() {
+        return Promise.resolve(
+            typeof existingBeforeShow === 'function' ? existingBeforeShow.call(this) : undefined
+          )
+          .then(() => {
+            const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+            if (!isMobile) return;
+            const attached = step.attachTo && step.attachTo.element;
+            if (!(attached instanceof Element)) return;
+            if (!attached.closest('.sidebar')) return;
+            if (document.body.classList.contains('sidebar-open')) return;
+            if (typeof window.toggleSidebar === 'function') {
+              window.toggleSidebar();
+            }
+            return new Promise((resolve) => setTimeout(resolve, 260));
+          });
+      };
     });
 
     var needsTour = <?= json_encode(!empty($_SESSION['needs_tour'])) ?>;

@@ -37,6 +37,53 @@ $success = '';
 $error = '';
 $exportPath = '';
 
+if (!function_exists('admin_load_settings_for_write')) {
+  function admin_load_settings_for_write($settingsFile, $keyFile)
+  {
+    if (!file_exists($settingsFile)) {
+      return [];
+    }
+    $raw = (string)@file_get_contents($settingsFile);
+    $decoded = json_decode($raw, true);
+    if (is_array($decoded)) {
+      return $decoded;
+    }
+    if (strpos($raw, 'ENC:') === 0 && file_exists($keyFile)) {
+      $key = trim((string)@file_get_contents($keyFile));
+      if ($key !== '') {
+        $blob = base64_decode(substr($raw, 4));
+        $iv = substr((string)$blob, 0, 16);
+        $ct = substr((string)$blob, 16);
+        $plain = openssl_decrypt($ct, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+        $decoded = json_decode((string)$plain, true);
+        if (is_array($decoded)) {
+          return $decoded;
+        }
+      }
+    }
+    return [];
+  }
+}
+
+if (!function_exists('admin_save_settings_for_write')) {
+  function admin_save_settings_for_write($settingsFile, $keyFile, array $settings)
+  {
+    $payload = json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    $encrypt = !empty($settings['encrypted_settings']);
+    if ($encrypt) {
+      $key = file_exists($keyFile) ? trim((string)@file_get_contents($keyFile)) : '';
+      if ($key === '') {
+        $key = base64_encode(random_bytes(32));
+        @file_put_contents($keyFile, $key, LOCK_EX);
+      }
+      $iv = random_bytes(16);
+      $ct = openssl_encrypt($payload, 'AES-256-CBC', base64_decode($key), OPENSSL_RAW_DATA, $iv);
+      $payload = 'ENC:' . base64_encode($iv . $ct);
+    }
+    return @file_put_contents($settingsFile, $payload, LOCK_EX) !== false;
+  }
+}
+
 if (!function_exists('admin_build_export_email_bodies')) {
   function admin_build_export_email_bodies($fromName, $dateForName, array $groupMeta, $entryCount, $format, $attachmentName)
   {
@@ -111,6 +158,41 @@ if (!function_exists('admin_build_export_email_bodies')) {
     $text .= "\nGenerated at: " . $generatedAt . "\n";
 
     return ['html' => $html, 'text' => $text];
+  }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_delivery_defaults'])) {
+  if (!csrf_check_request()) {
+    $error = 'Invalid CSRF token.';
+  } else {
+    $recipientInput = trim((string)($_POST['recipient'] ?? ''));
+    $formatInput = strtolower(trim((string)($_POST['format'] ?? 'csv')));
+    if ($recipientInput !== '' && !filter_var($recipientInput, FILTER_VALIDATE_EMAIL)) {
+      $error = 'Please enter a valid recipient email address before saving defaults.';
+    }
+    if (!in_array($formatInput, ['csv', 'pdf'], true)) {
+      $formatInput = 'csv';
+    }
+    if ($error === '') {
+      $settingsFile = admin_settings_file();
+      $keyFile = admin_settings_key_file();
+      $settings = admin_load_settings_for_write($settingsFile, $keyFile);
+      if (!is_array($settings)) {
+        $settings = [];
+      }
+      if (!isset($settings['auto_send']) || !is_array($settings['auto_send'])) {
+        $settings['auto_send'] = [];
+      }
+      $settings['auto_send']['recipient'] = $recipientInput;
+      $settings['auto_send']['format'] = $formatInput;
+
+      if (admin_save_settings_for_write($settingsFile, $keyFile, $settings)) {
+        $success = 'Auto-send defaults saved. Recipient and format will prefill next time.';
+        $defaultRecipient = $recipientInput;
+      } else {
+        $error = 'Unable to save defaults. Check file write permissions for admin settings storage.';
+      }
+    }
   }
 }
 
@@ -398,6 +480,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_logs'])) {
       </div>
 
       <div style="display:flex;align-items:center;gap:16px;">
+        <button type="submit" name="save_delivery_defaults" class="st-btn st-btn-secondary" style="padding:12px 24px;">
+          <span class="material-symbols-outlined">save</span> Save Recipient/Format Defaults
+        </button>
         <button type="submit" name="send_logs" class="st-btn st-btn-primary" style="padding:12px 24px;">
           <span class="material-symbols-outlined">send</span> Create & Send Export
         </button>

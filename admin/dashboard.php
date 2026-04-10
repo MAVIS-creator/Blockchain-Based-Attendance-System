@@ -11,6 +11,24 @@ $logDir = app_storage_file('logs');
 
 $today = new DateTime();
 
+$dashCurrentRole = $_SESSION['admin_role'] ?? 'admin';
+$dashPermissions = admin_load_permissions_cached(15);
+$dashAllowedPages = ($dashCurrentRole === 'superadmin')
+  ? []
+  : (is_array($dashPermissions) ? ($dashPermissions[$dashCurrentRole] ?? []) : []);
+$dashCanView = static function (string $pageId) use ($dashCurrentRole, $dashAllowedPages): bool {
+  return $dashCurrentRole === 'superadmin' || in_array($pageId, $dashAllowedPages, true);
+};
+
+$canViewLogs = $dashCanView('logs') || $dashCanView('request_timings') || $dashCanView('chain');
+$canViewFailed = $dashCanView('failed_attempts');
+$canViewSupport = $dashCanView('support_tickets');
+$canViewFingerprints = $dashCanView('unlink_fingerprint');
+$canViewAi = $dashCanView('ai_suggestions');
+$canViewSettings = $dashCanView('settings');
+$canViewManual = $dashCanView('manual_attendance');
+$canViewCourses = $dashCanView('set_active') || $dashCanView('add_course');
+
 $span = microtime(true);
 $logSummary = admin_dashboard_log_summary(20, 2);
 $dailyCounts = $logSummary['dailyCounts'] ?? [];
@@ -144,181 +162,248 @@ if (empty($aiDiagRows) && !empty($metricsRows)) {
     <h2 style="font-size:1.5rem;font-weight:800;color:var(--on-surface);letter-spacing:-0.02em;margin:0;">System Overview</h2>
     <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Blockchain-verified attendance records for current semester.</p>
   </div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;" class="hide-on-mobile">
-    <a href="index.php?page=settings" class="st-btn st-btn-ghost st-btn-sm">
-      <span class="material-symbols-outlined" style="font-size:16px;">settings</span> Settings
-    </a>
-    <a href="index.php?page=logs" class="st-btn st-btn-secondary st-btn-sm">
-      <span class="material-symbols-outlined" style="font-size:16px;">history</span> Logs
-    </a>
-    <a href="index.php?page=manual_attendance" class="st-btn st-btn-primary st-btn-sm">
-      <span class="material-symbols-outlined" style="font-size:16px;">touch_app</span> Manual Attendance
-    </a>
-  </div>
+  <?php if ($canViewSettings || $canViewLogs || $canViewManual): ?>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;" class="hide-on-mobile">
+      <?php if ($canViewSettings): ?>
+        <a href="index.php?page=settings" class="st-btn st-btn-ghost st-btn-sm">
+          <span class="material-symbols-outlined" style="font-size:16px;">settings</span> Settings
+        </a>
+      <?php endif; ?>
+      <?php if ($canViewLogs): ?>
+        <a href="index.php?page=logs" class="st-btn st-btn-secondary st-btn-sm">
+          <span class="material-symbols-outlined" style="font-size:16px;">history</span> Logs
+        </a>
+      <?php endif; ?>
+      <?php if ($canViewManual): ?>
+        <a href="index.php?page=manual_attendance" class="st-btn st-btn-primary st-btn-sm">
+          <span class="material-symbols-outlined" style="font-size:16px;">touch_app</span> Manual Attendance
+        </a>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
 </div>
 
 <!-- Stats Grid (Primary) -->
 <div class="stats" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
-  <!-- Today's Attendance -->
-  <div class="stat" style="text-align:left;border-top:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div class="st-stat-icon primary">
-        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">person_check</span>
+  <?php if ($canViewLogs): ?>
+    <!-- Today's Attendance -->
+    <div class="stat" style="text-align:left;border-top:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="st-stat-icon primary">
+          <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">person_check</span>
+        </div>
+        <?php if ($todayCount > 0): ?>
+          <span class="st-stat-badge success">Today</span>
+        <?php endif; ?>
       </div>
-      <?php if ($todayCount > 0): ?>
-        <span class="st-stat-badge success">Today</span>
-      <?php endif; ?>
+      <p class="st-stat-label">Attendance (Today)</p>
+      <p class="st-stat-value"><?= number_format($todayCount) ?></p>
     </div>
-    <p class="st-stat-label">Attendance (Today)</p>
-    <p class="st-stat-value"><?= number_format($todayCount) ?></p>
-  </div>
+  <?php endif; ?>
 
-  <!-- Total Students -->
-  <div class="stat" style="text-align:left;border-top:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div class="st-stat-icon secondary">
-        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">groups</span>
+  <?php if ($canViewLogs): ?>
+    <!-- Total Students -->
+    <div class="stat" style="text-align:left;border-top:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="st-stat-icon secondary">
+          <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">groups</span>
+        </div>
+        <span class="st-stat-badge info">Active</span>
       </div>
-      <span class="st-stat-badge info">Active</span>
+      <p class="st-stat-label">Total Students</p>
+      <p class="st-stat-value"><?= number_format((int)($logSummary['uniqueStudentCount'] ?? 0)) ?></p>
     </div>
-    <p class="st-stat-label">Total Students</p>
-    <p class="st-stat-value"><?= number_format((int)($logSummary['uniqueStudentCount'] ?? 0)) ?></p>
-  </div>
+  <?php endif; ?>
 
-  <!-- Failed Attempts -->
-  <div class="stat" style="text-align:left;border-top:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div class="st-stat-icon error">
-        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">warning</span>
+  <?php if ($canViewFailed): ?>
+    <!-- Failed Attempts -->
+    <div class="stat" style="text-align:left;border-top:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="st-stat-icon error">
+          <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">warning</span>
+        </div>
+        <?php if (array_sum($failedCounts) > 0): ?>
+          <span class="st-stat-badge danger">Attention</span>
+        <?php endif; ?>
       </div>
-      <?php if (array_sum($failedCounts) > 0): ?>
-        <span class="st-stat-badge danger">Attention</span>
-      <?php endif; ?>
+      <p class="st-stat-label">Failed Attempts</p>
+      <p class="st-stat-value"><?= number_format(array_sum($failedCounts)) ?></p>
     </div>
-    <p class="st-stat-label">Failed Attempts</p>
-    <p class="st-stat-value"><?= number_format(array_sum($failedCounts)) ?></p>
-  </div>
+  <?php endif; ?>
 
-  <!-- Active Course -->
-  <div class="stat" style="text-align:left;border-top:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div class="st-stat-icon tertiary">
-        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">book</span>
+  <?php if ($canViewCourses): ?>
+    <!-- Active Course -->
+    <div class="stat" style="text-align:left;border-top:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="st-stat-icon tertiary">
+          <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">book</span>
+        </div>
+        <span class="st-stat-badge info">Live</span>
       </div>
-      <span class="st-stat-badge info">Live</span>
+      <p class="st-stat-label">Active Course</p>
+      <p style="font-size:1.1rem;font-weight:800;color:var(--on-surface);margin-top:4px;word-break:break-word;"><?= htmlspecialchars($activeCourse) ?></p>
     </div>
-    <p class="st-stat-label">Active Course</p>
-    <p style="font-size:1.1rem;font-weight:800;color:var(--on-surface);margin-top:4px;word-break:break-word;"><?= htmlspecialchars($activeCourse) ?></p>
-  </div>
+  <?php endif; ?>
 </div>
 
 <!-- Secondary Stats Row -->
-<div class="hide-on-mobile" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:24px;">
-  <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
-    <div>
-      <p class="st-label" style="margin-bottom:4px;">Total Attendance</p>
-      <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= number_format(array_sum($dailyCounts)) ?></p>
-    </div>
-    <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">calendar_month</span>
-  </div>
-  <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
-    <div>
-      <p class="st-label" style="margin-bottom:4px;">Courses</p>
-      <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= count($courseCounts) ?></p>
-    </div>
-    <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">school</span>
-  </div>
-  <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
-    <div>
-      <p class="st-label" style="margin-bottom:4px;">Linked Fingerprints</p>
-      <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= number_format($fingerprintCount) ?></p>
-    </div>
-    <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">fingerprint</span>
-  </div>
-  <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
-    <div>
-      <p class="st-label" style="margin-bottom:4px;">Open Support Tickets</p>
-      <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= str_pad($newSupportCount, 2, '0', STR_PAD_LEFT) ?></p>
-    </div>
-    <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">confirmation_number</span>
-  </div>
+<?php if ($canViewLogs || $canViewCourses || $canViewFingerprints || $canViewSupport || $canViewAi): ?>
+  <div class="hide-on-mobile" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:24px;">
+    <?php if ($canViewLogs): ?>
+      <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <p class="st-label" style="margin-bottom:4px;">Total Attendance</p>
+          <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= number_format(array_sum($dailyCounts)) ?></p>
+        </div>
+        <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">calendar_month</span>
+      </div>
+    <?php endif; ?>
+    <?php if ($canViewCourses): ?>
+      <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <p class="st-label" style="margin-bottom:4px;">Courses</p>
+          <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= count($courseCounts) ?></p>
+        </div>
+        <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">school</span>
+      </div>
+    <?php endif; ?>
+    <?php if ($canViewFingerprints): ?>
+      <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <p class="st-label" style="margin-bottom:4px;">Linked Fingerprints</p>
+          <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= number_format($fingerprintCount) ?></p>
+        </div>
+        <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">fingerprint</span>
+      </div>
+    <?php endif; ?>
+    <?php if ($canViewSupport): ?>
+      <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <p class="st-label" style="margin-bottom:4px;">Open Support Tickets</p>
+          <p style="font-size:1.2rem;font-weight:800;color:var(--on-surface);margin:0;"><?= str_pad($newSupportCount, 2, '0', STR_PAD_LEFT) ?></p>
+        </div>
+        <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">confirmation_number</span>
+      </div>
+    <?php endif; ?>
 
-  <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-    <div>
-      <p class="st-label" style="margin-bottom:6px;">AI Automation Health</p>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-        <span class="st-stat-badge info">Provider: <?= $aiProviderBadgeText ?></span>
-        <span class="st-stat-badge success">Avg: <?= (int)$aiAvgLatencyMs ?>ms</span>
-        <span class="st-stat-badge <?= $aiPendingReviewCount > 0 ? 'danger' : 'success' ?>">Pending: <?= (int)$aiPendingReviewCount ?></span>
+    <?php if ($canViewAi): ?>
+      <div class="st-card-soft" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div>
+          <p class="st-label" style="margin-bottom:6px;">AI Automation Health</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <span class="st-stat-badge info">Provider: <?= $aiProviderBadgeText ?></span>
+            <span class="st-stat-badge success">Avg: <?= (int)$aiAvgLatencyMs ?>ms</span>
+            <span class="st-stat-badge <?= $aiPendingReviewCount > 0 ? 'danger' : 'success' ?>">Pending: <?= (int)$aiPendingReviewCount ?></span>
+          </div>
+          <div style="margin-top:8px;">
+            <a href="index.php?page=ai_suggestions" class="st-btn st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+              <span class="material-symbols-outlined" style="font-size:16px;">smart_toy</span>
+              Open AI Review Queue / Plan
+            </a>
+          </div>
+        </div>
+        <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">smart_toy</span>
       </div>
-      <div style="margin-top:8px;">
-        <a href="index.php?page=ai_suggestions" class="st-btn st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
-          <span class="material-symbols-outlined" style="font-size:16px;">smart_toy</span>
-          Open AI Review Queue / Plan
-        </a>
-      </div>
-    </div>
-    <span class="material-symbols-outlined" style="font-size:2rem;color:var(--outline-variant);">smart_toy</span>
+    <?php endif; ?>
   </div>
-</div>
+<?php endif; ?>
 
 <!-- Charts Section -->
-<div class="charts">
-  <div class="chart-wrapper"><canvas id="attendanceChart"></canvas></div>
-  <div class="chart-wrapper"><canvas id="coursePieChart"></canvas></div>
-  <div class="chart-wrapper"><canvas id="failedChart"></canvas></div>
-</div>
+<?php if ($canViewLogs || $canViewFailed): ?>
+  <div class="charts dashboard-charts">
+    <?php if ($canViewLogs): ?>
+      <div class="chart-wrapper"><canvas id="attendanceChart"></canvas></div>
+      <div class="chart-wrapper dashboard-desktop-only"><canvas id="coursePieChart"></canvas></div>
+    <?php endif; ?>
+    <?php if ($canViewFailed): ?>
+      <div class="chart-wrapper dashboard-desktop-only"><canvas id="failedChart"></canvas></div>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
 
 <!-- Recent Activity Logs -->
-<div class="recent-logs">
-  <h3><span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">schedule</span>Recent Activity (Last 2 Days)</h3>
-  <ul class="log-list">
-    <?php if (!empty($recentLogs)): ?>
-      <?php foreach (array_slice($recentLogs, 0, 20) as $log): ?>
-        <?php
-        $parts = array_map('trim', explode('|', $log));
-        $name = isset($parts[0]) ? strtoupper($parts[0]) : 'Unknown';
-        $matric = isset($parts[1]) ? $parts[1] : 'N/A';
-        $macRegex = '/([0-9a-f]{2}[:\\\\-]){5}[0-9a-f]{2}/i';
-        if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
-          $course = isset($parts[8]) ? $parts[8] : 'General';
-        } else {
-          $course = isset($parts[7]) ? $parts[7] : 'General';
-        }
-        ?>
-        <li>
-          <div class="log-main">
-            <span class="log-name"><?= htmlspecialchars($name) ?></span>
-            <span class="log-matric"><?= htmlspecialchars($matric) ?></span>
-          </div>
-          <div class="log-course"><?= htmlspecialchars($course) ?></div>
-        </li>
-      <?php endforeach; ?>
-    <?php else: ?>
-      <li class="empty-log">No recent logs.</li>
-    <?php endif; ?>
-  </ul>
-</div>
+<?php if ($canViewLogs): ?>
+  <div class="recent-logs">
+    <h3><span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">schedule</span>Recent Activity (Last 2 Days)</h3>
+    <ul class="log-list">
+      <?php if (!empty($recentLogs)): ?>
+        <?php foreach (array_slice($recentLogs, 0, 20) as $log): ?>
+          <?php
+          $parts = array_map('trim', explode('|', $log));
+          $name = isset($parts[0]) ? strtoupper($parts[0]) : 'Unknown';
+          $matric = isset($parts[1]) ? $parts[1] : 'N/A';
+          $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
+          if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
+            $course = isset($parts[8]) ? $parts[8] : 'General';
+          } else {
+            $course = isset($parts[7]) ? $parts[7] : 'General';
+          }
+          ?>
+          <li>
+            <div class="log-main">
+              <span class="log-name"><?= htmlspecialchars($name) ?></span>
+              <span class="log-matric"><?= htmlspecialchars($matric) ?></span>
+            </div>
+            <div class="log-course"><?= htmlspecialchars($course) ?></div>
+          </li>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <li class="empty-log">No recent logs.</li>
+      <?php endif; ?>
+    </ul>
+  </div>
+<?php endif; ?>
 
 <!-- Quick Actions -->
-<div class="quick-actions">
-  <h3><span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">bolt</span>Quick Actions</h3>
-  <a href="index.php?page=logs" class="st-btn st-btn-primary st-btn-sm">
-    <span class="material-symbols-outlined" style="font-size:16px;">description</span> Logs
-  </a>
-  <a href="index.php?page=support_tickets" class="st-btn st-btn-success st-btn-sm">
-    <span class="material-symbols-outlined" style="font-size:16px;">confirmation_number</span> Support
-  </a>
-  <a href="index.php?page=unlink_fingerprint" style="background:#f59e0b;color:#fff;" class="st-btn st-btn-sm">
-    <span class="material-symbols-outlined" style="font-size:16px;">link_off</span> Fingerprints
-  </a>
-  <a href="./logs/export_simple.php" class="st-btn st-btn-danger st-btn-sm">
-    <span class="material-symbols-outlined" style="font-size:16px;">download</span> Export
-  </a>
-</div>
+<?php if ($canViewLogs || $canViewSupport || $canViewFingerprints): ?>
+  <div class="quick-actions">
+    <h3><span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">bolt</span>Quick Actions</h3>
+    <?php if ($canViewLogs): ?>
+      <a href="index.php?page=logs" class="st-btn st-btn-primary st-btn-sm">
+        <span class="material-symbols-outlined" style="font-size:16px;">description</span> Logs
+      </a>
+    <?php endif; ?>
+    <?php if ($canViewSupport): ?>
+      <a href="index.php?page=support_tickets" class="st-btn st-btn-success st-btn-sm">
+        <span class="material-symbols-outlined" style="font-size:16px;">confirmation_number</span> Support
+      </a>
+    <?php endif; ?>
+    <?php if ($canViewFingerprints): ?>
+      <a href="index.php?page=unlink_fingerprint" style="background:#f59e0b;color:#fff;" class="st-btn st-btn-sm">
+        <span class="material-symbols-outlined" style="font-size:16px;">link_off</span> Fingerprints
+      </a>
+    <?php endif; ?>
+    <?php if ($dashCurrentRole === 'superadmin' && $canViewLogs): ?>
+      <a href="./logs/export_simple.php" class="st-btn st-btn-danger st-btn-sm dashboard-desktop-only-inline">
+        <span class="material-symbols-outlined" style="font-size:16px;">download</span> Export
+      </a>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
+
+<style>
+  @media (max-width: 1024px) {
+    .dashboard-desktop-only,
+    .dashboard-desktop-only-inline {
+      display: none !important;
+    }
+
+    .dashboard-charts {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .recent-logs .log-list li:nth-child(n+9) {
+      display: none;
+    }
+  }
+</style>
 
 <script>
-  new Chart(document.getElementById('attendanceChart').getContext('2d'), {
+  const attendanceChartEl = document.getElementById('attendanceChart');
+  if (attendanceChartEl) {
+    new Chart(attendanceChartEl.getContext('2d'), {
     type: 'line',
     data: {
       labels: <?= json_encode(array_keys($dailyCounts)) ?>,
@@ -377,9 +462,12 @@ if (empty($aiDiagRows) && !empty($metricsRows)) {
         }
       }
     }
-  });
+    });
+  }
 
-  new Chart(document.getElementById('coursePieChart').getContext('2d'), {
+  const coursePieChartEl = document.getElementById('coursePieChart');
+  if (coursePieChartEl) {
+    new Chart(coursePieChartEl.getContext('2d'), {
     type: 'doughnut',
     data: {
       labels: <?= json_encode(array_keys($courseCounts)) ?>,
@@ -409,9 +497,12 @@ if (empty($aiDiagRows) && !empty($metricsRows)) {
       },
       cutout: '60%',
     }
-  });
+    });
+  }
 
-  new Chart(document.getElementById('failedChart').getContext('2d'), {
+  const failedChartEl = document.getElementById('failedChart');
+  if (failedChartEl) {
+    new Chart(failedChartEl.getContext('2d'), {
     type: 'bar',
     data: {
       labels: <?= json_encode(array_keys($failedCounts)) ?>,
@@ -466,5 +557,6 @@ if (empty($aiDiagRows) && !empty($metricsRows)) {
         }
       }
     }
-  });
+    });
+  }
 </script>

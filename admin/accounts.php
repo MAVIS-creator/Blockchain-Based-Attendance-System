@@ -499,6 +499,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     padding: 6px;
   }
 
+  .admin-modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .admin-modal-input,
+  .admin-modal-select {
+    width: 100%;
+    border: 1px solid var(--outline-variant);
+    background: var(--surface-container-low);
+    color: var(--on-surface);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    line-height: 1.35;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    outline: none;
+    box-sizing: border-box;
+  }
+
+  .admin-modal-input::placeholder {
+    color: var(--on-surface-variant);
+    opacity: 0.85;
+  }
+
+  .admin-modal-input:focus,
+  .admin-modal-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+    background: var(--surface-container-lowest);
+  }
+
   @media (max-width: 860px) {
     .accounts-stat-grid {
       grid-template-columns: 1fr;
@@ -665,25 +698,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <?php csrf_field(); ?>
           <input name="action" type="hidden" value="create">
           <div class="admin-modal-grid">
-            <div>
+            <div class="admin-modal-field">
               <label class="st-label" style="margin-bottom:6px;display:block;">Username</label>
-              <input name="username" placeholder="username" required pattern="[a-zA-Z0-9_\-]{3,30}">
+              <input class="admin-modal-input" name="username" placeholder="username" required pattern="[a-zA-Z0-9_\-]{3,30}">
             </div>
-            <div>
+            <div class="admin-modal-field">
               <label class="st-label" style="margin-bottom:6px;display:block;">Full Name</label>
-              <input name="fullname" placeholder="Full Name">
+              <input class="admin-modal-input" name="fullname" placeholder="Full Name">
             </div>
-            <div class="full">
+            <div class="full admin-modal-field">
               <label class="st-label" style="margin-bottom:6px;display:block;">Email</label>
-              <input name="email" type="email" placeholder="admin@domain.com">
+              <input class="admin-modal-input" name="email" type="email" placeholder="admin@domain.com">
             </div>
-            <div class="full">
+            <div class="full admin-modal-field">
               <label class="st-label" style="margin-bottom:6px;display:block;">Temporary Password</label>
-              <input name="password" type="password" placeholder="Minimum 6 characters" required minlength="6">
+              <input class="admin-modal-input" name="password" type="password" placeholder="Minimum 6 characters" required minlength="6">
             </div>
-            <div class="full">
+            <div class="full admin-modal-field">
               <label class="st-label" style="margin-bottom:6px;display:block;">Role</label>
-              <select name="role" required>
+              <select class="admin-modal-select" name="role" required>
                 <?php foreach ($availableRoles as $roleOption): ?>
                   <option value="<?= htmlspecialchars($roleOption) ?>" <?= $roleOption === 'admin' ? 'selected' : '' ?>><?= htmlspecialchars($roleOption) ?></option>
                 <?php endforeach; ?>

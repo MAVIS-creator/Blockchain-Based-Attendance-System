@@ -201,5 +201,25 @@
         "auto_replied_by": "system_ai_operator",
         "context": "idle_proactive",
         "deleted": false
+    },
+    {
+        "id": "msg_2179d7b1d8cf6be9",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T19:09:14+02:00",
+        "message": "Sentinel AI here \ud83d\ude04: Quiet room detected. Want a quick ops summary before the next ticket drops?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_bcb80e8c02e42f33",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T19:19:14+02:00",
+        "message": "Sentinel AI here \ud83d\ude0e: Want a quick laugh, quick game, or quick system pulse-check while things are calm?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
     }
 ]
