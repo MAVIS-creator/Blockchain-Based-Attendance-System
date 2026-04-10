@@ -295,7 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
         $diagSeverityBg = '#eef6ff';
         $diagSeverityLine = '#cfe1f5';
         $diagSeverityText = '#1d4f80';
-        if ($diagClass === 'blocked_revoked_device' || $diagClass === 'duplicate_or_fraudulent_sequence') {
+          if ($diagClass === 'blocked_revoked_device' || $diagClass === 'duplicate_or_fraudulent_sequence' || $diagClass === 'policy_device_sharing_risk') {
           $diagSeverityBg = '#ffeef0';
           $diagSeverityLine = '#f5c2c8';
           $diagSeverityText = '#9f1d2c';

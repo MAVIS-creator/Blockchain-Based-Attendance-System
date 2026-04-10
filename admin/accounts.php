@@ -17,6 +17,28 @@ $accounts = admin_load_accounts_cached(15);
 $settings = admin_load_settings_cached(15) ?: ['prefer_mac' => true, 'max_admins' => 5];
 $permissions = admin_load_permissions_cached(15);
 
+$roleMemberLimits = [];
+if (isset($settings['role_member_limits']) && is_array($settings['role_member_limits'])) {
+  foreach ($settings['role_member_limits'] as $rk => $rv) {
+    $roleKey = strtolower(trim((string)$rk));
+    if ($roleKey === '') continue;
+    $roleMemberLimits[$roleKey] = max(0, (int)$rv);
+  }
+}
+
+$countRoleMembers = static function (array $rows, string $role): int {
+  $needle = strtolower(trim($role));
+  if ($needle === '') return 0;
+  $count = 0;
+  foreach ($rows as $row) {
+    if (!is_array($row)) continue;
+    $rowRole = strtolower(trim((string)($row['role'] ?? 'admin')));
+    if ($rowRole === '') $rowRole = 'admin';
+    if ($rowRole === $needle) $count++;
+  }
+  return $count;
+};
+
 $availableRoles = ['superadmin', 'admin'];
 if (is_array($permissions)) {
   foreach (array_keys($permissions) as $roleKey) {
@@ -71,6 +93,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!in_array($role, $availableRoles, true)) {
       $errors[] = 'Selected role is invalid.';
+    }
+
+    $roleLimit = (int)($roleMemberLimits[$role] ?? 0);
+    if ($roleLimit > 0) {
+      $currentForRole = $countRoleMembers($accounts, $role);
+      if ($currentForRole >= $roleLimit) {
+        $errors[] = "Maximum number of '{$role}' accounts reached ({$roleLimit}).";
+      }
     }
 
     $maxAdmins = intval($settings['max_admins'] ?? 5);
@@ -258,6 +288,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $errors[] = 'Selected role is invalid.';
     } else {
       $oldRole = (string)($accounts[$target]['role'] ?? 'admin');
+      $oldRoleNorm = strtolower(trim($oldRole));
+      if ($oldRoleNorm === '') $oldRoleNorm = 'admin';
       $superCount = 0;
       foreach ($accounts as $a) {
         if (($a['role'] ?? 'admin') === 'superadmin') $superCount++;
@@ -266,6 +298,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if ($oldRole === 'superadmin' && $newRole !== 'superadmin' && $superCount <= 1) {
         $errors[] = 'Cannot demote the last super-admin.';
       } else {
+        if ($newRole !== $oldRoleNorm) {
+          $targetRoleLimit = (int)($roleMemberLimits[$newRole] ?? 0);
+          if ($targetRoleLimit > 0) {
+            $targetCurrentCount = $countRoleMembers($accounts, $newRole);
+            if ($targetCurrentCount >= $targetRoleLimit) {
+              $errors[] = "Maximum number of '{$newRole}' accounts reached ({$targetRoleLimit}).";
+            }
+          }
+        }
+      }
+
+      if (empty($errors)) {
         $accounts[$target]['role'] = $newRole;
         file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         if (function_exists('admin_log_action')) {

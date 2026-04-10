@@ -36,31 +36,64 @@ class AiTicketDiagnoser
     $course = trim((string)$course);
     $courseNorm = strtolower($course);
 
-    $fpMatch = self::checkLogMatch($lines, $fingerprint, 3);
-    $ipMatch = self::checkLogMatch($lines, $ip, 4);
+    $fpMatch = false;
+    $ipMatch = false;
 
     $checkinCount = 0;
     $checkoutCount = 0;
     $fraudFlags = [];
+    $courseScopedEntryCount = 0;
+    $sharedFingerprintMatrics = [];
+    $sharedIpMatrics = [];
+    $sharedFingerprintIpMatrics = [];
 
     foreach ($lines as $line) {
       $fields = array_map('trim', explode('|', (string)$line));
       if (!isset($fields[1], $fields[2])) {
         continue;
       }
-      if ($matric !== '' && $fields[1] !== $matric) {
-        continue;
-      }
+
+      $lineMatric = (string)$fields[1];
+      $lineAction = strtolower((string)$fields[2]);
+      $lineFingerprint = isset($fields[3]) ? trim((string)$fields[3]) : '';
+      $lineIp = isset($fields[4]) ? trim((string)$fields[4]) : '';
 
       $lineCourse = isset($fields[8]) ? strtolower(trim((string)$fields[8])) : 'general';
       if ($courseNorm !== '' && $lineCourse !== $courseNorm) {
         continue;
       }
 
-      $action = strtolower((string)$fields[2]);
-      if ($action === 'checkin') {
+      $courseScopedEntryCount++;
+
+      if ($fingerprint !== '' && $lineFingerprint !== '' && $lineFingerprint === $fingerprint) {
+        $fpMatch = true;
+        if ($lineMatric !== '' && $lineMatric !== $matric) {
+          $sharedFingerprintMatrics[$lineMatric] = true;
+        }
+      }
+
+      if ($ip !== '' && $lineIp !== '' && $lineIp === $ip) {
+        $ipMatch = true;
+        if ($lineMatric !== '' && $lineMatric !== $matric) {
+          $sharedIpMatrics[$lineMatric] = true;
+        }
+      }
+
+      if (
+        $fingerprint !== '' && $lineFingerprint !== '' && $lineFingerprint === $fingerprint
+        && $ip !== '' && $lineIp !== '' && $lineIp === $ip
+        && $lineMatric !== '' && $lineMatric !== $matric
+      ) {
+        $sharedFingerprintIpMatrics[$lineMatric] = true;
+      }
+
+      if ($matric !== '' && $lineMatric !== $matric) {
+        continue;
+      }
+
+      if ($lineAction === 'checkin') {
         $checkinCount++;
-      } elseif ($action === 'checkout') {
+      } elseif ($lineAction === 'checkout') {
         $checkoutCount++;
       }
     }
@@ -72,13 +105,23 @@ class AiTicketDiagnoser
       $fraudFlags[] = 'duplicate_checkout_sequence';
     }
 
+    $sharedFingerprintMatrics = array_values(array_keys($sharedFingerprintMatrics));
+    $sharedIpMatrics = array_values(array_keys($sharedIpMatrics));
+    $sharedFingerprintIpMatrics = array_values(array_keys($sharedFingerprintIpMatrics));
+    $deviceSharingRisk = !empty($sharedFingerprintMatrics) || !empty($sharedFingerprintIpMatrics);
+
     return [
       'date' => $date,
       'log_file' => $logFile,
       'course' => $course,
       'lines' => $lines,
+      'courseScopedEntryCount' => $courseScopedEntryCount,
       'fpMatch' => $fpMatch,
       'ipMatch' => $ipMatch,
+      'sharedFingerprintMatrics' => $sharedFingerprintMatrics,
+      'sharedIpMatrics' => $sharedIpMatrics,
+      'sharedFingerprintIpMatrics' => $sharedFingerprintIpMatrics,
+      'deviceSharingRisk' => $deviceSharingRisk,
       'checkinCount' => $checkinCount,
       'checkoutCount' => $checkoutCount,
       'attendanceAlreadyRecorded' => ($checkinCount > 0 || $checkoutCount > 0),
@@ -185,43 +228,75 @@ class AiTicketDiagnoser
     $confidence = max(0.3, min(0.99, (float)$messageInfo['confidence']));
     $suggestedAdminAction = 'Review diagnostics and follow policy.';
     $reason = 'Default review path.';
+    $hasCheckin = !empty($logInfo['checkinCount']);
+    $hasCheckout = !empty($logInfo['checkoutCount']);
 
     if ($revokedStatus) {
       $classification = 'blocked_revoked_device';
       $action = 'deny_and_notify';
       $confidence = 0.99;
       $suggestedAdminAction = 'No override by AI. Admin-only re-enable flow if justified.';
-      $reason = 'Fingerprint/IP/MAC appears in revoked list.';
+      $reason = 'Fingerprint/IP/MAC appears in revoked list for this date/course context.';
     } elseif (!empty($logInfo['fraudFlags'])) {
       $classification = 'duplicate_or_fraudulent_sequence';
       $action = 'deny_and_notify';
       $confidence = 0.96;
       $suggestedAdminAction = 'Investigate repeated sequence before approving any manual changes.';
-      $reason = 'Detected duplicate check-in/check-out sequence in daily log.';
-    } elseif ($logInfo['attendanceAlreadyRecorded']) {
+      $reason = 'Detected duplicate check-in/check-out sequence in same-day, same-course logs.';
+    } elseif (!empty($logInfo['deviceSharingRisk'])) {
+      $classification = 'policy_device_sharing_risk';
+      $action = 'manual_review_only';
+      $confidence = 0.97;
+      $suggestedAdminAction = 'Policy risk: same device fingerprint/IP appears tied to another matric in this course today. Require manual verification; do not auto-fix attendance.';
+      $reason = 'Same-day, same-course device signature overlaps with another matric.';
+    } elseif ($requestedAction === 'checkin' && $hasCheckin) {
       $classification = 'duplicate_submission_attempt';
       $action = 'deny_and_notify';
       $confidence = 0.93;
-      $suggestedAdminAction = 'Attendance already present; no additional submission should be added.';
-      $reason = 'Matric already has attendance activity today.';
+      $suggestedAdminAction = 'Check-in already exists for this matric and course today. Deny duplicate check-in.';
+      $reason = 'Requested check-in already recorded in same-day, same-course logs.';
+    } elseif ($requestedAction === 'checkout' && $hasCheckout) {
+      $classification = 'duplicate_submission_attempt';
+      $action = 'deny_and_notify';
+      $confidence = 0.93;
+      $suggestedAdminAction = 'Checkout already exists for this matric and course today. Deny duplicate checkout.';
+      $reason = 'Requested checkout already recorded in same-day, same-course logs.';
+    } elseif ($requestedAction === 'checkout' && !$hasCheckin) {
+      $classification = 'manual_review_required';
+      $action = 'deny_and_review';
+      $confidence = 0.95;
+      $suggestedAdminAction = 'Checkout requested without prior check-in for this course today. Keep manual review and deny auto-checkout.';
+      $reason = 'Course-scoped dependency failed: no check-in exists for requested checkout.';
+    } elseif ($requestedAction === '' && !empty($logInfo['attendanceCycleComplete'])) {
+      $classification = 'duplicate_submission_attempt';
+      $action = 'deny_and_notify';
+      $confidence = 0.91;
+      $suggestedAdminAction = 'Attendance cycle already completed for this course today. No further attendance write should be added.';
+      $reason = 'Check-in and checkout already exist in same-day, same-course logs.';
     } elseif ($logInfo['fpMatch'] && $logInfo['ipMatch']) {
       $classification = 'legitimate_session_issue';
       $action = 'auto_fix_add_attendance';
       $confidence = 0.95;
-      $suggestedAdminAction = 'No immediate action required unless student reports repeated failure.';
-      $reason = 'Fingerprint and IP match logs and attendance not yet recorded.';
+      $suggestedAdminAction = 'No immediate action required unless student reports repeated failure. Auto-fix is safe under course-scoped guardrails.';
+      $reason = 'Fingerprint and IP match same-day, same-course logs and requested action is policy-safe.';
     } elseif ($logInfo['fpMatch'] && !$logInfo['ipMatch']) {
       $classification = 'network_ip_rotation';
       $action = 'guide_and_admin_review';
       $confidence = 0.74;
-      $suggestedAdminAction = 'Review if identity appears valid despite IP change.';
-      $reason = 'Fingerprint matched but IP mismatch indicates network change.';
+      $suggestedAdminAction = 'Review if identity appears valid despite IP change for this course and date.';
+      $reason = 'Fingerprint matched but IP mismatch indicates network change within same-day, same-course context.';
     } elseif (!$logInfo['fpMatch'] && !$logInfo['ipMatch']) {
       $classification = 'new_or_suspicious_device';
       $action = 'verify_and_admin_review';
       $confidence = 0.68;
-      $suggestedAdminAction = 'Require identity/device verification before manual attendance.';
-      $reason = 'No fingerprint or IP match in daily logs.';
+      $suggestedAdminAction = 'Require identity/device verification before manual attendance for this course.';
+      $reason = 'No fingerprint or IP match in same-day, same-course logs.';
+    } elseif ($logInfo['attendanceAlreadyRecorded']) {
+      $classification = 'manual_review_required';
+      $action = 'guide_and_admin_review';
+      $confidence = 0.72;
+      $suggestedAdminAction = 'Attendance exists for this course today. Confirm whether student needs checkout guidance or duplicate closure.';
+      $reason = 'Attendance activity exists in same-day, same-course logs but requested action was not explicit.';
     }
 
     return [
@@ -238,6 +313,11 @@ class AiTicketDiagnoser
       'revoked' => (bool)$revokedStatus,
       'attendanceAlreadyRecorded' => (bool)$logInfo['attendanceAlreadyRecorded'],
       'attendanceCycleComplete' => (bool)$logInfo['attendanceCycleComplete'],
+      'courseScopedEntryCount' => (int)($logInfo['courseScopedEntryCount'] ?? 0),
+      'deviceSharingRisk' => !empty($logInfo['deviceSharingRisk']),
+      'sharedFingerprintMatrics' => $logInfo['sharedFingerprintMatrics'] ?? [],
+      'sharedIpMatrics' => $logInfo['sharedIpMatrics'] ?? [],
+      'sharedFingerprintIpMatrics' => $logInfo['sharedFingerprintIpMatrics'] ?? [],
       'checkinCount' => (int)$logInfo['checkinCount'],
       'checkoutCount' => (int)$logInfo['checkoutCount'],
       'fraudFlags' => $logInfo['fraudFlags'],

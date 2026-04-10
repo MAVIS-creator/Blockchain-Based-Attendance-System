@@ -596,6 +596,95 @@ hybrid_dual_write('attendance', 'attendance_logs', [
 ]);
 request_timing_span('hybrid_dual_write', $dualWriteSpan);
 
+// Compulsory auto-send trigger once attendance cycle is complete (checkin + checkout) for this matric/course/date.
+// Uses current auto_send settings and a tracker to avoid duplicate sends.
+$autoSendEnabled = !empty($settings['auto_send']['enabled']);
+$autoSendRecipient = trim((string)($settings['auto_send']['recipient'] ?? ''));
+$autoSendFormat = strtolower(trim((string)($settings['auto_send']['format'] ?? 'csv')));
+if (!in_array($autoSendFormat, ['csv', 'pdf'], true)) {
+    $autoSendFormat = 'csv';
+}
+
+if ($autoSendEnabled && $autoSendRecipient !== '' && filter_var($autoSendRecipient, FILTER_VALIDATE_EMAIL)) {
+    $postWriteLines = @file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    $cycleCheckin = 0;
+    $cycleCheckout = 0;
+    foreach ($postWriteLines as $ln) {
+        $parts = array_map('trim', explode('|', (string)$ln));
+        if (!isset($parts[1], $parts[2])) {
+            continue;
+        }
+        if ($parts[1] !== $matric) {
+            continue;
+        }
+        $lineCourse = isset($parts[8]) ? strtolower(trim((string)$parts[8])) : 'general';
+        if ($lineCourse !== $courseNormalized) {
+            continue;
+        }
+
+        $lineAction = strtolower((string)$parts[2]);
+        if ($lineAction === 'checkin') {
+            $cycleCheckin++;
+        } elseif ($lineAction === 'checkout') {
+            $cycleCheckout++;
+        }
+    }
+
+    if ($cycleCheckin > 0 && $cycleCheckout > 0) {
+        $trackerFile = admin_storage_migrate_file('auto_send_tracker_submit.json', app_storage_file('auto_send_tracker_submit.json'));
+        if (!file_exists($trackerFile)) {
+            @file_put_contents($trackerFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+        }
+
+        $fpTracker = fopen($trackerFile, 'c+');
+        if ($fpTracker && flock($fpTracker, LOCK_EX)) {
+            rewind($fpTracker);
+            $trackerRaw = stream_get_contents($fpTracker);
+            $tracker = json_decode($trackerRaw ?: '[]', true);
+            if (!is_array($tracker)) {
+                $tracker = [];
+            }
+
+            $markerKey = $today . '|' . $matric . '|' . $courseNormalized;
+            if (!isset($tracker[$markerKey])) {
+                $tracker[$markerKey] = [
+                    'triggered_at' => date('c'),
+                    'date' => $today,
+                    'matric' => $matric,
+                    'course' => $course,
+                    'status' => 'queued',
+                ];
+
+                $cmd = escapeshellarg(PHP_BINARY)
+                    . ' ' . escapeshellarg(__DIR__ . '/admin/auto_send_logs.php')
+                    . ' ' . escapeshellarg($today)
+                    . ' --force'
+                    . ' --recipient=' . escapeshellarg($autoSendRecipient)
+                    . ' --format=' . escapeshellarg($autoSendFormat);
+                $output = [];
+                $exitCode = 1;
+                @exec($cmd, $output, $exitCode);
+
+                $tracker[$markerKey]['status'] = $exitCode === 0 ? 'success' : 'failed';
+                $tracker[$markerKey]['exit_code'] = $exitCode;
+                $tracker[$markerKey]['output'] = implode("\n", array_slice($output, 0, 20));
+                request_timing_note('auto_send_triggered', $exitCode === 0 ? 'success' : 'failed');
+            } else {
+                request_timing_note('auto_send_triggered', 'already_sent');
+            }
+
+            rewind($fpTracker);
+            ftruncate($fpTracker, 0);
+            fwrite($fpTracker, json_encode($tracker, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            fflush($fpTracker);
+            flock($fpTracker, LOCK_UN);
+            fclose($fpTracker);
+        } elseif (is_resource($fpTracker)) {
+            fclose($fpTracker);
+        }
+    }
+}
+
 // ⚡ Optional: Polygon integration
 require_once __DIR__ . '/polygon_hash.php';
 try {

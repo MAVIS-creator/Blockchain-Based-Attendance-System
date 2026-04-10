@@ -79,6 +79,7 @@ class AiTicketAutomationEngine
     $announcementMessage = '';
     $announcementSeverity = 'info';
     $attendanceAdded = false;
+    $autoTokenClear = ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'not_attempted'];
     $adminSuggestion = (string)($diag['suggested_admin_action'] ?? 'Review if needed.');
     $aiSuggestion = AiProviderClient::suggestTicketResolution($ticket, $diag);
     $aiFingerprintResponse = AiProviderClient::suggestFingerprintResponse($ticket, $diag);
@@ -87,10 +88,20 @@ class AiTicketAutomationEngine
     }
 
     if ($diag['classification'] === 'blocked_revoked_device') {
-      $announcementMessage = 'Access denied: this device/session is revoked. Contact admin for re-enable review.';
-      $announcementSeverity = 'urgent';
+      $autoTokenClear = $this->maybeClearBlockedTokenFromTicket($ticket, $diag);
+      if (!empty($autoTokenClear['performed'])) {
+        $announcementMessage = 'Your token/session block request was verified and cleared. Refresh and retry attendance on the same device.';
+        $announcementSeverity = 'info';
+        $adminSuggestion = 'Token block cleared automatically from support ticket conditions (tab-fencing/inactivity request matched).';
+      } else {
+        $announcementMessage = 'Access denied: this device/session is revoked. Contact admin for re-enable review.';
+        $announcementSeverity = 'urgent';
+      }
     } elseif ($diag['classification'] === 'duplicate_submission_attempt' || $diag['classification'] === 'duplicate_or_fraudulent_sequence') {
       $announcementMessage = 'Attendance is already recorded for today. Duplicate submissions are blocked.';
+      $announcementSeverity = 'warning';
+    } elseif ($diag['classification'] === 'policy_device_sharing_risk') {
+      $announcementMessage = 'Attendance request is under manual review due to a same-device policy check for this course today. Admin verification is required before any update.';
       $announcementSeverity = 'warning';
     } elseif ($diag['classification'] === 'legitimate_session_issue') {
       if (ai_can($this->serviceId, 'ticket.add_attendance')) {
@@ -157,7 +168,7 @@ class AiTicketAutomationEngine
       $announcementSeverity = 'warning';
     }
 
-    if (!empty($aiFingerprintResponse['ok']) && trim((string)($aiFingerprintResponse['suggestion'] ?? '')) !== '') {
+    if (empty($autoTokenClear['performed']) && !empty($aiFingerprintResponse['ok']) && trim((string)($aiFingerprintResponse['suggestion'] ?? '')) !== '') {
       $announcementMessage = trim((string)$aiFingerprintResponse['suggestion']);
     }
 
@@ -204,12 +215,19 @@ class AiTicketAutomationEngine
       'fpMatch' => $diag['fpMatch'],
       'ipMatch' => $diag['ipMatch'],
       'revoked' => $diag['revoked'],
+      'deviceSharingRisk' => !empty($diag['deviceSharingRisk']),
+      'sharedFingerprintMatrics' => $diag['sharedFingerprintMatrics'] ?? [],
+      'sharedIpMatrics' => $diag['sharedIpMatrics'] ?? [],
+      'sharedFingerprintIpMatrics' => $diag['sharedFingerprintIpMatrics'] ?? [],
       'suggested_admin_action' => $adminSuggestion,
       'attendance_added' => $attendanceAdded,
       'ticket_resolved' => $resolved,
       'ticket_resolved_hybrid' => $hybridResolved,
       'announcement_sent' => (bool)$announcement,
       'announcement_id' => is_array($announcement) ? ($announcement['id'] ?? null) : null,
+      'token_auto_clear_performed' => !empty($autoTokenClear['performed']),
+      'token_auto_clear_count' => (int)($autoTokenClear['tokens_cleared'] ?? 0),
+      'token_auto_clear_reason' => (string)($autoTokenClear['reason'] ?? ''),
       'ai_provider' => (string)($aiSuggestion['provider'] ?? 'rules'),
       'ai_model' => (string)($aiSuggestion['model'] ?? 'rules-v1'),
       'ai_latency_ms' => (int)($aiSuggestion['latency_ms'] ?? 0),
@@ -244,7 +262,7 @@ class AiTicketAutomationEngine
     if (
       ai_can($this->serviceId, 'chat.admin_assist')
       && (float)$diag['confidence'] >= 0.90
-      && in_array($diag['classification'], ['blocked_revoked_device', 'duplicate_or_fraudulent_sequence'], true)
+      && in_array($diag['classification'], ['blocked_revoked_device', 'duplicate_or_fraudulent_sequence', 'policy_device_sharing_risk'], true)
     ) {
       $chatReply = AiProviderClient::suggestAdminChatReply(
         sprintf('Generate admin insight for classification=%s reason=%s', (string)$diag['classification'], (string)$diag['reason']),
@@ -293,8 +311,117 @@ class AiTicketAutomationEngine
       'resolved' => $resolved,
       'hybrid_resolved' => $hybridResolved,
       'announcement_sent' => (bool)$announcement,
-      'attendance_added' => $attendanceAdded
+      'attendance_added' => $attendanceAdded,
+      'token_auto_clear_performed' => !empty($autoTokenClear['performed']),
+      'token_auto_clear_count' => (int)($autoTokenClear['tokens_cleared'] ?? 0)
     ];
+  }
+
+  private function maybeClearBlockedTokenFromTicket(array $ticket, array $diag)
+  {
+    if (empty($diag['classification']) || (string)$diag['classification'] !== 'blocked_revoked_device') {
+      return ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'classification_not_blocked'];
+    }
+
+    $allowAutoClear = trim((string)app_env_value('AI_AUTO_CLEAR_TOKENS_FROM_TICKETS', '1')) !== '0';
+    if (!$allowAutoClear) {
+      return ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'feature_disabled'];
+    }
+
+    $message = strtolower(trim((string)($ticket['message'] ?? '')));
+    $fingerprint = trim((string)($ticket['fingerprint'] ?? ''));
+    $ip = trim((string)($ticket['ip'] ?? ''));
+
+    if ($fingerprint === '' && $ip === '') {
+      return ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'missing_identity_keys'];
+    }
+
+    $isUnblockRequest = (bool)preg_match('/\b(clear|unblock|re-?enable|reset|remove|release|allow|open)\b/i', $message);
+    $isTokenOrFencingContext = (bool)preg_match('/\b(token|session|inactivity|tab|fencing|blocked|revoked|locked|lockout|timeout)\b/i', $message);
+    $issueType = strtolower(trim((string)($diag['issue_type'] ?? '')));
+    $issueCompatible = in_array($issueType, ['revoked_or_blocked_complaint', 'session_or_token_expired', 'general_system_complaint'], true);
+
+    if (!$isUnblockRequest || !$isTokenOrFencingContext || !$issueCompatible) {
+      return ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'conditions_not_met'];
+    }
+
+    $blockedLog = app_storage_file('logs/blocked_tokens.log');
+    $revokedFile = admin_storage_migrate_file('revoked.json', app_storage_file('revoked.json'));
+
+    if (!file_exists($blockedLog) || !file_exists($revokedFile)) {
+      return ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'required_files_missing'];
+    }
+
+    $lines = @file($blockedLog, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    if (empty($lines)) {
+      return ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'no_blocked_token_rows'];
+    }
+
+    $candidateTokens = [];
+    foreach ($lines as $ln) {
+      $parts = array_map('trim', explode('|', (string)$ln));
+      $rowToken = (string)($parts[1] ?? '');
+      $rowFingerprint = (string)($parts[2] ?? '');
+      $rowIp = (string)($parts[3] ?? '');
+      if ($rowToken === '') {
+        continue;
+      }
+
+      $matchFingerprint = ($fingerprint !== '' && $rowFingerprint !== '' && $rowFingerprint === $fingerprint);
+      $matchIp = ($ip !== '' && $rowIp !== '' && $rowIp === $ip);
+      if ($matchFingerprint || $matchIp) {
+        $candidateTokens[$rowToken] = true;
+      }
+    }
+
+    if (empty($candidateTokens)) {
+      return ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'no_matching_tokens'];
+    }
+
+    $revoked = json_decode((string)@file_get_contents($revokedFile), true);
+    if (!is_array($revoked)) {
+      $revoked = ['tokens' => [], 'ips' => [], 'macs' => []];
+    }
+    foreach (['tokens', 'ips', 'macs'] as $bucket) {
+      if (!isset($revoked[$bucket]) || !is_array($revoked[$bucket])) {
+        $revoked[$bucket] = [];
+      }
+    }
+
+    $cleared = 0;
+    foreach (array_keys($candidateTokens) as $token) {
+      if (array_key_exists($token, $revoked['tokens'])) {
+        unset($revoked['tokens'][$token]);
+        $cleared++;
+      }
+    }
+
+    if ($cleared <= 0) {
+      return ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'tokens_not_in_revoked_bucket'];
+    }
+
+    @file_put_contents($revokedFile, json_encode($revoked, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+
+    $kept = [];
+    foreach ($lines as $ln) {
+      $parts = array_map('trim', explode('|', (string)$ln));
+      $rowToken = (string)($parts[1] ?? '');
+      if ($rowToken !== '' && isset($candidateTokens[$rowToken])) {
+        continue;
+      }
+      $kept[] = $ln;
+    }
+    @file_put_contents($blockedLog, implode(PHP_EOL, $kept) . (empty($kept) ? '' : PHP_EOL), LOCK_EX);
+
+    if (function_exists('admin_log_action')) {
+      admin_log_action('AI_Operator', 'Support Token Auto-Clear', sprintf(
+        'Cleared %d token revocation(s) from support ticket conditions (classification=%s).',
+        $cleared,
+        (string)$diag['classification']
+      ));
+    }
+
+    return ['performed' => true, 'tokens_cleared' => $cleared, 'reason' => 'cleared_matching_tokens'];
   }
 
   private function appendDiagnostics(array $entry)

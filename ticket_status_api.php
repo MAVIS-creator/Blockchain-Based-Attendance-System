@@ -96,6 +96,8 @@ if ($diagMatch) {
   $classification = (string)($diagMatch['classification'] ?? '');
   if ($classification === 'blocked_revoked_device') {
     $guidance = 'This device/session is currently revoked. Contact admin for re-enable review.';
+  } elseif ($classification === 'policy_device_sharing_risk') {
+    $guidance = 'Your request needs manual admin verification due to same-device policy checks for this course today.';
   } elseif ($classification === 'network_ip_rotation') {
     $guidance = 'Keep a stable network (avoid switching VPN/mobile/Wi-Fi) and retry.';
   } elseif ($classification === 'new_or_suspicious_device') {

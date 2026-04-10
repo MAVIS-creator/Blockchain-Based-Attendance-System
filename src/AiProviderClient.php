@@ -616,6 +616,13 @@ class AiProviderClient
         'Security block is active for this device. Preserve block and verify ownership before any override.'
       ];
       $suggestion = $choices[$seed % count($choices)];
+    } elseif ($classification === 'policy_device_sharing_risk') {
+      $choices = [
+        'Same-day same-course device signature overlaps with another matric. Keep this ticket in manual review and do not auto-write attendance.',
+        'Policy risk detected: one device context appears linked to multiple students for this course today. Require admin verification before any attendance change.',
+        'Potential proxy attendance attempt detected for this course/day. Hold automated remediation and request manual identity confirmation.'
+      ];
+      $suggestion = $choices[$seed % count($choices)];
     } elseif ($classification === 'duplicate_submission_attempt' || $classification === 'duplicate_or_fraudulent_sequence') {
       $choices = [
         'Attendance already recorded for this course today. Reject duplicate write and notify student.',
@@ -672,6 +679,12 @@ class AiProviderClient
         'Security lock is active on this device. Reach admin support to verify your identity and request re-enable.',
       ];
       $base = $opts[$seed % count($opts)];
+    } elseif ($classification === 'policy_device_sharing_risk') {
+      $opts = [
+        "Your request is under manual review due to a same-device policy check for {$course} today. Please wait for admin verification.",
+        "We detected a policy conflict for {$course} on this device context. Admin must verify before attendance can be updated.",
+      ];
+      $base = $opts[$seed % count($opts)];
     } elseif ($classification === 'duplicate_submission_attempt' || $classification === 'duplicate_or_fraudulent_sequence') {
       $opts = [
         "Attendance for {$course} appears already recorded today. No extra action is needed from your side right now.",
@@ -722,7 +735,7 @@ class AiProviderClient
         'provider' => 'rules',
         'model' => 'rules-chat-v1',
         'latency_ms' => 0,
-        'suggestion' => 'Beyond tickets and announcements, I can: (1) map admins to exact dashboard pages with route links, (2) summarize pending-review patterns and likely root causes, (3) advise checkin/checkout rule enforcement and guardrails, (4) assess fingerprint/IP/device mismatch risk, (5) suggest course-scoped remediation order, and (6) generate concise operator-ready next actions from current chat context.'
+        'suggestion' => 'Beyond tickets and announcements, I can: (1) map admins to exact dashboard pages with route links, (2) summarize pending-review patterns and likely root causes, (3) advise checkin/checkout rule enforcement and guardrails, (4) assess fingerprint/IP/device mismatch risk, (5) process qualified support requests to clear tab-fencing or inactivity token blocks, (6) manage active blocked-token cleanup conditions, (7) trigger compulsory log auto-send after completed checkin+checkout cycles, and (8) generate concise operator-ready next actions from current chat context.'
       ];
     }
 

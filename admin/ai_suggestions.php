@@ -21,7 +21,7 @@ $rows = array_slice($rows, 0, 120);
 $needsReview = array_values(array_filter($rows, function ($r) {
   if (!is_array($r)) return false;
   $cls = (string)($r['classification'] ?? '');
-  return in_array($cls, ['network_ip_rotation', 'new_or_suspicious_device', 'duplicate_or_fraudulent_sequence', 'blocked_revoked_device'], true)
+  return in_array($cls, ['network_ip_rotation', 'new_or_suspicious_device', 'duplicate_or_fraudulent_sequence', 'blocked_revoked_device', 'policy_device_sharing_risk'], true)
     || empty($r['ticket_resolved']);
 }));
 ?>
@@ -64,7 +64,7 @@ $needsReview = array_values(array_filter($rows, function ($r) {
       $severityBg = '#eef6ff';
       $severityLine = '#cfe1f5';
       $severityText = '#1d4f80';
-      if ($classification === 'blocked_revoked_device' || $classification === 'duplicate_or_fraudulent_sequence') {
+      if ($classification === 'blocked_revoked_device' || $classification === 'duplicate_or_fraudulent_sequence' || $classification === 'policy_device_sharing_risk') {
         $severityBg = '#ffeef0';
         $severityLine = '#f5c2c8';
         $severityText = '#9f1d2c';

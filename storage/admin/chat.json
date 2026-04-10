@@ -181,5 +181,25 @@
         "auto_replied_by": "system_ai_operator",
         "context": "idle_proactive",
         "deleted": false
+    },
+    {
+        "id": "msg_587136075be1277b",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T18:13:24+02:00",
+        "message": "Sentinel AI online \ud83e\udd16: I can help triage support tickets, validate attendance flow, or point you to any admin page instantly.",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_5c7f93ee0ef8aca8",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T18:44:51+02:00",
+        "message": "Sentinel AI here \ud83d\ude04: Quiet room detected. Want a quick ops summary before the next ticket drops?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
     }
 ]

@@ -237,7 +237,7 @@ for ($i = count($messages) - 1; $i >= 0; $i--) {
 
 $shouldProactive =
     $activeCount > 0
-    && ($lastHumanTs === 0 || ($now - $lastHumanTs) >= 180)
+    && ($lastHumanTs === 0 || ($now - $lastHumanTs) >= (600 + (abs(crc32((string)$lastHumanTs . '|' . (string)$activeCount)) % 301)))
     && ($lastIdleAiTs === 0 || ($now - $lastIdleAiTs) >= 600);
 
 if ($shouldProactive) {
