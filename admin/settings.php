@@ -145,6 +145,35 @@ function mask_secret_value($value)
   return substr($value, 0, 3) . str_repeat('*', max(4, $len - 6)) . substr($value, -3);
 }
 
+function env_sensitive_keys()
+{
+  return [
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'POLYGON_PRIVATE_KEY',
+    'SMTP_PASS',
+    'PATCHER_OPENROUTER_API_KEY',
+    'PATCHER_GEMINI_API_KEY',
+    'GROQ_API_KEY',
+    'AI_OPENROUTER_API_KEY',
+    'AI_GEMINI_API_KEY',
+    'ADMIN_DEFAULT_PASSWORD',
+  ];
+}
+
+function env_submitted_value($postKey, $envKey, $baseEnv)
+{
+  if (!array_key_exists($postKey, $_POST)) {
+    return trim((string)($baseEnv[$envKey] ?? ''));
+  }
+
+  $submitted = trim((string)$_POST[$postKey]);
+  if ($submitted === '') {
+    return trim((string)($baseEnv[$envKey] ?? ''));
+  }
+
+  return $submitted;
+}
+
 function resolve_env_value_for_ui($key, $effectiveEnv, $baseEnv, $default = '')
 {
   $effective = (string)($effectiveEnv[$key] ?? '');
@@ -649,14 +678,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $updates = [
         'SUPABASE_URL' => trim($_POST['env_supabase_url'] ?? ($ENV_BASE['SUPABASE_URL'] ?? '')),
-        'SUPABASE_SERVICE_ROLE_KEY' => trim($_POST['env_supabase_service_role_key'] ?? ($ENV_BASE['SUPABASE_SERVICE_ROLE_KEY'] ?? '')),
+        'SUPABASE_SERVICE_ROLE_KEY' => env_submitted_value('env_supabase_service_role_key', 'SUPABASE_SERVICE_ROLE_KEY', $ENV_BASE),
         'HYBRID_MODE' => $hybridMode,
         'HYBRID_ADMIN_READ' => $hybridAdminRead,
         'AI_AUTOMATION_PROVIDER' => trim($_POST['env_ai_automation_provider'] ?? ($ENV_BASE['AI_AUTOMATION_PROVIDER'] ?? 'auto')),
         'STORAGE_PATH' => trim($_POST['env_storage_path'] ?? ($ENV_BASE['STORAGE_PATH'] ?? '')),
-        'POLYGON_PRIVATE_KEY' => trim($_POST['env_polygon_private_key'] ?? ($ENV_BASE['POLYGON_PRIVATE_KEY'] ?? '')),
+        'POLYGON_PRIVATE_KEY' => env_submitted_value('env_polygon_private_key', 'POLYGON_PRIVATE_KEY', $ENV_BASE),
         'SMTP_USER' => trim($_POST['env_smtp_user'] ?? ($ENV_BASE['SMTP_USER'] ?? '')),
-        'SMTP_PASS' => trim($_POST['env_smtp_pass'] ?? ($ENV_BASE['SMTP_PASS'] ?? '')),
+        'SMTP_PASS' => env_submitted_value('env_smtp_pass', 'SMTP_PASS', $ENV_BASE),
       ];
 
       $updates['AI_AUTOMATION_PROVIDER'] = strtolower($updates['AI_AUTOMATION_PROVIDER']);
@@ -684,7 +713,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           foreach ($updates as $k => $v) {
             $oldV = $ENV_BASE[$k] ?? '';
             if ($oldV !== $v) {
-              $isSensitive = in_array($k, ['SUPABASE_SERVICE_ROLE_KEY', 'POLYGON_PRIVATE_KEY', 'SMTP_PASS'], true);
+              $isSensitive = in_array($k, env_sensitive_keys(), true);
               $maskedAudit[$k] = [
                 'old' => $isSensitive ? mask_secret_value($oldV) : $oldV,
                 'new' => $isSensitive ? mask_secret_value($v) : $v,
@@ -1028,7 +1057,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SUPABASE_SERVICE_ROLE_KEY</label>
             <div class="relative">
-              <input id="env_supabase_service_role_key" class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 pr-12 text-sm" type="password" name="env_supabase_service_role_key" value="<?= htmlspecialchars(resolve_env_value_for_ui('SUPABASE_SERVICE_ROLE_KEY', $ENV, $ENV_BASE)) ?>" placeholder="service role key" autocomplete="off">
+              <input id="env_supabase_service_role_key" class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 pr-12 text-sm" type="password" name="env_supabase_service_role_key" value="" placeholder="Stored secret hidden. Enter a new key to rotate it." autocomplete="new-password">
               <button type="button" class="env-secret-toggle absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" data-target="env_supabase_service_role_key" aria-label="Show or hide SUPABASE service key">
                 <span class="material-symbols-outlined" style="font-size:1.1rem;">visibility</span>
               </button>
@@ -1067,6 +1096,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">STORAGE_PATH</label>
             <input class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm" type="text" name="env_storage_path" value="<?= htmlspecialchars(resolve_env_value_for_ui('STORAGE_PATH', $ENV, $ENV_BASE)) ?>" placeholder="/home/data">
+            <p class="text-xs text-on-surface-variant mt-2">Use an absolute path outside the public web root in production where possible.</p>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1133,7 +1163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">POLYGON_PRIVATE_KEY</label>
             <div class="relative">
-              <input id="env_polygon_private_key" class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 pr-12 text-sm" type="password" name="env_polygon_private_key" value="<?= htmlspecialchars(resolve_env_value_for_ui('POLYGON_PRIVATE_KEY', $ENV, $ENV_BASE)) ?>" autocomplete="off">
+              <input id="env_polygon_private_key" class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 pr-12 text-sm" type="password" name="env_polygon_private_key" value="" placeholder="Stored secret hidden. Enter a new private key to rotate it." autocomplete="new-password">
               <button type="button" class="env-secret-toggle absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" data-target="env_polygon_private_key" aria-label="Show or hide polygon private key">
                 <span class="material-symbols-outlined" style="font-size:1.1rem;">visibility</span>
               </button>
@@ -1148,7 +1178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">SMTP_PASS</label>
             <div class="relative">
-              <input id="env_smtp_pass" class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 pr-12 text-sm" type="password" name="env_smtp_pass" value="<?= htmlspecialchars(resolve_env_value_for_ui('SMTP_PASS', $ENV, $ENV_BASE)) ?>" autocomplete="off">
+              <input id="env_smtp_pass" class="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 pr-12 text-sm" type="password" name="env_smtp_pass" value="" placeholder="Stored secret hidden. Enter a new SMTP password to rotate it." autocomplete="new-password">
               <button type="button" class="env-secret-toggle absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface" data-target="env_smtp_pass" aria-label="Show or hide SMTP password">
                 <span class="material-symbols-outlined" style="font-size:1.1rem;">visibility</span>
               </button>
@@ -1156,7 +1186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
 
           <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-            <strong>Security note:</strong> Use this for key rotation/revocation workflows. Audit logs mask sensitive values.
+            <strong>Security note:</strong> Stored secrets are hidden in this UI. Leave a secret field blank to keep the current value. Audit logs mask sensitive values.
           </div>
 
           <div>

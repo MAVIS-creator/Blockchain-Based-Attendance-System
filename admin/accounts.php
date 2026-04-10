@@ -130,18 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_once __DIR__ . '/../env_helpers.php';
             $ENV = app_load_env_layers(__DIR__ . '/../.env');
 
-            if (!empty($ENV['APP_URL'])) {
-                $loginLink = rtrim($ENV['APP_URL'], '/') . '/admin/login.php';
-            } else {
-                $proto = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-                $host = $_SERVER['HTTP_HOST'];
-                $reqUri = $_SERVER['REQUEST_URI'];
-                $dir = dirname($reqUri);
-                if (substr($dir, -6) === '/admin') {
-                    $dir = substr($dir, 0, -6);
-                }
-                $loginLink = $proto . '://' . $host . rtrim($dir, '/') . '/admin/login.php';
-            }
+            $loginLink = app_public_url('/admin/login.php');
             
             $subject = "Your Admin Account Details";
             $headers = "MIME-Version: 1.0\r\n";

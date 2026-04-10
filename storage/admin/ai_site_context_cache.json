@@ -1,9 +1,9 @@
 {
     "version": "site-context-v1",
-    "generated_at": "2026-04-10T17:07:45+02:00",
-    "signature": "fb8971a42e6b9f6531297f7ab8dde787d15e1497",
+    "generated_at": "2026-04-10T19:35:17+02:00",
+    "signature": "e1c3013cf11527e346e82010d47155f33a446244",
     "payload": {
-        "source_count": 131,
+        "source_count": 132,
         "indexed_pages": 104,
         "routes": [
             {
@@ -967,6 +967,11 @@
                 "file": "docs/planning/PATCHER_COPILOT_ASSISTANT_WALKTHROUGH.md",
                 "title": "Patcher Copilot Assistant \u2014 Walkthrough (Current Build)",
                 "summary": "- `admin/patcher.php` updated with:"
+            },
+            {
+                "file": "docs/planning/sentinel-ai-personality-tone-upgrade-plan.md",
+                "title": "Sentinel AI Personality Tone Upgrade Plan",
+                "summary": "Apply a consistent **Sentinel AI** personality across admin chat, ticket suggestions, and student-facing announcements with these principles:"
             },
             {
                 "file": "docs/planning/task.md",

@@ -122,3 +122,18 @@ if (!function_exists('app_env_value')) {
     return array_key_exists($key, $cache[$path]) ? $cache[$path][$key] : $default;
   }
 }
+
+if (!function_exists('app_public_url')) {
+  function app_public_url($path = '')
+  {
+    $base = trim((string)app_env_value('APP_URL', ''));
+    if ($base !== '' && preg_match('#^https?://#i', $base)) {
+      return rtrim($base, '/') . '/' . ltrim((string)$path, '/');
+    }
+
+    $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    $scheme = $https ? 'https' : 'http';
+    $host = (string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost');
+    return $scheme . '://' . $host . '/' . ltrim((string)$path, '/');
+  }
+}

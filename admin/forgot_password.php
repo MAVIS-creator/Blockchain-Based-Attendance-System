@@ -58,8 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     file_put_contents($resetsFile, json_encode($resets, JSON_PRETTY_PRINT), LOCK_EX);
 
                     // Send Email using PHPMailer
-                    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-                    $resetLink = $protocol . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . '/reset_password.php?token=' . $token . '&email=' . urlencode($email);
+                    $resetLink = app_public_url('/admin/reset_password.php') . '?token=' . urlencode($token) . '&email=' . urlencode($email);
 
                     $sent = false;
                     if (file_exists(__DIR__ . '/../vendor/autoload.php')) {

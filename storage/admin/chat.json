@@ -221,5 +221,15 @@
         "auto_replied_by": "system_ai_operator",
         "context": "idle_proactive",
         "deleted": false
+    },
+    {
+        "id": "msg_61b8518935b718b9",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-10T19:34:58+02:00",
+        "message": "Sentinel AI waving \ud83d\udc4b: I can keep you company with a 20-second ops summary, a tiny joke, or a mini dashboard tour. Your pick?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
     }
 ]

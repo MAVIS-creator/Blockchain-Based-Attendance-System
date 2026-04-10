@@ -1,5 +1,50 @@
 [
     {
+        "timestamp": "2026-04-10 19:36:12",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Settings",
+        "action": "Settings Updated",
+        "details": "System settings were modified by admin."
+    },
+    {
+        "timestamp": "2026-04-10 19:36:02",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Settings",
+        "action": "Settings Updated",
+        "details": "System settings were modified by admin."
+    },
+    {
+        "timestamp": "2026-04-10 19:35:33",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Settings",
+        "action": "Settings Updated",
+        "details": "System settings were modified by admin."
+    },
+    {
+        "timestamp": "2026-04-10 19:35:19",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Settings",
+        "action": "Settings Updated",
+        "details": "System settings were modified by admin."
+    },
+    {
+        "timestamp": "2026-04-10 19:25:43",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Settings",
+        "action": "Settings Updated",
+        "details": "System settings were modified by admin."
+    },
+    {
         "timestamp": "2026-04-10 19:22:27",
         "admin": "Mavis",
         "role": "superadmin",

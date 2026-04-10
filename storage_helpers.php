@@ -93,6 +93,17 @@ if (!function_exists('app_storage_init')) {
       }
     }
 
+    $htaccess = $base . DIRECTORY_SEPARATOR . '.htaccess';
+    if (!file_exists($htaccess)) {
+      $rules = "Options -Indexes\r\n<IfModule mod_authz_core.c>\r\nRequire all denied\r\n</IfModule>\r\n<IfModule !mod_authz_core.c>\r\nDeny from all\r\n</IfModule>\r\n";
+      @file_put_contents($htaccess, $rules, LOCK_EX);
+    }
+
+    $indexFile = $base . DIRECTORY_SEPARATOR . 'index.html';
+    if (!file_exists($indexFile)) {
+      @file_put_contents($indexFile, '', LOCK_EX);
+    }
+
     @chmod($base, 0775);
     return $base;
   }
