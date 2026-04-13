@@ -339,7 +339,7 @@ $ticketPageItems = array_slice($allUnresolvedTickets, $ticketOffset, $ticketPerP
         $diagSeverityBg = '#eef6ff';
         $diagSeverityLine = '#cfe1f5';
         $diagSeverityText = '#1d4f80';
-          if ($diagClass === 'blocked_revoked_device' || $diagClass === 'duplicate_or_fraudulent_sequence' || $diagClass === 'policy_device_sharing_risk') {
+        if ($diagClass === 'blocked_revoked_device' || $diagClass === 'duplicate_or_fraudulent_sequence' || $diagClass === 'policy_device_sharing_risk') {
           $diagSeverityBg = '#ffeef0';
           $diagSeverityLine = '#f5c2c8';
           $diagSeverityText = '#9f1d2c';
@@ -393,71 +393,71 @@ $ticketPageItems = array_slice($allUnresolvedTickets, $ticketOffset, $ticketPerP
   if (!empty($tickets)): ?>
     <?php foreach ($ticketPageItems as $ticket): ?>
 
-        <?php
-        $fp = $ticket['fingerprint'] ?? '';
-        $ip = $ticket['ip'] ?? '';
-        $fpMatch = $fp ? checkLogMatch($logLines, $fp, 3) : false;
-        $ipMatch = $ip ? checkLogMatch($logLines, $ip, 4) : false;
-        ?>
+      <?php
+      $fp = $ticket['fingerprint'] ?? '';
+      $ip = $ticket['ip'] ?? '';
+      $fpMatch = $fp ? checkLogMatch($logLines, $fp, 3) : false;
+      $ipMatch = $ip ? checkLogMatch($logLines, $ip, 4) : false;
+      ?>
 
-        <div class="ticket-card" style="position:relative;overflow:visible;">
-          <!-- Header -->
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--surface-container-high);">
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;max-width:72%;">
-              <input type="checkbox" class="bulk-ticket-checkbox" form="bulkTicketForm" name="selected_tickets[]" value="<?= htmlspecialchars($ticket['timestamp']) ?>" style="width:16px;height:16px;accent-color:#1f5d99;">
-              <strong style="color:var(--on-surface);font-size:1rem;"><?= htmlspecialchars($ticket['name']) ?></strong>
-            </label>
-            <span class="st-chip st-chip-info"><?= htmlspecialchars($ticket['matric']) ?></span>
+      <div class="ticket-card" style="position:relative;overflow:visible;">
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--surface-container-high);">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;max-width:72%;">
+            <input type="checkbox" class="bulk-ticket-checkbox" form="bulkTicketForm" name="selected_tickets[]" value="<?= htmlspecialchars($ticket['timestamp']) ?>" style="width:16px;height:16px;accent-color:#1f5d99;">
+            <strong style="color:var(--on-surface);font-size:1rem;"><?= htmlspecialchars($ticket['name']) ?></strong>
+          </label>
+          <span class="st-chip st-chip-info"><?= htmlspecialchars($ticket['matric']) ?></span>
+        </div>
+
+        <!-- Message -->
+        <p style="color:var(--on-surface);line-height:1.6;margin-bottom:16px;font-size:0.9rem;">
+          <?= nl2br(htmlspecialchars($ticket['message'])) ?>
+        </p>
+
+        <!-- Fingerprint & IP matches -->
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+          <div style="font-size:0.85rem;background:var(--surface-container-low);padding:10px 14px;border-radius:8px;word-break:break-all;color:<?= $fpMatch ? '#059669' : 'var(--error)' ?>;">
+            <strong>Fingerprint:</strong> <?= htmlspecialchars($fp ?: 'Not submitted') ?>
+            <?= $fpMatch ? '<span class="st-chip st-chip-success" style="margin-left:8px;">Matched ✓</span>' : '<span class="st-chip st-chip-danger" style="margin-left:8px;">No match</span>' ?>
           </div>
-
-          <!-- Message -->
-          <p style="color:var(--on-surface);line-height:1.6;margin-bottom:16px;font-size:0.9rem;">
-            <?= nl2br(htmlspecialchars($ticket['message'])) ?>
-          </p>
-
-          <!-- Fingerprint & IP matches -->
-          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
-            <div style="font-size:0.85rem;background:var(--surface-container-low);padding:10px 14px;border-radius:8px;word-break:break-all;color:<?= $fpMatch ? '#059669' : 'var(--error)' ?>;">
-              <strong>Fingerprint:</strong> <?= htmlspecialchars($fp ?: 'Not submitted') ?>
-              <?= $fpMatch ? '<span class="st-chip st-chip-success" style="margin-left:8px;">Matched ✓</span>' : '<span class="st-chip st-chip-danger" style="margin-left:8px;">No match</span>' ?>
-            </div>
-            <div style="font-size:0.85rem;background:var(--surface-container-low);padding:10px 14px;border-radius:8px;word-break:break-all;color:<?= $ipMatch ? '#059669' : 'var(--error)' ?>;">
-              <strong>IP:</strong> <?= htmlspecialchars($ip ?: 'Not submitted') ?>
-              <?= $ipMatch ? '<span class="st-chip st-chip-success" style="margin-left:8px;">Matched ✓</span>' : '<span class="st-chip st-chip-danger" style="margin-left:8px;">No match</span>' ?>
-            </div>
+          <div style="font-size:0.85rem;background:var(--surface-container-low);padding:10px 14px;border-radius:8px;word-break:break-all;color:<?= $ipMatch ? '#059669' : 'var(--error)' ?>;">
+            <strong>IP:</strong> <?= htmlspecialchars($ip ?: 'Not submitted') ?>
+            <?= $ipMatch ? '<span class="st-chip st-chip-success" style="margin-left:8px;">Matched ✓</span>' : '<span class="st-chip st-chip-danger" style="margin-left:8px;">No match</span>' ?>
           </div>
+        </div>
 
-          <!-- Footer -->
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--surface-container-high);font-size:0.85rem;color:var(--on-surface-variant);flex-wrap:wrap;gap:8px;">
-            <span><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;">schedule</span> <?= htmlspecialchars($ticket['timestamp']) ?></span>
-            <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
-              <div style="position:relative;" class="action-menu">
-                <button type="button" class="action-menu-trigger" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;">
-                  <span class="material-symbols-outlined" style="pointer-events:none;font-size:1rem;color:var(--on-surface-variant);">more_vert</span>
-                </button>
-                <form method="post" class="action-menu-content" hidden style="position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:10px;box-shadow:var(--shadow-ambient);padding:4px;z-index:1000;min-width:160px;">
-                  <?php csrf_field(); ?>
-                  <input type="hidden" name="name" value="<?= htmlspecialchars($ticket['name']) ?>">
-                  <input type="hidden" name="matric" value="<?= htmlspecialchars($ticket['matric']) ?>">
-                  <input type="hidden" name="reason" value="<?= htmlspecialchars($ticket['message']) ?>">
-                  <button type="submit" name="manual_action" value="checkin" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;border-radius:6px;font-family:inherit;font-size:0.88rem;color:var(--on-surface);transition:background 0.15s;">
-                    <span class="material-symbols-outlined" style="font-size:1rem;">login</span> Check-In
-                  </button>
-                  <button type="submit" name="manual_action" value="checkout" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;border-radius:6px;font-family:inherit;font-size:0.88rem;color:var(--on-surface);transition:background 0.15s;">
-                    <span class="material-symbols-outlined" style="font-size:1rem;">logout</span> Check-Out
-                  </button>
-                </form>
-              </div>
-              <form method="post" class="resolve-ticket-form" style="margin:0;">
+        <!-- Footer -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--surface-container-high);font-size:0.85rem;color:var(--on-surface-variant);flex-wrap:wrap;gap:8px;">
+          <span><span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle;">schedule</span> <?= htmlspecialchars($ticket['timestamp']) ?></span>
+          <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+            <div style="position:relative;" class="action-menu">
+              <button type="button" class="action-menu-trigger" style="background:var(--surface-container-low);border:1px solid var(--outline-variant);border-radius:8px;padding:6px;cursor:pointer;display:flex;">
+                <span class="material-symbols-outlined" style="pointer-events:none;font-size:1rem;color:var(--on-surface-variant);">more_vert</span>
+              </button>
+              <form method="post" class="action-menu-content" hidden style="position:absolute;right:0;top:calc(100% + 6px);background:var(--surface-container-lowest);border:1px solid var(--outline-variant);border-radius:10px;box-shadow:var(--shadow-ambient);padding:4px;z-index:1000;min-width:160px;">
                 <?php csrf_field(); ?>
-                <input type="hidden" name="resolve_ticket" value="<?= htmlspecialchars($ticket['timestamp']) ?>">
-                <button type="submit" class="st-btn st-btn-success st-btn-sm resolve-btn" onclick="return confirmResolve(event)">
-                  <span class="material-symbols-outlined" style="font-size:1rem;">check_circle</span> Resolve
+                <input type="hidden" name="name" value="<?= htmlspecialchars($ticket['name']) ?>">
+                <input type="hidden" name="matric" value="<?= htmlspecialchars($ticket['matric']) ?>">
+                <input type="hidden" name="reason" value="<?= htmlspecialchars($ticket['message']) ?>">
+                <button type="submit" name="manual_action" value="checkin" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;border-radius:6px;font-family:inherit;font-size:0.88rem;color:var(--on-surface);transition:background 0.15s;">
+                  <span class="material-symbols-outlined" style="font-size:1rem;">login</span> Check-In
+                </button>
+                <button type="submit" name="manual_action" value="checkout" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:none;border:none;cursor:pointer;border-radius:6px;font-family:inherit;font-size:0.88rem;color:var(--on-surface);transition:background 0.15s;">
+                  <span class="material-symbols-outlined" style="font-size:1rem;">logout</span> Check-Out
                 </button>
               </form>
             </div>
+            <form method="post" class="resolve-ticket-form" style="margin:0;">
+              <?php csrf_field(); ?>
+              <input type="hidden" name="resolve_ticket" value="<?= htmlspecialchars($ticket['timestamp']) ?>">
+              <button type="submit" class="st-btn st-btn-success st-btn-sm resolve-btn" onclick="return confirmResolve(event)">
+                <span class="material-symbols-outlined" style="font-size:1rem;">check_circle</span> Resolve
+              </button>
+            </form>
           </div>
         </div>
+      </div>
     <?php endforeach; ?>
     <?php if (!$hasUnresolved): ?>
       <div style="text-align:center;padding:48px 24px;color:var(--on-surface-variant);grid-column:1/-1;">

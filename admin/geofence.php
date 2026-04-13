@@ -298,7 +298,7 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
   </div>
 </div>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;">
   <div class="st-card" style="grid-column:1/-1;">
     <p style="font-weight:700;color:var(--on-surface);margin:0 0 16px;">Active Geo-fence</p>
     <form method="post" style="display:grid;gap:12px;">

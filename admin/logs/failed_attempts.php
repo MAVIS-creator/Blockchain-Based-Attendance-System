@@ -21,7 +21,7 @@ $failedPage = max(1, intval($_GET['failed_pg'] ?? 1));
 
 // Validate course value
 if (!in_array($selectedCourse, $courses) && $selectedCourse !== 'All') {
-    $selectedCourse = 'All';
+  $selectedCourse = 'All';
 }
 
 $perPage = 20;
@@ -30,20 +30,20 @@ $logs = [];
 // Classic failed attempts
 $failedLogFile = $logDir . DIRECTORY_SEPARATOR . $selectedDate . '_failed_attempts.log';
 foreach (admin_failed_attempt_entries_for_date($failedLogFile, 15) as $entry) {
-    $matchesCourse = ($selectedCourse === 'All' || ($entry['course'] ?? '') === $selectedCourse);
-    $matchesSearch = ($search === '' || stripos($entry['name'] ?? '', $search) !== false || stripos($entry['matric'] ?? '', $search) !== false);
+  $matchesCourse = ($selectedCourse === 'All' || ($entry['course'] ?? '') === $selectedCourse);
+  $matchesSearch = ($search === '' || stripos($entry['name'] ?? '', $search) !== false || stripos($entry['matric'] ?? '', $search) !== false);
 
-    if ($matchesCourse && $matchesSearch) {
-        $logs[] = [
-            'name' => $entry['name'] ?? '',
-            'matric' => $entry['matric'] ?? '',
-            'ip' => $entry['ip'] ?? '',
-            'fingerprint' => $entry['fingerprint'] ?? '',
-            'timestamp' => $entry['timestamp'] ?? '',
-            'device' => $entry['device'] ?? '',
-            'course' => $entry['course'] ?? '',
-        ];
-    }
+  if ($matchesCourse && $matchesSearch) {
+    $logs[] = [
+      'name' => $entry['name'] ?? '',
+      'matric' => $entry['matric'] ?? '',
+      'ip' => $entry['ip'] ?? '',
+      'fingerprint' => $entry['fingerprint'] ?? '',
+      'timestamp' => $entry['timestamp'] ?? '',
+      'device' => $entry['device'] ?? '',
+      'course' => $entry['course'] ?? '',
+    ];
+  }
 }
 
 // Check-In Only logic
@@ -51,44 +51,44 @@ $mainLogFile = "{$logDir}/{$selectedDate}.log";
 $checkMap = [];
 
 if (file_exists($mainLogFile)) {
-    foreach (admin_attendance_entries_for_date_parsed($mainLogFile, 15) as $entry) {
-        $name = $entry['name'] ?? '';
-        $matric = $entry['matric'] ?? '';
-        $action = $entry['action'] ?? '';
-        $finger = $entry['fingerprint'] ?? '';
-        $ip = $entry['ip'] ?? '';
-        $timestamp = $entry['timestamp'] ?? '';
-        $device = $entry['device'] ?? '';
-        $course = trim((string)($entry['course'] ?? ''));
+  foreach (admin_attendance_entries_for_date_parsed($mainLogFile, 15) as $entry) {
+    $name = $entry['name'] ?? '';
+    $matric = $entry['matric'] ?? '';
+    $action = $entry['action'] ?? '';
+    $finger = $entry['fingerprint'] ?? '';
+    $ip = $entry['ip'] ?? '';
+    $timestamp = $entry['timestamp'] ?? '';
+    $device = $entry['device'] ?? '';
+    $course = trim((string)($entry['course'] ?? ''));
 
-        if ($selectedCourse !== 'All' && $course !== $selectedCourse) continue;
+    if ($selectedCourse !== 'All' && $course !== $selectedCourse) continue;
 
-        if (!isset($checkMap[$matric])) {
-            $checkMap[$matric] = [
-                'name' => $name,
-                'matric' => $matric,
-                'checkin' => '',
-                'checkout' => '',
-                'ip' => $ip,
-                'fingerprint' => $finger,
-                'timestamp' => $timestamp,
-                'device' => $device,
-                'course' => $course,
-            ];
-        }
-
-        if (strtolower($action) === 'checkin') $checkMap[$matric]['checkin'] = $timestamp;
-        if (strtolower($action) === 'checkout') $checkMap[$matric]['checkout'] = $timestamp;
+    if (!isset($checkMap[$matric])) {
+      $checkMap[$matric] = [
+        'name' => $name,
+        'matric' => $matric,
+        'checkin' => '',
+        'checkout' => '',
+        'ip' => $ip,
+        'fingerprint' => $finger,
+        'timestamp' => $timestamp,
+        'device' => $device,
+        'course' => $course,
+      ];
     }
 
-    foreach ($checkMap as $entry) {
-        if ($entry['checkin'] && !$entry['checkout']) {
-            $matchesSearch = ($search === '' || stripos($entry['name'], $search) !== false || stripos($entry['matric'], $search) !== false);
-            if ($matchesSearch) {
-                $logs[] = $entry;
-            }
-        }
+    if (strtolower($action) === 'checkin') $checkMap[$matric]['checkin'] = $timestamp;
+    if (strtolower($action) === 'checkout') $checkMap[$matric]['checkout'] = $timestamp;
+  }
+
+  foreach ($checkMap as $entry) {
+    if ($entry['checkin'] && !$entry['checkout']) {
+      $matchesSearch = ($search === '' || stripos($entry['name'], $search) !== false || stripos($entry['matric'], $search) !== false);
+      if ($matchesSearch) {
+        $logs[] = $entry;
+      }
     }
+  }
 }
 
 // Pagination
@@ -193,7 +193,7 @@ $logsPage = array_slice($logs, $startIndex, $perPage);
         <div style="padding:16px 20px;border-top:1px solid var(--outline-variant);display:flex;justify-content:center;gap:8px;">
           <?php for ($i = 1; $i <= $totalPages; $i++): ?>
             <a href="index.php?page=failed_attempts&date=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($search) ?>&failed_pg=<?= $i ?>"
-               style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;text-decoration:none;font-size:0.85rem;font-weight:600;<?= $i === $currentPage ? 'background:var(--error);color:#fff;' : 'background:var(--surface-container-high);color:var(--on-surface-variant);' ?>">
+              style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;text-decoration:none;font-size:0.85rem;font-weight:600;<?= $i === $currentPage ? 'background:var(--error);color:#fff;' : 'background:var(--surface-container-high);color:var(--on-surface-variant);' ?>">
               <?= $i ?>
             </a>
           <?php endfor; ?>

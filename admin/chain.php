@@ -16,11 +16,11 @@ $chainPerPage = 20;
 
 $chainFile = app_storage_migrate_file('secure_logs/attendance_chain.json', __DIR__ . '/../secure_logs/attendance_chain.json');
 if (!file_exists($chainFile)) {
-  $status = ['ok'=>false,'message'=>'Chain file not found.'];
+  $status = ['ok' => false, 'message' => 'Chain file not found.'];
 } else {
   $chain = admin_cached_json_file('attendance_chain_page', $chainFile, [], 15);
   if (!is_array($chain) || count($chain) === 0) {
-    $status = ['ok'=>false,'message'=>'Chain is empty or invalid.'];
+    $status = ['ok' => false, 'message' => 'Chain is empty or invalid.'];
   } else {
     $valid = true;
     $prevHash = null;
@@ -42,7 +42,7 @@ if (!file_exists($chainFile)) {
       }
       $prevHash = $block['hash'] ?? null;
     }
-    $status = ['ok'=>$valid,'errors'=>$errors,'blocks'=>count($chain)];
+    $status = ['ok' => $valid, 'errors' => $errors, 'blocks' => count($chain)];
   }
 }
 ?>
@@ -67,7 +67,7 @@ if (!file_exists($chainFile)) {
         </div>
         <div>
           <p style="font-weight:700;color:var(--error);margin:0;">Chain Integrity Issue</p>
-          <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;"><?= htmlspecialchars($status['message'] ?? implode('; ',$status['errors'] ?? [])) ?></p>
+          <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;"><?= htmlspecialchars($status['message'] ?? implode('; ', $status['errors'] ?? [])) ?></p>
         </div>
       </div>
     </div>
@@ -95,11 +95,11 @@ if (!file_exists($chainFile)) {
       </div>
 
       <?php
-        $chainTotal = count($chain);
-        $chainTotalPages = max(1, (int)ceil($chainTotal / $chainPerPage));
-        $chainPage = min($chainPage, $chainTotalPages);
-        $chainOffset = ($chainPage - 1) * $chainPerPage;
-        $pagedChain = array_slice($chain, $chainOffset, $chainPerPage, true);
+      $chainTotal = count($chain);
+      $chainTotalPages = max(1, (int)ceil($chainTotal / $chainPerPage));
+      $chainPage = min($chainPage, $chainTotalPages);
+      $chainOffset = ($chainPage - 1) * $chainPerPage;
+      $pagedChain = array_slice($chain, $chainOffset, $chainPerPage, true);
       ?>
 
       <div style="max-height:500px;overflow-y:auto;padding:12px;">
@@ -137,8 +137,7 @@ if (!file_exists($chainFile)) {
             <?php for ($i = 1; $i <= $chainTotalPages; $i++): ?>
               <a
                 href="?page=chain&chain_pg=<?= (int)$i ?>"
-                style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;padding:0 8px;text-decoration:none;font-size:0.82rem;font-weight:700;<?= $i === $chainPage ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);border:1px solid var(--outline-variant);' ?>"
-              ><?= (int)$i ?></a>
+                style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;padding:0 8px;text-decoration:none;font-size:0.82rem;font-weight:700;<?= $i === $chainPage ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);border:1px solid var(--outline-variant);' ?>"><?= (int)$i ?></a>
             <?php endfor; ?>
           </div>
         <?php endif; ?>

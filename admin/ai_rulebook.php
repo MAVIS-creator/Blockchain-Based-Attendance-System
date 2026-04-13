@@ -138,7 +138,11 @@ $rules = array_values($rulebook['rules'] ?? []);
       return;
     }
     try {
-      await apiCall({ action: 'teach_rule', text, csrf_token: csrfToken });
+      await apiCall({
+        action: 'teach_rule',
+        text,
+        csrf_token: csrfToken
+      });
       notice('Rule added and applied immediately. Refreshing…');
       setTimeout(() => location.reload(), 550);
     } catch (e) {
@@ -152,7 +156,11 @@ $rules = array_values($rulebook['rules'] ?? []);
     try {
       const raw = document.getElementById('simulateFacts').value || '{}';
       const facts = JSON.parse(raw);
-      const result = await apiCall({ action: 'simulate_rule', facts, csrf_token: csrfToken });
+      const result = await apiCall({
+        action: 'simulate_rule',
+        facts,
+        csrf_token: csrfToken
+      });
       out.textContent = JSON.stringify(result, null, 2);
     } catch (e) {
       out.textContent = 'Simulation failed: ' + e.message;
@@ -166,7 +174,12 @@ $rules = array_values($rulebook['rules'] ?? []);
       const ruleId = card ? card.getAttribute('data-rule-id') : '';
       if (!ruleId) return;
       try {
-        await apiCall({ action: 'toggle_rule', rule_id: ruleId, enabled: !!ev.target.checked, csrf_token: csrfToken });
+        await apiCall({
+          action: 'toggle_rule',
+          rule_id: ruleId,
+          enabled: !!ev.target.checked,
+          csrf_token: csrfToken
+        });
         notice('Rule toggle saved for ' + ruleId + '.');
       } catch (e) {
         ev.target.checked = !ev.target.checked;
@@ -186,7 +199,12 @@ $rules = array_values($rulebook['rules'] ?? []);
         return;
       }
       try {
-        await apiCall({ action: 'rephrase_rule', rule_id: ruleId, text, csrf_token: csrfToken });
+        await apiCall({
+          action: 'rephrase_rule',
+          rule_id: ruleId,
+          text,
+          csrf_token: csrfToken
+        });
         notice('Rule rephrased and applied immediately. Refreshing…');
         setTimeout(() => location.reload(), 550);
       } catch (e) {

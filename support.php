@@ -589,20 +589,20 @@ if (isset($_COOKIE['attendanceBlocked'])) {
         font-size: 1.08rem;
       }
 
-        .input-group input,
-        .input-group select,
-        .input-group textarea {
-          border-radius: 12px;
-          padding: 12px 13px;
-          font-size: 0.95rem;
-        }
+      .input-group input,
+      .input-group select,
+      .input-group textarea {
+        border-radius: 12px;
+        padding: 12px 13px;
+        font-size: 0.95rem;
+      }
 
-        .input-group select {
-          padding-right: 42px;
-          background-position: calc(100% - 16px) 50%, calc(100% - 10px) 50%;
-        }
+      .input-group select {
+        padding-right: 42px;
+        background-position: calc(100% - 16px) 50%, calc(100% - 10px) 50%;
+      }
 
-        .alert-message {
+      .alert-message {
         font-size: 0.9rem;
       }
 

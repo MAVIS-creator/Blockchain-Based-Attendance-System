@@ -119,11 +119,11 @@ $auditPageRows = array_slice($filteredLogs, $auditOffset, $auditPerPage);
     </form>
 
     <!-- Results count -->
-        <div style="font-size: 0.85rem; color: var(--on-surface-variant); margin-bottom: 16px;">
-            Showing <?= $auditTotal > 0 ? (int)($auditOffset + 1) : 0 ?>-<?= (int)min($auditOffset + $auditPerPage, $auditTotal) ?> of <?= (int)$auditTotal ?> entries
-        </div>
+    <div style="font-size: 0.85rem; color: var(--on-surface-variant); margin-bottom: 16px;">
+        Showing <?= $auditTotal > 0 ? (int)($auditOffset + 1) : 0 ?>-<?= (int)min($auditOffset + $auditPerPage, $auditTotal) ?> of <?= (int)$auditTotal ?> entries
+    </div>
 
-        <?php if (empty($auditPageRows)): ?>
+    <?php if (empty($auditPageRows)): ?>
         <div style="background: var(--surface-container-low); border: 1px solid var(--outline-variant); border-radius: var(--radius-xl); padding: 48px; text-align: center;">
             <span class="material-symbols-outlined" style="font-size: 56px; color: var(--outline); margin-bottom: 16px; display: block;">policy</span>
             <h3 style="font-weight: 700; color: var(--on-surface); margin-bottom: 8px;">No Audit Entries Yet</h3>
@@ -181,14 +181,13 @@ $auditPageRows = array_slice($filteredLogs, $auditOffset, $auditPerPage);
             </div>
 
             <?php if ($auditTotalPages > 1): ?>
-              <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;padding:14px;border-top:1px solid var(--outline-variant);">
-                <?php for ($i = 1; $i <= $auditTotalPages; $i++): ?>
-                  <a
-                    href="?page=audit&audit_admin=<?= urlencode($auditAdmin) ?>&audit_category=<?= urlencode($auditCategory) ?>&audit_search=<?= urlencode($auditSearch) ?>&audit_pg=<?= (int)$i ?>"
-                    style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;padding:0 8px;text-decoration:none;font-size:0.82rem;font-weight:700;<?= $i === $auditPage ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);border:1px solid var(--outline-variant);' ?>"
-                  ><?= (int)$i ?></a>
-                <?php endfor; ?>
-              </div>
+                <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;padding:14px;border-top:1px solid var(--outline-variant);">
+                    <?php for ($i = 1; $i <= $auditTotalPages; $i++): ?>
+                        <a
+                            href="?page=audit&audit_admin=<?= urlencode($auditAdmin) ?>&audit_category=<?= urlencode($auditCategory) ?>&audit_search=<?= urlencode($auditSearch) ?>&audit_pg=<?= (int)$i ?>"
+                            style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;padding:0 8px;text-decoration:none;font-size:0.82rem;font-weight:700;<?= $i === $auditPage ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);border:1px solid var(--outline-variant);' ?>"><?= (int)$i ?></a>
+                    <?php endfor; ?>
+                </div>
             <?php endif; ?>
         </div>
     <?php endif; ?>

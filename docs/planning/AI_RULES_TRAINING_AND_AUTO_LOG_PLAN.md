@@ -1,6 +1,6 @@
 # AI Rules Training + Auto Attendance Decision Plan
 
-**Date:** 2026-04-12  
+**Date:** 2026-04-12
 **Scope:** Support-ticket automation, anti-rigging rules, and admin rule-teaching UX
 
 ## Goals from user request
@@ -33,6 +33,7 @@
 ## Phase A — Strict auto-write policy upgrade (core behavior)
 
 ### A1) Add explicit policy object in diagnosis output
+
 Extend `AiTicketDiagnoser::diagnose()` output with:
 
 - `auto_write_allowed` (bool)
@@ -41,6 +42,7 @@ Extend `AiTicketDiagnoser::diagnose()` output with:
 - `identity_link_strength` (`strong|medium|weak`)
 
 ### A2) Enforce anti-rig guard before any auto-write
+
 Before `legitimate_session_issue` can auto-write, require:
 
 - Fingerprint not actively shared across other matrics in same-day/course context.
@@ -48,6 +50,7 @@ Before `legitimate_session_issue` can auto-write, require:
 - Auto-write hard blocked.
 
 ### A3) Deterministic write action mapping
+
 When allowed:
 
 - If requested action is valid and not duplicate, write that action.
@@ -57,6 +60,7 @@ When allowed:
   - else block as duplicate cycle.
 
 ### A4) Fingerprint/IP log guarantees
+
 On ticket-driven auto-write, always use:
 
 - fingerprint: ticket fingerprint (fallback blocked if missing)
@@ -71,6 +75,7 @@ If fingerprint or IP missing, classify `manual_review_required` with reason `mis
 ## Phase B — Rulebook runtime (teach + rephrase + immediate apply)
 
 ### B1) Add runtime rulebook storage
+
 Create new file:
 
 - `storage/admin/ai_rulebook.json`
@@ -90,6 +95,7 @@ Schema:
   - `created_by`, `updated_by`
 
 ### B2) Add rulebook engine adapter
+
 Create:
 
 - `src/AiRulebook.php`
@@ -102,6 +108,7 @@ Responsibilities:
 - expose `listRules()` and `explainDecision()`
 
 ### B3) Integrate into diagnoser + provider
+
 - `AiTicketDiagnoser` checks `AiRulebook` first for classification overrides.
 - `AiProviderClient` fingerprint/admin rule responses can use rulebook phrasing templates when present.
 
@@ -110,6 +117,7 @@ Responsibilities:
 ## Phase C — Admin “Teach Rules” UI (chat-like)
 
 ### C1) Add page
+
 Create `admin/ai_rulebook.php` with:
 
 - current active rules list
@@ -120,6 +128,7 @@ Create `admin/ai_rulebook.php` with:
 - dry-run simulator against sample ticket payload
 
 ### C2) Add endpoint
+
 Create `admin/ai_rulebook_api.php` (CSRF + role protected):
 
 Actions:
@@ -131,6 +140,7 @@ Actions:
 - `simulate_rule`
 
 ### C3) Teach/rephrase parser (instant apply)
+
 Plain-language admin text is parsed into normalized condition/outcome blocks.
 If parser confidence is low, return structured clarification prompt.
 If accepted, write to `ai_rulebook.json` immediately (no restart).

@@ -692,8 +692,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php for ($i = 1; $i <= $accountsTotalPages; $i++): ?>
               <a
                 href="?page=accounts&accounts_pg=<?= (int)$i ?>"
-                style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;padding:0 8px;text-decoration:none;font-size:0.82rem;font-weight:700;<?= $i === $accountsPage ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);border:1px solid var(--outline-variant);' ?>"
-              ><?= (int)$i ?></a>
+                style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;padding:0 8px;text-decoration:none;font-size:0.82rem;font-weight:700;<?= $i === $accountsPage ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);border:1px solid var(--outline-variant);' ?>"><?= (int)$i ?></a>
             <?php endfor; ?>
           </div>
         <?php endif; ?>
