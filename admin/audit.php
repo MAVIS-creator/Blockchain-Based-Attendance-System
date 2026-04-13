@@ -48,6 +48,35 @@ $categories = array_unique(array_column($allLogs, 'category'));
 $admins = array_unique(array_column($allLogs, 'admin'));
 sort($categories);
 sort($admins);
+
+$auditAdmin = trim((string)($_GET['audit_admin'] ?? ''));
+$auditCategory = trim((string)($_GET['audit_category'] ?? ''));
+$auditSearch = strtolower(trim((string)($_GET['audit_search'] ?? '')));
+$auditPage = isset($_GET['audit_pg']) && ctype_digit((string)$_GET['audit_pg']) ? max(1, (int)$_GET['audit_pg']) : 1;
+$auditPerPage = 30;
+
+$filteredLogs = array_values(array_filter($allLogs, static function (array $log) use ($auditAdmin, $auditCategory, $auditSearch): bool {
+    $admin = strtolower((string)($log['admin'] ?? ''));
+    $category = strtolower((string)($log['category'] ?? ''));
+    $searchHaystack = strtolower(((string)($log['action'] ?? '')) . ' ' . ((string)($log['details'] ?? '')));
+
+    if ($auditAdmin !== '' && $admin !== strtolower($auditAdmin)) {
+        return false;
+    }
+    if ($auditCategory !== '' && $category !== strtolower($auditCategory)) {
+        return false;
+    }
+    if ($auditSearch !== '' && strpos($searchHaystack, $auditSearch) === false) {
+        return false;
+    }
+    return true;
+}));
+
+$auditTotal = count($filteredLogs);
+$auditTotalPages = max(1, (int)ceil($auditTotal / $auditPerPage));
+$auditPage = min($auditPage, $auditTotalPages);
+$auditOffset = ($auditPage - 1) * $auditPerPage;
+$auditPageRows = array_slice($filteredLogs, $auditOffset, $auditPerPage);
 ?>
 
 <div class="content flex-grow-1 p-4 p-md-5">
@@ -60,35 +89,41 @@ sort($admins);
     </div>
 
     <!-- Filters -->
-    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
+    <form method="get" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
+        <input type="hidden" name="page" value="audit">
         <div style="flex: 1; min-width: 180px;">
             <label style="display:block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant); margin-bottom: 6px;">Filter by Admin</label>
-            <select id="filterAdmin" onchange="applyFilters()" style="width:100%; padding: 10px 14px; border: 1px solid var(--outline-variant); border-radius: var(--radius-m); background: var(--surface-container-lowest); color: var(--on-surface); font-size: 0.9rem;">
+            <select name="audit_admin" onchange="this.form.submit()" style="width:100%; padding: 10px 14px; border: 1px solid var(--outline-variant); border-radius: var(--radius-m); background: var(--surface-container-lowest); color: var(--on-surface); font-size: 0.9rem;">
                 <option value="">All Admins</option>
                 <?php foreach ($admins as $a): ?>
-                    <option value="<?= htmlspecialchars($a) ?>"><?= htmlspecialchars($a) ?></option>
+                    <option value="<?= htmlspecialchars($a) ?>" <?= strcasecmp($auditAdmin, (string)$a) === 0 ? 'selected' : '' ?>><?= htmlspecialchars($a) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
         <div style="flex: 1; min-width: 180px;">
             <label style="display:block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant); margin-bottom: 6px;">Filter by Category</label>
-            <select id="filterCategory" onchange="applyFilters()" style="width:100%; padding: 10px 14px; border: 1px solid var(--outline-variant); border-radius: var(--radius-m); background: var(--surface-container-lowest); color: var(--on-surface); font-size: 0.9rem;">
+            <select name="audit_category" onchange="this.form.submit()" style="width:100%; padding: 10px 14px; border: 1px solid var(--outline-variant); border-radius: var(--radius-m); background: var(--surface-container-lowest); color: var(--on-surface); font-size: 0.9rem;">
                 <option value="">All Categories</option>
                 <?php foreach ($categories as $c): ?>
-                    <option value="<?= htmlspecialchars($c) ?>"><?= htmlspecialchars($c) ?></option>
+                    <option value="<?= htmlspecialchars($c) ?>" <?= strcasecmp($auditCategory, (string)$c) === 0 ? 'selected' : '' ?>><?= htmlspecialchars($c) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
         <div style="flex: 1; min-width: 180px;">
             <label style="display:block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--on-surface-variant); margin-bottom: 6px;">Search Details</label>
-            <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Search in actions & details..." style="width:100%; padding: 10px 14px; border: 1px solid var(--outline-variant); border-radius: var(--radius-m); background: var(--surface-container-lowest); color: var(--on-surface); font-size: 0.9rem;">
+            <div style="display:flex;gap:8px;">
+                <input type="text" name="audit_search" value="<?= htmlspecialchars($auditSearch) ?>" placeholder="Search in actions & details..." style="width:100%; padding: 10px 14px; border: 1px solid var(--outline-variant); border-radius: var(--radius-m); background: var(--surface-container-lowest); color: var(--on-surface); font-size: 0.9rem;">
+                <button type="submit" class="st-btn st-btn-primary st-btn-sm">Apply</button>
+            </div>
         </div>
-    </div>
+    </form>
 
     <!-- Results count -->
-    <div id="resultsCount" style="font-size: 0.85rem; color: var(--on-surface-variant); margin-bottom: 16px;"></div>
+        <div style="font-size: 0.85rem; color: var(--on-surface-variant); margin-bottom: 16px;">
+            Showing <?= $auditTotal > 0 ? (int)($auditOffset + 1) : 0 ?>-<?= (int)min($auditOffset + $auditPerPage, $auditTotal) ?> of <?= (int)$auditTotal ?> entries
+        </div>
 
-    <?php if (empty($allLogs)): ?>
+        <?php if (empty($auditPageRows)): ?>
         <div style="background: var(--surface-container-low); border: 1px solid var(--outline-variant); border-radius: var(--radius-xl); padding: 48px; text-align: center;">
             <span class="material-symbols-outlined" style="font-size: 56px; color: var(--outline); margin-bottom: 16px; display: block;">policy</span>
             <h3 style="font-weight: 700; color: var(--on-surface); margin-bottom: 8px;">No Audit Entries Yet</h3>
@@ -110,12 +145,8 @@ sort($admins);
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($allLogs as $i => $log): ?>
-                            <tr class="audit-row"
-                                data-admin="<?= htmlspecialchars($log['admin'] ?? '') ?>"
-                                data-category="<?= htmlspecialchars($log['category'] ?? '') ?>"
-                                data-search="<?= htmlspecialchars(strtolower(($log['action'] ?? '') . ' ' . ($log['details'] ?? ''))) ?>"
-                                style="border-bottom: 1px solid var(--outline-variant); transition: background 0.15s;">
+                        <?php foreach ($auditPageRows as $i => $log): ?>
+                            <tr class="audit-row" style="border-bottom: 1px solid var(--outline-variant); transition: background 0.15s;">
                                 <td style="padding: 12px 16px; white-space: nowrap; color: var(--on-surface-variant); font-size: 0.82rem;"><?= htmlspecialchars($log['timestamp'] ?? '-') ?></td>
                                 <td style="padding: 12px 16px; font-weight: 600; color: var(--on-surface);"><?= htmlspecialchars($log['admin'] ?? '-') ?></td>
                                 <td style="padding: 12px 16px;">
@@ -148,42 +179,24 @@ sort($admins);
                     </tbody>
                 </table>
             </div>
+
+            <?php if ($auditTotalPages > 1): ?>
+              <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;padding:14px;border-top:1px solid var(--outline-variant);">
+                <?php for ($i = 1; $i <= $auditTotalPages; $i++): ?>
+                  <a
+                    href="?page=audit&audit_admin=<?= urlencode($auditAdmin) ?>&audit_category=<?= urlencode($auditCategory) ?>&audit_search=<?= urlencode($auditSearch) ?>&audit_pg=<?= (int)$i ?>"
+                    style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;padding:0 8px;text-decoration:none;font-size:0.82rem;font-weight:700;<?= $i === $auditPage ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);border:1px solid var(--outline-variant);' ?>"
+                  ><?= (int)$i ?></a>
+                <?php endfor; ?>
+              </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>
 
 <script>
-    function applyFilters() {
-        const adminFilter = document.getElementById('filterAdmin').value.toLowerCase();
-        const categoryFilter = document.getElementById('filterCategory').value.toLowerCase();
-        const searchFilter = document.getElementById('filterSearch').value.toLowerCase();
-        const rows = document.querySelectorAll('.audit-row');
-        let visible = 0;
-
-        rows.forEach(row => {
-            const admin = (row.dataset.admin || '').toLowerCase();
-            const category = (row.dataset.category || '').toLowerCase();
-            const search = (row.dataset.search || '').toLowerCase();
-
-            let show = true;
-            if (adminFilter && admin !== adminFilter) show = false;
-            if (categoryFilter && category !== categoryFilter) show = false;
-            if (searchFilter && search.indexOf(searchFilter) === -1) show = false;
-
-            row.style.display = show ? '' : 'none';
-            if (show) visible++;
-        });
-
-        document.getElementById('resultsCount').textContent =
-            `Showing ${visible} of ${rows.length} entries`;
-    }
-
-    // Add hover effect
     document.querySelectorAll('.audit-row').forEach(row => {
         row.addEventListener('mouseenter', () => row.style.background = 'var(--surface-container)');
         row.addEventListener('mouseleave', () => row.style.background = '');
     });
-
-    // Init count
-    applyFilters();
 </script>

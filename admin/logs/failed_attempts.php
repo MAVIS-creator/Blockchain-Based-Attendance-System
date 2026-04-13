@@ -17,7 +17,7 @@ if (empty($courses)) $courses = ['General'];
 $selectedDate = $_GET['date'] ?? date('Y-m-d');
 $selectedCourse = isset($_GET['course']) ? trim($_GET['course']) : 'All';
 $search = trim($_GET['search'] ?? '');
-$page = max(1, intval($_GET['page'] ?? 1));
+$failedPage = max(1, intval($_GET['failed_pg'] ?? 1));
 
 // Validate course value
 if (!in_array($selectedCourse, $courses) && $selectedCourse !== 'All') {
@@ -94,7 +94,7 @@ if (file_exists($mainLogFile)) {
 // Pagination
 $totalLogs = count($logs);
 $totalPages = ceil($totalLogs / $perPage);
-$currentPage = min($page, $totalPages > 0 ? $totalPages : 1);
+$currentPage = min($failedPage, $totalPages > 0 ? $totalPages : 1);
 $startIndex = ($currentPage - 1) * $perPage;
 $logsPage = array_slice($logs, $startIndex, $perPage);
 ?>
@@ -192,7 +192,7 @@ $logsPage = array_slice($logs, $startIndex, $perPage);
       <?php if ($totalPages > 1): ?>
         <div style="padding:16px 20px;border-top:1px solid var(--outline-variant);display:flex;justify-content:center;gap:8px;">
           <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-            <a href="index.php?page=failed_attempts&date=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($search) ?>&page=<?= $i ?>"
+            <a href="index.php?page=failed_attempts&date=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($search) ?>&failed_pg=<?= $i ?>"
                style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;text-decoration:none;font-size:0.85rem;font-weight:600;<?= $i === $currentPage ? 'background:var(--error);color:#fff;' : 'background:var(--surface-container-high);color:var(--on-surface-variant);' ?>">
               <?= $i ?>
             </a>

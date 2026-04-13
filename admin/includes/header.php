@@ -882,7 +882,7 @@ if (file_exists($csrfPath)) {
         if (!count || count < 1 || typeof Swal === 'undefined') return;
         Swal.fire({
           toast: true,
-          position: 'bottom-end',
+          position: 'top-end',
           timer: 2600,
           timerProgressBar: true,
           showConfirmButton: false,
@@ -909,7 +909,7 @@ if (file_exists($csrfPath)) {
         var suffix = newAiMessages.length > 1 ? (' +' + (newAiMessages.length - 1) + ' more') : '';
         Swal.fire({
           toast: true,
-          position: 'bottom-end',
+          position: 'top-end',
           timer: 4200,
           timerProgressBar: true,
           showConfirmButton: false,
@@ -1521,16 +1521,39 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
 <style>
   .shepherd-element {
     z-index: 1000000;
-    background: var(--surface-container-high);
+    background: var(--surface-container-lowest);
     color: var(--on-surface);
     border: 1px solid var(--outline-variant);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-elevated);
+    max-width: min(420px, calc(100vw - 28px));
   }
 
   .shepherd-title {
     font-weight: 700;
     color: var(--primary);
+  }
+
+  .shepherd-header {
+    position: relative;
+    padding: 14px 16px 8px;
+    padding-right: 46px;
+  }
+
+  .shepherd-content {
+    border-radius: inherit;
+  }
+
+  .shepherd-text {
+    padding: 0 16px 2px;
+  }
+
+  .shepherd-footer {
+    padding: 12px 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
   }
 
   .shepherd-button {
@@ -1554,6 +1577,77 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
     font-size: 0.95rem;
     line-height: 1.5;
     color: var(--on-surface-variant);
+  }
+
+  .shepherd-cancel-icon {
+    position: absolute !important;
+    top: 10px;
+    right: 10px;
+    left: auto !important;
+    margin: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--on-surface-variant);
+    font-size: 1.15rem;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--outline-variant);
+    background: var(--surface-container-lowest);
+    border-radius: 8px;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+
+  .shepherd-cancel-icon:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  .shepherd-modal-overlay-container {
+    background: rgba(8, 15, 28, 0.58) !important;
+  }
+
+  .shepherd-target.shepherd-enabled,
+  .shepherd-enabled.shepherd-target {
+    position: relative;
+    z-index: 1000000;
+  }
+
+  @media (max-width: 768px) {
+    .shepherd-element {
+      max-width: calc(100vw - 24px) !important;
+      border-radius: 16px;
+      border-color: color-mix(in srgb, var(--outline-variant) 78%, #ffffff 22%);
+      box-shadow: 0 14px 30px rgba(9, 23, 48, 0.26);
+    }
+
+    .shepherd-header {
+      padding: 12px 12px 6px;
+      padding-right: 42px;
+    }
+
+    .shepherd-cancel-icon {
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+    }
+
+    .shepherd-text {
+      padding: 0 12px 2px;
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .shepherd-footer {
+      padding: 10px 12px 12px;
+      gap: 6px;
+    }
+
+    .shepherd-button {
+      padding: 8px 12px;
+      font-size: 0.86rem;
+    }
   }
 </style>
 <script>
@@ -1641,6 +1735,28 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
       return visible || matches[0];
     }
 
+    function waitFor(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function ensureSidebarGroupsOpen(target) {
+      if (!(target instanceof Element)) return false;
+      let changed = false;
+      const groups = [];
+      let current = target.closest('details.sidebar-group');
+      while (current) {
+        groups.push(current);
+        current = current.parentElement ? current.parentElement.closest('details.sidebar-group') : null;
+      }
+      groups.reverse().forEach((group) => {
+        if (!group.open) {
+          group.open = true;
+          changed = true;
+        }
+      });
+      return changed;
+    }
+
     function resolveTourTarget(selector) {
       if (typeof selector !== 'string') return selector;
       const isMobile = window.matchMedia('(max-width: 1024px)').matches;
@@ -1658,6 +1774,7 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
 
     steps.forEach((step) => {
       if (!step.attachTo || !step.attachTo.element) return;
+      step._selector = typeof step.attachTo.element === 'string' ? step.attachTo.element : null;
       const target = resolveTourTarget(step.attachTo.element);
       if (target) {
         step.attachTo.element = target;
@@ -1668,22 +1785,81 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
         return Promise.resolve(
             typeof existingBeforeShow === 'function' ? existingBeforeShow.call(this) : undefined
           )
-          .then(() => {
+          .then(async () => {
             const isMobile = window.matchMedia('(max-width: 1024px)').matches;
-            if (!isMobile) return;
-            const attached = step.attachTo && step.attachTo.element;
-            if (!(attached instanceof Element)) return;
-            if (!attached.closest('.sidebar')) return;
-            if (document.body.classList.contains('sidebar-open')) return;
-            if (typeof window.toggleSidebar === 'function') {
-              window.toggleSidebar();
+            const selector = step._selector;
+            const attached = resolveTourTarget(selector || (step.attachTo && step.attachTo.element));
+            if (attached instanceof Element) {
+              if (isMobile && attached.closest('.sidebar') && !document.body.classList.contains('sidebar-open') && typeof window.toggleSidebar === 'function') {
+                window.toggleSidebar();
+                await waitFor(260);
+              }
+
+              if (ensureSidebarGroupsOpen(attached)) {
+                await waitFor(140);
+              }
+
+              step.attachTo.element = attached;
+              attached.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+                inline: 'nearest'
+              });
             }
-            return new Promise((resolve) => setTimeout(resolve, 260));
           });
       };
     });
 
     var needsTour = <?= json_encode(!empty($_SESSION['needs_tour'])) ?>;
+    var tourUser = <?= json_encode((string)($_SESSION['admin_user'] ?? '')) ?>;
+    var tourDismissKey = 'admin_tour_completed_' + (tourUser || 'session');
+    var localTourCompleted = false;
+    try {
+      localTourCompleted = window.localStorage && window.localStorage.getItem(tourDismissKey) === '1';
+    } catch (e) {
+      localTourCompleted = false;
+    }
+
+    function markTourLocallyDone() {
+      try {
+        if (window.localStorage) {
+          window.localStorage.setItem(tourDismissKey, '1');
+        }
+      } catch (e) {}
+    }
+
+    function completeBackendTour() {
+      markTourLocallyDone();
+      var endpoint = 'api_tour_complete.php';
+      try {
+        if (navigator.sendBeacon) {
+          var beacon = new Blob(['{}'], {
+            type: 'application/json'
+          });
+          var queued = navigator.sendBeacon(endpoint, beacon);
+          if (queued) {
+            return;
+          }
+        }
+      } catch (e) {}
+
+      fetch(endpoint, {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: '{}'
+      }).catch(function() {});
+    }
+
+    if (needsTour && localTourCompleted) {
+      completeBackendTour();
+      needsTour = false;
+    }
+
     if (typeof Shepherd !== 'undefined' && needsTour) {
       window.tour = new Shepherd.Tour({
         useModalOverlay: true,
@@ -1699,12 +1875,6 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
       });
       steps.forEach(s => window.tour.addStep(s));
 
-      function completeBackendTour() {
-        fetch('api_tour_complete.php', {
-          method: 'POST',
-          body: '{}'
-        }).catch(() => {});
-      }
       window.tour.on('complete', completeBackendTour);
       window.tour.on('cancel', completeBackendTour);
 

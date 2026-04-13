@@ -104,6 +104,28 @@ if (!function_exists('hybrid_fetch_support_tickets')) {
   }
 }
 
+if (!function_exists('hybrid_support_ticket_unresolved_count')) {
+  function hybrid_support_ticket_unresolved_count(&$source = 'file')
+  {
+    $tickets = hybrid_fetch_support_tickets($source);
+    if (!is_array($tickets)) {
+      return null;
+    }
+
+    $count = 0;
+    foreach ($tickets as $ticket) {
+      if (!is_array($ticket)) {
+        continue;
+      }
+      if (empty($ticket['resolved'])) {
+        $count++;
+      }
+    }
+
+    return $count;
+  }
+}
+
 if (!function_exists('hybrid_mark_support_ticket_resolved')) {
   function hybrid_mark_support_ticket_resolved($ticketTimestamp)
   {

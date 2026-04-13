@@ -231,5 +231,106 @@
         "auto_replied_by": "system_ai_operator",
         "context": "idle_proactive",
         "deleted": false
+    },
+    {
+        "id": "msg_979fbdcdf66d2473",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-11T17:19:23+02:00",
+        "message": "Sentinel AI waving \ud83d\udc4b: I can keep you company with a 20-second ops summary, a tiny joke, or a mini dashboard tour. Your pick?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_8d3169b7c884310a",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-11T17:39:01+02:00",
+        "message": "Sentinel AI check-in \ud83c\udfaf: We can do a fast page tour, a one-liner joke, or a support queue snapshot.",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_377e6b34302f2777",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-13T00:32:43+02:00",
+        "message": "Sentinel AI check-in \ud83c\udfaf: We can do a fast page tour, a one-liner joke, or a support queue snapshot.",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_76e69c88bb475a35",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-13T00:44:01+02:00",
+        "message": "Sentinel AI here \ud83d\ude0e: Want a quick laugh, quick game, or quick system pulse-check while things are calm?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_b661423b3f4dea89",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-13T01:12:00+02:00",
+        "message": "Sentinel AI waving \ud83d\udc4b: I can keep you company with a 20-second ops summary, a tiny joke, or a mini dashboard tour. Your pick?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_82b71f21be05070f",
+        "user": "Mavis",
+        "name": "Mavis",
+        "time": "2026-04-13T01:16:50+02:00",
+        "message": "Hi there, how far? Tell me a quick joke.",
+        "deleted": false
+    },
+    {
+        "id": "msg_883c8ec31ee4dcec",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-13T01:17:02+02:00",
+        "message": "Quick one: I told the duplicate ticket to wait its turn, but it said it had already submitted that request.",
+        "auto_replied_by": "system_ai_operator",
+        "context": "admin_chat_assist",
+        "ai_provider": "rules",
+        "ai_model": "rules-chat-v1",
+        "ai_latency_ms": 0,
+        "deleted": false
+    },
+    {
+        "id": "msg_71ee12b8dcbb7791",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-13T01:30:36+02:00",
+        "message": "Sentinel AI waving \ud83d\udc4b: I can keep you company with a 20-second ops summary, a tiny joke, or a mini dashboard tour. Your pick?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_0ca264afed968ba1",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-13T01:52:04+02:00",
+        "message": "Sentinel AI check-in \ud83c\udfaf: We can do a fast page tour, a one-liner joke, or a support queue snapshot.",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_84b0d68c0b5f9cba",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-13T02:04:05+02:00",
+        "message": "Sentinel AI waving \ud83d\udc4b: I can keep you company with a 20-second ops summary, a tiny joke, or a mini dashboard tour. Your pick?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
     }
 ]

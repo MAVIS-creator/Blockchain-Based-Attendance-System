@@ -116,15 +116,26 @@ if (!function_exists('admin_cached_file_lines')) {
 if (!function_exists('admin_support_ticket_count')) {
   function admin_support_ticket_count($ttl = 15)
   {
-    $ticketsFile = admin_storage_migrate_file('support_tickets.json', app_storage_file('support_tickets.json'));
-    $tickets = admin_cached_json_file('support_tickets', $ticketsFile, [], $ttl);
-    $count = 0;
-    foreach ($tickets as $ticket) {
-      if (!($ticket['resolved'] ?? false)) {
-        $count++;
+    require_once __DIR__ . '/includes/hybrid_admin_read.php';
+
+    $cacheKey = 'support_ticket_count:' . md5((string)$ttl . '|' . (hybrid_admin_read_enabled() ? 'hybrid' : 'file'));
+    return admin_cache_remember($cacheKey, $ttl, function () use ($ttl) {
+      $source = 'file';
+      $hybridCount = hybrid_support_ticket_unresolved_count($source);
+      if ($hybridCount !== null) {
+        return (int)$hybridCount;
       }
-    }
-    return $count;
+
+      $ticketsFile = admin_storage_migrate_file('support_tickets.json', app_storage_file('support_tickets.json'));
+      $tickets = admin_cached_json_file('support_tickets', $ticketsFile, [], $ttl);
+      $count = 0;
+      foreach ($tickets as $ticket) {
+        if (!($ticket['resolved'] ?? false)) {
+          $count++;
+        }
+      }
+      return $count;
+    });
   }
 }
 

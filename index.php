@@ -455,6 +455,41 @@ request_timing_span('load_announcement', $span);
         padding: 74px 14px 14px;
       }
 
+      .alert-bar {
+        padding: 12px 12px 10px;
+        gap: 10px;
+        align-items: flex-start;
+        border-left-width: 0;
+        border-bottom: 1px solid #dbeafe;
+        border-radius: 0 0 12px 12px;
+      }
+
+      .alert-body {
+        gap: 4px;
+      }
+
+      .alert-heading {
+        font-size: 0.8rem;
+      }
+
+      .alert-meta {
+        font-size: 0.74rem;
+      }
+
+      .alert-bar button {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        border-radius: 999px;
+        margin-left: 0;
+        padding: 0;
+        font-size: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.45);
+      }
+
       .container {
         padding: 18px;
         border-radius: 14px;
@@ -471,10 +506,6 @@ request_timing_span('load_announcement', $span);
 
       .support-row {
         align-items: flex-start;
-      }
-
-      .alert-bar {
-        padding: 10px 12px;
       }
 
       .alert-message {
@@ -494,7 +525,7 @@ request_timing_span('load_announcement', $span);
 <body>
 
   <!-- Hybrid Announcement Model: Static Top Alert + Toast on Updates -->
-  <div id="announcementBanner" class="alert-bar alert-info" style="<?= !empty($announcement['enabled']) ? 'display:flex;' : 'display:none;' ?>">
+  <div id="announcementBanner" class="alert-bar alert-info" style="display:none;">
     <div class="alert-body">
       <strong id="announcementBannerTitle" class="alert-heading">ℹ️ INFORMATION</strong>
       <div id="announcementBannerText" class="alert-message"><?= htmlspecialchars(trim((string)($announcement['message'] ?? '')) !== '' ? (string)$announcement['message'] : 'An important announcement is currently active.') ?></div>
@@ -669,6 +700,7 @@ request_timing_span('load_announcement', $span);
 
         fingerprintInput.value = visitorId + "_" + token;
         submitBtn.disabled = false;
+        fetchAnnouncement();
       }).catch(err => {
         console.error('Fingerprint error:', err);
         Swal.fire({

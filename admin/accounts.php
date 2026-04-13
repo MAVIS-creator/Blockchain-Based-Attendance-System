@@ -64,6 +64,11 @@ $currentRole = $_SESSION['admin_role'] ?? 'admin';
 $message = '';
 $errors = [];
 
+$accountsPage = isset($_GET['accounts_pg']) && ctype_digit((string)$_GET['accounts_pg'])
+  ? max(1, (int)$_GET['accounts_pg'])
+  : 1;
+$accountsPerPage = 12;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!csrf_check_request()) {
     $errors[] = 'Invalid CSRF token.';
@@ -572,6 +577,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   foreach ($accounts as $acct) {
     if (($acct['role'] ?? 'admin') === 'superadmin') $superAdmins++;
   }
+
+  $accountRows = array_values($accounts);
+  $accountUsernames = array_keys($accounts);
+  $accountsTotal = count($accountRows);
+  $accountsTotalPages = max(1, (int)ceil($accountsTotal / $accountsPerPage));
+  $accountsPage = min($accountsPage, $accountsTotalPages);
+  $accountsOffset = ($accountsPage - 1) * $accountsPerPage;
+  $pagedAccountRows = array_slice($accountRows, $accountsOffset, $accountsPerPage);
+  $pagedAccountUsernames = array_slice($accountUsernames, $accountsOffset, $accountsPerPage);
   ?>
 
   <div class="accounts-stat-grid">
@@ -600,7 +614,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($accounts as $u => $info): ?>
+        <?php foreach ($pagedAccountRows as $idx => $info): ?>
+          <?php $u = (string)($pagedAccountUsernames[$idx] ?? ''); ?>
           <?php $isSelf = $u === ($_SESSION['admin_user'] ?? ''); ?>
           <tr>
             <td>
@@ -666,6 +681,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endforeach; ?>
       </tbody>
     </table>
+
+    <?php if ($accountsTotal > 0): ?>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--outline-variant);">
+        <div style="font-size:0.82rem;color:var(--on-surface-variant);">
+          Showing <?= (int)($accountsOffset + 1) ?>-<?= (int)min($accountsOffset + $accountsPerPage, $accountsTotal) ?> of <?= (int)$accountsTotal ?> accounts
+        </div>
+        <?php if ($accountsTotalPages > 1): ?>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <?php for ($i = 1; $i <= $accountsTotalPages; $i++): ?>
+              <a
+                href="?page=accounts&accounts_pg=<?= (int)$i ?>"
+                style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;padding:0 8px;text-decoration:none;font-size:0.82rem;font-weight:700;<?= $i === $accountsPage ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);border:1px solid var(--outline-variant);' ?>"
+              ><?= (int)$i ?></a>
+            <?php endfor; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
   </div>
 
   <?php if ($currentRole !== 'superadmin'): ?>

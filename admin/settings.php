@@ -196,6 +196,88 @@ function build_env_panel_values($effectiveEnv, $baseEnv)
   return $panel;
 }
 
+function trigger_manual_attendance_send($date, $recipient, $format)
+{
+  $date = trim((string)$date);
+  if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+    return ['ok' => false, 'message' => 'Choose a valid attendance date before sending.'];
+  }
+
+  if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+    return ['ok' => false, 'message' => 'Save a valid auto-send recipient first.'];
+  }
+
+  $format = strtolower(trim((string)$format));
+  if (!in_array($format, ['csv', 'pdf'], true)) {
+    $format = 'csv';
+  }
+
+  $logsDir = app_storage_file('logs');
+  $selectedGroups = [];
+
+  if (is_dir($logsDir)) {
+    $iterator = new DirectoryIterator($logsDir);
+    foreach ($iterator as $file) {
+      if (!$file->isFile()) continue;
+      $filename = $file->getFilename();
+      if (preg_match('/\.(php|css)$/i', $filename)) continue;
+      if (!(strpos($filename, $date) !== false || (preg_match('/(20\d{2}-\d{2}-\d{2})/', $filename, $matches) && ($matches[1] ?? '') === $date))) {
+        continue;
+      }
+
+      $lines = @file($logsDir . '/' . $filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+      $courses = [];
+      foreach ($lines as $line) {
+        $parts = array_map('trim', explode('|', $line));
+        if (!empty($parts[8])) {
+          $courses[$parts[8]] = true;
+        }
+      }
+
+      foreach (array_keys($courses) as $course) {
+        $selectedGroups[] = $date . '|' . $course;
+      }
+    }
+  }
+
+  $selectedGroups = array_values(array_unique($selectedGroups));
+  if (empty($selectedGroups)) {
+    return ['ok' => false, 'message' => 'No attendance log groups were found for the selected date.'];
+  }
+
+  $originalPost = $_POST;
+  $originalRequestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+  $_SERVER['REQUEST_METHOD'] = 'POST';
+  $_POST = [
+    'send_logs' => '1',
+    'csrf_token' => csrf_token(),
+    'recipient' => $recipient,
+    'format' => $format,
+    'selected_groups' => $selectedGroups,
+    'cols' => ['name', 'matric', 'action', 'datetime', 'course'],
+  ];
+
+  $success = '';
+  $error = '';
+  ob_start();
+  require __DIR__ . '/send_logs_email.php';
+  $renderedOutput = ob_get_clean();
+
+  $_POST = $originalPost;
+  $_SERVER['REQUEST_METHOD'] = $originalRequestMethod;
+
+  if (is_string($success) && trim($success) !== '') {
+    return ['ok' => true, 'message' => trim($success)];
+  }
+
+  $fallback = trim(strip_tags((string)$renderedOutput));
+  return [
+    'ok' => false,
+    'message' => (is_string($error) && trim($error) !== '') ? trim($error) : ($fallback !== '' ? mb_substr($fallback, 0, 400) : 'Manual send failed.'),
+  ];
+}
+
 function test_supabase_connection_env($env)
 {
   $url = rtrim(trim($env['SUPABASE_URL'] ?? ''), '/');
@@ -492,6 +574,7 @@ csrf_token();
 $message = '';
 $errors = [];
 $envTestResult = null;
+$activeTab = 'tab-general';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // validate CSRF centrally
@@ -509,6 +592,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $reauthOk = false;
   if ($reauthPassword !== '' && isset($accounts[$currentUser])) {
     $reauthOk = password_verify($reauthPassword, $accounts[$currentUser]['password']);
+  }
+
+  if (
+    isset($_POST['smtp_from_name']) ||
+    isset($_POST['auto_send_enabled']) ||
+    isset($_POST['auto_send_recipient']) ||
+    isset($_POST['auto_send_format']) ||
+    isset($_POST['test_smtp_connection']) ||
+    isset($_POST['trigger_auto_send_now'])
+  ) {
+    $activeTab = 'tab-email';
   }
 
   // template operations
@@ -662,6 +756,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $envTestResult = test_smtp_connection_env($ENV_PANEL, $smtpTestRecipient);
     if ($envTestResult['ok']) $message = $envTestResult['message'];
     else $errors[] = $envTestResult['message'];
+  }
+
+  if (isset($_POST['trigger_auto_send_now']) && empty($errors)) {
+    $manualSendDate = trim((string)($_POST['manual_send_date'] ?? date('Y-m-d')));
+    $manualRecipient = trim((string)($_POST['auto_send_recipient'] ?? ($settings['auto_send']['recipient'] ?? ($ENV['AUTO_SEND_RECIPIENT'] ?? ''))));
+    $manualFormat = trim((string)($_POST['auto_send_format'] ?? ($settings['auto_send']['format'] ?? 'csv')));
+    $sendResult = trigger_manual_attendance_send($manualSendDate, $manualRecipient, $manualFormat);
+    if (!empty($sendResult['ok'])) {
+      $message = (string)$sendResult['message'];
+    } else {
+      $errors[] = (string)($sendResult['message'] ?? 'Manual send failed.');
+    }
   }
 
   // Save environment key/value flow
@@ -1008,6 +1114,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <option value="csv" <?= ($settings['auto_send']['format'] ?? 'csv') === 'csv' ? 'selected' : '' ?>>CSV (Raw Immutable Data)</option>
             </select>
           </div>
+          <div class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-5 space-y-4">
+            <div>
+              <h3 class="text-base font-semibold text-on-surface">One-click Send</h3>
+              <p class="text-sm text-on-surface-variant mt-1">Use the saved recipient and format above to send that day&apos;s attendance export immediately after class or after issue resolution.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-on-surface-variant mb-2">attendance_date_to_send</label>
+              <input class="w-full px-4 py-3 rounded-lg bg-surface-container-lowest border border-outline-variant/30" type="date" name="manual_send_date" value="<?= htmlspecialchars($_POST['manual_send_date'] ?? date('Y-m-d')) ?>" max="<?= htmlspecialchars(date('Y-m-d')) ?>">
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <button class="inline-flex items-center gap-2 rounded-xl bg-primary text-white font-semibold px-5 py-3 hover:bg-primary-container transition-colors" type="submit" name="trigger_auto_send_now">
+                <span class="material-symbols-outlined" style="font-size:1rem;">forward_to_inbox</span>
+                Send Attendance Now
+              </button>
+              <span class="text-xs text-on-surface-variant self-center">This sends every available course log group found for the selected date.</span>
+            </div>
+          </div>
         </section>
       </div>
       <div class="lg:col-span-5 space-y-8">
@@ -1299,7 +1422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (hash && document.getElementById(hash)) {
       openTab(null, hash);
     } else {
-      openTab(null, 'tab-general');
+      openTab(null, <?= json_encode($activeTab) ?>);
     }
     bindSecretVisibilityToggles();
   });

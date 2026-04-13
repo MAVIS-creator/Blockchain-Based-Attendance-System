@@ -27,7 +27,12 @@ class AiTicketAutomationEngine
     return admin_storage_migrate_file('ai_auto_send_tracker.json');
   }
 
-  public function processUnresolvedTickets($limit = 200)
+  public static function runtimeStateFile()
+  {
+    return admin_storage_migrate_file('ai_ticket_processor_runtime.json');
+  }
+
+  private function canProcessTickets()
   {
     $identity = AiServiceIdentity::load($this->serviceId);
     if (!$identity || $identity->canLogin()) {
@@ -38,6 +43,17 @@ class AiTicketAutomationEngine
       return ['ok' => false, 'error' => 'insufficient_ai_capabilities'];
     }
 
+    return ['ok' => true];
+  }
+
+  public function processUnresolvedTickets($limit = 200)
+  {
+    $gate = $this->canProcessTickets();
+    if (empty($gate['ok'])) {
+      return $gate;
+    }
+
+    $limit = max(1, min(1000, (int)$limit));
     $tickets = ticket_read_all();
     $processed = 0;
     $results = [];
@@ -59,6 +75,141 @@ class AiTicketAutomationEngine
       'results' => $results,
       'processed_at' => date('c')
     ];
+  }
+
+  public function processTicket(array $ticket)
+  {
+    $gate = $this->canProcessTickets();
+    if (empty($gate['ok'])) {
+      return $gate;
+    }
+
+    if (!empty($ticket['resolved'])) {
+      return ['ok' => false, 'error' => 'ticket_already_resolved'];
+    }
+
+    $timestamp = trim((string)($ticket['timestamp'] ?? ''));
+    if ($timestamp === '') {
+      return ['ok' => false, 'error' => 'missing_ticket_timestamp'];
+    }
+
+    $result = $this->processOne($ticket);
+    return [
+      'ok' => true,
+      'service' => $this->serviceId,
+      'processed' => 1,
+      'results' => [$result],
+      'processed_at' => date('c')
+    ];
+  }
+
+  public function processTicketByTimestamp($ticketTimestamp)
+  {
+    $ticketTimestamp = trim((string)$ticketTimestamp);
+    if ($ticketTimestamp === '') {
+      return ['ok' => false, 'error' => 'missing_ticket_timestamp'];
+    }
+
+    $tickets = ticket_read_all();
+    foreach ($tickets as $ticket) {
+      if (!is_array($ticket)) {
+        continue;
+      }
+      if ((string)($ticket['timestamp'] ?? '') !== $ticketTimestamp) {
+        continue;
+      }
+      if (!empty($ticket['resolved'])) {
+        return ['ok' => false, 'error' => 'ticket_already_resolved'];
+      }
+      return $this->processTicket($ticket);
+    }
+
+    return [
+      'ok' => false,
+      'error' => 'ticket_not_found',
+      'ticket_timestamp' => $ticketTimestamp
+    ];
+  }
+
+  public function autoProcessPending($limit = 20, $context = 'general', $cooldownSeconds = 20)
+  {
+    $limit = max(1, min(1000, (int)$limit));
+    $context = trim((string)$context) !== '' ? trim((string)$context) : 'general';
+    $cooldownSeconds = max(0, (int)$cooldownSeconds);
+    $stateFile = self::runtimeStateFile();
+    if (!file_exists($stateFile)) {
+      @file_put_contents($stateFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    }
+
+    $fp = fopen($stateFile, 'c+');
+    if (!$fp) {
+      return $this->processUnresolvedTickets($limit);
+    }
+
+    if (!flock($fp, LOCK_EX)) {
+      fclose($fp);
+      return ['ok' => false, 'error' => 'runtime_lock_failed'];
+    }
+
+    rewind($fp);
+    $raw = stream_get_contents($fp);
+    $state = json_decode($raw ?: '[]', true);
+    if (!is_array($state)) {
+      $state = [];
+    }
+
+    $entry = isset($state[$context]) && is_array($state[$context]) ? $state[$context] : [];
+    $lastRunAt = strtotime((string)($entry['last_run_at'] ?? '')) ?: 0;
+    $now = time();
+    if ($cooldownSeconds > 0 && $lastRunAt > 0 && ($now - $lastRunAt) < $cooldownSeconds) {
+      flock($fp, LOCK_UN);
+      fclose($fp);
+      return [
+        'ok' => true,
+        'skipped' => true,
+        'reason' => 'cooldown_active',
+        'context' => $context,
+        'last_run_at' => $entry['last_run_at'] ?? null
+      ];
+    }
+
+    $state[$context] = [
+      'last_run_at' => date('c'),
+      'status' => 'running',
+      'limit' => $limit,
+    ];
+    rewind($fp);
+    ftruncate($fp, 0);
+    fwrite($fp, json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+
+    $result = $this->processUnresolvedTickets($limit);
+
+    $fp = fopen($stateFile, 'c+');
+    if ($fp && flock($fp, LOCK_EX)) {
+      rewind($fp);
+      $raw = stream_get_contents($fp);
+      $state = json_decode($raw ?: '[]', true);
+      if (!is_array($state)) {
+        $state = [];
+      }
+      $state[$context] = [
+        'last_run_at' => date('c'),
+        'status' => !empty($result['ok']) ? 'completed' : 'failed',
+        'processed' => (int)($result['processed'] ?? 0),
+        'error' => (string)($result['error'] ?? ''),
+      ];
+      rewind($fp);
+      ftruncate($fp, 0);
+      fwrite($fp, json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+      fflush($fp);
+      flock($fp, LOCK_UN);
+      fclose($fp);
+    }
+
+    return $result;
   }
 
   private function processOne(array $ticket)
@@ -87,7 +238,17 @@ class AiTicketAutomationEngine
       $adminSuggestion = trim((string)$aiSuggestion['suggestion']);
     }
 
-    if ($diag['classification'] === 'blocked_revoked_device') {
+    if ($diag['classification'] === 'invalid_course_reference') {
+      $announcementMessage = 'The course in your ticket is not recognized in the system. Please select a valid configured course and contact admin support.';
+      $announcementSeverity = 'warning';
+    } elseif ($diag['classification'] === 'inactive_course_reference') {
+      $activeCourseLabel = trim((string)($diag['active_course'] ?? 'General'));
+      $announcementMessage = sprintf('The course in your ticket is not currently active for attendance. Active course is %s. Contact admin before retrying.', $activeCourseLabel !== '' ? $activeCourseLabel : 'General');
+      $announcementSeverity = 'warning';
+    } elseif ($diag['classification'] === 'fingerprint_conflict_rig_attempt') {
+      $announcementMessage = 'Attendance request is blocked due to fingerprint conflict risk. Admin identity verification is required before any update.';
+      $announcementSeverity = 'urgent';
+    } elseif ($diag['classification'] === 'blocked_revoked_device') {
       $autoTokenClear = $this->maybeClearBlockedTokenFromTicket($ticket, $diag);
       if (!empty($autoTokenClear['performed'])) {
         $announcementMessage = 'Your token/session block request was verified and cleared. Refresh and retry attendance on the same device.';
@@ -119,6 +280,18 @@ class AiTicketAutomationEngine
         }
 
         $canWrite = true;
+        if (empty($diag['identity_keys_present'])) {
+          $canWrite = false;
+          $adminSuggestion = 'Auto-write blocked: ticket fingerprint/IP identity keys are missing.';
+        }
+        if (!empty($diag['deviceSharingRisk'])) {
+          $canWrite = false;
+          $adminSuggestion = 'Auto-write blocked: fingerprint conflict risk detected across matrics.';
+        }
+        if (empty($diag['course_exists']) || empty($diag['course_is_active'])) {
+          $canWrite = false;
+          $adminSuggestion = 'Auto-write blocked: course must exist and be active before attendance write.';
+        }
         if ($actionToAdd === 'checkin' && $hasCheckin) {
           $canWrite = false;
           $adminSuggestion = 'Course-aware guard: check-in already exists for this course today.';
@@ -207,10 +380,17 @@ class AiTicketAutomationEngine
       'fingerprint' => $fingerprint,
       'ip' => $ip,
       'course' => $course,
+      'course_exists' => !empty($diag['course_exists']),
+      'course_is_active' => !empty($diag['course_is_active']),
+      'active_course' => (string)($diag['active_course'] ?? 'General'),
+      'identity_keys_present' => !empty($diag['identity_keys_present']),
       'requested_action' => $requestedAction,
       'issue_type' => $diag['issue_type'],
       'classification' => $diag['classification'],
       'decision_reason' => $diag['reason'],
+      'rulebook_applied' => !empty($diag['rulebook_applied']),
+      'matched_rule_id' => (string)($diag['matched_rule_id'] ?? ''),
+      'rulebook_version' => (string)($diag['rulebook_version'] ?? ''),
       'confidence' => $diag['confidence'],
       'fpMatch' => $diag['fpMatch'],
       'ipMatch' => $diag['ipMatch'],
@@ -262,7 +442,7 @@ class AiTicketAutomationEngine
     if (
       ai_can($this->serviceId, 'chat.admin_assist')
       && (float)$diag['confidence'] >= 0.90
-      && in_array($diag['classification'], ['blocked_revoked_device', 'duplicate_or_fraudulent_sequence', 'policy_device_sharing_risk'], true)
+      && in_array($diag['classification'], ['blocked_revoked_device', 'duplicate_or_fraudulent_sequence', 'policy_device_sharing_risk', 'fingerprint_conflict_rig_attempt'], true)
     ) {
       $chatReply = AiProviderClient::suggestAdminChatReply(
         sprintf('Generate admin insight for classification=%s reason=%s', (string)$diag['classification'], (string)$diag['reason']),

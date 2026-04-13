@@ -238,5 +238,39 @@
         "ai_reason": "Default review path.",
         "ai_suggested_admin_action": "**Case ID:** 2023000001\n\n**Issue:** Check-in failed for Group 14 due to session mismatch.\n\n**Action:**\n\n1. **Verify Student Identity**: Confirm the student's identity and check if their session is valid.\n2. **Check Session Mismatch**: Investigate the cause of the session mismatch. This could be due to a session timeout, incorrect session ID, or a network issue.\n3. **Manual Check-in**: Manually check-in the student using the attendance system, ensuring the correct session is used.\n4. **Student Notification**: Inform the student that their check-in has been manually processed and provide them with the updated attendance status.\n5. **Update Attendance Record**: Update the attendance record to reflect the manual check-in, including the correct session and timestamp.\n\n**Next Steps:**\n\n* Monitor the student's attendance for the remainder of the session.\n* Investigate the root cause of the session mismatch to prevent similar issues in the future.\n\n**Additional Information:**\n\n* Classification: Manual Review Required\n* Confidence: 0.88\n* Fingerprint Match",
         "ai_handled_at": "2026-04-10T15:42:54+02:00"
+    },
+    {
+        "name": "Codex QA",
+        "matric": "2026999001",
+        "message": "I changed network and could not submit my attendance. Please help me check in.",
+        "fingerprint": "142295584ccba01b195483d51697f927",
+        "course": "CSC401",
+        "requested_action": "checkin",
+        "ip": "::1",
+        "timestamp": "2026-04-12 23:39:42",
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "new_or_suspicious_device",
+        "ai_confidence": 0.68,
+        "ai_reason": "No fingerprint or IP match in same-day, same-course logs.",
+        "ai_suggested_admin_action": "New/unverified device. Send targeted verification announcement and require admin confirmation before attendance write.",
+        "ai_handled_at": "2026-04-13T00:41:38+02:00"
+    },
+    {
+        "name": "Codex Auto QA",
+        "matric": "2026999012",
+        "message": "Immediate AI processing verification from browser test. Device changed and check-in failed today.",
+        "fingerprint": "142295584ccba01b195483d51697f927",
+        "course": "CSC401",
+        "requested_action": "checkin",
+        "ip": "::1",
+        "timestamp": "2026-04-13 00:10:11",
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "new_or_suspicious_device",
+        "ai_confidence": 0.68,
+        "ai_reason": "No fingerprint or IP match in same-day, same-course logs.",
+        "ai_suggested_admin_action": "New/unverified device. Send targeted verification announcement and require admin confirmation before attendance write.",
+        "ai_handled_at": "2026-04-13T00:10:26+01:00"
     }
 ]

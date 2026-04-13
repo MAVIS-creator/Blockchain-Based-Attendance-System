@@ -16,12 +16,21 @@ if (!is_array($rows)) {
   $rows = [];
 }
 
-$rows = array_slice($rows, 0, 120);
+$allRows = $rows;
 
-$needsReview = array_values(array_filter($rows, function ($r) {
+$suggestPerPage = 18;
+$suggestPage = isset($_GET['suggest_pg']) ? (int)$_GET['suggest_pg'] : 1;
+if ($suggestPage < 1) $suggestPage = 1;
+$suggestTotal = count($allRows);
+$suggestTotalPages = max(1, (int)ceil($suggestTotal / $suggestPerPage));
+if ($suggestPage > $suggestTotalPages) $suggestPage = $suggestTotalPages;
+$suggestOffset = ($suggestPage - 1) * $suggestPerPage;
+$rows = array_slice($allRows, $suggestOffset, $suggestPerPage);
+
+$needsReview = array_values(array_filter($allRows, function ($r) {
   if (!is_array($r)) return false;
   $cls = (string)($r['classification'] ?? '');
-  return in_array($cls, ['network_ip_rotation', 'new_or_suspicious_device', 'duplicate_or_fraudulent_sequence', 'blocked_revoked_device', 'policy_device_sharing_risk'], true)
+  return in_array($cls, ['network_ip_rotation', 'new_or_suspicious_device', 'duplicate_or_fraudulent_sequence', 'blocked_revoked_device', 'policy_device_sharing_risk', 'fingerprint_conflict_rig_attempt', 'invalid_course_reference', 'inactive_course_reference'], true)
     || empty($r['ticket_resolved']);
 }));
 ?>
@@ -40,7 +49,7 @@ $needsReview = array_values(array_filter($rows, function ($r) {
 </div>
 
 <div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px 0;">
-  <span class="st-chip st-chip-info">Total diagnostics: <?= (int)count($rows) ?></span>
+  <span class="st-chip st-chip-info">Total diagnostics: <?= (int)count($allRows) ?></span>
   <span class="st-chip st-chip-warning" style="background:#fff8e8;color:#8a5a00;border-color:#f5dfad;">Needs review: <?= (int)count($needsReview) ?></span>
   <a href="index.php?page=support_tickets" class="st-btn st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
     <span class="material-symbols-outlined" style="font-size:1rem;">confirmation_number</span>
@@ -64,11 +73,11 @@ $needsReview = array_values(array_filter($rows, function ($r) {
       $severityBg = '#eef6ff';
       $severityLine = '#cfe1f5';
       $severityText = '#1d4f80';
-      if ($classification === 'blocked_revoked_device' || $classification === 'duplicate_or_fraudulent_sequence' || $classification === 'policy_device_sharing_risk') {
+      if ($classification === 'blocked_revoked_device' || $classification === 'duplicate_or_fraudulent_sequence' || $classification === 'policy_device_sharing_risk' || $classification === 'fingerprint_conflict_rig_attempt') {
         $severityBg = '#ffeef0';
         $severityLine = '#f5c2c8';
         $severityText = '#9f1d2c';
-      } elseif ($classification === 'network_ip_rotation' || $classification === 'new_or_suspicious_device') {
+      } elseif ($classification === 'network_ip_rotation' || $classification === 'new_or_suspicious_device' || $classification === 'invalid_course_reference' || $classification === 'inactive_course_reference') {
         $severityBg = '#fff8e8';
         $severityLine = '#f5dfad';
         $severityText = '#8a5a00';
@@ -97,5 +106,28 @@ $needsReview = array_values(array_filter($rows, function ($r) {
         </div>
       </article>
     <?php endforeach; ?>
+  </div>
+<?php endif; ?>
+
+<?php if ($suggestTotal > 0 && $suggestTotalPages > 1): ?>
+  <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div style="font-size:0.82rem;color:var(--on-surface-variant);">
+      Showing <?= (int)($suggestOffset + 1) ?>-<?= (int)min($suggestOffset + $suggestPerPage, $suggestTotal) ?> of <?= (int)$suggestTotal ?> diagnostics
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <?php if ($suggestPage > 1): ?>
+        <a class="st-btn st-btn-sm" href="index.php?page=ai_suggestions&suggest_pg=<?= $suggestPage - 1 ?>">Prev</a>
+      <?php endif; ?>
+      <?php
+      $startPage = max(1, $suggestPage - 2);
+      $endPage = min($suggestTotalPages, $suggestPage + 2);
+      for ($p = $startPage; $p <= $endPage; $p++):
+      ?>
+        <a class="st-btn st-btn-sm" href="index.php?page=ai_suggestions&suggest_pg=<?= $p ?>" style="<?= $p === $suggestPage ? 'background:#1f5d99;color:#fff;border-color:#1f5d99;' : '' ?>"><?= $p ?></a>
+      <?php endfor; ?>
+      <?php if ($suggestPage < $suggestTotalPages): ?>
+        <a class="st-btn st-btn-sm" href="index.php?page=ai_suggestions&suggest_pg=<?= $suggestPage + 1 ?>">Next</a>
+      <?php endif; ?>
+    </div>
   </div>
 <?php endif; ?>

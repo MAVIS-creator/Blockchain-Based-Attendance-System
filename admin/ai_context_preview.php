@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/../src/AiSiteStructureContext.php';
+require_once __DIR__ . '/../src/AiRulebook.php';
 
 $message = null;
 $messageType = 'info';
@@ -38,6 +39,15 @@ $contextText = (string)($bundle['context'] ?? '');
 $contextPreview = $contextText;
 if (strlen($contextPreview) > 5000) {
   $contextPreview = substr($contextPreview, 0, 5000) . "\n...[preview truncated]";
+}
+
+$rulebook = AiRulebook::load();
+$ruleRows = array_values($rulebook['rules'] ?? []);
+$enabledRuleCount = 0;
+foreach ($ruleRows as $r) {
+  if (!empty($r['enabled'])) {
+    $enabledRuleCount++;
+  }
 }
 
 $badgeClass = 'st-stat-badge info';
@@ -83,6 +93,11 @@ if (!empty($bundle['enabled'])) {
     <span class="material-symbols-outlined" style="font-size:16px;">smart_toy</span>
     Open AI Suggestions Queue
   </a>
+
+  <a href="index.php?page=ai_rulebook" class="st-btn st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+    <span class="material-symbols-outlined" style="font-size:16px;">rule_settings</span>
+    Open AI Rulebook Trainer
+  </a>
 </div>
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:16px;">
@@ -97,6 +112,10 @@ if (!empty($bundle['enabled'])) {
   <div style="padding:12px;border-radius:10px;border:1px solid var(--outline-variant);background:var(--surface-container-lowest);">
     <div style="font-weight:700;font-size:0.84rem;color:var(--on-surface);margin-bottom:6px;">Docs Indexed</div>
     <div style="font-size:1.2rem;font-weight:800;color:var(--on-surface);"><?= count($docs) ?></div>
+  </div>
+  <div style="padding:12px;border-radius:10px;border:1px solid var(--outline-variant);background:var(--surface-container-lowest);">
+    <div style="font-weight:700;font-size:0.84rem;color:var(--on-surface);margin-bottom:6px;">Rulebook (Enabled/Total)</div>
+    <div style="font-size:1.2rem;font-weight:800;color:var(--on-surface);"><?= (int)$enabledRuleCount ?> / <?= (int)count($ruleRows) ?></div>
   </div>
 </div>
 

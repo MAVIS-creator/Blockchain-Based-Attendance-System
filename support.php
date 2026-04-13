@@ -5,6 +5,7 @@ require_once __DIR__ . '/hybrid_dual_write.php';
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/request_timing.php';
+require_once __DIR__ . '/src/AiTicketAutomationEngine.php';
 app_storage_init();
 request_timing_start('support.php');
 
@@ -41,7 +42,41 @@ function append_support_ticket_atomic($ticketsFile, $ticket)
   return true;
 }
 
+function support_run_ai_for_ticket(array $ticket)
+{
+  try {
+    $engine = new AiTicketAutomationEngine();
+    return $engine->processTicket($ticket);
+  } catch (\Throwable $e) {
+    return ['ok' => false, 'error' => 'ai_ticket_processing_failed', 'message' => $e->getMessage()];
+  }
+}
+
 $success = false;
+$formError = '';
+
+$courseFile = admin_course_storage_migrate_file('course.json');
+$courseRows = [];
+if (file_exists($courseFile)) {
+  $decodedCourses = json_decode((string)@file_get_contents($courseFile), true);
+  if (is_array($decodedCourses)) {
+    $courseRows = $decodedCourses;
+  }
+}
+
+$courseOptions = [];
+foreach ($courseRows as $courseRow) {
+  $courseName = trim((string)$courseRow);
+  if ($courseName === '') continue;
+  if (!in_array($courseName, $courseOptions, true)) {
+    $courseOptions[] = $courseName;
+  }
+}
+if (empty($courseOptions)) {
+  $courseOptions = ['General'];
+}
+
+$selectedCourseForm = trim((string)($_POST['course'] ?? ''));
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   $submitSpan = microtime(true);
@@ -49,15 +84,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   $matric = trim($_POST['matric'] ?? '');
   $message = trim($_POST['message'] ?? '');
   $fingerprint = trim($_POST['fingerprint'] ?? '');
-  $course = trim((string)($_POST['course'] ?? 'General'));
-  $course = $course !== '' ? $course : 'General';
+  $courseInput = trim((string)($_POST['course'] ?? ''));
+  $course = $courseInput;
+  if ($course === '') {
+    $course = in_array('General', $courseOptions, true) ? 'General' : (string)($courseOptions[0] ?? 'General');
+  }
+
+  if (!in_array($course, $courseOptions, true)) {
+    $formError = 'Please select a valid course from the course list.';
+  }
+
   $requestedAction = strtolower(trim((string)($_POST['requested_action'] ?? '')));
   if (!in_array($requestedAction, ['checkin', 'checkout'], true)) {
     $requestedAction = '';
   }
   $ip = $_SERVER['REMOTE_ADDR'];
 
-  if ($name && $matric && $message) {
+  if ($name && $matric && $message && $formError === '') {
     $createdAt = date('Y-m-d H:i:s');
     $saved = append_support_ticket_atomic($ticketsFile, [
       'name' => $name,
@@ -86,6 +129,25 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         'resolved' => false
       ]);
       request_timing_span('hybrid_dual_write', $dualWriteSpan);
+
+      $aiTicket = [
+        'name' => $name,
+        'matric' => $matric,
+        'message' => $message,
+        'fingerprint' => $fingerprint,
+        'course' => $course,
+        'requested_action' => $requestedAction,
+        'ip' => $ip,
+        'timestamp' => $createdAt,
+        'resolved' => false
+      ];
+      $aiSpan = microtime(true);
+      $aiResult = support_run_ai_for_ticket($aiTicket);
+      request_timing_span('ai_ticket_immediate_process', $aiSpan, [
+        'ok' => !empty($aiResult['ok']),
+        'processed' => (int)($aiResult['processed'] ?? 0),
+        'error' => (string)($aiResult['error'] ?? '')
+      ]);
     }
 
     $success = $saved;
@@ -391,6 +453,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     }
 
     .input-group input,
+    .input-group select,
     .input-group textarea {
       width: 100%;
       padding: 10px 11px;
@@ -401,12 +464,24 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
+    .input-group select {
+      padding-right: 40px;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+    }
+
     .input-group textarea {
       resize: vertical;
       min-height: 90px;
     }
 
     .input-group input:focus,
+    .input-group select:focus,
     .input-group textarea:focus {
       outline: none;
       border-color: var(--primary-2);
@@ -463,6 +538,41 @@ if (isset($_COOKIE['attendanceBlocked'])) {
         padding: 74px 14px 14px;
       }
 
+      .alert-bar {
+        padding: 12px 12px 10px;
+        gap: 10px;
+        align-items: flex-start;
+        border-left-width: 0;
+        border-bottom: 1px solid #dbeafe;
+        border-radius: 0 0 12px 12px;
+      }
+
+      .alert-body {
+        gap: 4px;
+      }
+
+      .alert-heading {
+        font-size: 0.8rem;
+      }
+
+      .alert-meta {
+        font-size: 0.74rem;
+      }
+
+      .alert-bar button {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        border-radius: 999px;
+        margin-left: 0;
+        padding: 0;
+        font-size: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.45);
+      }
+
       .container {
         border-radius: 14px;
         padding: 18px;
@@ -479,11 +589,20 @@ if (isset($_COOKIE['attendanceBlocked'])) {
         font-size: 1.08rem;
       }
 
-      .alert-bar {
-        padding: 10px 12px;
-      }
+        .input-group input,
+        .input-group select,
+        .input-group textarea {
+          border-radius: 12px;
+          padding: 12px 13px;
+          font-size: 0.95rem;
+        }
 
-      .alert-message {
+        .input-group select {
+          padding-right: 42px;
+          background-position: calc(100% - 16px) 50%, calc(100% - 10px) 50%;
+        }
+
+        .alert-message {
         font-size: 0.9rem;
       }
 
@@ -497,7 +616,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
 <body>
 
   <!-- Hybrid Announcement Model: Static Top Alert + Toast on Updates -->
-  <div id="announcementBanner" class="alert-bar alert-info" style="<?= !empty($announcement['enabled']) ? 'display:flex;' : 'display:none;' ?>">
+  <div id="announcementBanner" class="alert-bar alert-info" style="display:none;">
     <div class="alert-body">
       <strong id="announcementBannerTitle" class="alert-heading">ℹ️ INFORMATION</strong>
       <div id="announcementBannerText" class="alert-message"><?= htmlspecialchars(trim((string)($announcement['message'] ?? '')) !== '' ? (string)$announcement['message'] : 'An important announcement is currently active.') ?></div>
@@ -530,6 +649,12 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       </script>
     <?php endif; ?>
 
+    <?php if ($formError !== ''): ?>
+      <div style="background:#fff1f2;color:#9f1d2c;padding:11px;margin-top:12px;border-radius:8px;text-align:center;border:1px solid #fecdd3;font-size:0.93rem;">
+        <?= htmlspecialchars($formError) ?>
+      </div>
+    <?php endif; ?>
+
     <form method="post">
       <div class="input-group">
         <label for="name"><i class='bx bx-user'></i> Name</label>
@@ -541,11 +666,18 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       </div>
       <div class="input-group">
         <label for="course"><i class='bx bx-book-open'></i> Course (optional)</label>
-        <input type="text" id="course" name="course" placeholder="e.g., CSC401" />
+        <select id="course" name="course" aria-label="Course optional">
+          <option value="">Select a course</option>
+          <?php foreach ($courseOptions as $courseName): ?>
+            <option value="<?= htmlspecialchars($courseName) ?>" <?= $selectedCourseForm === (string)$courseName ? 'selected' : '' ?>>
+              <?= htmlspecialchars($courseName) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
       </div>
       <div class="input-group">
         <label for="requested_action"><i class='bx bx-transfer-alt'></i> Failed Action (optional)</label>
-        <select id="requested_action" name="requested_action">
+        <select id="requested_action" name="requested_action" aria-label="Failed Action optional">
           <option value="">Not sure</option>
           <option value="checkin">Check-in failed</option>
           <option value="checkout">Check-out failed</option>
@@ -577,6 +709,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     FingerprintJS.load().then(fp => {
       fp.get().then(result => {
         document.getElementById('fingerprint').value = result.visitorId;
+        fetchAnnouncement();
       }).catch(err => {
         console.error('Fingerprint error:', err);
       });

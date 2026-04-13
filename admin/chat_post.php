@@ -92,6 +92,12 @@ function should_trigger_ai_chat_reply($msg)
 {
     $msg = strtolower(trim((string)$msg));
     if ($msg === '') return false;
+
+    // Jovial join-in phrases (keeps existing trigger behavior intact)
+    if (preg_match('/\b(hi|hey)\s+guys\b|\bwhats\s+up\s+guys\b|\bwhat\'?s\s+up\s+guys\b|\bwhat\s+is\s+up\s+guys\b|\bsup\s+guys\b/i', $msg)) {
+        return true;
+    }
+
     if (
         strpos($msg, '@ai') !== false
         || strpos($msg, 'sentinel ai') !== false

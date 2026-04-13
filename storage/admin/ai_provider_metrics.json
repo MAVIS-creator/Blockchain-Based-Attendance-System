@@ -1,10 +1,26 @@
 {
     "groq": {
-        "avg_ms": 2867.78,
-        "samples": 9,
+        "avg_ms": 2136.37,
+        "samples": 19,
         "success": 9,
-        "failure": 0,
-        "last_ms": 1084,
-        "updated_at": "2026-04-10T17:07:46+02:00"
+        "failure": 10,
+        "last_ms": 1368,
+        "updated_at": "2026-04-13T01:16:59+02:00"
+    },
+    "openrouter": {
+        "avg_ms": 1557.2,
+        "samples": 5,
+        "success": 0,
+        "failure": 5,
+        "last_ms": 1624,
+        "updated_at": "2026-04-13T01:17:00+02:00"
+    },
+    "gemini": {
+        "avg_ms": 1546.6,
+        "samples": 5,
+        "success": 0,
+        "failure": 5,
+        "last_ms": 1911,
+        "updated_at": "2026-04-13T01:17:02+02:00"
     }
 }

@@ -1,0 +1,99 @@
+{
+    "version": "rulebook-v1",
+    "updated_at": "2026-04-13T01:54:34+02:00",
+    "rules": [
+        {
+            "id": "rule_invalid_course_reference",
+            "priority": 1000,
+            "enabled": true,
+            "intent": "If course does not exist in course catalog, block auto-write and mark invalid course.",
+            "conditions": {
+                "course_exists": false
+            },
+            "outcome": {
+                "classification": "invalid_course_reference",
+                "action": "deny_and_review",
+                "confidence": 0.99,
+                "suggested_admin_action": "Requested course is not configured. Ask student to select a valid course and resubmit.",
+                "reason": "Rulebook: requested course does not exist in configured catalog."
+            },
+            "examples": [
+                "Course=CSC401 but catalog has only Group 1..Group 14."
+            ],
+            "created_by": "system",
+            "updated_by": "system",
+            "created_at": "2026-04-13T01:54:34+02:00",
+            "updated_at": "2026-04-13T01:54:34+02:00"
+        },
+        {
+            "id": "rule_inactive_course_reference",
+            "priority": 990,
+            "enabled": true,
+            "intent": "If course exists but is not active, block auto-write and require review.",
+            "conditions": {
+                "course_exists": true,
+                "course_is_active": false
+            },
+            "outcome": {
+                "classification": "inactive_course_reference",
+                "action": "deny_and_review",
+                "confidence": 0.96,
+                "suggested_admin_action": "Requested course is not active for this session. Verify schedule before attendance write.",
+                "reason": "Rulebook: requested course is not currently active."
+            },
+            "examples": [
+                "Ticket course=Group 14 while active course=Group 2."
+            ],
+            "created_by": "system",
+            "updated_by": "system",
+            "created_at": "2026-04-13T01:54:34+02:00",
+            "updated_at": "2026-04-13T01:54:34+02:00"
+        },
+        {
+            "id": "rule_missing_identity_keys_for_auto_write",
+            "priority": 980,
+            "enabled": true,
+            "intent": "Missing fingerprint/IP should block auto-write because linkage is incomplete.",
+            "conditions": {
+                "identity_keys_present": false
+            },
+            "outcome": {
+                "classification": "manual_review_required",
+                "action": "deny_and_review",
+                "confidence": 0.95,
+                "suggested_admin_action": "Fingerprint/IP missing. Require manual verification before attendance write.",
+                "reason": "Rulebook: missing fingerprint or IP for policy-safe auto-write."
+            },
+            "examples": [
+                "Support ticket has empty fingerprint or unknown IP."
+            ],
+            "created_by": "system",
+            "updated_by": "system",
+            "created_at": "2026-04-13T01:54:34+02:00",
+            "updated_at": "2026-04-13T01:54:34+02:00"
+        },
+        {
+            "id": "rule_fingerprint_conflict_rig_attempt",
+            "priority": 970,
+            "enabled": true,
+            "intent": "If fingerprint appears tied to another matric same day/course, treat as rig attempt.",
+            "conditions": {
+                "device_sharing_risk": true
+            },
+            "outcome": {
+                "classification": "fingerprint_conflict_rig_attempt",
+                "action": "manual_review_only",
+                "confidence": 0.98,
+                "suggested_admin_action": "Fingerprint conflict detected across matrics for same course/day. Block auto-write and verify identity manually.",
+                "reason": "Rulebook: fingerprint overlap indicates possible rig/proxy attempt."
+            },
+            "examples": [
+                "Same fingerprint used by two matrics in one course on same date."
+            ],
+            "created_by": "system",
+            "updated_by": "system",
+            "created_at": "2026-04-13T01:54:34+02:00",
+            "updated_at": "2026-04-13T01:54:34+02:00"
+        }
+    ]
+}

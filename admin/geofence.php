@@ -169,11 +169,32 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
   crossorigin="" />
 <style>
   .geo-map-shell {
+    position: relative;
     margin-top: 10px;
     border: 1px solid var(--outline-variant);
     border-radius: 14px;
     overflow: hidden;
     background: var(--surface-container-low);
+  }
+
+  .geo-map-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(246, 250, 255, 0.9), rgba(240, 244, 249, 0.92));
+    color: var(--on-surface-variant);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    z-index: 2;
+    transition: opacity 0.2s ease;
+  }
+
+  .geo-map-loading.hidden {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .geo-map-canvas {
@@ -184,8 +205,8 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
 
   .geo-map-controls {
     display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1.35fr) auto;
+    gap: 14px;
     align-items: center;
     padding: 12px;
     border-top: 1px solid var(--outline-variant);
@@ -206,8 +227,9 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
 
   .geo-place-search {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1.75fr) auto;
+    gap: 10px;
+    width: 100%;
   }
 
   .geo-place-input {
@@ -216,8 +238,9 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
     background: var(--surface-container-low);
     color: var(--on-surface);
     border-radius: 10px;
-    padding: 9px 10px;
-    font-size: 0.85rem;
+    padding: 12px 14px;
+    font-size: 0.92rem;
+    min-height: 44px;
   }
 
   .geo-radius-wrap {
@@ -238,6 +261,17 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
   @media (max-width: 760px) {
     .geo-map-controls {
       grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .geo-place-search {
+      grid-template-columns: 1fr;
+    }
+
+    .geo-place-input {
+      min-height: 48px;
+      padding: 13px 14px;
+      font-size: 0.95rem;
     }
   }
 </style>
@@ -264,8 +298,8 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;">
-  <div class="st-card">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;">
+  <div class="st-card" style="grid-column:1/-1;">
     <p style="font-weight:700;color:var(--on-surface);margin:0 0 16px;">Active Geo-fence</p>
     <form method="post" style="display:grid;gap:12px;">
       <?php csrf_field(); ?>
@@ -278,6 +312,7 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
       <input id="geo_radius_m" class="st-input" type="number" min="1" name="geo_radius_m" placeholder="Radius (meters)" value="<?= htmlspecialchars((string)($activeGeo['radius_m'] ?? 0)) ?>">
 
       <div class="geo-map-shell">
+        <div id="geo_map_loading" class="geo-map-loading">Loading map…</div>
         <div id="geo_map_canvas" class="geo-map-canvas"></div>
         <div class="geo-map-controls">
           <div class="geo-radius-wrap">
@@ -389,6 +424,7 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
     var geoPlaceQuery = document.getElementById('geo_place_query');
     var geoPlaceSearchBtn = document.getElementById('geo_place_search_btn');
     var geoMapEl = document.getElementById('geo_map_canvas');
+    var geoMapLoading = document.getElementById('geo_map_loading');
 
     if (btn && out && lat && lng) {
       btn.addEventListener('click', function() {
@@ -438,6 +474,11 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
     var defaultLat = parseNum(geoLatInput.value, 6.5244);
     var defaultLng = parseNum(geoLngInput.value, 3.3792);
     var defaultRadius = Math.max(10, parseNum(geoRadiusInput.value, 120));
+    var defaultZoom = 14;
+
+    if (geoMapStatus) {
+      geoMapStatus.textContent = 'Loading map tiles… if this stays slow, it is usually your internet connection or the tile server response time.';
+    }
 
     geoRadiusSlider.value = String(defaultRadius);
     geoRadiusValue.textContent = String(defaultRadius);
@@ -445,12 +486,43 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
     var map = L.map('geo_map_canvas', {
       zoomControl: true,
       attributionControl: true
-    }).setView([defaultLat, defaultLng], 16);
+    }).setView([defaultLat, defaultLng], defaultZoom);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    function hideMapLoading() {
+      if (!geoMapLoading) return;
+      geoMapLoading.classList.add('hidden');
+      setTimeout(function() {
+        if (geoMapLoading && geoMapLoading.parentNode) {
+          geoMapLoading.parentNode.removeChild(geoMapLoading);
+        }
+      }, 240);
+    }
+
+    map.whenReady(function() {
+      setTimeout(function() {
+        map.invalidateSize();
+      }, 0);
+    });
+
+    var tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 20,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      keepBuffer: 1,
+      reuseTiles: true,
       attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    });
+
+    tiles.on('load', hideMapLoading);
+    tiles.on('tileload', hideMapLoading);
+    tiles.on('tileerror', function() {
+      if (geoMapStatus) {
+        geoMapStatus.textContent = 'Map tiles are taking longer to load. You can still use the map controls.';
+      }
+      hideMapLoading();
+    });
+
+    tiles.addTo(map);
 
     var marker = L.marker([defaultLat, defaultLng], {
       draggable: true
@@ -557,7 +629,7 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
         }
 
         updateInputsAndMap(foundLat, foundLng, geoRadiusInput.value, true);
-        map.setZoom(Math.max(map.getZoom(), 16));
+        map.setZoom(Math.max(map.getZoom(), defaultZoom + 1));
         if (geoMapStatus) geoMapStatus.textContent = 'Place found: ' + (hit.display_name || query);
       }).catch(function() {
         if (geoMapStatus) geoMapStatus.textContent = 'Place search failed. Please try again in a moment.';
@@ -607,6 +679,8 @@ $activeGeo = is_array($settings['geo_fence']) ? $settings['geo_fence'] : ['lat' 
     }
 
     updateInputsAndMap(defaultLat, defaultLng, defaultRadius, false);
+
+    setTimeout(hideMapLoading, 4000);
   })();
 </script>
 <?php if ($message !== '' || !empty($errors)): ?>

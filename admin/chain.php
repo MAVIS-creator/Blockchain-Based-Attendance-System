@@ -8,6 +8,12 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/cache_helpers.php';
 app_storage_init();
+
+$chainPage = isset($_GET['chain_pg']) && ctype_digit((string)$_GET['chain_pg'])
+  ? max(1, (int)$_GET['chain_pg'])
+  : 1;
+$chainPerPage = 20;
+
 $chainFile = app_storage_migrate_file('secure_logs/attendance_chain.json', __DIR__ . '/../secure_logs/attendance_chain.json');
 if (!file_exists($chainFile)) {
   $status = ['ok'=>false,'message'=>'Chain file not found.'];
@@ -87,8 +93,17 @@ if (!file_exists($chainFile)) {
           <span class="st-chip st-chip-info" style="margin-left:auto;"><?= count($chain) ?> blocks</span>
         </p>
       </div>
+
+      <?php
+        $chainTotal = count($chain);
+        $chainTotalPages = max(1, (int)ceil($chainTotal / $chainPerPage));
+        $chainPage = min($chainPage, $chainTotalPages);
+        $chainOffset = ($chainPage - 1) * $chainPerPage;
+        $pagedChain = array_slice($chain, $chainOffset, $chainPerPage, true);
+      ?>
+
       <div style="max-height:500px;overflow-y:auto;padding:12px;">
-        <?php foreach ($chain as $i => $block): ?>
+        <?php foreach ($pagedChain as $i => $block): ?>
           <div class="chain-block">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
               <span class="chain-block-id">
@@ -111,6 +126,22 @@ if (!file_exists($chainFile)) {
             </div>
           </div>
         <?php endforeach; ?>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--outline-variant);">
+        <div style="font-size:0.82rem;color:var(--on-surface-variant);">
+          Showing <?= (int)($chainOffset + 1) ?>-<?= (int)min($chainOffset + $chainPerPage, $chainTotal) ?> of <?= (int)$chainTotal ?> blocks
+        </div>
+        <?php if ($chainTotalPages > 1): ?>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <?php for ($i = 1; $i <= $chainTotalPages; $i++): ?>
+              <a
+                href="?page=chain&chain_pg=<?= (int)$i ?>"
+                style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;padding:0 8px;text-decoration:none;font-size:0.82rem;font-weight:700;<?= $i === $chainPage ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);border:1px solid var(--outline-variant);' ?>"
+              ><?= (int)$i ?></a>
+            <?php endfor; ?>
+          </div>
+        <?php endif; ?>
       </div>
     </div>
   <?php endif; ?>

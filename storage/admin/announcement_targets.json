@@ -1,5 +1,31 @@
 [
     {
+        "id": "ai_20260413001026_78ee35cf",
+        "enabled": true,
+        "severity": "warning",
+        "message": "We need a quick identity check because this device is unfamiliar. Contact admin support to continue CSC401 attendance safely.",
+        "target_fingerprint": "142295584ccba01b195483d51697f927",
+        "auto_generated_by": "system_ai_operator",
+        "updated_at": "2026-04-13T00:10:26+01:00",
+        "created_for_ticket": "2026-04-13 00:10:11",
+        "matric": "2026999012",
+        "classification": "new_or_suspicious_device",
+        "confidence": 0.68
+    },
+    {
+        "id": "ai_20260413004138_78ee35cf",
+        "enabled": true,
+        "severity": "warning",
+        "message": "We need a quick identity check because this device is unfamiliar. Contact admin support to continue CSC401 attendance safely.",
+        "target_fingerprint": "142295584ccba01b195483d51697f927",
+        "auto_generated_by": "system_ai_operator",
+        "updated_at": "2026-04-13T00:41:38+02:00",
+        "created_for_ticket": "2026-04-12 23:39:42",
+        "matric": "2026999001",
+        "classification": "new_or_suspicious_device",
+        "confidence": 0.68
+    },
+    {
         "id": "ai_20260410154254_a7377bdd",
         "enabled": true,
         "severity": "warning",

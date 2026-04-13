@@ -2,9 +2,75 @@
 
 require_once __DIR__ . '/../admin/runtime_storage.php';
 require_once __DIR__ . '/../storage_helpers.php';
+require_once __DIR__ . '/AiRulebook.php';
 
 class AiTicketDiagnoser
 {
+  private static function loadCourseValidationState($course)
+  {
+    $course = trim((string)$course);
+    $course = $course !== '' ? $course : 'General';
+
+    $courseFile = admin_course_storage_migrate_file('course.json');
+    $activeFile = admin_course_storage_migrate_file('active_course.json');
+
+    $rows = [];
+    if (file_exists($courseFile)) {
+      $decoded = json_decode((string)@file_get_contents($courseFile), true);
+      if (is_array($decoded)) {
+        $rows = $decoded;
+      }
+    }
+
+    $catalog = [];
+    foreach ($rows as $row) {
+      $name = trim((string)$row);
+      if ($name === '') {
+        continue;
+      }
+      $catalog[$name] = true;
+    }
+    if (empty($catalog)) {
+      $catalog['General'] = true;
+    } elseif (!isset($catalog['General'])) {
+      $catalog['General'] = true;
+    }
+
+    $catalogNames = array_keys($catalog);
+    $courseNormMap = [];
+    foreach ($catalogNames as $catalogName) {
+      $courseNormMap[strtolower($catalogName)] = $catalogName;
+    }
+
+    $requestedCourseNorm = strtolower($course);
+    $courseExists = isset($courseNormMap[$requestedCourseNorm]);
+
+    $activeCourse = 'General';
+    if (file_exists($activeFile)) {
+      $activeData = json_decode((string)@file_get_contents($activeFile), true);
+      if (is_array($activeData)) {
+        $candidate = trim((string)($activeData['course'] ?? ''));
+        if ($candidate !== '') {
+          $activeCourse = $candidate;
+        }
+      }
+    }
+
+    $activeCourseNorm = strtolower($activeCourse);
+    if (!isset($courseNormMap[$activeCourseNorm])) {
+      $activeCourse = 'General';
+      $activeCourseNorm = 'general';
+    }
+
+    return [
+      'requested_course' => $course,
+      'exists' => $courseExists,
+      'is_active' => ($requestedCourseNorm === $activeCourseNorm),
+      'active_course' => $activeCourse,
+      'catalog' => $catalogNames,
+    ];
+  }
+
   public static function checkLogMatch(array $logLines, $needle, $index)
   {
     $needle = trim((string)$needle);
@@ -218,9 +284,11 @@ class AiTicketDiagnoser
     $date = date('Y-m-d');
 
     $messageInfo = self::classifyMessage($message);
+    $courseValidation = self::loadCourseValidationState($course);
     $logInfo = self::parseDailyLogStats($date, $matric, $fingerprint, $ip, $course);
     $revoked = self::loadRevoked();
     $revokedStatus = self::isRevoked($revoked, $fingerprint, $ip);
+    $identityKeysPresent = ($fingerprint !== '' && $ip !== '');
 
     $issueType = $messageInfo['issue_type'];
     $classification = 'manual_review_required';
@@ -231,7 +299,46 @@ class AiTicketDiagnoser
     $hasCheckin = !empty($logInfo['checkinCount']);
     $hasCheckout = !empty($logInfo['checkoutCount']);
 
-    if ($revokedStatus) {
+    $facts = [
+      'course_exists' => !empty($courseValidation['exists']),
+      'course_is_active' => !empty($courseValidation['is_active']),
+      'identity_keys_present' => $identityKeysPresent,
+      'device_sharing_risk' => !empty($logInfo['deviceSharingRisk']),
+      'revoked' => (bool)$revokedStatus,
+      'fp_match' => !empty($logInfo['fpMatch']),
+      'ip_match' => !empty($logInfo['ipMatch']),
+      'requested_action' => $requestedAction,
+      'has_checkin' => $hasCheckin,
+      'has_checkout' => $hasCheckout,
+    ];
+
+    $rulebookOutcome = class_exists('AiRulebook') ? AiRulebook::evaluate($facts) : [];
+    $matchedRuleId = (string)($rulebookOutcome['matched_rule_id'] ?? '');
+    $rulebookVersion = (string)($rulebookOutcome['rulebook_version'] ?? '');
+
+    if (!empty($rulebookOutcome)) {
+      $classification = (string)($rulebookOutcome['classification'] ?? $classification);
+      $action = (string)($rulebookOutcome['action'] ?? $action);
+      $confidence = isset($rulebookOutcome['confidence']) ? (float)$rulebookOutcome['confidence'] : $confidence;
+      $suggestedAdminAction = (string)($rulebookOutcome['suggested_admin_action'] ?? $suggestedAdminAction);
+      $reason = (string)($rulebookOutcome['reason'] ?? $reason);
+    }
+
+    if (!empty($rulebookOutcome)) {
+      // Rulebook has first priority and fully defines classification/action for matched conditions.
+    } elseif (empty($courseValidation['exists'])) {
+      $classification = 'invalid_course_reference';
+      $action = 'deny_and_review';
+      $confidence = 0.99;
+      $suggestedAdminAction = 'Requested course is not in course.json. Reject automated attendance write and ask student to submit ticket with a valid configured course.';
+      $reason = 'Ticket references a course that does not exist in configured course catalog.';
+    } elseif (empty($courseValidation['is_active'])) {
+      $classification = 'inactive_course_reference';
+      $action = 'deny_and_review';
+      $confidence = 0.96;
+      $suggestedAdminAction = sprintf('Requested course exists but is not currently active. Active course is "%s". Require admin/manual validation before any attendance write.', (string)($courseValidation['active_course'] ?? 'General'));
+      $reason = 'Ticket course does not match currently active course for attendance session.';
+    } elseif ($revokedStatus) {
       $classification = 'blocked_revoked_device';
       $action = 'deny_and_notify';
       $confidence = 0.99;
@@ -302,11 +409,18 @@ class AiTicketDiagnoser
     return [
       'ticket_timestamp' => (string)($ticket['timestamp'] ?? ''),
       'course' => $course,
+      'course_exists' => !empty($courseValidation['exists']),
+      'course_is_active' => !empty($courseValidation['is_active']),
+      'active_course' => (string)($courseValidation['active_course'] ?? 'General'),
       'requested_action' => $requestedAction,
+      'identity_keys_present' => $identityKeysPresent,
       'issue_type' => $issueType,
       'classification' => $classification,
       'action' => $action,
       'reason' => $reason,
+      'rulebook_applied' => !empty($rulebookOutcome),
+      'matched_rule_id' => $matchedRuleId,
+      'rulebook_version' => $rulebookVersion,
       'confidence' => $confidence,
       'fpMatch' => (bool)$logInfo['fpMatch'],
       'ipMatch' => (bool)$logInfo['ipMatch'],

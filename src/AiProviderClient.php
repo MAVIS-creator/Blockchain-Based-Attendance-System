@@ -191,6 +191,78 @@ class AiProviderClient
     ];
   }
 
+  public static function interpretRuleText($ruleText)
+  {
+    $ruleText = trim((string)$ruleText);
+    if ($ruleText === '') {
+      return ['ok' => false, 'error' => 'empty_rule_text'];
+    }
+
+    $ticket = [
+      'message' => $ruleText,
+      'fingerprint' => 'rulebook_parser',
+      'timestamp' => date('c'),
+      'matric' => 'admin',
+      'course' => 'General',
+      'requested_action' => '',
+    ];
+
+    $systemPrompt = 'You convert admin attendance-policy statements into strict JSON rules. '
+      . 'Return JSON ONLY with this exact schema: '
+      . '{"conditions":{...},"outcome":{"classification":"...","action":"...","confidence":0.0,"suggested_admin_action":"...","reason":"..."}}. '
+      . 'Allowed condition keys: course_exists, course_is_active, identity_keys_present, device_sharing_risk, revoked, fp_match, ip_match, requested_action, has_checkin, has_checkout. '
+      . 'Allowed actions: deny_and_review, manual_review_only, deny_and_notify, auto_fix_add_attendance, guide_and_admin_review, verify_and_admin_review, deny_and_review. '
+      . 'If ambiguous, still produce best-effort valid JSON with at least one condition.';
+
+    $prompt = 'Policy statement: ' . $ruleText;
+    $res = self::queryWithFallback($prompt, $systemPrompt, $ticket, 'rule_interpretation');
+    if (empty($res['ok'])) {
+      return ['ok' => false, 'error' => 'no_provider_available'];
+    }
+
+    $raw = trim((string)($res['suggestion'] ?? ''));
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+      $jsonCandidate = self::extractJsonObjectFromText($raw);
+      if ($jsonCandidate !== '') {
+        $decoded = json_decode($jsonCandidate, true);
+      }
+    }
+
+    if (!is_array($decoded)) {
+      return ['ok' => false, 'error' => 'invalid_json_response'];
+    }
+
+    $conditions = isset($decoded['conditions']) && is_array($decoded['conditions']) ? $decoded['conditions'] : [];
+    $outcome = isset($decoded['outcome']) && is_array($decoded['outcome']) ? $decoded['outcome'] : [];
+    if (empty($conditions) || empty($outcome)) {
+      return ['ok' => false, 'error' => 'missing_conditions_or_outcome'];
+    }
+
+    return [
+      'ok' => true,
+      'conditions' => $conditions,
+      'outcome' => $outcome,
+      'provider' => (string)($res['provider'] ?? ''),
+      'model' => (string)($res['model'] ?? ''),
+      'latency_ms' => (int)($res['latency_ms'] ?? 0),
+    ];
+  }
+
+  private static function extractJsonObjectFromText($text)
+  {
+    $text = trim((string)$text);
+    if ($text === '') {
+      return '';
+    }
+    $start = strpos($text, '{');
+    $end = strrpos($text, '}');
+    if ($start === false || $end === false || $end <= $start) {
+      return '';
+    }
+    return substr($text, $start, $end - $start + 1);
+  }
+
   private static function metricsFile()
   {
     return __DIR__ . '/../storage/admin/ai_provider_metrics.json';
@@ -616,6 +688,24 @@ class AiProviderClient
         'Security block is active for this device. Preserve block and verify ownership before any override.'
       ];
       $suggestion = $choices[$seed % count($choices)];
+    } elseif ($classification === 'invalid_course_reference') {
+      $choices = [
+        'Ticket course is not configured in course catalog. Reject auto-write and request a valid course selection.',
+        'Invalid course reference detected. Keep ticket in review and instruct student to use a configured course only.',
+      ];
+      $suggestion = $choices[$seed % count($choices)];
+    } elseif ($classification === 'inactive_course_reference') {
+      $choices = [
+        'Course exists but is not active. Do not auto-write attendance until active session/course is confirmed.',
+        'Inactive course request detected. Require admin verification against currently active course before action.',
+      ];
+      $suggestion = $choices[$seed % count($choices)];
+    } elseif ($classification === 'fingerprint_conflict_rig_attempt') {
+      $choices = [
+        'Fingerprint conflict across matrics detected. Treat as rig-risk and block automated attendance writes.',
+        'Possible proxy/rig attempt: same fingerprint appears linked to another matric. Keep manual-review-only.',
+      ];
+      $suggestion = $choices[$seed % count($choices)];
     } elseif ($classification === 'policy_device_sharing_risk') {
       $choices = [
         'Same-day same-course device signature overlaps with another matric. Keep this ticket in manual review and do not auto-write attendance.',
@@ -679,6 +769,24 @@ class AiProviderClient
         'Security lock is active on this device. Reach admin support to verify your identity and request re-enable.',
       ];
       $base = $opts[$seed % count($opts)];
+    } elseif ($classification === 'invalid_course_reference') {
+      $opts = [
+        'The course in your request is not recognized in the system. Please select a valid configured course and contact admin.',
+        'We could not verify your course against the configured list. Kindly choose a valid course and retry support.',
+      ];
+      $base = $opts[$seed % count($opts)];
+    } elseif ($classification === 'inactive_course_reference') {
+      $opts = [
+        'Your requested course is not currently active for attendance. Please contact admin to confirm the active course first.',
+        'This course is currently inactive in the attendance session. Admin confirmation is required before retrying.',
+      ];
+      $base = $opts[$seed % count($opts)];
+    } elseif ($classification === 'fingerprint_conflict_rig_attempt') {
+      $opts = [
+        'We detected a fingerprint conflict that requires admin identity verification before attendance can proceed.',
+        'This request is paused due to a device identity conflict. Please contact admin support for manual verification.',
+      ];
+      $base = $opts[$seed % count($opts)];
     } elseif ($classification === 'policy_device_sharing_risk') {
       $opts = [
         "Your request is under manual review due to a same-device policy check for {$course} today. Please wait for admin verification.",
@@ -724,8 +832,10 @@ class AiProviderClient
   {
     $msg = strtolower(trim((string)$adminMessage));
     $allowHumor = !empty($context['allow_humor']);
-    $isGreeting = (bool)preg_match('/\b(hello|hi|hey|good\s+(morning|afternoon|evening))\b/i', (string)$adminMessage);
+    $isGreeting = (bool)preg_match('/\b(hello|hi|hey|yo|sup|what\'?s\s+up|good\s+(morning|afternoon|evening))\b/i', (string)$adminMessage);
+    $isSmallTalk = (bool)preg_match('/\b(how\s+are\s+you|who\s+are\s+you|how\s+far|howdy|thanks|thank\s+you|good\s+night|good\s+day|nice\s+one|wassup|what\'?s\s+good)\b/i', (string)$adminMessage);
     $isCapabilityRequest = (bool)preg_match('/\b(what\s+can\s+you\s+do|capabilit(y|ies)|apart\s+from\s+tickets?|apart\s+from\s+announcements?|help\s+with\s+what)\b/i', (string)$adminMessage);
+    $wantsJoke = (bool)preg_match('/\b(joke|humou?r|funny|laugh|banter|gist)\b/i', (string)$adminMessage);
 
     $reply = 'Observation: input context is limited. Conclusion: a precise recommendation requires matric, course, and failed action. Action: share those fields for exact next-step guidance.';
 
@@ -745,12 +855,22 @@ class AiProviderClient
       $reply = 'Observation: fingerprint/device mismatch is the active signal. Conclusion: identity verification is required before attendance writes. Action: keep new-device cases in manual review; allow guarded remediation only for verified known-device history.';
     } elseif (strpos($msg, 'checkin') !== false || strpos($msg, 'checkout') !== false) {
       $reply = 'Observation: attendance action validation is requested. Conclusion: course-scoped guardrails must be enforced. Action: block duplicate checkin, block checkout without prior checkin, and block duplicate checkout.';
-    } elseif ($isGreeting) {
-      $reply = 'Hello. Sentinel AI is online and ready to assist with operations diagnostics and route guidance.';
+    } elseif ($isGreeting || $isSmallTalk) {
+      $smallTalkReplies = [
+        'Hello. Sentinel AI is online and ready to assist with operations diagnostics, route guidance, or a quick sanity-check.',
+        'Hi. I am here and watching the board. If you want, I can keep it light for a moment or jump straight into tickets, logs, or attendance checks.',
+        'Hey. Sentinel AI is active. We can gist briefly, then pivot into anything operational the moment you need it.'
+      ];
+      $reply = $smallTalkReplies[abs(crc32((string)$adminMessage)) % count($smallTalkReplies)];
     }
 
-    if ($allowHumor && (strpos($msg, 'joke') !== false || strpos($msg, 'humor') !== false || strpos($msg, 'funny') !== false)) {
-      $reply = 'Observation: duplicate attempt detected. Conclusion: the system remains unconvinced. Action: verify the prior attendance record before retrying. 🙂';
+    if ($allowHumor && $wantsJoke) {
+      $jokes = [
+        'Quick one: I told the duplicate ticket to wait its turn, but it said it had already submitted that request.',
+        'Small admin joke: the only thing faster than a rumor is a misconfigured attendance retry.',
+        'Tiny one: I like calm dashboards. They are the only places where nothing is on fire and everyone still looks busy.'
+      ];
+      $reply = $jokes[abs(crc32((string)$adminMessage . '|joke')) % count($jokes)];
     }
 
     return [

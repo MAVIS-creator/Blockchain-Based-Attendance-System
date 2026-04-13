@@ -12,6 +12,7 @@ require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/cache_helpers.php';
 require_once __DIR__ . '/state_helpers.php';
 require_once __DIR__ . '/includes/ai_recommendation_formatter.php';
+require_once __DIR__ . '/../src/AiTicketAutomationEngine.php';
 app_storage_init();
 $pageCsrfToken = csrf_token();
 $flashMessage = $_SESSION['admin_flash'] ?? null;
@@ -41,6 +42,35 @@ if (!is_array($aiDiagnostics)) {
   $aiDiagnostics = [];
 }
 $recentAiDiagnostics = array_slice($aiDiagnostics, 0, 8);
+
+$unresolvedTickets = array_values(array_filter($tickets, static function ($ticket) {
+  return is_array($ticket) && empty($ticket['resolved']);
+}));
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !empty($unresolvedTickets)) {
+  try {
+    $engine = new AiTicketAutomationEngine();
+    $autoRun = $engine->autoProcessPending(min(20, count($unresolvedTickets)), 'support_tickets_page', 15);
+    if (!empty($autoRun['ok']) && (int)($autoRun['processed'] ?? 0) > 0) {
+      $ticketsSource = 'file';
+      $reloadedHybrid = hybrid_fetch_support_tickets($ticketsSource);
+      if (is_array($reloadedHybrid)) {
+        $tickets = $reloadedHybrid;
+      } else if (file_exists($ticketsFile)) {
+        $rawTickets = json_decode((string)@file_get_contents($ticketsFile), true);
+        $tickets = is_array($rawTickets) ? $rawTickets : [];
+      }
+
+      $rawDiagnostics = file_exists($aiDiagnosticsFile)
+        ? json_decode((string)@file_get_contents($aiDiagnosticsFile), true)
+        : [];
+      $aiDiagnostics = is_array($rawDiagnostics) ? $rawDiagnostics : [];
+      $recentAiDiagnostics = array_slice($aiDiagnostics, 0, 8);
+    }
+  } catch (\Throwable $e) {
+    // Best-effort auto-processing only; the page should still render ticket data.
+  }
+}
 
 function checkLogMatch($logLines, $needle, $index)
 {
@@ -262,6 +292,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
   header("Location: index.php?page=support_tickets");
   exit;
 }
+
+$allUnresolvedTickets = array_values(array_filter($tickets, static function ($ticket) {
+  return is_array($ticket) && empty($ticket['resolved']);
+}));
+$allUnresolvedTickets = array_reverse($allUnresolvedTickets);
+
+$ticketPerPage = 12;
+$ticketPage = isset($_GET['tickets_pg']) ? (int)$_GET['tickets_pg'] : 1;
+if ($ticketPage < 1) $ticketPage = 1;
+$ticketTotal = count($allUnresolvedTickets);
+$ticketTotalPages = max(1, (int)ceil($ticketTotal / $ticketPerPage));
+if ($ticketPage > $ticketTotalPages) $ticketPage = $ticketTotalPages;
+$ticketOffset = ($ticketPage - 1) * $ticketPerPage;
+$ticketPageItems = array_slice($allUnresolvedTickets, $ticketOffset, $ticketPerPage);
 ?>
 
 <!-- Support Tickets — Stitch UI -->
@@ -345,11 +389,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
 
 <div class="tickets-wrapper" style="grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));">
   <?php
-  $hasUnresolved = false;
+  $hasUnresolved = !empty($allUnresolvedTickets);
   if (!empty($tickets)): ?>
-    <?php foreach (array_reverse($tickets) as $ticket): ?>
-      <?php if (!($ticket['resolved'] ?? false)): ?>
-        <?php $hasUnresolved = true; ?>
+    <?php foreach ($ticketPageItems as $ticket): ?>
 
         <?php
         $fp = $ticket['fingerprint'] ?? '';
@@ -416,7 +458,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
             </div>
           </div>
         </div>
-      <?php endif; ?>
     <?php endforeach; ?>
     <?php if (!$hasUnresolved): ?>
       <div style="text-align:center;padding:48px 24px;color:var(--on-surface-variant);grid-column:1/-1;">
@@ -431,6 +472,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'], $_POST
     </div>
   <?php endif; ?>
 </div>
+
+<?php if ($hasUnresolved && $ticketTotalPages > 1): ?>
+  <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div style="font-size:0.82rem;color:var(--on-surface-variant);">
+      Showing <?= (int)($ticketOffset + 1) ?>-<?= (int)min($ticketOffset + $ticketPerPage, $ticketTotal) ?> of <?= (int)$ticketTotal ?> unresolved tickets
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <?php if ($ticketPage > 1): ?>
+        <a class="st-btn st-btn-sm" href="index.php?page=support_tickets&tickets_pg=<?= $ticketPage - 1 ?>">Prev</a>
+      <?php endif; ?>
+      <?php
+      $startPage = max(1, $ticketPage - 2);
+      $endPage = min($ticketTotalPages, $ticketPage + 2);
+      for ($p = $startPage; $p <= $endPage; $p++):
+      ?>
+        <a class="st-btn st-btn-sm" href="index.php?page=support_tickets&tickets_pg=<?= $p ?>" style="<?= $p === $ticketPage ? 'background:#1f5d99;color:#fff;border-color:#1f5d99;' : '' ?>"><?= $p ?></a>
+      <?php endfor; ?>
+      <?php if ($ticketPage < $ticketTotalPages): ?>
+        <a class="st-btn st-btn-sm" href="index.php?page=support_tickets&tickets_pg=<?= $ticketPage + 1 ?>">Next</a>
+      <?php endif; ?>
+    </div>
+  </div>
+<?php endif; ?>
 
 <script>
   const selectAllTickets = document.getElementById('selectAllTickets');

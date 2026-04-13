@@ -1,10 +1,10 @@
 {
     "version": "site-context-v1",
-    "generated_at": "2026-04-10T19:35:17+02:00",
-    "signature": "e1c3013cf11527e346e82010d47155f33a446244",
+    "generated_at": "2026-04-13T01:54:34+02:00",
+    "signature": "421154ed448c14cb81943d1bfa6f868e8fd75079",
     "payload": {
-        "source_count": 132,
-        "indexed_pages": 104,
+        "source_count": 136,
+        "indexed_pages": 107,
         "routes": [
             {
                 "route": "404.php",
@@ -39,6 +39,20 @@
                 "label": "Ai Context Preview",
                 "file": "admin/ai_context_preview.php",
                 "summary": "if (session_status() === PHP_SESSION_NONE) {",
+                "scope": "admin"
+            },
+            {
+                "route": "admin/ai_rulebook.php",
+                "label": "Ai Rulebook",
+                "file": "admin/ai_rulebook.php",
+                "summary": "require_once __DIR__ . '/includes/csrf.php';",
+                "scope": "admin"
+            },
+            {
+                "route": "admin/ai_rulebook_api.php",
+                "label": "Ai Rulebook Api",
+                "file": "admin/ai_rulebook_api.php",
+                "summary": "session_start();",
                 "scope": "admin"
             },
             {
@@ -651,6 +665,13 @@
                 "scope": "public"
             },
             {
+                "route": "src/AiRulebook.php",
+                "label": "AiRulebook",
+                "file": "src/AiRulebook.php",
+                "summary": "require_once __DIR__ . '/../admin/state_helpers.php';",
+                "scope": "public"
+            },
+            {
                 "route": "src/AiServiceIdentity.php",
                 "label": "AiServiceIdentity",
                 "file": "src/AiServiceIdentity.php",
@@ -837,6 +858,11 @@
                 "route": "admin/index.php?page=ai_context_preview"
             },
             {
+                "page": "ai_rulebook",
+                "label": "AI Rulebook",
+                "route": "admin/index.php?page=ai_rulebook"
+            },
+            {
                 "page": "roles",
                 "label": "Role Privileges",
                 "route": "admin/index.php?page=roles"
@@ -937,6 +963,11 @@
                 "file": "docs/planning/AI_IMPLEMENTATION_TASKS_WALKTHROUGH.md",
                 "title": "AI Automation Implementation Tasks & Walkthrough",
                 "summary": "This implementation adds a file-first AI automation layer that extends the current architecture (no redesign):"
+            },
+            {
+                "file": "docs/planning/AI_RULES_TRAINING_AND_AUTO_LOG_PLAN.md",
+                "title": "AI Rules Training + Auto Attendance Decision Plan",
+                "summary": "1. Allow automatic attendance write (checkin/checkout) when strict policy conditions pass."
             },
             {
                 "file": "docs/planning/AI_SITE_STRUCTURE_CONTEXT_PLAN.md",

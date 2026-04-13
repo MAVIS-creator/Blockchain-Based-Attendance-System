@@ -9,6 +9,10 @@ if (empty($_SESSION['admin_logged_in'])) {
 require_once __DIR__ . '/../storage_helpers.php';
 app_storage_init();
 $blockedFile = app_storage_file('logs/blocked_tokens.log');
+$tokenPage = isset($_GET['token_pg']) && ctype_digit((string)$_GET['token_pg'])
+  ? max(1, (int)$_GET['token_pg'])
+  : 1;
+$tokenPerPage = 20;
 $tokens = [];
 if (file_exists($blockedFile)) {
   $lines = file($blockedFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -40,6 +44,12 @@ foreach ($tokens as $k => &$v) {
   $v['matrics'] = array_keys($v['matrics']);
 }
 unset($v);
+
+$tokenTotal = count($tokens);
+$tokenTotalPages = max(1, (int)ceil($tokenTotal / $tokenPerPage));
+$tokenPage = min($tokenPage, $tokenTotalPages);
+$tokenOffset = ($tokenPage - 1) * $tokenPerPage;
+$pagedTokens = array_slice($tokens, $tokenOffset, $tokenPerPage, true);
 ?>
 
 <div style="max-width:1000px;margin:0 auto;">
@@ -125,7 +135,7 @@ unset($v);
             </tr>
           </thead>
           <tbody>
-            <?php foreach ($tokens as $token => $info): ?>
+            <?php foreach ($pagedTokens as $token => $info): ?>
               <tr>
                 <td style="font-family:monospace;font-size:0.85rem;color:var(--on-surface-variant);max-width:120px;overflow:hidden;text-overflow:ellipsis;" title="<?= htmlspecialchars($token) ?>">
                   <?= htmlspecialchars(substr($token, 0, 16)) ?>…
@@ -147,6 +157,22 @@ unset($v);
             <?php endforeach; ?>
           </tbody>
         </table>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--outline-variant);">
+          <div style="font-size:0.82rem;color:var(--on-surface-variant);">
+            Showing <?= $tokenTotal > 0 ? (int)($tokenOffset + 1) : 0 ?>-<?= (int)min($tokenOffset + $tokenPerPage, $tokenTotal) ?> of <?= (int)$tokenTotal ?> tokens
+          </div>
+          <?php if ($tokenTotalPages > 1): ?>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <?php for ($i = 1; $i <= $tokenTotalPages; $i++): ?>
+                <a
+                  href="?page=clear_tokens&token_pg=<?= (int)$i ?>"
+                  style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;border-radius:8px;padding:0 8px;text-decoration:none;font-size:0.82rem;font-weight:700;<?= $i === $tokenPage ? 'background:var(--primary);color:#fff;' : 'background:var(--surface-container-low);color:var(--on-surface);border:1px solid var(--outline-variant);' ?>"
+                ><?= (int)$i ?></a>
+              <?php endfor; ?>
+            </div>
+          <?php endif; ?>
+        </div>
       <?php endif; ?>
     </div>
   </div>

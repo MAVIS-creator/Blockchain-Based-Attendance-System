@@ -1,5 +1,32 @@
 [
     {
+        "timestamp": "2026-04-13 00:10:28",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "AI_Operator",
+        "action": "Ticket Automated",
+        "details": "Ticket 2026-04-13 00:10:11 => new_or_suspicious_device (confidence=0.68, resolved=yes, announcement=yes)"
+    },
+    {
+        "timestamp": "2026-04-13 00:41:41",
+        "admin": "system",
+        "role": "unknown",
+        "ip": "127.0.0.1",
+        "category": "AI_Operator",
+        "action": "AI Ticket Processor Run",
+        "details": "Processed unresolved support tickets via ai_ticket_processor.php"
+    },
+    {
+        "timestamp": "2026-04-13 00:41:39",
+        "admin": "system",
+        "role": "unknown",
+        "ip": "127.0.0.1",
+        "category": "AI_Operator",
+        "action": "Ticket Automated",
+        "details": "Ticket 2026-04-12 23:39:42 => new_or_suspicious_device (confidence=0.68, resolved=yes, announcement=yes)"
+    },
+    {
         "timestamp": "2026-04-10 19:36:12",
         "admin": "Mavis",
         "role": "superadmin",
