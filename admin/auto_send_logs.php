@@ -62,7 +62,7 @@ function load_settings_file($settingsFile, $keyFile)
 
 $settings = load_settings_file($settingsFile, $keyFile) ?: [];
 // require auto_send enabled
-if (empty($settings['auto_send']['enabled']) && !$forceRun) exit("Auto-send not enabled (use --force for test runs)\n");
+if (empty($settings['auto_send']['enabled']) && !$forceRun) exit("Auto-send not enabled in settings (use --force for explicit test runs)\n");
 $recipient = $recipientOverride !== '' ? $recipientOverride : ($settings['auto_send']['recipient'] ?? '');
 if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) exit("No valid recipient configured\n");
 

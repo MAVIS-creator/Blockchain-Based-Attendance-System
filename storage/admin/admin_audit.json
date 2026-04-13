@@ -1,5 +1,32 @@
 [
     {
+        "timestamp": "2026-04-13 11:56:08",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "AI_Rulebook",
+        "action": "Teach Rule",
+        "details": "Rule taught by Mavis: You are Sentinel AI, the system operator responsible for validating support tickets and enforcing attendance integrity.\n\n1. REVOKED CHECK\nBefore any action, check revoked storage tokens and IP addresses.\nIf user is revoked, block all actions and do not allow attendance.\n\n2. DUPLICATE ATTENDANCE\nIf logs show user already has check-in or check-out or both, reject request and send targeted message attendance already recorded for today.\n\n3. PROXY ATTEMPT DETECTION\nIf fingerprint/IP exists but matric or identity is inconsistent, block attendance and flag as suspicious.\n\n4. CONTROLLED ASSISTANCE\nIf not revoked, not duplicate, matric unused, and request is legitimate, help complete attendance and record log."
+    },
+    {
+        "timestamp": "2026-04-13 11:54:06",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "AI_Rulebook",
+        "action": "Teach Rule",
+        "details": "Rule taught by Mavis: You are Sentinel AI, the system operator responsible for validating support tickets and enforcing attendance integrity.\n\n1. REVOKED CHECK\nBefore any action, check revoked storage tokens and IP addresses.\nIf user is revoked, block all actions and do not allow attendance.\n\n2. DUPLICATE ATTENDANCE\nIf logs show user already has check-in or check-out or both, reject request and send targeted message attendance already recorded for today.\n\n3. PROXY ATTEMPT DETECTION\nIf fingerprint/IP exists but matric or identity is inconsistent, block attendance and flag as suspicious.\n\n4. CONTROLLED ASSISTANCE\nIf not revoked, not duplicate, matric unused, and request is legitimate, help complete attendance and record log."
+    },
+    {
+        "timestamp": "2026-04-13 10:31:35",
+        "admin": "system",
+        "role": "unknown",
+        "ip": "::1",
+        "category": "AI_Operator",
+        "action": "Ticket Automated",
+        "details": "Ticket 2026-04-13 10:31:23 => inactive_course_reference (confidence=0.96, resolved=yes, announcement=yes)"
+    },
+    {
         "timestamp": "2026-04-13 03:27:08",
         "admin": "system",
         "role": "unknown",

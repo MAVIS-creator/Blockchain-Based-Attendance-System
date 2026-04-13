@@ -336,7 +336,7 @@ class AiTicketDiagnoser
       $classification = 'inactive_course_reference';
       $action = 'deny_and_review';
       $confidence = 0.96;
-      $suggestedAdminAction = sprintf('Requested course exists but is not currently active. Active course is "%s". Require admin/manual validation before any attendance write.', (string)($courseValidation['active_course'] ?? 'General'));
+      $suggestedAdminAction = sprintf('Requested course exists but is not currently active. Active course is "%s". On the AI Suggestions page, tell admin to activate %s for the student if appropriate; once active, Sentinel may add guarded manual attendance only after identity, duplicate, and policy checks pass.', (string)($courseValidation['active_course'] ?? 'General'), $course);
       $reason = 'Ticket course does not match currently active course for attendance session.';
     } elseif ($revokedStatus) {
       $classification = 'blocked_revoked_device';
@@ -384,7 +384,7 @@ class AiTicketDiagnoser
       $classification = 'legitimate_session_issue';
       $action = 'auto_fix_add_attendance';
       $confidence = 0.95;
-      $suggestedAdminAction = 'No immediate action required unless student reports repeated failure. Auto-fix is safe under course-scoped guardrails.';
+      $suggestedAdminAction = 'Identity checks passed. Sentinel may register the missing attendance as a guarded manual attendance entry for this course, then resolve the ticket.';
       $reason = 'Fingerprint and IP match same-day, same-course logs and requested action is policy-safe.';
     } elseif ($logInfo['fpMatch'] && !$logInfo['ipMatch']) {
       $classification = 'network_ip_rotation';

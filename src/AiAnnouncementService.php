@@ -21,14 +21,14 @@ class AiAnnouncementService
     switch ($classification) {
       case 'inactive_course_reference':
         return sprintf(
-          'Your %s request for %s cannot continue because that course is not active for attendance right now. Please contact admin support to confirm the active course before retrying.',
+          'We received your support ticket for %s in %s. That course is not active for attendance right now, so the support team is reviewing the course setup before the next attendance step.',
           $actionLabel,
           $courseLabel
         );
 
       case 'invalid_course_reference':
         return sprintf(
-          'We could not match %s to a valid course in the attendance system. Please check the course name and contact admin support if you still need help.',
+          'We received your support ticket, but %s does not match a valid course in the attendance system. The support team will review it and update the next step for your attendance request.',
           $courseLabel
         );
 
@@ -68,7 +68,7 @@ class AiAnnouncementService
 
       case 'new_or_suspicious_device':
         return sprintf(
-          'Your support ticket for %s was flagged because this device looks new or unverified. Please contact admin support for a quick identity check before retrying.',
+          'We received your support ticket for %s, but this device looks new or unverified. The support team is checking it before any attendance update is applied.',
           $courseLabel
         );
 

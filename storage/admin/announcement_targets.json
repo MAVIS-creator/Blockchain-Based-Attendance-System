@@ -1,5 +1,22 @@
 [
     {
+        "id": "ai_20260413103133_87814ae6",
+        "enabled": true,
+        "severity": "warning",
+        "message": "We received your support ticket for check-in in CYB 206. That course is not active for attendance right now, so the support team is reviewing the course setup before the next attendance step.",
+        "target_fingerprint": "142295584ccba01b195483d51697f927",
+        "auto_generated_by": "system_ai_operator",
+        "updated_at": "2026-04-13T10:31:33+01:00",
+        "created_for_ticket": "2026-04-13 10:31:23",
+        "matric": "2023003706",
+        "classification": "inactive_course_reference",
+        "confidence": 0.96,
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "active_course": "General",
+        "ticket_message": "I could not see check in for CYB 206, so I am reporting it here for support review."
+    },
+    {
         "id": "ai_20260413032707_edb80ded",
         "enabled": true,
         "severity": "warning",

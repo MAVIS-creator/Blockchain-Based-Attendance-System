@@ -1,7 +1,393 @@
 {
     "version": "rulebook-v1",
-    "updated_at": "2026-04-13T01:54:34+02:00",
+    "updated_at": "2026-04-13T11:57:10+02:00",
     "rules": [
+        {
+            "id": "rule_custom_20260413_115608_d1d893c8",
+            "priority": 1017,
+            "enabled": true,
+            "intent": "CONTROLLED ASSISTANCE\nIf not revoked, not duplicate, matric unused, and request is legitimate, help complete attendance and record log.",
+            "conditions": {
+                "revoked": false,
+                "device_sharing_risk": false,
+                "course_exists": true,
+                "course_is_active": true,
+                "identity_keys_present": true,
+                "has_checkin": false
+            },
+            "outcome": {
+                "classification": "legitimate_session_issue",
+                "action": "auto_fix_add_attendance",
+                "confidence": 0.95,
+                "suggested_admin_action": "If the user passes identity and duplicate checks, Sentinel may link the device context if needed and register guarded manual attendance for this course.",
+                "reason": "Rulebook custom: controlled assistance is allowed for legitimate attendance failures."
+            },
+            "examples": [],
+            "created_by": "Mavis",
+            "updated_by": "Mavis",
+            "created_at": "2026-04-13T11:56:08+02:00",
+            "updated_at": "2026-04-13T11:56:08+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115608_811dfa60",
+            "priority": 1016,
+            "enabled": true,
+            "intent": "PROXY ATTEMPT DETECTION\nIf fingerprint/IP exists but matric or identity is inconsistent, block attendance and flag as suspicious.",
+            "conditions": {
+                "device_sharing_risk": true
+            },
+            "outcome": {
+                "classification": "fingerprint_conflict_rig_attempt",
+                "action": "manual_review_only",
+                "confidence": 0.98,
+                "suggested_admin_action": "Block attendance and flag as suspicious. Do not allow automated or manual attendance until identity is verified.",
+                "reason": "Rulebook custom: device identity conflicts with the matric or user identity."
+            },
+            "examples": [],
+            "created_by": "Mavis",
+            "updated_by": "Mavis",
+            "created_at": "2026-04-13T11:56:08+02:00",
+            "updated_at": "2026-04-13T11:56:08+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115608_48b8a31f",
+            "priority": 1015,
+            "enabled": true,
+            "intent": "DUPLICATE ATTENDANCE\nIf logs show user already has check-in or check-out or both, reject request and send targeted message attendance already recorded for today.",
+            "conditions": {
+                "has_checkin": true
+            },
+            "outcome": {
+                "classification": "duplicate_submission_attempt",
+                "action": "deny_and_notify",
+                "confidence": 0.95,
+                "suggested_admin_action": "Reject the request and do not write a new attendance entry because attendance is already recorded for today.",
+                "reason": "Rulebook custom: attendance already exists for the student today."
+            },
+            "examples": [],
+            "created_by": "Mavis",
+            "updated_by": "Mavis",
+            "created_at": "2026-04-13T11:56:08+02:00",
+            "updated_at": "2026-04-13T11:56:08+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115608_b5f5e618",
+            "priority": 1014,
+            "enabled": true,
+            "intent": "REVOKED CHECK\nBefore any action, check revoked storage tokens and IP addresses.\nIf user is revoked, block all actions and do not allow attendance.",
+            "conditions": {
+                "revoked": true
+            },
+            "outcome": {
+                "classification": "blocked_revoked_device",
+                "action": "deny_and_notify",
+                "confidence": 0.99,
+                "suggested_admin_action": "Keep the device blocked. Do not register attendance or help submission until a valid re-enable review is completed.",
+                "reason": "Rulebook custom: revoked fingerprints or IPs must be blocked from attendance actions."
+            },
+            "examples": [],
+            "created_by": "Mavis",
+            "updated_by": "Mavis",
+            "created_at": "2026-04-13T11:56:08+02:00",
+            "updated_at": "2026-04-13T11:56:08+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115608_f4f93555",
+            "priority": 1013,
+            "enabled": true,
+            "intent": "You are Sentinel AI, the system operator responsible for validating support tickets and enforcing attendance integrity.",
+            "conditions": {
+                "identity_keys_present": true
+            },
+            "outcome": {
+                "classification": "system",
+                "action": "manual_review_only",
+                "confidence": 0,
+                "suggested_admin_action": "Verify the user's identity and validate the support ticket",
+                "reason": "System operator validation required for attendance integrity"
+            },
+            "examples": [],
+            "created_by": "Mavis",
+            "updated_by": "Mavis",
+            "created_at": "2026-04-13T11:56:08+02:00",
+            "updated_at": "2026-04-13T11:56:08+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115406_284fde71",
+            "priority": 1012,
+            "enabled": true,
+            "intent": "CONTROLLED ASSISTANCE\nIf not revoked, not duplicate, matric unused, and request is legitimate, help complete attendance and record log.",
+            "conditions": {
+                "revoked": false,
+                "device_sharing_risk": false,
+                "course_exists": true,
+                "course_is_active": true,
+                "identity_keys_present": true,
+                "has_checkin": false
+            },
+            "outcome": {
+                "classification": "legitimate_session_issue",
+                "action": "auto_fix_add_attendance",
+                "confidence": 0.95,
+                "suggested_admin_action": "If the user passes identity and duplicate checks, Sentinel may link the device context if needed and register guarded manual attendance for this course.",
+                "reason": "Rulebook custom: controlled assistance is allowed for legitimate attendance failures."
+            },
+            "examples": [],
+            "created_by": "Mavis",
+            "updated_by": "Mavis",
+            "created_at": "2026-04-13T11:54:06+02:00",
+            "updated_at": "2026-04-13T11:54:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115406_9cc4526f",
+            "priority": 1011,
+            "enabled": true,
+            "intent": "PROXY ATTEMPT DETECTION\nIf fingerprint/IP exists but matric or identity is inconsistent, block attendance and flag as suspicious.",
+            "conditions": {
+                "device_sharing_risk": true
+            },
+            "outcome": {
+                "classification": "fingerprint_conflict_rig_attempt",
+                "action": "manual_review_only",
+                "confidence": 0.98,
+                "suggested_admin_action": "Block attendance and flag as suspicious. Do not allow automated or manual attendance until identity is verified.",
+                "reason": "Rulebook custom: device identity conflicts with the matric or user identity."
+            },
+            "examples": [],
+            "created_by": "Mavis",
+            "updated_by": "Mavis",
+            "created_at": "2026-04-13T11:54:06+02:00",
+            "updated_at": "2026-04-13T11:54:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115406_19387e79",
+            "priority": 1010,
+            "enabled": true,
+            "intent": "DUPLICATE ATTENDANCE\nIf logs show user already has check-in or check-out or both, reject request and send targeted message attendance already recorded for today.",
+            "conditions": {
+                "has_checkin": true,
+                "has_checkout": true
+            },
+            "outcome": {
+                "classification": "DUPLICATE ATTENDANCE",
+                "action": "deny_and_notify",
+                "confidence": 0,
+                "suggested_admin_action": "Verify user's attendance request",
+                "reason": "Attendance already recorded for today"
+            },
+            "examples": [],
+            "created_by": "Mavis",
+            "updated_by": "Mavis",
+            "created_at": "2026-04-13T11:54:06+02:00",
+            "updated_at": "2026-04-13T11:54:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115406_89f0298b",
+            "priority": 1009,
+            "enabled": true,
+            "intent": "REVOKED CHECK\nBefore any action, check revoked storage tokens and IP addresses.\nIf user is revoked, block all actions and do not allow attendance.",
+            "conditions": {
+                "revoked": true
+            },
+            "outcome": {
+                "classification": "blocked_revoked_device",
+                "action": "deny_and_notify",
+                "confidence": 0.99,
+                "suggested_admin_action": "Keep the device blocked. Do not register attendance or help submission until a valid re-enable review is completed.",
+                "reason": "Rulebook custom: revoked fingerprints or IPs must be blocked from attendance actions."
+            },
+            "examples": [],
+            "created_by": "Mavis",
+            "updated_by": "Mavis",
+            "created_at": "2026-04-13T11:54:06+02:00",
+            "updated_at": "2026-04-13T11:54:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115406_0660db71",
+            "priority": 1008,
+            "enabled": true,
+            "intent": "You are Sentinel AI, the system operator responsible for validating support tickets and enforcing attendance integrity.",
+            "conditions": {
+                "course_exists": true,
+                "course_is_active": true,
+                "identity_keys_present": true
+            },
+            "outcome": {
+                "classification": "Administrative Review",
+                "action": "manual_review_only",
+                "confidence": 1,
+                "suggested_admin_action": "Verify the user's identity and attendance",
+                "reason": "System operator review is required to validate support tickets and enforce attendance integrity."
+            },
+            "examples": [],
+            "created_by": "Mavis",
+            "updated_by": "Mavis",
+            "created_at": "2026-04-13T11:54:06+02:00",
+            "updated_at": "2026-04-13T11:54:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115006_d58e0297",
+            "priority": 1007,
+            "enabled": true,
+            "intent": "CONTROLLED ASSISTANCE\nIf not revoked, not duplicate, matric unused, and request is legitimate, help complete attendance and record log.",
+            "conditions": {
+                "revoked": false,
+                "device_sharing_risk": false,
+                "course_exists": true,
+                "course_is_active": true,
+                "identity_keys_present": true,
+                "has_checkin": false
+            },
+            "outcome": {
+                "classification": "legitimate_session_issue",
+                "action": "auto_fix_add_attendance",
+                "confidence": 0.95,
+                "suggested_admin_action": "If the user passes identity and duplicate checks, Sentinel may link the device context if needed and register guarded manual attendance for this course.",
+                "reason": "Rulebook custom: controlled assistance is allowed for legitimate attendance failures."
+            },
+            "examples": [],
+            "created_by": "qa2",
+            "updated_by": "qa2",
+            "created_at": "2026-04-13T11:50:06+02:00",
+            "updated_at": "2026-04-13T11:50:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115006_ae379c29",
+            "priority": 1006,
+            "enabled": true,
+            "intent": "PROXY ATTEMPT DETECTION\nIf fingerprint/IP exists but matric or identity is inconsistent, block attendance and flag as suspicious.",
+            "conditions": {
+                "device_sharing_risk": true
+            },
+            "outcome": {
+                "classification": "fingerprint_conflict_rig_attempt",
+                "action": "manual_review_only",
+                "confidence": 0.98,
+                "suggested_admin_action": "Block attendance and flag as suspicious. Do not allow automated or manual attendance until identity is verified.",
+                "reason": "Rulebook custom: device identity conflicts with the matric or user identity."
+            },
+            "examples": [],
+            "created_by": "qa2",
+            "updated_by": "qa2",
+            "created_at": "2026-04-13T11:50:06+02:00",
+            "updated_at": "2026-04-13T11:50:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115006_431fdddc",
+            "priority": 1005,
+            "enabled": true,
+            "intent": "DUPLICATE ATTENDANCE\nIf logs show user already has check-in or check-out or both, reject request and send targeted message attendance already recorded for today.",
+            "conditions": {
+                "has_checkin": true,
+                "has_checkout": true
+            },
+            "outcome": {
+                "classification": "attendance_duplicate",
+                "action": "deny_and_review",
+                "confidence": 1,
+                "suggested_admin_action": "Verify user's attendance",
+                "reason": "Attendance already recorded for today"
+            },
+            "examples": [],
+            "created_by": "qa2",
+            "updated_by": "qa2",
+            "created_at": "2026-04-13T11:50:06+02:00",
+            "updated_at": "2026-04-13T11:50:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115006_1d30d8de",
+            "priority": 1004,
+            "enabled": true,
+            "intent": "REVOKED CHECK\nBefore any action, check revoked storage tokens and IP addresses.\nIf user is revoked, block all actions and do not allow attendance.",
+            "conditions": {
+                "revoked": true
+            },
+            "outcome": {
+                "classification": "blocked_revoked_device",
+                "action": "deny_and_notify",
+                "confidence": 0.99,
+                "suggested_admin_action": "Keep the device blocked. Do not register attendance or help submission until a valid re-enable review is completed.",
+                "reason": "Rulebook custom: revoked fingerprints or IPs must be blocked from attendance actions."
+            },
+            "examples": [],
+            "created_by": "qa2",
+            "updated_by": "qa2",
+            "created_at": "2026-04-13T11:50:06+02:00",
+            "updated_at": "2026-04-13T11:50:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115006_9d552660",
+            "priority": 1003,
+            "enabled": true,
+            "intent": "PRIMARY VALIDATION\nAlways begin by scanning attendance logs and matching fingerprint and IP address.\nIf both match treat as known device. If no match treat as new device.",
+            "conditions": {
+                "fp_match": false,
+                "ip_match": false
+            },
+            "outcome": {
+                "classification": "new_or_suspicious_device",
+                "action": "verify_and_admin_review",
+                "confidence": 0.74,
+                "suggested_admin_action": "Treat as a new device. Do not auto-approve immediately; continue with controlled validation before any attendance write.",
+                "reason": "Rulebook custom: fingerprint and IP are not found in logs."
+            },
+            "examples": [],
+            "created_by": "qa2",
+            "updated_by": "qa2",
+            "created_at": "2026-04-13T11:50:06+02:00",
+            "updated_at": "2026-04-13T11:50:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115006_e6fe6674",
+            "priority": 1002,
+            "enabled": true,
+            "intent": "You are Sentinel AI, the system operator responsible for validating support tickets and enforcing attendance integrity.",
+            "conditions": {
+                "course_exists": true,
+                "course_is_active": true,
+                "identity_keys_present": true,
+                "has_checkin": true
+            },
+            "outcome": {
+                "classification": "Attendance Integrity",
+                "action": "verify_and_admin_review",
+                "confidence": 0,
+                "suggested_admin_action": "Verify user's attendance and resolve any discrepancies",
+                "reason": "System operator review required for attendance validation"
+            },
+            "examples": [],
+            "created_by": "qa2",
+            "updated_by": "qa2",
+            "created_at": "2026-04-13T11:50:06+02:00",
+            "updated_at": "2026-04-13T11:50:06+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_114707_cb86b3b4",
+            "priority": 1001,
+            "enabled": true,
+            "intent": "You are Sentinel AI, the system operator responsible for validating support tickets and enforcing attendance integrity.\n\n1. PRIMARY VALIDATION\nAlways begin by scanning attendance logs and matching fingerprint and IP address.\nIf both match treat as known device. If no match treat as new device.\n\n2. REVOKED CHECK\nBefore any action, check revoked storage tokens and IP addresses.\nIf user is revoked, block all actions and do not allow attendance.\n\n3. DUPLICATE ATTENDANCE\nIf logs show user already has check-in or check-out or both, reject request and send targeted message attendance already recorded for today.\n\n4. PROXY ATTEMPT DETECTION\nIf fingerprint/IP exists but matric or identity is inconsistent, block attendance and flag as suspicious.\n\n5. CONTROLLED ASSISTANCE\nIf not revoked, not duplicate, matric unused, and request is legitimate, help complete attendance and record log.",
+            "conditions": {
+                "fp_match": true,
+                "ip_match": true,
+                "revoked": false,
+                "has_checkin": false,
+                "has_checkout": false,
+                "identity_keys_present": true,
+                "device_sharing_risk": false
+            },
+            "outcome": {
+                "classification": "Valid Attendance",
+                "action": "auto_fix_add_attendance",
+                "confidence": 0.9,
+                "suggested_admin_action": "Monitor attendance logs",
+                "reason": "Legitimate attendance request with matching fingerprint and IP address"
+            },
+            "examples": [],
+            "created_by": "qa",
+            "updated_by": "qa",
+            "created_at": "2026-04-13T11:47:07+02:00",
+            "updated_at": "2026-04-13T11:47:07+02:00"
+        },
         {
             "id": "rule_invalid_course_reference",
             "priority": 1000,
@@ -94,6 +480,95 @@
             "updated_by": "system",
             "created_at": "2026-04-13T01:54:34+02:00",
             "updated_at": "2026-04-13T01:54:34+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115710_bfe78b1f",
+            "priority": 1018,
+            "enabled": true,
+            "intent": "REVOKED CHECK\nBefore any action, check revoked storage tokens and IP addresses.\nIf user is revoked, block all actions and do not allow attendance.",
+            "conditions": {
+                "revoked": true
+            },
+            "outcome": {
+                "classification": "blocked_revoked_device",
+                "action": "deny_and_notify",
+                "confidence": 0.99,
+                "suggested_admin_action": "Keep the device blocked. Do not register attendance or help submission until a valid re-enable review is completed.",
+                "reason": "Rulebook custom: revoked fingerprints or IPs must be blocked from attendance actions."
+            },
+            "examples": [],
+            "created_by": "qa3",
+            "updated_by": "qa3",
+            "created_at": "2026-04-13T11:57:10+02:00",
+            "updated_at": "2026-04-13T11:57:10+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115710_4f32b5c8",
+            "priority": 1019,
+            "enabled": true,
+            "intent": "DUPLICATE ATTENDANCE\nIf logs show user already has check-in or check-out or both, reject request and send targeted message attendance already recorded for today.",
+            "conditions": {
+                "has_checkin": true
+            },
+            "outcome": {
+                "classification": "duplicate_submission_attempt",
+                "action": "deny_and_notify",
+                "confidence": 0.95,
+                "suggested_admin_action": "Reject the request and do not write a new attendance entry because attendance is already recorded for today.",
+                "reason": "Rulebook custom: attendance already exists for the student today."
+            },
+            "examples": [],
+            "created_by": "qa3",
+            "updated_by": "qa3",
+            "created_at": "2026-04-13T11:57:10+02:00",
+            "updated_at": "2026-04-13T11:57:10+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115710_2ffd1002",
+            "priority": 1020,
+            "enabled": true,
+            "intent": "PROXY ATTEMPT DETECTION\nIf fingerprint/IP exists but matric or identity is inconsistent, block attendance and flag as suspicious.",
+            "conditions": {
+                "device_sharing_risk": true
+            },
+            "outcome": {
+                "classification": "fingerprint_conflict_rig_attempt",
+                "action": "manual_review_only",
+                "confidence": 0.98,
+                "suggested_admin_action": "Block attendance and flag as suspicious. Do not allow automated or manual attendance until identity is verified.",
+                "reason": "Rulebook custom: device identity conflicts with the matric or user identity."
+            },
+            "examples": [],
+            "created_by": "qa3",
+            "updated_by": "qa3",
+            "created_at": "2026-04-13T11:57:10+02:00",
+            "updated_at": "2026-04-13T11:57:10+02:00"
+        },
+        {
+            "id": "rule_custom_20260413_115710_00aa0fbb",
+            "priority": 1021,
+            "enabled": true,
+            "intent": "CONTROLLED ASSISTANCE\nIf not revoked, not duplicate, matric unused, and request is legitimate, help complete attendance and record log.",
+            "conditions": {
+                "revoked": false,
+                "device_sharing_risk": false,
+                "course_exists": true,
+                "course_is_active": true,
+                "identity_keys_present": true,
+                "has_checkin": false
+            },
+            "outcome": {
+                "classification": "legitimate_session_issue",
+                "action": "auto_fix_add_attendance",
+                "confidence": 0.95,
+                "suggested_admin_action": "If the user passes identity and duplicate checks, Sentinel may link the device context if needed and register guarded manual attendance for this course.",
+                "reason": "Rulebook custom: controlled assistance is allowed for legitimate attendance failures."
+            },
+            "examples": [],
+            "created_by": "qa3",
+            "updated_by": "qa3",
+            "created_at": "2026-04-13T11:57:10+02:00",
+            "updated_at": "2026-04-13T11:57:10+02:00"
         }
     ]
 }

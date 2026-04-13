@@ -266,42 +266,428 @@ class AiRulebook
     ];
   }
 
+  private static function normalizePolicyText($text)
+  {
+    $text = str_replace(["\r\n", "\r"], "\n", (string)$text);
+    $text = preg_replace('/[ \t]+/', ' ', $text);
+    $text = preg_replace('/\n{3,}/', "\n\n", $text);
+    return trim((string)$text);
+  }
+
+  private static function splitPolicyChunks($text)
+  {
+    $text = self::normalizePolicyText($text);
+    if ($text === '') {
+      return [];
+    }
+
+    $headingPattern = '/^\s*(?:\d+[\.\)]\s+)?(?:PRIMARY VALIDATION|REVOKED CHECK|MATRIC VALIDATION|DUPLICATE ATTENDANCE|DOUBLE ACTION|INVALID FLOW|PROXY|FRIEND ATTEMPT|VALID USER FAILURE|NEW DEVICE|FINGERPRINT LINKING|CONTROLLED ASSISTANCE|FAILED SUBMISSION RECOVERY|SUCCESSFUL COMPLETION|TARGETED RESPONSE|TICKET AUTO-RESOLUTION|ADMIN ESCALATION|VALIDATION PRIORITY ORDER|CORE PRINCIPLE|FINAL BEHAVIOR)\b/i';
+    $numberedPattern = '/^\s*\d+[\.\)]\s+/';
+
+    $lines = preg_split("/\n/", $text);
+    if (!is_array($lines) || empty($lines)) {
+      return [$text];
+    }
+
+    $chunks = [];
+    $buffer = '';
+    foreach ($lines as $line) {
+      $trimmed = trim((string)$line);
+      if ($trimmed === '') {
+        if ($buffer !== '') {
+          $buffer .= "\n";
+        }
+        continue;
+      }
+
+      $startsNewChunk = preg_match($headingPattern, $trimmed) || preg_match($numberedPattern, $trimmed);
+      if ($startsNewChunk && trim($buffer) !== '') {
+        $chunks[] = trim($buffer);
+        $buffer = '';
+      }
+
+      $buffer .= ($buffer !== '' ? "\n" : '') . $trimmed;
+    }
+
+    if (trim($buffer) !== '') {
+      $chunks[] = trim($buffer);
+    }
+
+    $cleaned = [];
+    foreach ($chunks as $chunk) {
+      $chunk = preg_replace('/^\d+[\.\)]\s*/', '', trim((string)$chunk));
+      if ($chunk !== '') {
+        $cleaned[] = $chunk;
+      }
+    }
+
+    return !empty($cleaned) ? $cleaned : [$text];
+  }
+
+  private static function buildRuleCandidate($intent, array $conditions, array $outcome)
+  {
+    if (empty($conditions) || empty($outcome['classification']) || empty($outcome['action'])) {
+      return null;
+    }
+
+    if (!isset($outcome['confidence']) || !is_numeric($outcome['confidence'])) {
+      $outcome['confidence'] = 0.9;
+    }
+    if (!isset($outcome['suggested_admin_action']) || trim((string)$outcome['suggested_admin_action']) === '') {
+      $outcome['suggested_admin_action'] = 'Review ticket with updated policy rule.';
+    }
+    if (!isset($outcome['reason']) || trim((string)$outcome['reason']) === '') {
+      $outcome['reason'] = 'Rulebook custom rule applied.';
+    }
+
+    return [
+      'intent' => trim((string)$intent),
+      'conditions' => $conditions,
+      'outcome' => $outcome,
+    ];
+  }
+
+  private static function parsePolicyChunk($chunk)
+  {
+    $chunk = trim((string)$chunk);
+    if ($chunk === '') {
+      return [];
+    }
+
+    $lower = strtolower($chunk);
+    if (
+      strpos($lower, 'you are sentinel ai') === 0
+      || strpos($lower, 'system operator responsible') !== false
+      || strpos($lower, 'master prompt') !== false
+    ) {
+      return [];
+    }
+    $candidates = [];
+
+    if (
+      strpos($lower, 'revoked') !== false
+      || strpos($lower, 'block all actions') !== false
+      || strpos($lower, 'do not allow attendance') !== false
+    ) {
+      $rule = self::buildRuleCandidate($chunk, ['revoked' => true], [
+        'classification' => 'blocked_revoked_device',
+        'action' => 'deny_and_notify',
+        'confidence' => 0.99,
+        'suggested_admin_action' => 'Keep the device blocked. Do not register attendance or help submission until a valid re-enable review is completed.',
+        'reason' => 'Rulebook custom: revoked fingerprints or IPs must be blocked from attendance actions.'
+      ]);
+      if ($rule) {
+        $candidates[] = $rule;
+      }
+    }
+
+    if (
+      strpos($lower, 'matric') !== false
+      && (strpos($lower, 'already recorded attendance') !== false || strpos($lower, 'matric already used today') !== false || strpos($lower, 'attendance exists') !== false)
+    ) {
+      $rule = self::buildRuleCandidate($chunk, ['has_checkin' => true], [
+        'classification' => 'duplicate_submission_attempt',
+        'action' => 'deny_and_notify',
+        'confidence' => 0.95,
+        'suggested_admin_action' => 'Attendance already exists for this matric today. Reject new submission and do not link a new fingerprint.',
+        'reason' => 'Rulebook custom: matric already has attendance today.'
+      ]);
+      if ($rule) {
+        $candidates[] = $rule;
+      }
+    }
+
+    if (
+      strpos($lower, 'duplicate') !== false
+      || strpos($lower, 'already recorded for today') !== false
+      || strpos($lower, 'check-in twice') !== false
+      || strpos($lower, 'check-out twice') !== false
+      || strpos($lower, 'check-out without check-in') !== false
+    ) {
+      if (
+        strpos($lower, 'already has check-in or check-out or both') !== false
+        || strpos($lower, 'already has check-in') !== false
+        || strpos($lower, 'already has check-out') !== false
+        || strpos($lower, 'attendance already recorded for today') !== false
+      ) {
+        $rule = self::buildRuleCandidate($chunk, ['has_checkin' => true], [
+          'classification' => 'duplicate_submission_attempt',
+          'action' => 'deny_and_notify',
+          'confidence' => 0.95,
+          'suggested_admin_action' => 'Reject the request and do not write a new attendance entry because attendance is already recorded for today.',
+          'reason' => 'Rulebook custom: attendance already exists for the student today.'
+        ]);
+        if ($rule) {
+          $candidates[] = $rule;
+        }
+      }
+
+      if (strpos($lower, 'check-out without check-in') !== false || strpos($lower, 'checkout without checkin') !== false) {
+        $rule = self::buildRuleCandidate($chunk, ['requested_action' => 'checkout', 'has_checkin' => false], [
+          'classification' => 'manual_review_required',
+          'action' => 'deny_and_review',
+          'confidence' => 0.95,
+          'suggested_admin_action' => 'Reject checkout because no prior check-in exists for this course today.',
+          'reason' => 'Rulebook custom: checkout attempted before a valid check-in.'
+        ]);
+        if ($rule) {
+          $candidates[] = $rule;
+        }
+      }
+
+      if (strpos($lower, 'check-in twice') !== false || strpos($lower, 'checkin twice') !== false) {
+        $rule = self::buildRuleCandidate($chunk, ['requested_action' => 'checkin', 'has_checkin' => true], [
+          'classification' => 'duplicate_submission_attempt',
+          'action' => 'deny_and_notify',
+          'confidence' => 0.95,
+          'suggested_admin_action' => 'Reject duplicate check-in. Attendance log should remain unchanged.',
+          'reason' => 'Rulebook custom: second check-in attempt detected.'
+        ]);
+        if ($rule) {
+          $candidates[] = $rule;
+        }
+      }
+
+      if (strpos($lower, 'check-out twice') !== false || strpos($lower, 'checkout twice') !== false) {
+        $rule = self::buildRuleCandidate($chunk, ['requested_action' => 'checkout', 'has_checkout' => true], [
+          'classification' => 'duplicate_submission_attempt',
+          'action' => 'deny_and_notify',
+          'confidence' => 0.95,
+          'suggested_admin_action' => 'Reject duplicate checkout. Attendance log should remain unchanged.',
+          'reason' => 'Rulebook custom: second checkout attempt detected.'
+        ]);
+        if ($rule) {
+          $candidates[] = $rule;
+        }
+      }
+    }
+
+    if (
+      (strpos($lower, 'proxy') !== false || strpos($lower, 'friend attempt') !== false || strpos($lower, 'identity is inconsistent') !== false)
+      || (strpos($lower, 'fingerprint/ip exists') !== false && strpos($lower, 'matric') !== false && strpos($lower, 'inconsistent') !== false)
+    ) {
+      $rule = self::buildRuleCandidate($chunk, ['device_sharing_risk' => true], [
+        'classification' => 'fingerprint_conflict_rig_attempt',
+        'action' => 'manual_review_only',
+        'confidence' => 0.98,
+        'suggested_admin_action' => 'Block attendance and flag as suspicious. Do not allow automated or manual attendance until identity is verified.',
+        'reason' => 'Rulebook custom: device identity conflicts with the matric or user identity.'
+      ]);
+      if ($rule) {
+        $candidates[] = $rule;
+      }
+    }
+
+    if (
+      strpos($lower, 'new device') !== false
+      || strpos($lower, 'fingerprint and ip are not found') !== false
+      || strpos($lower, 'if both match') !== false
+      || strpos($lower, 'if no match') !== false
+    ) {
+      $rule = self::buildRuleCandidate($chunk, ['fp_match' => false, 'ip_match' => false], [
+        'classification' => 'new_or_suspicious_device',
+        'action' => 'verify_and_admin_review',
+        'confidence' => 0.74,
+        'suggested_admin_action' => 'Treat as a new device. Do not auto-approve immediately; continue with controlled validation before any attendance write.',
+        'reason' => 'Rulebook custom: fingerprint and IP are not found in logs.'
+      ]);
+      if ($rule) {
+        $candidates[] = $rule;
+      }
+    }
+
+    if (
+      strpos($lower, 'link fingerprint') !== false
+      || strpos($lower, 'allow attendance submission') !== false
+      || strpos($lower, 'controlled assistance') !== false
+      || strpos($lower, 'help complete attendance') !== false
+      || strpos($lower, 'failed submission recovery') !== false
+    ) {
+      $conditions = [
+        'revoked' => false,
+        'device_sharing_risk' => false,
+        'course_exists' => true,
+        'course_is_active' => true,
+        'identity_keys_present' => true,
+      ];
+
+      if (strpos($lower, 'matric has no attendance today') !== false || strpos($lower, 'matric unused') !== false) {
+        $conditions['has_checkin'] = false;
+      }
+
+      $rule = self::buildRuleCandidate($chunk, $conditions, [
+        'classification' => 'legitimate_session_issue',
+        'action' => 'auto_fix_add_attendance',
+        'confidence' => 0.95,
+        'suggested_admin_action' => 'If the user passes identity and duplicate checks, Sentinel may link the device context if needed and register guarded manual attendance for this course.',
+        'reason' => 'Rulebook custom: controlled assistance is allowed for legitimate attendance failures.'
+      ]);
+      if ($rule) {
+        $candidates[] = $rule;
+      }
+    }
+
+    if (
+      strpos($lower, 'successful completion') !== false
+      || (strpos($lower, 'valid check-in') !== false && strpos($lower, 'valid check-out') !== false)
+      || strpos($lower, 'attendance complete') !== false
+    ) {
+      $rule = self::buildRuleCandidate($chunk, ['has_checkin' => true, 'has_checkout' => true], [
+        'classification' => 'duplicate_submission_attempt',
+        'action' => 'deny_and_notify',
+        'confidence' => 0.92,
+        'suggested_admin_action' => 'Attendance is already complete for today. No further write is needed; resolve the ticket with completion guidance.',
+        'reason' => 'Rulebook custom: a valid check-in and check-out already exist.'
+      ]);
+      if ($rule) {
+        $candidates[] = $rule;
+      }
+    }
+
+    return $candidates;
+  }
+
+  private static function isInstructionalPreamble($text)
+  {
+    $lower = strtolower(trim((string)$text));
+    if ($lower === '') {
+      return false;
+    }
+
+    return strpos($lower, 'you are sentinel ai') === 0
+      || strpos($lower, 'system operator responsible') !== false
+      || strpos($lower, 'master prompt') !== false;
+  }
+
+  private static function dedupeRuleCandidates(array $rules)
+  {
+    $seen = [];
+    $out = [];
+    foreach ($rules as $rule) {
+      if (!is_array($rule)) {
+        continue;
+      }
+      $signature = md5(json_encode([
+        'conditions' => $rule['conditions'] ?? [],
+        'outcome' => $rule['outcome'] ?? [],
+      ], JSON_UNESCAPED_SLASHES));
+      if (isset($seen[$signature])) {
+        continue;
+      }
+      $seen[$signature] = true;
+      $out[] = $rule;
+    }
+    return $out;
+  }
+
+  private static function parseFreeTextRules($text)
+  {
+    $text = trim((string)$text);
+    if ($text === '') {
+      return ['ok' => false, 'error' => 'empty_rule_text'];
+    }
+
+    $rules = [];
+    $chunks = self::splitPolicyChunks($text);
+    $chunkCount = count($chunks);
+
+    if ($chunkCount === 1) {
+      $parsed = self::parseFreeTextRule($text);
+      if (!empty($parsed['ok'])) {
+        $rules[] = [
+          'intent' => trim((string)$text),
+          'conditions' => $parsed['conditions'],
+          'outcome' => $parsed['outcome'],
+        ];
+      }
+    } else {
+      foreach ($chunks as $chunk) {
+        $chunkRules = self::parsePolicyChunk($chunk);
+        if (!empty($chunkRules)) {
+          foreach ($chunkRules as $chunkRule) {
+            $rules[] = $chunkRule;
+          }
+          continue;
+        }
+
+        if (self::isInstructionalPreamble($chunk)) {
+          continue;
+        }
+
+        $parsed = self::parseFreeTextRule($chunk);
+        if (!empty($parsed['ok'])) {
+          $rules[] = [
+            'intent' => trim((string)$chunk),
+            'conditions' => $parsed['conditions'],
+            'outcome' => $parsed['outcome'],
+          ];
+        }
+      }
+    }
+
+    $rules = self::dedupeRuleCandidates($rules);
+    if (empty($rules)) {
+      return [
+        'ok' => false,
+        'error' => 'rule_text_not_understood',
+        'hint' => 'Write naturally. Sentinel will try to split long policy text into multiple ticket-validation rules automatically.'
+      ];
+    }
+
+    return [
+      'ok' => true,
+      'rules' => $rules,
+      'chunk_count' => $chunkCount,
+      'rule_count' => count($rules),
+    ];
+  }
+
   public static function teachRule($text, $actor = 'admin')
   {
-    $parsed = self::parseFreeTextRule($text);
+    $parsed = self::parseFreeTextRules($text);
     if (empty($parsed['ok'])) {
       return $parsed;
     }
 
     $rulebook = self::load();
     $rules = $rulebook['rules'] ?? [];
-
-    $ruleId = 'rule_custom_' . date('Ymd_His') . '_' . substr(bin2hex(random_bytes(4)), 0, 8);
     $priorityBase = 800;
     foreach ($rules as $r) {
       $priorityBase = max($priorityBase, (int)($r['priority'] ?? 0) + 1);
     }
 
     $now = date('c');
-    $newRule = [
-      'id' => $ruleId,
-      'priority' => $priorityBase,
-      'enabled' => true,
-      'intent' => trim((string)$text),
-      'conditions' => $parsed['conditions'],
-      'outcome' => $parsed['outcome'],
-      'examples' => [],
-      'created_by' => (string)$actor,
-      'updated_by' => (string)$actor,
-      'created_at' => $now,
-      'updated_at' => $now,
-    ];
+    $newRules = [];
+    foreach (($parsed['rules'] ?? []) as $parsedRule) {
+      $ruleId = 'rule_custom_' . date('Ymd_His') . '_' . substr(bin2hex(random_bytes(4)), 0, 8);
+      $newRule = [
+        'id' => $ruleId,
+        'priority' => $priorityBase++,
+        'enabled' => true,
+        'intent' => trim((string)($parsedRule['intent'] ?? $text)),
+        'conditions' => $parsedRule['conditions'] ?? [],
+        'outcome' => $parsedRule['outcome'] ?? [],
+        'examples' => [],
+        'created_by' => (string)$actor,
+        'updated_by' => (string)$actor,
+        'created_at' => $now,
+        'updated_at' => $now,
+      ];
+      $rules[] = $newRule;
+      $newRules[] = $newRule;
+    }
 
-    $rules[] = $newRule;
     $rulebook['rules'] = $rules;
     self::save($rulebook);
 
-    return ['ok' => true, 'rule' => $newRule, 'rulebook_version' => (string)($rulebook['version'] ?? 'rulebook-v1')];
+    return [
+      'ok' => true,
+      'rule' => $newRules[0] ?? null,
+      'rules' => $newRules,
+      'rule_count' => count($newRules),
+      'chunk_count' => (int)($parsed['chunk_count'] ?? 1),
+      'rulebook_version' => (string)($rulebook['version'] ?? 'rulebook-v1')
+    ];
   }
 
   public static function rephraseRule($ruleId, $newText, $actor = 'admin')

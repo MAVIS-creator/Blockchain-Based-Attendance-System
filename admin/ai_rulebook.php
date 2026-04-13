@@ -12,7 +12,7 @@ $rules = array_values($rulebook['rules'] ?? []);
     AI Rulebook Trainer
   </h2>
   <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">
-    Teach, rephrase, and toggle operational rules instantly. Changes apply immediately to new ticket diagnosis.
+    Teach, rephrase, and toggle operational rules instantly. You can paste short rules or long natural-language policy prompts, and Sentinel will try to turn them into usable ticket rules.
   </p>
 </div>
 
@@ -32,6 +32,7 @@ $rules = array_values($rulebook['rules'] ?? []);
     </h3>
     <p style="margin:0 0 10px 0;color:var(--on-surface-variant);font-size:0.8rem;line-height:1.4;">
       Example: <em>If fingerprint is linked to another matric same day, block auto write and classify as rig attempt.</em>
+      You can also paste a long policy note or master prompt and Sentinel will split it into rule candidates.
     </p>
     <textarea id="teachRuleText" style="width:100%;min-height:120px;border:1px solid var(--outline-variant);border-radius:10px;padding:10px;font:inherit;"></textarea>
     <div style="display:flex;justify-content:flex-end;margin-top:10px;">
@@ -138,12 +139,13 @@ $rules = array_values($rulebook['rules'] ?? []);
       return;
     }
     try {
-      await apiCall({
+      const result = await apiCall({
         action: 'teach_rule',
         text,
         csrf_token: csrfToken
       });
-      notice('Rule added and applied immediately. Refreshing…');
+      const added = Number(result.rule_count || 1);
+      notice((added > 1 ? `${added} rules` : '1 rule') + ' added and applied immediately. Refreshing…');
       setTimeout(() => location.reload(), 550);
     } catch (e) {
       notice('Teach failed: ' + e.message, true);

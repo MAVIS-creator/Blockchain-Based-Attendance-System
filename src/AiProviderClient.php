@@ -33,7 +33,7 @@ class AiProviderClient
   {
     $site = self::getSiteContextBundle('admin');
     $prompt = self::buildPrompt($ticket, $diagnosis, 'admin', (string)($site['context'] ?? ''));
-    $systemPrompt = 'You are an attendance support operations assistant. Respond with concise admin action guidance in plain text. Keep it practical and niche-specific to attendance ops.';
+    $systemPrompt = 'You are an attendance support operations assistant. The rulebook and diagnosis are hard constraints, not optional hints. First obey the supplied classification, action, and policy reason; do not contradict them. Then generate concise admin action guidance in plain text, grounded in the ticket facts and attendance policy. Keep it practical and niche-specific to attendance ops.';
     $res = self::queryWithFallback($prompt, $systemPrompt, $ticket, 'ticket_resolution');
     if (!empty($res['ok'])) {
       return self::applyContextMeta($res, $site);
@@ -46,7 +46,7 @@ class AiProviderClient
   {
     $site = self::getSiteContextBundle('student_fingerprint_message');
     $prompt = self::buildPrompt($ticket, $diagnosis, 'student_fingerprint_message', (string)($site['context'] ?? ''));
-    $systemPrompt = 'You are Attendance AI. Generate one short direct student-facing message tailored to this specific fingerprint context. Be warm, specific, and avoid generic wording. Plain text only.';
+    $systemPrompt = 'You are Attendance AI. The rulebook and diagnosis are hard constraints. First obey the supplied classification, action, and policy reason; do not contradict them. Then generate one short direct student-facing message tailored to this specific fingerprint context. Be warm, specific, and avoid generic wording. Plain text only.';
     $res = self::queryWithFallback($prompt, $systemPrompt, $ticket, 'fingerprint_response');
     if (!empty($res['ok'])) {
       $safeSuggestion = self::sanitizeStudentFingerprintSuggestion((string)($res['suggestion'] ?? ''), $ticket, $diagnosis);
@@ -673,7 +673,7 @@ class AiProviderClient
     $fpShort = substr($fingerprint, 0, 8);
 
     $basePrompt = sprintf(
-      "Audience=%s. Response style=%s. Keep response non-generic and tailored to fingerprint segment %s. Ticket context: matric=%s, course=%s, requested_action=%s, classification=%s, confidence=%.2f, fpMatch=%s, ipMatch=%s, revoked=%s, checkinCount=%d, checkoutCount=%d, student_message=%s",
+      "Audience=%s. Response style=%s. Keep response non-generic and tailored to fingerprint segment %s. Ticket context: matric=%s, course=%s, requested_action=%s, classification=%s, action=%s, rulebook_applied=%s, confidence=%.2f, fpMatch=%s, ipMatch=%s, revoked=%s, checkinCount=%d, checkoutCount=%d, policy_reason=%s, student_message=%s",
       $audience,
       $style,
       $fpShort,
@@ -681,12 +681,15 @@ class AiProviderClient
       $course,
       $requestedAction !== '' ? $requestedAction : 'unknown',
       (string)($diagnosis['classification'] ?? 'unknown'),
+      (string)($diagnosis['action'] ?? 'unknown'),
+      !empty($diagnosis['rulebook_applied']) ? 'true' : 'false',
       (float)($diagnosis['confidence'] ?? 0),
       !empty($diagnosis['fpMatch']) ? 'true' : 'false',
       !empty($diagnosis['ipMatch']) ? 'true' : 'false',
       !empty($diagnosis['revoked']) ? 'true' : 'false',
       (int)($diagnosis['checkinCount'] ?? 0),
       (int)($diagnosis['checkoutCount'] ?? 0),
+      (string)($diagnosis['reason'] ?? 'none'),
       $message !== '' ? $message : 'none'
     );
 
@@ -733,8 +736,8 @@ class AiProviderClient
       $suggestion = $choices[$seed % count($choices)];
     } elseif ($classification === 'inactive_course_reference') {
       $choices = [
-        'Course exists but is not active. Do not auto-write attendance until active session/course is confirmed.',
-        'Inactive course request detected. Require admin verification against currently active course before action.',
+        'Course exists but is not active. On the AI Suggestions page, tell admin to activate that course for the student session first; after activation, Sentinel may write guarded manual attendance only if identity and duplicate checks pass.',
+        'Inactive course request detected. Admin action: switch the attendance session to the student course if appropriate, then allow Sentinel/manual attendance only under course-safe guardrails.',
       ];
       $suggestion = $choices[$seed % count($choices)];
     } elseif ($classification === 'fingerprint_conflict_rig_attempt') {
@@ -759,9 +762,9 @@ class AiProviderClient
       $suggestion = $choices[$seed % count($choices)];
     } elseif ($classification === 'legitimate_session_issue') {
       $choices = [
-        'Valid session signal detected. Auto-add missing attendance for this course only, then resolve ticket.',
-        'Looks like a recoverable session issue. Apply course-scoped attendance fix and close ticket.',
-        'Session glitch confirmed with fingerprint/IP match. Safe to perform guarded course attendance remediation.'
+        'Valid session signal detected. Sentinel can register the missing attendance as a guarded manual attendance entry for this course only, then resolve the ticket.',
+        'Looks like a recoverable session issue. Apply a course-scoped manual attendance fix under Sentinel guardrails and close the ticket.',
+        'Session glitch confirmed with fingerprint/IP match. Safe to let Sentinel perform guarded manual attendance remediation for this course.'
       ];
       $suggestion = $choices[$seed % count($choices)];
     } elseif ($classification === 'network_ip_rotation') {
@@ -814,8 +817,8 @@ class AiProviderClient
       $base = $opts[$seed % count($opts)];
     } elseif ($classification === 'inactive_course_reference') {
       $opts = [
-        'Your requested course is not currently active for attendance. Please contact admin to confirm the active course first.',
-        'This course is currently inactive in the attendance session. Admin confirmation is required before retrying.',
+        'We received your support ticket for this check-in request. That course is not active right now, so the support team is reviewing the course setup for you.',
+        'This course is currently inactive in the attendance session. Your support ticket is under review, and the team will update the next attendance step here.',
       ];
       $base = $opts[$seed % count($opts)];
     } elseif ($classification === 'fingerprint_conflict_rig_attempt') {

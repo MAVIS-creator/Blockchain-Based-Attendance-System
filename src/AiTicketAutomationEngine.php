@@ -17,6 +17,51 @@ class AiTicketAutomationEngine
 {
   private $serviceId = 'system_ai_operator';
 
+  private static function loadAdminSettings()
+  {
+    $settingsFile = admin_storage_migrate_file('settings.json');
+    $keyFile = admin_storage_migrate_file('.settings_key');
+    if (!file_exists($settingsFile)) {
+      return [];
+    }
+
+    $raw = @file_get_contents($settingsFile);
+    $decoded = json_decode((string)$raw, true);
+    if (is_array($decoded)) {
+      return $decoded;
+    }
+
+    if (!file_exists($keyFile) || strpos((string)$raw, 'ENC:') !== 0) {
+      return [];
+    }
+
+    $key = trim((string)@file_get_contents($keyFile));
+    $blob = base64_decode(substr((string)$raw, 4), true);
+    $keyRaw = base64_decode($key, true);
+    if ($blob === false || $keyRaw === false || strlen($blob) < 17) {
+      return [];
+    }
+
+    $iv = substr($blob, 0, 16);
+    $ct = substr($blob, 16);
+    $plain = openssl_decrypt($ct, 'AES-256-CBC', $keyRaw, OPENSSL_RAW_DATA, $iv);
+    $decoded = json_decode((string)$plain, true);
+    return is_array($decoded) ? $decoded : [];
+  }
+
+  private static function autoSendConfig()
+  {
+    $settings = self::loadAdminSettings();
+    $recipient = trim((string)($settings['auto_send']['recipient'] ?? ''));
+    $format = strtolower(trim((string)($settings['auto_send']['format'] ?? 'csv')));
+    return [
+      'enabled' => !empty($settings['auto_send']['enabled']),
+      'recipient' => $recipient,
+      'recipient_valid' => (bool)filter_var($recipient, FILTER_VALIDATE_EMAIL),
+      'format' => in_array($format, ['csv', 'pdf'], true) ? $format : 'csv',
+    ];
+  }
+
   public static function diagnosticsFile()
   {
     return admin_storage_migrate_file('ai_ticket_diagnostics.json');
@@ -239,12 +284,14 @@ class AiTicketAutomationEngine
     }
 
     if ($diag['classification'] === 'invalid_course_reference') {
-      $announcementMessage = 'The course in your ticket is not recognized in the system. Please select a valid configured course and contact admin support.';
+      $announcementMessage = 'We received your support ticket, but the course in this request is not recognized in the attendance system. The support team is reviewing it now.';
       $announcementSeverity = 'warning';
+      $adminSuggestion = 'Do not write attendance yet. Confirm the correct course with the student; if the ticket course is wrong, update guidance only. If the student meant another configured active course, continue with normal guarded manual attendance checks there.';
     } elseif ($diag['classification'] === 'inactive_course_reference') {
       $activeCourseLabel = trim((string)($diag['active_course'] ?? 'General'));
-      $announcementMessage = sprintf('The course in your ticket is not currently active for attendance. Active course is %s. Contact admin before retrying.', $activeCourseLabel !== '' ? $activeCourseLabel : 'General');
+      $announcementMessage = sprintf('We received your support ticket for %s. That course is not active for attendance right now, so the support team is reviewing the course setup before the next attendance step.', $course);
       $announcementSeverity = 'warning';
+      $adminSuggestion = sprintf('AI suggestion: if %s should be used for this student, activate that course first. Current active course is "%s". After activation, Sentinel may add guarded manual attendance for this ticket only if identity matches, the device is not blocked/shared, and no duplicate %s already exists.', $course, $activeCourseLabel !== '' ? $activeCourseLabel : 'General', $requestedAction !== '' ? $requestedAction : 'attendance');
     } elseif ($diag['classification'] === 'fingerprint_conflict_rig_attempt') {
       $announcementMessage = 'Attendance request is blocked due to fingerprint conflict risk. Admin identity verification is required before any update.';
       $announcementSeverity = 'urgent';
@@ -318,16 +365,18 @@ class AiTicketAutomationEngine
         if ($attendanceAdded) {
           $announcementMessage = sprintf('Issue resolved: your %s for %s was fixed automatically. Please refresh and continue.', $actionToAdd, $course);
           $announcementSeverity = 'info';
+          $adminSuggestion = sprintf('Sentinel registered a guarded manual attendance %s for %s and resolved the ticket.', $actionToAdd, $course);
         } else {
           $announcementMessage = 'We detected a valid session issue but could not auto-fix right now. Admin will review shortly.';
           $announcementSeverity = 'warning';
           if ($canWrite) {
-            $adminSuggestion = 'Auto-fix write failed; manual check recommended.';
+            $adminSuggestion = sprintf('Sentinel was cleared to add guarded manual attendance for %s, but the write failed. Admin should retry via manual attendance for %s and then resolve the ticket.', $actionToAdd, $course);
           }
         }
       } else {
         $announcementMessage = 'Issue identified. Admin review is required before attendance update.';
         $announcementSeverity = 'warning';
+        $adminSuggestion = sprintf('Identity checks are good, but Sentinel lacks attendance-write capability here. Admin should use Manual Attendance for a guarded %s on %s if all other policy checks remain clear.', $requestedAction !== '' ? $requestedAction : 'attendance update', $course);
       }
     } elseif ($diag['classification'] === 'network_ip_rotation') {
       $announcementMessage = 'We detected a network/IP change. Please keep one network and contact admin if issue persists.';
@@ -649,6 +698,11 @@ class AiTicketAutomationEngine
       return;
     }
 
+    $autoSend = self::autoSendConfig();
+    if (empty($autoSend['enabled']) || empty($autoSend['recipient_valid'])) {
+      return;
+    }
+
     $today = date('Y-m-d');
     $stats = AiTicketDiagnoser::parseDailyLogStats($today, $matric, '', '');
     if (empty($stats['attendanceCycleComplete'])) {
@@ -689,7 +743,7 @@ class AiTicketAutomationEngine
       'status' => 'queued'
     ];
 
-    $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../admin/auto_send_logs.php') . ' ' . escapeshellarg($today) . ' --force';
+    $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../admin/auto_send_logs.php') . ' ' . escapeshellarg($today);
     $output = [];
     $code = 1;
     @exec($cmd, $output, $code);
