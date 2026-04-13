@@ -23,6 +23,7 @@ class AiRulebook
           'id' => 'rule_invalid_course_reference',
           'priority' => 1000,
           'enabled' => true,
+          'title' => 'Invalid course reference',
           'intent' => 'If course does not exist in course catalog, block auto-write and mark invalid course.',
           'conditions' => ['course_exists' => false],
           'outcome' => [
@@ -42,6 +43,7 @@ class AiRulebook
           'id' => 'rule_inactive_course_reference',
           'priority' => 990,
           'enabled' => true,
+          'title' => 'Inactive course reference',
           'intent' => 'If course exists but is not active, block auto-write and require review.',
           'conditions' => ['course_exists' => true, 'course_is_active' => false],
           'outcome' => [
@@ -61,6 +63,7 @@ class AiRulebook
           'id' => 'rule_missing_identity_keys_for_auto_write',
           'priority' => 980,
           'enabled' => true,
+          'title' => 'Missing identity keys',
           'intent' => 'Missing fingerprint/IP should block auto-write because linkage is incomplete.',
           'conditions' => ['identity_keys_present' => false],
           'outcome' => [
@@ -80,6 +83,7 @@ class AiRulebook
           'id' => 'rule_fingerprint_conflict_rig_attempt',
           'priority' => 970,
           'enabled' => true,
+          'title' => 'Fingerprint conflict rig attempt',
           'intent' => 'If fingerprint appears tied to another matric same day/course, treat as rig attempt.',
           'conditions' => ['device_sharing_risk' => true],
           'outcome' => [
@@ -134,7 +138,27 @@ class AiRulebook
     if (!isset($rulebook['rules']) || !is_array($rulebook['rules'])) {
       $rulebook['rules'] = [];
     }
+    $rulebook['rules'] = array_values(self::dedupeLoadedRules($rulebook['rules']));
     return (bool)@file_put_contents(self::filePath(), json_encode($rulebook, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+  }
+
+  public static function resetToDefaults()
+  {
+    return self::save(self::defaultRulebook());
+  }
+
+  public static function clearRules($mode = 'reset_defaults')
+  {
+    $mode = strtolower(trim((string)$mode));
+    if ($mode === 'empty') {
+      return self::save([
+        'version' => 'rulebook-v1',
+        'updated_at' => date('c'),
+        'rules' => [],
+      ]);
+    }
+
+    return self::resetToDefaults();
   }
 
   private static function conditionSatisfied($expected, $actual)
@@ -274,6 +298,34 @@ class AiRulebook
     return trim((string)$text);
   }
 
+  private static function titleFromText($text)
+  {
+    $text = trim((string)$text);
+    if ($text === '') {
+      return 'Custom rule';
+    }
+
+    $headline = preg_split('/[\r\n\.\!\?;]+/', $text, 2);
+    $headline = trim((string)($headline[0] ?? ''));
+    if ($headline === '') {
+      return 'Custom rule';
+    }
+
+    $headline = preg_replace('/^\d+[\.\)]\s*/', '', $headline);
+    $headline = preg_replace('/\s+/', ' ', $headline);
+    if (mb_strlen($headline) > 72) {
+      $headline = mb_substr($headline, 0, 72);
+      $headline = rtrim($headline, " ,;:-");
+    }
+
+    return $headline !== '' ? $headline : 'Custom rule';
+  }
+
+  private static function sourceHash($text)
+  {
+    return sha1(self::normalizePolicyText($text));
+  }
+
   private static function splitPolicyChunks($text)
   {
     $text = self::normalizePolicyText($text);
@@ -341,7 +393,10 @@ class AiRulebook
     }
 
     return [
+      'title' => self::titleFromText($intent),
       'intent' => trim((string)$intent),
+      'source_text' => self::normalizePolicyText($intent),
+      'source_hash' => self::sourceHash($intent),
       'conditions' => $conditions,
       'outcome' => $outcome,
     ];
@@ -567,14 +622,49 @@ class AiRulebook
       if (!is_array($rule)) {
         continue;
       }
-      $signature = md5(json_encode([
-        'conditions' => $rule['conditions'] ?? [],
-        'outcome' => $rule['outcome'] ?? [],
-      ], JSON_UNESCAPED_SLASHES));
-      if (isset($seen[$signature])) {
+      if (!isset($rule['title']) || trim((string)$rule['title']) === '') {
+        $rule['title'] = self::titleFromText((string)($rule['intent'] ?? ''));
+      }
+      if (!isset($rule['source_hash']) || trim((string)$rule['source_hash']) === '') {
+        $sourceText = (string)($rule['source_text'] ?? $rule['intent'] ?? '');
+        $rule['source_text'] = self::normalizePolicyText($sourceText);
+        $rule['source_hash'] = self::sourceHash($sourceText);
+      }
+      $sourceKey = strtolower(trim((string)($rule['source_hash'] ?? '')));
+      if (isset($seen[$sourceKey])) {
         continue;
       }
-      $seen[$signature] = true;
+      $seen[$sourceKey] = true;
+      $out[] = $rule;
+    }
+    return $out;
+  }
+
+  private static function dedupeLoadedRules(array $rules)
+  {
+    $seen = [];
+    $out = [];
+    foreach ($rules as $rule) {
+      if (!is_array($rule)) {
+        continue;
+      }
+      $title = trim((string)($rule['title'] ?? $rule['intent'] ?? ''));
+      if ($title === '') {
+        $title = self::titleFromText((string)($rule['intent'] ?? ''));
+      }
+      $sourceHash = trim((string)($rule['source_hash'] ?? ''));
+      if ($sourceHash === '') {
+        $sourceText = (string)($rule['source_text'] ?? $rule['intent'] ?? '');
+        $sourceHash = self::sourceHash($sourceText);
+        $rule['source_text'] = self::normalizePolicyText($sourceText);
+        $rule['source_hash'] = $sourceHash;
+      }
+      $sourceKey = strtolower($sourceHash);
+      if (isset($seen[$sourceKey])) {
+        continue;
+      }
+      $seen[$sourceKey] = true;
+      $rule['title'] = $title;
       $out[] = $rule;
     }
     return $out;
@@ -595,7 +685,10 @@ class AiRulebook
       $parsed = self::parseFreeTextRule($text);
       if (!empty($parsed['ok'])) {
         $rules[] = [
+          'title' => self::titleFromText($text),
           'intent' => trim((string)$text),
+          'source_text' => self::normalizePolicyText($text),
+          'source_hash' => self::sourceHash($text),
           'conditions' => $parsed['conditions'],
           'outcome' => $parsed['outcome'],
         ];
@@ -617,7 +710,10 @@ class AiRulebook
         $parsed = self::parseFreeTextRule($chunk);
         if (!empty($parsed['ok'])) {
           $rules[] = [
+            'title' => self::titleFromText($chunk),
             'intent' => trim((string)$chunk),
+            'source_text' => self::normalizePolicyText($chunk),
+            'source_hash' => self::sourceHash($chunk),
             'conditions' => $parsed['conditions'],
             'outcome' => $parsed['outcome'],
           ];
@@ -651,22 +747,62 @@ class AiRulebook
 
     $rulebook = self::load();
     $rules = $rulebook['rules'] ?? [];
-    $priorityBase = 800;
-    foreach ($rules as $r) {
-      $priorityBase = max($priorityBase, (int)($r['priority'] ?? 0) + 1);
-    }
 
     $now = date('c');
     $newRules = [];
     foreach (($parsed['rules'] ?? []) as $parsedRule) {
+      $normalizedTitle = self::titleFromText((string)($parsedRule['title'] ?? $parsedRule['intent'] ?? $text));
+      $conditions = $parsedRule['conditions'] ?? [];
+      $outcome = $parsedRule['outcome'] ?? [];
+      $sourceText = self::normalizePolicyText((string)($parsedRule['source_text'] ?? $parsedRule['intent'] ?? $text));
+      $sourceHash = self::sourceHash($sourceText);
+
+      $matchedIndex = null;
+      foreach ($rules as $idx => $existingRule) {
+        if (!is_array($existingRule)) {
+          continue;
+        }
+        $existingSourceHash = strtolower(trim((string)($existingRule['source_hash'] ?? '')));
+        if ($existingSourceHash === '') {
+          $existingSourceText = (string)($existingRule['source_text'] ?? $existingRule['intent'] ?? '');
+          $existingSourceHash = self::sourceHash($existingSourceText);
+        }
+        if ($existingSourceHash === strtolower($sourceHash)) {
+          $matchedIndex = $idx;
+          break;
+        }
+      }
+
+      if ($matchedIndex !== null) {
+        $rules[$matchedIndex]['enabled'] = true;
+        $rules[$matchedIndex]['intent'] = trim((string)($parsedRule['intent'] ?? $text));
+        $rules[$matchedIndex]['title'] = $normalizedTitle;
+        $rules[$matchedIndex]['source_text'] = $sourceText;
+        $rules[$matchedIndex]['source_hash'] = $sourceHash;
+        $rules[$matchedIndex]['conditions'] = $conditions;
+        $rules[$matchedIndex]['outcome'] = $outcome;
+        $rules[$matchedIndex]['updated_by'] = (string)$actor;
+        $rules[$matchedIndex]['updated_at'] = $now;
+        $newRules[] = $rules[$matchedIndex];
+        continue;
+      }
+
+      $priorityBase = 800;
+      foreach ($rules as $r) {
+        $priorityBase = max($priorityBase, (int)($r['priority'] ?? 0) + 1);
+      }
+
       $ruleId = 'rule_custom_' . date('Ymd_His') . '_' . substr(bin2hex(random_bytes(4)), 0, 8);
       $newRule = [
         'id' => $ruleId,
-        'priority' => $priorityBase++,
+        'priority' => $priorityBase,
         'enabled' => true,
+        'title' => $normalizedTitle,
         'intent' => trim((string)($parsedRule['intent'] ?? $text)),
-        'conditions' => $parsedRule['conditions'] ?? [],
-        'outcome' => $parsedRule['outcome'] ?? [],
+        'source_text' => $sourceText,
+        'source_hash' => $sourceHash,
+        'conditions' => $conditions,
+        'outcome' => $outcome,
         'examples' => [],
         'created_by' => (string)$actor,
         'updated_by' => (string)$actor,

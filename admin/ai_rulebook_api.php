@@ -105,5 +105,27 @@ if ($action === 'simulate_rule') {
   exit;
 }
 
+if ($action === 'clear_rules') {
+  $mode = trim((string)($payload['mode'] ?? 'reset_defaults'));
+  $result = AiRulebook::clearRules($mode);
+  if (empty($result)) {
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'error' => 'failed_to_clear_rules']);
+    exit;
+  }
+
+  if (function_exists('admin_log_action')) {
+    admin_log_action('AI_Rulebook', 'Clear Rules', 'Rulebook cleared by ' . $actor . ' using mode=' . $mode);
+  }
+
+  echo json_encode([
+    'ok' => true,
+    'mode' => $mode,
+    'rulebook_version' => 'rulebook-v1',
+    'rules' => array_values(AiRulebook::load()['rules'] ?? []),
+  ]);
+  exit;
+}
+
 http_response_code(400);
 echo json_encode(['ok' => false, 'error' => 'unknown_action']);

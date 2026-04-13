@@ -20,6 +20,10 @@ $rules = array_values($rulebook['rules'] ?? []);
   <span class="st-chip st-chip-info">Version: <?= htmlspecialchars((string)($rulebook['version'] ?? 'rulebook-v1')) ?></span>
   <span class="st-chip st-chip-info">Rules: <?= (int)count($rules) ?></span>
   <span class="st-chip st-chip-info">Updated: <?= htmlspecialchars((string)($rulebook['updated_at'] ?? '-')) ?></span>
+  <button id="clearRulesBtn" class="st-btn st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+    <span class="material-symbols-outlined" style="font-size:1rem;">delete_sweep</span>
+    Reset Rules to Defaults
+  </button>
 </div>
 
 <div id="rulebookNotice" style="display:none;margin:0 0 12px 0;padding:10px 12px;border-radius:10px;border:1px solid #cfe1f5;background:#eef6ff;color:#1d4f80;font-size:0.83rem;"></div>
@@ -81,7 +85,8 @@ $rules = array_values($rulebook['rules'] ?? []);
       <article class="rule-card" data-rule-id="<?= htmlspecialchars((string)$rule['id']) ?>" style="padding:10px;border-radius:10px;border:1px solid var(--outline-variant);background:var(--surface-container-lowest);">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
           <div>
-            <strong style="font-size:0.86rem;"><?= htmlspecialchars((string)($rule['id'] ?? 'rule')) ?></strong>
+            <strong style="font-size:0.86rem;"><?= htmlspecialchars((string)($rule['title'] ?? $rule['id'] ?? 'rule')) ?></strong>
+            <div style="font-size:0.72rem;color:var(--on-surface-variant);">ID: <?= htmlspecialchars((string)($rule['id'] ?? 'rule')) ?></div>
             <div style="font-size:0.74rem;color:var(--on-surface-variant);">Priority: <?= (int)($rule['priority'] ?? 0) ?> · Updated: <?= htmlspecialchars((string)($rule['updated_at'] ?? '-')) ?></div>
           </div>
           <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;">
@@ -145,10 +150,28 @@ $rules = array_values($rulebook['rules'] ?? []);
         csrf_token: csrfToken
       });
       const added = Number(result.rule_count || 1);
-      notice((added > 1 ? `${added} rules` : '1 rule') + ' added and applied immediately. Refreshing…');
+      const label = added > 1 ? `${added} rules` : '1 rule';
+      notice(label + ' added or merged and applied immediately. Refreshing…');
       setTimeout(() => location.reload(), 550);
     } catch (e) {
       notice('Teach failed: ' + e.message, true);
+    }
+  });
+
+  document.getElementById('clearRulesBtn').addEventListener('click', async () => {
+    if (!confirm('Reset the rulebook to the default baseline rules?')) {
+      return;
+    }
+    try {
+      await apiCall({
+        action: 'clear_rules',
+        mode: 'reset_defaults',
+        csrf_token: csrfToken
+      });
+      notice('Rulebook reset to defaults. Refreshing…');
+      setTimeout(() => location.reload(), 550);
+    } catch (e) {
+      notice('Reset failed: ' + e.message, true);
     }
   });
 
