@@ -9,6 +9,7 @@ http_response_code($errorCode);
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,7 +23,14 @@ http_response_code($errorCode);
       --muted: #64748b;
       --border: #e2e8f0;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
     body {
       min-height: 100vh;
       display: flex;
@@ -32,6 +40,7 @@ http_response_code($errorCode);
       color: var(--text);
       padding: 2rem;
     }
+
     .wrapper {
       width: min(100%, 560px);
       background: var(--surface);
@@ -41,6 +50,7 @@ http_response_code($errorCode);
       padding: 3rem 2.5rem;
       text-align: center;
     }
+
     .code {
       font-size: clamp(3rem, 8vw, 5rem);
       line-height: 1;
@@ -49,15 +59,18 @@ http_response_code($errorCode);
       letter-spacing: -0.04em;
       margin-bottom: 1rem;
     }
+
     h1 {
       font-size: clamp(1.5rem, 4vw, 2rem);
       margin-bottom: 0.75rem;
     }
+
     p {
       color: var(--muted);
       line-height: 1.65;
       margin-bottom: 1.75rem;
     }
+
     a {
       display: inline-flex;
       align-items: center;
@@ -71,9 +84,14 @@ http_response_code($errorCode);
       font-weight: 600;
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
-    a:hover { transform: translateY(-1px); opacity: 0.95; }
+
+    a:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
   </style>
 </head>
+
 <body>
   <main class="wrapper" role="main" aria-labelledby="error-title">
     <div class="code"><?php echo htmlspecialchars((string)$errorCode, ENT_QUOTES, 'UTF-8'); ?></div>
@@ -82,4 +100,5 @@ http_response_code($errorCode);
     <a href="<?php echo htmlspecialchars($homeHref, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($homeLabel, ENT_QUOTES, 'UTF-8'); ?></a>
   </main>
 </body>
+
 </html>

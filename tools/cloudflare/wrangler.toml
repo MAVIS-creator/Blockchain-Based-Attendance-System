@@ -1,0 +1,6 @@
+name = "attendance-error-pages"
+main = "worker.js"
+compatibility_date = "2026-04-13"
+
+# Replace with your Cloudflare account/zone deployment settings when you deploy.
+# Routes are optional; you can bind this worker through the Cloudflare dashboard instead.
