@@ -1,5 +1,22 @@
 [
     {
+        "id": "ai_20260413032707_edb80ded",
+        "enabled": true,
+        "severity": "warning",
+        "message": "Your requested course is not currently active for attendance. Please contact admin to confirm the active course first.",
+        "target_fingerprint": "142295584ccba01b195483d51697f927",
+        "auto_generated_by": "system_ai_operator",
+        "updated_at": "2026-04-13T03:27:07+01:00",
+        "created_for_ticket": "2026-04-13 03:26:56",
+        "matric": "2023003705",
+        "classification": "inactive_course_reference",
+        "confidence": 0.96,
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "active_course": "General",
+        "ticket_message": "I tried to check in for CYB 206 but it failed because the course seems inactive."
+    },
+    {
         "id": "ai_20260413001026_78ee35cf",
         "enabled": true,
         "severity": "warning",

@@ -49,10 +49,47 @@ class AiProviderClient
     $systemPrompt = 'You are Attendance AI. Generate one short direct student-facing message tailored to this specific fingerprint context. Be warm, specific, and avoid generic wording. Plain text only.';
     $res = self::queryWithFallback($prompt, $systemPrompt, $ticket, 'fingerprint_response');
     if (!empty($res['ok'])) {
-      return self::applyContextMeta($res, $site);
+      $safeSuggestion = self::sanitizeStudentFingerprintSuggestion((string)($res['suggestion'] ?? ''), $ticket, $diagnosis);
+      if ($safeSuggestion !== '') {
+        $res['suggestion'] = $safeSuggestion;
+        return self::applyContextMeta($res, $site);
+      }
     }
 
     return self::applyContextMeta(self::ruleBasedFingerprintResponse($ticket, $diagnosis), $site);
+  }
+
+  private static function sanitizeStudentFingerprintSuggestion($suggestion, array $ticket, array $diagnosis)
+  {
+    $suggestion = trim((string)$suggestion);
+    if ($suggestion === '') {
+      return '';
+    }
+
+    $normalized = strtolower($suggestion);
+    $adminOnlyPatterns = [
+      '/\badmin\s+sidebar\b/i',
+      '/\bgo\s+to\s+the\s+dashboard\b/i',
+      '/\bdashboard\b.*\bsidebar\b/i',
+      '/\bindex\.php\?page=/i',
+      '/\bset\s+active\s+course\b/i',
+      '/\bfollow\s+these\s+steps\b/i',
+      '/\bclick\s+on\b/i',
+      '/\bstep\s*\d+\b/i',
+    ];
+
+    foreach ($adminOnlyPatterns as $pattern) {
+      if (preg_match($pattern, $normalized)) {
+        return '';
+      }
+    }
+
+    // Keep student-facing notices concise and avoid long procedural dumps.
+    if (mb_strlen($suggestion) > 320) {
+      return '';
+    }
+
+    return $suggestion;
   }
 
   public static function suggestAdminChatReply($adminMessage, array $context = [])

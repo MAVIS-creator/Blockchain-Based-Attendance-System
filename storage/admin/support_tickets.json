@@ -272,5 +272,22 @@
         "ai_reason": "No fingerprint or IP match in same-day, same-course logs.",
         "ai_suggested_admin_action": "New/unverified device. Send targeted verification announcement and require admin confirmation before attendance write.",
         "ai_handled_at": "2026-04-13T00:10:26+01:00"
+    },
+    {
+        "name": "Codex Public QA",
+        "matric": "2023003705",
+        "message": "I tried to check in for CYB 206 but it failed because the course seems inactive.",
+        "fingerprint": "142295584ccba01b195483d51697f927",
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "ip": "::1",
+        "timestamp": "2026-04-13 03:26:56",
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "inactive_course_reference",
+        "ai_confidence": 0.96,
+        "ai_reason": "Rulebook: requested course is not currently active.",
+        "ai_suggested_admin_action": "Based on the provided context, I'll assist you with the issue at hand.\n\nTo resolve the check-in issue for matric 2023003705 and course CYB 206, follow these steps:\n\n1. Go to the **Manual Attendance** page: `admin/index.php?page=manual_attendance`\n2. Click on the **Add Attendance** button.\n3. Enter the matric number: `2023003705` and course: `CYB 206`.\n4. Check the **Active Course** status for CYB 206 by going to the **Set Active Course** page: `admin/index.php?page=set_active`\n5. If CYB 206 is not active, set it as active by clicking the **Activate Course** button.\n6. Go back to the **Manual Attendance** page and try checking in the student again.\n\nPlease confirm if these steps are correct or if you need further assistance.",
+        "ai_handled_at": "2026-04-13T03:27:07+01:00"
     }
 ]

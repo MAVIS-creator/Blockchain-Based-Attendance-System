@@ -1,0 +1,64 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - strong [ref=e4]: ⚠️ WARNING
+      - generic [ref=e5]: We need a quick identity check because this device is unfamiliar. Contact admin support to continue CSC401 attendance safely.
+      - generic [ref=e6]: System update • 3 hr ago
+    - button "Dismiss announcement" [ref=e7] [cursor=pointer]: ×
+  - generic [ref=e8]:
+    - img "Attendance Mark" [ref=e9]
+    - heading "Submit Support Ticket" [level=2] [ref=e10]: Submit Support Ticket
+    - generic [ref=e11]:
+      - strong [ref=e12]: Quick help tips
+      - text: Include your
+      - emphasis [ref=e13]: course
+      - text: and failed action (
+      - emphasis [ref=e14]: checkin
+      - text: or
+      - emphasis [ref=e15]: checkout
+      - text: ) for faster AI-assisted review. Responses are device-targeted, so updates show on the same fingerprinted phone/browser session where the issue happened.
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - generic [ref=e19]: 
+          - text: Name
+        - textbox " Name" [ref=e20]:
+          - /placeholder: Your Name
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23]: 
+          - text: Matric Number
+        - textbox " Matric Number" [ref=e24]:
+          - /placeholder: e.g., 2023000000
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - generic [ref=e27]: 
+          - text: Course (optional)
+        - combobox "Course optional" [ref=e28]:
+          - option "Select a course" [selected]
+          - option "CYB 206"
+          - option "CYB 308"
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]: 
+          - text: Failed Action (optional)
+        - combobox "Failed Action optional" [ref=e32]:
+          - option "Not sure" [selected]
+          - option "Check-in failed"
+          - option "Check-out failed"
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e35]: 
+          - text: Message
+        - textbox " Message" [ref=e36]:
+          - /placeholder: Write your issue or question...
+      - button "Submit Ticket" [ref=e37] [cursor=pointer]
+    - link " Back to Attendance" [ref=e38] [cursor=pointer]:
+      - /url: index.php
+      - generic [ref=e39]: 
+      - text: Back to Attendance
+  - contentinfo [ref=e40]:
+    - generic [ref=e41]:
+      - generic [ref=e42]: Created by CYB 204 Group 5
+      - generic [ref=e43]: (Headed by Maximus and Mavis)
+  - generic: 🔔 Warning announcement updated

@@ -1,6 +1,19 @@
 <?php
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/state_helpers.php';
+require_once __DIR__ . '/src/AiAnnouncementService.php';
+
+if (!function_exists('sanitize_public_announcement_message')) {
+    function sanitize_public_announcement_message($message, $classification = '')
+    {
+        if (class_exists('AiAnnouncementService') && method_exists('AiAnnouncementService', 'normalizeStudentTargetedMessage')) {
+            return AiAnnouncementService::normalizeStudentTargetedMessage($message, $classification, []);
+        }
+
+        return trim((string)$message);
+    }
+}
+
 $announcementFile = admin_storage_migrate_file('announcement.json');
 $targetedFile = function_exists('ai_targeted_announcements_file')
     ? ai_targeted_announcements_file()
@@ -41,7 +54,13 @@ if ($fingerprint !== '' && file_exists($targetedFile)) {
 
             $announcement = [
                 'enabled' => true,
-                'message' => (string)($row['message'] ?? ''),
+                'message' => class_exists('AiAnnouncementService') && method_exists('AiAnnouncementService', 'normalizeStudentTargetedMessage')
+                    ? AiAnnouncementService::normalizeStudentTargetedMessage(
+                        (string)($row['message'] ?? ''),
+                        (string)($row['classification'] ?? ''),
+                        is_array($row) ? $row : []
+                    )
+                    : sanitize_public_announcement_message((string)($row['message'] ?? ''), (string)($row['classification'] ?? '')),
                 'severity' => in_array(($row['severity'] ?? 'info'), ['info', 'warning', 'urgent'], true) ? (string)$row['severity'] : 'info',
                 'updated_at' => $row['updated_at'] ?? null,
                 'target_fingerprint' => (string)($row['target_fingerprint'] ?? ''),

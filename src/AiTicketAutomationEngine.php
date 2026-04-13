@@ -352,6 +352,10 @@ class AiTicketAutomationEngine
         'matric' => $matric,
         'classification' => $diag['classification'],
         'confidence' => $diag['confidence'],
+        'course' => $course,
+        'requested_action' => $requestedAction,
+        'active_course' => (string)($diag['active_course'] ?? ''),
+        'ticket_message' => (string)($ticket['message'] ?? ''),
       ]);
     }
 
