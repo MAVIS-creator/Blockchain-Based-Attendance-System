@@ -51,8 +51,13 @@ if (!function_exists('admin_cache_remember')) {
   function admin_cache_remember($key, $ttl, callable $resolver)
   {
     static $requestCache = [];
-    $ttl = max(1, (int)$ttl);
+    $ttl = (int)$ttl;
     $cacheKey = (string)$key;
+
+    // Explicit fresh-read mode: skip request cache and APCu entirely.
+    if ($ttl <= 0) {
+      return $resolver();
+    }
 
     if (array_key_exists($cacheKey, $requestCache)) {
       return $requestCache[$cacheKey];
@@ -227,7 +232,8 @@ if (!function_exists('admin_dashboard_log_summary')) {
           }
 
           $course = 'General';
-          if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
+          $isAiStructuredRow = count($parts) >= 10 && in_array(strtolower((string)($parts[7] ?? '')), ['ai ticket processor', 'sentinel ai'], true);
+          if ($isAiStructuredRow || (isset($parts[5]) && preg_match($macRegex, $parts[5]))) {
             $course = isset($parts[8]) ? trim((string)$parts[8]) : 'General';
           } else {
             $course = isset($parts[7]) ? trim((string)$parts[7]) : 'General';

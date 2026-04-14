@@ -54,7 +54,7 @@ class AiAnnouncementService
 
       case 'legitimate_session_issue':
         return sprintf(
-          'We received your support ticket about %s for %s and we are checking it now. Please refresh shortly and stay on the same browser session.',
+          'We received your support ticket about %s for %s and we are checking it now. You do not need to keep refreshing; the next update will show on this device.',
           $actionLabel,
           $courseLabel
         );

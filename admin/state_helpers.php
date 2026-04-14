@@ -182,6 +182,110 @@ if (!function_exists('admin_assignable_pages')) {
   }
 }
 
+if (!function_exists('admin_default_compulsory_pages')) {
+  function admin_default_compulsory_pages()
+  {
+    return ['dashboard', 'status', 'profile_settings'];
+  }
+}
+
+if (!function_exists('admin_role_ai_select_pages')) {
+  function admin_role_ai_select_pages($role, $description = '')
+  {
+    $role = strtolower(trim((string)$role));
+    $description = strtolower(trim((string)$description));
+    $text = trim($role . ' ' . $description);
+
+    $assignable = array_fill_keys(array_keys(admin_assignable_pages()), true);
+    $selected = [];
+
+    // Baseline compulsory pages for all non-superadmin roles.
+    if ($role !== 'superadmin') {
+      foreach (admin_default_compulsory_pages() as $basePage) {
+        if (isset($assignable[$basePage])) {
+          $selected[$basePage] = true;
+        }
+      }
+    }
+
+    // Deterministic "AI" keyword routing (confidence is fixed at 100 by rule design).
+    $keywordMap = [
+      'support' => ['support_tickets', 'ai_suggestions'],
+      'helpdesk' => ['support_tickets', 'ai_suggestions'],
+      'ticket' => ['support_tickets', 'ai_suggestions'],
+      'course' => ['add_course', 'set_active', 'manual_attendance'],
+      'lecturer' => ['add_course', 'set_active', 'manual_attendance'],
+      'instructor' => ['add_course', 'set_active', 'manual_attendance'],
+      'attendance' => ['manual_attendance', 'support_tickets'],
+      'log' => ['logs', 'request_timings'],
+      'audit' => ['logs', 'request_timings', 'chain'],
+      'security' => ['logs', 'request_timings', 'chain', 'failed_attempts'],
+      'announce' => ['announcement'],
+      'communication' => ['announcement'],
+      'ai' => ['ai_suggestions', 'ai_context_preview', 'ai_rulebook'],
+      'patch' => ['patcher'],
+      'developer' => ['patcher', 'logs', 'request_timings'],
+      'devops' => ['logs', 'request_timings', 'chain'],
+      'chain' => ['chain'],
+      'report' => ['send_logs_email', 'logs'],
+      'email' => ['send_logs_email']
+    ];
+
+    foreach ($keywordMap as $keyword => $pages) {
+      if ($text !== '' && strpos($text, $keyword) !== false) {
+        foreach ($pages as $pageId) {
+          if (isset($assignable[$pageId])) {
+            $selected[$pageId] = true;
+          }
+        }
+      }
+    }
+
+    return [
+      'pages' => array_values(array_keys($selected)),
+      'confidence_percent' => 100,
+      'mode' => 'deterministic_keyword_rules'
+    ];
+  }
+}
+
+if (!function_exists('admin_role_compulsory_pages')) {
+  function admin_role_compulsory_pages($role, $settings = null)
+  {
+    $role = strtolower(trim((string)$role));
+    if ($role === 'superadmin') {
+      return [];
+    }
+
+    if (!is_array($settings)) {
+      $settings = admin_load_settings_cached(30);
+      if (!is_array($settings)) {
+        $settings = [];
+      }
+    }
+
+    $assignableKeys = array_fill_keys(array_keys(admin_assignable_pages()), true);
+    $pages = [];
+
+    foreach (admin_default_compulsory_pages() as $basePage) {
+      if (isset($assignableKeys[$basePage])) {
+        $pages[$basePage] = true;
+      }
+    }
+
+    $stored = $settings['role_compulsory_pages'][$role] ?? [];
+    if (is_array($stored)) {
+      foreach ($stored as $pageId) {
+        if (is_string($pageId) && isset($assignableKeys[$pageId])) {
+          $pages[$pageId] = true;
+        }
+      }
+    }
+
+    return array_values(array_keys($pages));
+  }
+}
+
 if (!function_exists('admin_log_action')) {
   function admin_log_action($category, $action, $details)
   {
@@ -293,8 +397,27 @@ if (!function_exists('admin_load_permissions_cached')) {
 
     if (!isset($normalized['admin'])) {
       $normalized['admin'] = $defaultAllowed;
-    } else {
-      $normalized['admin'] = array_values(array_unique(array_merge($defaultAllowed, $normalized['admin'])));
+    }
+
+    $settings = admin_load_settings_cached(max(0, (int)$ttl));
+    if (!is_array($settings)) {
+      $settings = [];
+    }
+
+    foreach ($normalized as $role => $pages) {
+      $roleCompulsory = admin_role_compulsory_pages((string)$role, $settings);
+      $normalized[$role] = array_values(array_unique(array_merge(
+        $role === 'admin' ? $defaultAllowed : [],
+        is_array($pages) ? $pages : [],
+        $roleCompulsory
+      )));
+    }
+
+    if (!isset($normalized['admin'])) {
+      $normalized['admin'] = array_values(array_unique(array_merge(
+        $defaultAllowed,
+        admin_role_compulsory_pages('admin', $settings)
+      )));
     }
 
     return $normalized;

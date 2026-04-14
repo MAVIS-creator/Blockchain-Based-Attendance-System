@@ -841,8 +841,8 @@ class AiProviderClient
       $base = $opts[$seed % count($opts)];
     } elseif ($classification === 'legitimate_session_issue') {
       $opts = [
-        "We detected a session issue and are fixing your {$course} attendance request. Refresh in a few seconds.",
-        "Your request looks valid and we are applying a safe {$course} attendance fix now. Please retry shortly.",
+        "We detected a session issue and are reviewing your {$course} attendance request now. You do not need to keep refreshing; the next update will appear on this device.",
+        "Your request looks valid and we are checking the safest fix for {$course}. Please wait for the next update here instead of refreshing repeatedly.",
       ];
       $base = $opts[$seed % count($opts)];
     } elseif ($classification === 'network_ip_rotation') {

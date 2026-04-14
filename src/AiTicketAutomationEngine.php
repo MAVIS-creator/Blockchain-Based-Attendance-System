@@ -267,6 +267,13 @@ class AiTicketAutomationEngine
     $ip = (string)($ticket['ip'] ?? '');
     $course = trim((string)($ticket['course'] ?? 'General'));
     $course = $course !== '' ? $course : 'General';
+    $activeCourseLabel = trim((string)($diag['active_course'] ?? ''));
+    if (
+      ($course === 'General' || strtolower($course) === 'ai ticket processor' || strtolower($course) === 'sentinel ai')
+      && $activeCourseLabel !== ''
+    ) {
+      $course = $activeCourseLabel;
+    }
     $requestedAction = strtolower(trim((string)($ticket['requested_action'] ?? '')));
     if (!in_array($requestedAction, ['checkin', 'checkout'], true)) {
       $requestedAction = '';
@@ -288,7 +295,6 @@ class AiTicketAutomationEngine
       $announcementSeverity = 'warning';
       $adminSuggestion = 'Do not write attendance yet. Confirm the correct course with the student; if the ticket course is wrong, update guidance only. If the student meant another configured active course, continue with normal guarded manual attendance checks there.';
     } elseif ($diag['classification'] === 'inactive_course_reference') {
-      $activeCourseLabel = trim((string)($diag['active_course'] ?? 'General'));
       $announcementMessage = sprintf('We received your support ticket for %s. That course is not active for attendance right now, so the support team is reviewing the course setup before the next attendance step.', $course);
       $announcementSeverity = 'warning';
       $adminSuggestion = sprintf('AI suggestion: if %s should be used for this student, activate that course first. Current active course is "%s". After activation, Sentinel may add guarded manual attendance for this ticket only if identity matches, the device is not blocked/shared, and no duplicate %s already exists.', $course, $activeCourseLabel !== '' ? $activeCourseLabel : 'General', $requestedAction !== '' ? $requestedAction : 'attendance');
@@ -318,15 +324,11 @@ class AiTicketAutomationEngine
         $hasCheckin = !empty($diag['checkinCount']);
         $hasCheckout = !empty($diag['checkoutCount']);
 
-        if ($requestedAction === '') {
-          if ($hasCheckin && !$hasCheckout) {
-            $actionToAdd = 'checkout';
-          } elseif (!$hasCheckin) {
-            $actionToAdd = 'checkin';
-          }
-        }
-
         $canWrite = true;
+        if ($requestedAction === '') {
+          $canWrite = false;
+          $adminSuggestion = 'Auto-write blocked: the failed attendance action is not explicit. Review the ticket and use guarded manual attendance only after confirming whether the student needs check-in or check-out.';
+        }
         if (empty($diag['identity_keys_present'])) {
           $canWrite = false;
           $adminSuggestion = 'Auto-write blocked: ticket fingerprint/IP identity keys are missing.';

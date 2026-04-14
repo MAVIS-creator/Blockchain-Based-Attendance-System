@@ -82,5 +82,19 @@
         "user_agent": "Mozilla\/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell\/5.1.26100.7920",
         "login_time": 1776074158,
         "last_activity": 1776074163
+    },
+    "phrs92dtn0ufs0gkgg5qpshnub": {
+        "user": "Mavis",
+        "ip": "::1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/146.0.0.0 Safari\/537.36",
+        "login_time": 1776167835,
+        "last_activity": 1776167835
+    },
+    "i15ilgmumuuqnrqs4jmdbk0984": {
+        "user": "Mavis",
+        "ip": "::1",
+        "user_agent": "Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/146.0.0.0 Safari\/537.36",
+        "login_time": 1776170040,
+        "last_activity": 1776170071
     }
 }

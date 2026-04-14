@@ -4,6 +4,9 @@ if (!isset($_SESSION['admin_logged_in']) || ($_SESSION['admin_role'] ?? 'admin')
   exit;
 }
 
+require_once __DIR__ . '/includes/csrf.php';
+csrf_token();
+
 $permissionsFile = admin_permissions_file();
 $settingsFile = admin_settings_file();
 $permissions = admin_load_permissions_cached(0); // load fresh
@@ -20,6 +23,29 @@ $assignableKeys = array_fill_keys(array_keys($assignablePages), true);
 $settings = admin_load_settings_cached(0);
 if (!is_array($settings)) {
   $settings = [];
+}
+$roleDescriptions = [];
+if (isset($settings['role_descriptions']) && is_array($settings['role_descriptions'])) {
+  foreach ($settings['role_descriptions'] as $rk => $rv) {
+    $key = strtolower(trim((string)$rk));
+    if ($key === '') continue;
+    $roleDescriptions[$key] = trim((string)$rv);
+  }
+}
+$roleCompulsoryPages = [];
+if (isset($settings['role_compulsory_pages']) && is_array($settings['role_compulsory_pages'])) {
+  foreach ($settings['role_compulsory_pages'] as $rk => $pages) {
+    $key = strtolower(trim((string)$rk));
+    if ($key === '' || !is_array($pages)) continue;
+    $tmp = [];
+    foreach ($pages as $p) {
+      $pid = trim((string)$p);
+      if ($pid !== '' && isset($assignableKeys[$pid])) {
+        $tmp[$pid] = true;
+      }
+    }
+    $roleCompulsoryPages[$key] = array_values(array_keys($tmp));
+  }
 }
 $roleMemberLimits = [];
 if (isset($settings['role_member_limits']) && is_array($settings['role_member_limits'])) {
@@ -47,10 +73,15 @@ $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  if (!csrf_check_request()) {
+    $error = 'Invalid CSRF token. Please refresh and try again.';
+  }
+
   $action = trim((string)($_POST['role_action'] ?? ''));
 
-  if ($action === 'create_role') {
+  if ($error === '' && $action === 'create_role') {
     $rawRole = trim((string)($_POST['new_role'] ?? ''));
+    $description = trim((string)($_POST['new_role_description'] ?? ''));
     $role = strtolower($rawRole);
 
     if (!preg_match('/^[a-z][a-z0-9_\-]{2,31}$/', $role)) {
@@ -62,22 +93,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (count($permissions) >= 12) { // 10 custom roles + 2 built-in
       $error = 'Maximum limit of 10 custom roles reached. Please delete an old role first.';
     } else {
-      $permissions[$role] = ['dashboard', 'status', 'profile_settings'];
+      $aiPick = admin_role_ai_select_pages($role, $description);
+      $compulsoryForRole = array_values(array_unique($aiPick['pages'] ?? admin_default_compulsory_pages()));
+      $permissions[$role] = $compulsoryForRole;
+      $roleDescriptions[$role] = $description;
+      $roleCompulsoryPages[$role] = $compulsoryForRole;
+      $settings['role_descriptions'] = $roleDescriptions;
+      $settings['role_compulsory_pages'] = $roleCompulsoryPages;
       if (@file_put_contents($permissionsFile, json_encode($permissions, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) !== false) {
+        clearstatcache(true, $permissionsFile);
+        @file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+        clearstatcache(true, $settingsFile);
         if (!array_key_exists($role, $roleMemberLimits)) {
           $roleMemberLimits[$role] = 0;
           $settings['role_member_limits'] = $roleMemberLimits;
           @file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
         }
         admin_log_action('Roles', 'Role Created', "Created role '{$role}' with default permissions.");
-        $message = "Role '{$role}' created successfully.";
+        $message = "Role '{$role}' created successfully. AI compulsory pages were auto-selected (100% confidence).";
       } else {
         $error = 'Failed to persist new role.';
       }
     }
   }
 
-  if ($action === 'delete_role') {
+  if ($error === '' && $action === 'delete_role') {
     $role = strtolower(trim((string)($_POST['target_role'] ?? '')));
 
     if ($role === '' || !isset($permissions[$role])) {
@@ -97,11 +137,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       } else {
         unset($permissions[$role]);
         if (@file_put_contents($permissionsFile, json_encode($permissions, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) !== false) {
+          clearstatcache(true, $permissionsFile);
+          if (isset($roleDescriptions[$role])) {
+            unset($roleDescriptions[$role]);
+          }
+          if (isset($roleCompulsoryPages[$role])) {
+            unset($roleCompulsoryPages[$role]);
+          }
+          $settings['role_descriptions'] = $roleDescriptions;
+          $settings['role_compulsory_pages'] = $roleCompulsoryPages;
           if (isset($roleMemberLimits[$role])) {
             unset($roleMemberLimits[$role]);
             $settings['role_member_limits'] = $roleMemberLimits;
             @file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
           }
+          clearstatcache(true, $settingsFile);
           admin_log_action('Roles', 'Role Deleted', "Deleted role '{$role}'.");
           $message = "Role '{$role}' deleted successfully.";
         } else {
@@ -111,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
-  if ($action === 'save_role_limits') {
+  if ($error === '' && $action === 'save_role_limits') {
     $submitted = $_POST['role_member_limits'] ?? [];
     $newLimits = [];
     $allRoles = array_keys($permissions);
@@ -152,6 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($error === '') {
       $settings['role_member_limits'] = $newLimits;
       if (@file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) !== false) {
+        clearstatcache(true, $settingsFile);
         $roleMemberLimits = $newLimits;
         admin_log_action('Roles', 'Role Limits Updated', 'Updated per-role member limits including superadmin/admin limits.');
         $message = 'Role member limits saved successfully.';
@@ -161,8 +212,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
-  if ($action === 'save_permissions') {
+  if ($error === '' && $action === 'save_permissions') {
     $role = strtolower(trim((string)($_POST['target_role'] ?? '')));
+    $description = trim((string)($_POST['role_description'] ?? ''));
     $newAllowed = $_POST['allowed_modules'] ?? [];
 
     if ($role === '' || $role === 'superadmin') {
@@ -177,13 +229,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
         }
       }
-      $permissions[$role] = array_keys($sanitized);
+      $aiPick = admin_role_ai_select_pages($role, $description);
+      $compulsoryForRole = array_values(array_unique($aiPick['pages'] ?? admin_default_compulsory_pages()));
+      foreach ($compulsoryForRole as $mustPage) {
+        if (isset($assignableKeys[$mustPage])) {
+          $sanitized[$mustPage] = true;
+        }
+      }
 
-      if (@file_put_contents($permissionsFile, json_encode($permissions, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) !== false) {
+      $permissions[$role] = array_keys($sanitized);
+      $roleDescriptions[$role] = $description;
+      $roleCompulsoryPages[$role] = $compulsoryForRole;
+      $settings['role_descriptions'] = $roleDescriptions;
+      $settings['role_compulsory_pages'] = $roleCompulsoryPages;
+
+      if (@file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) === false) {
+        $error = 'Failed to save role description and compulsory page model.';
+      }
+
+      if ($error === '' && @file_put_contents($permissionsFile, json_encode($permissions, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) !== false) {
+        clearstatcache(true, $permissionsFile);
+        clearstatcache(true, $settingsFile);
         admin_log_action('Roles', 'Permissions Updated', "Updated allowed modules for role '{$role}'.");
-        $message = "Permissions updated for role '{$role}'.";
+        $message = "Permissions updated for role '{$role}'. AI compulsory pages were auto-selected and locked (100% confidence).";
       } else {
-        $error = 'Failed to write permissions configuration.';
+        if ($error === '') {
+          $error = 'Failed to write permissions configuration.';
+        }
       }
     }
   }
@@ -201,6 +273,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $rk = strtolower(trim((string)$k));
       if ($rk === '') continue;
       $roleMemberLimits[$rk] = max(0, (int)$v);
+    }
+  }
+  $roleDescriptions = [];
+  if (isset($settings['role_descriptions']) && is_array($settings['role_descriptions'])) {
+    foreach ($settings['role_descriptions'] as $k => $v) {
+      $rk = strtolower(trim((string)$k));
+      if ($rk === '') continue;
+      $roleDescriptions[$rk] = trim((string)$v);
+    }
+  }
+  $roleCompulsoryPages = [];
+  if (isset($settings['role_compulsory_pages']) && is_array($settings['role_compulsory_pages'])) {
+    foreach ($settings['role_compulsory_pages'] as $k => $v) {
+      $rk = strtolower(trim((string)$k));
+      if ($rk === '' || !is_array($v)) continue;
+      $tmp = [];
+      foreach ($v as $pageId) {
+        $pageId = trim((string)$pageId);
+        if ($pageId !== '' && isset($assignableKeys[$pageId])) {
+          $tmp[$pageId] = true;
+        }
+      }
+      $roleCompulsoryPages[$rk] = array_values(array_keys($tmp));
     }
   }
   $accounts = admin_load_accounts_cached(0);
@@ -287,6 +382,7 @@ foreach ($roleUsageCounts as $cnt) {
     <p class="roles-panel-subtitle">Create a custom role (e.g. manager, helpdesk, registrar). Then configure its page-level permissions below.</p>
 
     <form method="POST" action="index.php?page=roles" class="roles-form-inline">
+      <?php csrf_field(); ?>
       <input type="hidden" name="role_action" value="create_role">
       <input
         class="roles-input"
@@ -295,6 +391,11 @@ foreach ($roleUsageCounts as $cnt) {
         placeholder="new role (e.g. manager)"
         required
         pattern="[a-zA-Z][a-zA-Z0-9_\-]{2,31}">
+      <input
+        class="roles-input"
+        type="text"
+        name="new_role_description"
+        placeholder="role description for AI auto-select (e.g. handles support tickets and announcements)">
       <button type="submit" class="roles-btn roles-btn-primary">
         <span class="material-symbols-outlined">add</span>
         Create Role
@@ -325,6 +426,7 @@ foreach ($roleUsageCounts as $cnt) {
     </h3>
     <p class="roles-panel-subtitle">Set max account slots per role (including <strong>superadmin</strong>). Use <strong>0</strong> for unlimited.</p>
     <form method="POST" action="index.php?page=roles">
+      <?php csrf_field(); ?>
       <input type="hidden" name="role_action" value="save_role_limits">
       <div class="roles-limit-grid">
         <?php foreach ($limitRoles as $limitRole): ?>
@@ -389,6 +491,7 @@ foreach ($roleUsageCounts as $cnt) {
 
           <?php if (!$isBuiltIn): ?>
             <form method="POST" action="index.php?page=roles" onsubmit="return confirm('Delete role <?= htmlspecialchars($role) ?>?');" style="margin:0;">
+              <?php csrf_field(); ?>
               <input type="hidden" name="role_action" value="delete_role">
               <input type="hidden" name="target_role" value="<?= htmlspecialchars($role) ?>">
               <button type="submit" class="roles-btn roles-btn-danger roles-btn-sm">
@@ -404,15 +507,40 @@ foreach ($roleUsageCounts as $cnt) {
             Superadmin pages are intentionally not governed by role permissions.
           </div>
         <?php else: ?>
+          <?php
+          $roleDescription = (string)($roleDescriptions[$role] ?? '');
+          $compulsoryForRole = admin_role_compulsory_pages($role, $settings);
+          $aiPick = admin_role_ai_select_pages($role, $roleDescription);
+          ?>
           <form method="POST" action="index.php?page=roles">
+            <?php csrf_field(); ?>
             <input type="hidden" name="role_action" value="save_permissions">
             <input type="hidden" name="target_role" value="<?= htmlspecialchars($role) ?>">
 
+            <div class="roles-ai-box">
+              <label class="roles-ai-label" for="role_description_<?= htmlspecialchars($role) ?>">Role Description (AI auto-select source)</label>
+              <input
+                id="role_description_<?= htmlspecialchars($role) ?>"
+                class="roles-input"
+                type="text"
+                name="role_description"
+                value="<?= htmlspecialchars($roleDescription) ?>"
+                placeholder="Describe this role responsibilities...">
+              <div class="roles-ai-meta">AI selection mode: <?= htmlspecialchars((string)($aiPick['mode'] ?? 'rules')) ?> · confidence: <?= (int)($aiPick['confidence_percent'] ?? 100) ?>%</div>
+            </div>
+
             <div class="roles-module-grid">
               <?php foreach ($assignablePages as $pageKey => $meta): ?>
+                <?php
+                $isCompulsory = in_array($pageKey, $compulsoryForRole, true);
+                $isChecked = $isCompulsory || in_array($pageKey, $allowedForRole, true);
+                ?>
                 <label class="roles-module-pill">
-                  <input type="checkbox" name="allowed_modules[]" value="<?= htmlspecialchars($pageKey) ?>" <?= in_array($pageKey, $allowedForRole, true) ? 'checked' : '' ?>>
-                  <span><?= htmlspecialchars((string)($meta['label'] ?? $pageKey)) ?></span>
+                  <input type="checkbox" name="allowed_modules[]" value="<?= htmlspecialchars($pageKey) ?>" <?= $isChecked ? 'checked' : '' ?> <?= $isCompulsory ? 'disabled' : '' ?>>
+                  <?php if ($isCompulsory): ?>
+                    <input type="hidden" name="allowed_modules[]" value="<?= htmlspecialchars($pageKey) ?>">
+                  <?php endif; ?>
+                  <span><?= htmlspecialchars((string)($meta['label'] ?? $pageKey)) ?><?= $isCompulsory ? ' 🔒' : '' ?></span>
                 </label>
               <?php endforeach; ?>
             </div>
@@ -725,6 +853,31 @@ foreach ($roleUsageCounts as $cnt) {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 10px;
     margin-bottom: 14px;
+  }
+
+  .roles-ai-box {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--outline-variant);
+    background: var(--surface-container-lowest);
+  }
+
+  .roles-ai-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: var(--on-surface-variant);
+    text-transform: uppercase;
+  }
+
+  .roles-ai-meta {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    color: var(--on-surface-variant);
+    font-weight: 600;
   }
 
   .roles-module-pill {

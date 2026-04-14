@@ -1,36 +1,36 @@
-const ORIGIN_HOST = 'attendancev2app123.azurewebsites.net';
-const FALLBACK_HOME = '/index.php';
+const ORIGIN_HOST = "attendancev2app123.azurewebsites.net";
+const FALLBACK_HOME = "/index.php";
 
 const ERROR_PATHS = new Map([
-  [400, '/400.php'],
-  [401, '/401.php'],
-  [403, '/403.php'],
-  [404, '/404.php'],
-  [405, '/405.php'],
-  [408, '/408.php'],
-  [429, '/429.php'],
-  [500, '/500.php'],
-  [502, '/502.php'],
-  [503, '/503.php'],
-  [504, '/504.php'],
+  [400, "/400.php"],
+  [401, "/401.php"],
+  [403, "/403.php"],
+  [404, "/404.php"],
+  [405, "/405.php"],
+  [408, "/408.php"],
+  [429, "/429.php"],
+  [500, "/500.php"],
+  [502, "/502.php"],
+  [503, "/503.php"],
+  [504, "/504.php"],
 ]);
 
 function fallbackHtml(status) {
   const titles = {
-    400: 'Bad Request',
-    401: 'Unauthorized',
-    403: 'Forbidden',
-    404: 'Page Not Found',
-    405: 'Method Not Allowed',
-    408: 'Request Timeout',
-    429: 'Too Many Requests',
-    500: 'Server Error',
-    502: 'Bad Gateway',
-    503: 'Service Unavailable',
-    504: 'Gateway Timeout',
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Page Not Found",
+    405: "Method Not Allowed",
+    408: "Request Timeout",
+    429: "Too Many Requests",
+    500: "Server Error",
+    502: "Bad Gateway",
+    503: "Service Unavailable",
+    504: "Gateway Timeout",
   };
 
-  const title = titles[status] || 'Server Error';
+  const title = titles[status] || "Server Error";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -55,23 +55,64 @@ function fallbackHtml(status) {
 </html>`;
 }
 
+function buildOriginRequest(request, originUrl, visitorUrl) {
+  const headers = new Headers(request.headers);
+  headers.set("X-Forwarded-Host", visitorUrl.host);
+  headers.set("X-Forwarded-Proto", visitorUrl.protocol.replace(":", ""));
+  headers.set("X-Original-Host", visitorUrl.host);
+  headers.set("X-Forwarded-For", request.headers.get("CF-Connecting-IP") || "");
+
+  return new Request(originUrl.toString(), {
+    method: request.method,
+    headers,
+    body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
+    redirect: "manual",
+  });
+}
+
+function rewriteRedirectHeaders(response, visitorUrl) {
+  const headers = new Headers(response.headers);
+  const location = headers.get("location");
+  if (location) {
+    try {
+      const redirectUrl = new URL(location, visitorUrl.toString());
+      if (redirectUrl.hostname === ORIGIN_HOST) {
+        redirectUrl.protocol = visitorUrl.protocol;
+        redirectUrl.host = visitorUrl.host;
+        headers.set("location", redirectUrl.toString());
+      }
+    } catch (e) {
+      // Leave malformed locations unchanged.
+    }
+  }
+
+  const refresh = headers.get("refresh");
+  if (refresh && refresh.includes(ORIGIN_HOST)) {
+    headers.set("refresh", refresh.replaceAll(ORIGIN_HOST, visitorUrl.host));
+  }
+
+  return headers;
+}
+
 async function fetchCustomError(originUrl, status, request) {
-  const errorPath = ERROR_PATHS.get(status) || '/500.php';
+  const errorPath = ERROR_PATHS.get(status) || "/500.php";
   const errorUrl = new URL(originUrl);
   errorUrl.hostname = ORIGIN_HOST;
   errorUrl.pathname = errorPath;
-  errorUrl.search = '';
+  errorUrl.search = "";
 
   try {
-    const errorResponse = await fetch(new Request(errorUrl.toString(), {
-      method: 'GET',
-      headers: request.headers,
-    }));
+    const errorResponse = await fetch(
+      new Request(errorUrl.toString(), {
+        method: "GET",
+        headers: request.headers,
+      }),
+    );
 
     if (errorResponse.ok) {
       const headers = new Headers(errorResponse.headers);
-      headers.set('content-type', 'text/html; charset=UTF-8');
-      headers.set('cache-control', 'no-store');
+      headers.set("content-type", "text/html; charset=UTF-8");
+      headers.set("cache-control", "no-store");
       return new Response(await errorResponse.text(), {
         status,
         headers,
@@ -84,8 +125,8 @@ async function fetchCustomError(originUrl, status, request) {
   return new Response(fallbackHtml(status), {
     status,
     headers: {
-      'content-type': 'text/html; charset=UTF-8',
-      'cache-control': 'no-store',
+      "content-type": "text/html; charset=UTF-8",
+      "cache-control": "no-store",
     },
   });
 }
@@ -94,20 +135,28 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    if (url.pathname === '/healthz') {
-      return new Response('ok', { status: 200 });
+    if (url.pathname === "/healthz") {
+      return new Response("ok", { status: 200 });
     }
 
     const originUrl = new URL(request.url);
     originUrl.hostname = ORIGIN_HOST;
-    originUrl.protocol = 'https:';
+    originUrl.protocol = "https:";
+    const originRequest = buildOriginRequest(request, originUrl, url);
+    const response = await fetch(originRequest);
 
-    const response = await fetch(new Request(originUrl.toString(), request));
-
-    if ([400, 401, 403, 404, 405, 408, 429, 500, 502, 503, 504].includes(response.status)) {
+    if (
+      [400, 401, 403, 404, 405, 408, 429, 500, 502, 503, 504].includes(
+        response.status,
+      )
+    ) {
       return fetchCustomError(originUrl.toString(), response.status, request);
     }
 
-    return response;
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: rewriteRedirectHeaders(response, url),
+    });
   },
 };

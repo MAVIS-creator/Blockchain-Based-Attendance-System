@@ -333,7 +333,8 @@ if (empty($aiDiagRows) && !empty($metricsRows)) {
           $name = isset($parts[0]) ? strtoupper($parts[0]) : 'Unknown';
           $matric = isset($parts[1]) ? $parts[1] : 'N/A';
           $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
-          if (isset($parts[5]) && preg_match($macRegex, $parts[5])) {
+          $isAiStructuredRow = count($parts) >= 10 && in_array(strtolower((string)($parts[7] ?? '')), ['ai ticket processor', 'sentinel ai'], true);
+          if ($isAiStructuredRow || (isset($parts[5]) && preg_match($macRegex, $parts[5]))) {
             $course = isset($parts[8]) ? $parts[8] : 'General';
           } else {
             $course = isset($parts[7]) ? $parts[7] : 'General';

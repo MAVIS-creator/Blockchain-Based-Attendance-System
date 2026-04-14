@@ -140,7 +140,7 @@ if (!function_exists('ticket_append_attendance_log')) {
       return false;
     }
 
-    $line = "{$name} | {$matric} | {$action} | {$fingerprint} | {$ip} | {$mac} | {$timestamp} | AI Ticket Processor | {$course} | {$reason}\n";
+    $line = "{$name} | {$matric} | {$action} | {$fingerprint} | {$ip} | {$mac} | {$timestamp} | Sentinel AI | {$course} | {$reason}\n";
     return (bool)file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
   }
 }

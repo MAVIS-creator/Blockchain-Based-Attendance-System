@@ -81,7 +81,7 @@ $selectedCourseForm = trim((string)($_POST['course'] ?? ''));
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   $submitSpan = microtime(true);
   $name = trim($_POST['name'] ?? '');
-  $matric = trim($_POST['matric'] ?? '');
+  $matric = preg_replace('/\D+/', '', trim((string)($_POST['matric'] ?? '')));
   $message = trim($_POST['message'] ?? '');
   $fingerprint = trim($_POST['fingerprint'] ?? '');
   $courseInput = trim((string)($_POST['course'] ?? ''));
@@ -99,6 +99,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $requestedAction = '';
   }
   $ip = $_SERVER['REMOTE_ADDR'];
+
+  if ($matric !== '' && !preg_match('/^\d{6,20}$/', $matric)) {
+    $formError = 'Enter a valid matric number using digits only.';
+  }
 
   if ($name && $matric && $message && $formError === '') {
     $createdAt = date('Y-m-d H:i:s');
@@ -629,12 +633,6 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     <img class="logo" src="asset/attendance-mark.svg" alt="Attendance Mark">
     <h2><i class='bx bx-ticket'></i> Submit Support Ticket</h2>
 
-    <div style="padding:10px 12px;border:1px solid var(--info-line);border-radius:10px;background:var(--info-bg);color:var(--info-text);font-size:0.84rem;line-height:1.45;margin:0 0 14px 0;">
-      <strong style="display:block;margin-bottom:4px;">Quick help tips</strong>
-      Include your <em>course</em> and failed action (<em>checkin</em> or <em>checkout</em>) for faster AI-assisted review.
-      Responses are device-targeted, so updates show on the same fingerprinted phone/browser session where the issue happened.
-    </div>
-
     <?php if ($success): ?>
       <div class="success-message">
         ✅ Your ticket has been submitted successfully!
@@ -662,7 +660,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
       </div>
       <div class="input-group">
         <label for="matric"><i class='bx bx-id-card'></i> Matric Number</label>
-        <input type="text" id="matric" name="matric" placeholder="e.g., 2023000000" required />
+        <input type="text" id="matric" name="matric" placeholder="e.g., 2023000000" inputmode="numeric" pattern="[0-9]{6,20}" maxlength="20" required />
       </div>
       <div class="input-group">
         <label for="course"><i class='bx bx-book-open'></i> Course (optional)</label>

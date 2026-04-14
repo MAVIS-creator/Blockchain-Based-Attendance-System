@@ -61,7 +61,7 @@ if (empty($entries) && file_exists($logFile)) {
 // Combine check-ins and check-outs
 $combined = [];
 foreach ($entries as $entry) {
-  $key = $entry['name'] . '|' . $entry['matric'];
+  $key = $entry['name'] . '|' . $entry['matric'] . '|' . $entry['course'];
   if (!isset($combined[$key])) {
     $combined[$key] = [
       'name'       => $entry['name'],
@@ -72,7 +72,8 @@ foreach ($entries as $entry) {
       'ip'         => $entry['ip'],
       'mac'        => $entry['mac'],
       'device'     => $entry['device'],
-      'reason'     => $entry['reason']
+      'reason'     => $entry['reason'],
+      'course'     => $entry['course']
     ];
   }
 
@@ -85,7 +86,6 @@ foreach ($entries as $entry) {
   }
 }
 
-$combined = array_filter($combined, fn($e) => $e['check_in'] && $e['check_out']);
 $total = count($combined);
 $totalPages = ceil($total / $perPage);
 $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
@@ -176,8 +176,10 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
         <tr>
           <th>Name</th>
           <th>Matric</th>
+          <th>Course</th>
           <th>Check-In</th>
           <th>Check-Out</th>
+          <th>Status</th>
           <th class="mobile-hide-col">Fingerprint</th>
           <th class="mobile-hide-col">IP</th>
           <th class="mobile-hide-col">MAC</th>
@@ -189,8 +191,13 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
           <tr>
             <td style="font-weight:600;"><?= htmlspecialchars($row['name']) ?></td>
             <td><span class="st-chip st-chip-neutral"><?= htmlspecialchars($row['matric']) ?></span></td>
-            <td><?= htmlspecialchars(date('H:i:s', strtotime($row['check_in']))) ?></td>
-            <td><?= htmlspecialchars(date('H:i:s', strtotime($row['check_out']))) ?></td>
+            <td><?= htmlspecialchars($row['course']) ?></td>
+            <td><?= $row['check_in'] !== '' ? htmlspecialchars(date('H:i:s', strtotime($row['check_in']))) : 'Pending' ?></td>
+            <td><?= $row['check_out'] !== '' ? htmlspecialchars(date('H:i:s', strtotime($row['check_out']))) : 'Pending' ?></td>
+            <td>
+              <?php $statusLabel = ($row['check_in'] !== '' && $row['check_out'] !== '') ? 'Complete' : (($row['check_in'] !== '') ? 'Check-in only' : 'Check-out only'); ?>
+              <span class="st-chip st-chip-neutral"><?= htmlspecialchars($statusLabel) ?></span>
+            </td>
             <td class="mobile-hide-col" style="font-family:monospace;font-size:0.8rem;color:var(--on-surface-variant);"><?= htmlspecialchars(substr($row['fingerprint'], 0, 16)) ?>...</td>
             <td class="mobile-hide-col" style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['ip']) ?></td>
             <td class="mobile-hide-col" style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['mac']) ?></td>

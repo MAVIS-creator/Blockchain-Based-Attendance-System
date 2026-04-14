@@ -42,6 +42,14 @@ if (!is_array($aiDiagnostics)) {
   $aiDiagnostics = [];
 }
 $recentAiDiagnostics = array_slice($aiDiagnostics, 0, 8);
+$diagnosticsByTicketTime = [];
+foreach ($aiDiagnostics as $diag) {
+  $ticketTime = trim((string)($diag['ticket_timestamp'] ?? ''));
+  if ($ticketTime === '' || isset($diagnosticsByTicketTime[$ticketTime])) {
+    continue;
+  }
+  $diagnosticsByTicketTime[$ticketTime] = $diag;
+}
 
 $unresolvedTickets = array_values(array_filter($tickets, static function ($ticket) {
   return is_array($ticket) && empty($ticket['resolved']);
@@ -314,7 +322,7 @@ $ticketPageItems = array_slice($allUnresolvedTickets, $ticketOffset, $ticketPerP
     <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">confirmation_number</span>Support Tickets
   </h2>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:4px;">
-    <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:0;">Review and resolve student support requests. Source: <strong><?= htmlspecialchars($ticketsSource) ?></strong></p>
+    <span style="color:var(--on-surface-variant);font-size:0.88rem;">Source: <strong><?= htmlspecialchars($ticketsSource) ?></strong></span>
     <a href="index.php?page=ai_suggestions" class="st-btn st-btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
       <span class="material-symbols-outlined" style="font-size:1rem;">smart_toy</span>
       View AI Suggestions
@@ -353,6 +361,11 @@ $ticketPageItems = array_slice($allUnresolvedTickets, $ticketOffset, $ticketPerP
           <div style="font-size:0.82rem;font-weight:700;margin-bottom:4px;word-break:break-word;"><?= htmlspecialchars($diagClass) ?></div>
           <div style="font-size:0.78rem;opacity:0.9;margin-bottom:4px;">Confidence: <?= htmlspecialchars(number_format($diagConf, 2)) ?></div>
           <div style="font-size:0.78rem;opacity:0.9;margin-bottom:4px;word-break:break-word;">Matric: <?= htmlspecialchars((string)($diag['matric'] ?? '-')) ?></div>
+          <?php if (!empty($diag['decision_reason'])): ?>
+            <div style="font-size:0.76rem;opacity:0.95;line-height:1.45;word-break:break-word;color:var(--on-surface);margin-top:6px;">
+              <strong>Reason:</strong> <?= htmlspecialchars((string)$diag['decision_reason']) ?>
+            </div>
+          <?php endif; ?>
           <div style="font-size:0.76rem;opacity:0.95;line-height:1.45;word-break:break-word;color:var(--on-surface);margin-top:6px;">
             <?= ai_recommendation_render_html((string)($diag['suggested_admin_action'] ?? 'Review diagnostics.')) ?>
           </div>
@@ -398,6 +411,12 @@ $ticketPageItems = array_slice($allUnresolvedTickets, $ticketOffset, $ticketPerP
       $ip = $ticket['ip'] ?? '';
       $fpMatch = $fp ? checkLogMatch($logLines, $fp, 3) : false;
       $ipMatch = $ip ? checkLogMatch($logLines, $ip, 4) : false;
+      $ticketDiag = $diagnosticsByTicketTime[(string)($ticket['timestamp'] ?? '')] ?? null;
+      $ticketDiagClass = trim((string)($ticketDiag['classification'] ?? ''));
+      $ticketDiagReason = trim((string)($ticketDiag['decision_reason'] ?? ''));
+      $ticketDiagSuggestion = trim((string)($ticketDiag['suggested_admin_action'] ?? ''));
+      $ticketDiagProvider = trim((string)($ticketDiag['ai_provider'] ?? ''));
+      $ticketDiagLatency = isset($ticketDiag['ai_latency_ms']) ? (int)$ticketDiag['ai_latency_ms'] : 0;
       ?>
 
       <div class="ticket-card" style="position:relative;overflow:visible;">
@@ -414,6 +433,28 @@ $ticketPageItems = array_slice($allUnresolvedTickets, $ticketOffset, $ticketPerP
         <p style="color:var(--on-surface);line-height:1.6;margin-bottom:16px;font-size:0.9rem;">
           <?= nl2br(htmlspecialchars($ticket['message'])) ?>
         </p>
+
+        <?php if (is_array($ticketDiag)): ?>
+          <div style="display:grid;gap:8px;margin-bottom:16px;padding:12px 14px;border-radius:10px;background:var(--surface-container-lowest);border:1px solid var(--outline-variant);">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+              <span class="st-chip st-chip-info"><?= htmlspecialchars($ticketDiagClass !== '' ? $ticketDiagClass : 'ai_reviewed') ?></span>
+              <?php if ($ticketDiagProvider !== ''): ?>
+                <span style="font-size:0.76rem;color:var(--on-surface-variant);">Provider: <?= htmlspecialchars($ticketDiagProvider) ?></span>
+              <?php endif; ?>
+              <?php if ($ticketDiagLatency > 0): ?>
+                <span style="font-size:0.76rem;color:var(--on-surface-variant);">Latency: <?= htmlspecialchars((string)$ticketDiagLatency) ?> ms</span>
+              <?php endif; ?>
+            </div>
+            <?php if ($ticketDiagReason !== ''): ?>
+              <div style="font-size:0.82rem;color:var(--on-surface);line-height:1.45;">
+                <strong>Reason:</strong> <?= htmlspecialchars($ticketDiagReason) ?>
+              </div>
+            <?php endif; ?>
+            <div style="font-size:0.8rem;color:var(--on-surface);line-height:1.45;">
+              <?= ai_recommendation_render_html($ticketDiagSuggestion !== '' ? $ticketDiagSuggestion : 'Review diagnostics.') ?>
+            </div>
+          </div>
+        <?php endif; ?>
 
         <!-- Fingerprint & IP matches -->
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">

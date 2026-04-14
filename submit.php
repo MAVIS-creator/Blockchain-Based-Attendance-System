@@ -26,7 +26,7 @@ function post_string($key, $default = '')
 
 // Normalize inputs. Escape on output, validate where rules are strict.
 $name = post_string('name');
-$matric = post_string('matric');
+$matric = preg_replace('/\D+/', '', post_string('matric'));
 $fingerprint = post_string('fingerprint');
 $action = strtolower(post_string('action'));
 $course = post_string('course', 'General');
@@ -36,6 +36,12 @@ $courseNormalized = strtolower(trim($course));
 if ($name === '' || $matric === '' || $fingerprint === '' || $action === '') {
     header('Content-Type: application/json');
     echo json_encode(['ok' => false, 'message' => 'Missing required attendance fields.']);
+    exit;
+}
+
+if (!preg_match('/^\d{6,20}$/', $matric)) {
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'message' => 'Enter a valid matric number using digits only.']);
     exit;
 }
 

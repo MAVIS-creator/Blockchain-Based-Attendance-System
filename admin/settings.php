@@ -877,43 +877,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="font-body text-on-surface bg-surface p-6 rounded-xl">
   <style>
     .st-settings-tabbar {
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
     }
 
     .st-settings-tabbar .st-tab {
-      flex: 0 0 auto;
+      width: 100%;
+      min-width: 0;
+      min-height: 52px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.25;
     }
 
     @media (max-width: 768px) {
       .st-settings-tabbar {
-        display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px !important;
-        white-space: normal !important;
-        overflow: visible !important;
-        padding: 8px !important;
+        gap: 10px !important;
+        padding: 0 !important;
       }
 
       .st-settings-tabbar .st-tab {
-        width: 100%;
-        min-width: 0;
-        padding: 10px 10px !important;
-        font-size: 0.8rem;
-        text-align: center;
+        padding: 12px 10px !important;
+        font-size: 0.84rem;
       }
 
       .font-body.text-on-surface.bg-surface {
         padding: 16px !important;
       }
     }
+
+    @media (max-width: 430px) {
+      .st-settings-tabbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+
+      .st-settings-tabbar .st-tab {
+        font-size: 0.8rem;
+        min-height: 56px;
+      }
+
+      .font-body.text-on-surface.bg-surface {
+        padding: 12px !important;
+        border-radius: 14px;
+      }
+
+      .st-settings-audit-list {
+        max-height: 260px;
+      }
+    }
+
+    .st-settings-audit-list {
+      display: grid;
+      gap: 10px;
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    .st-settings-audit-item {
+      border: 1px solid rgba(0, 69, 123, 0.12);
+      border-radius: 12px;
+      background: var(--surface-container-lowest);
+      padding: 12px 14px;
+    }
+
+    .st-settings-audit-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 0.75rem;
+      color: var(--on-surface-variant);
+    }
+
+    .st-settings-audit-text {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: var(--on-surface);
+      word-break: break-word;
+    }
   </style>
   <div class="mb-8">
     <h1 class="text-[1.75rem] font-bold tracking-tight">System Settings</h1>
-    <p class="text-on-surface-variant mt-1">Exact Stitch screen structure mapped to live settings endpoints.</p>
   </div>
 
-  <div class="st-settings-tabbar bg-surface-container-low p-1.5 rounded-xl flex gap-1 mb-8 overflow-x-auto whitespace-nowrap">
+  <div class="st-settings-tabbar mb-8">
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-semibold transition-all bg-white text-primary shadow-sm" onclick="openTab(event, 'tab-general')">General</button>
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-templates')">Templates</button>
     <button type="button" class="st-tab px-6 py-2.5 rounded-lg text-sm font-medium transition-all text-on-surface-variant hover:bg-surface-container-high" onclick="openTab(event, 'tab-advanced')">Advanced &amp; Security</button>
@@ -1331,14 +1382,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $adminCount = count($acct);
     $status = admin_load_status_cached(10);
     $settingsAuditFile = admin_settings_audit_file();
-    if (function_exists('admin_log_action')) {
-      admin_log_action('Settings', 'Settings Updated', 'System settings were modified by admin.');
-    };
     $lastAudit = admin_recent_text_lines_cached('settings_audit_recent', $settingsAuditFile, 10, 10);
     $backups = admin_backup_files_cached('settings_*.json', 20);
     usort($backups, function ($a, $b) {
       return filemtime($b) - filemtime($a);
     });
+    $auditEntries = [];
+    foreach ($lastAudit as $line) {
+      $decodedLine = json_decode((string)$line, true);
+      if (is_array($decodedLine)) {
+        $changes = $decodedLine['changes'] ?? [];
+        $changeText = '';
+        if (is_array($changes)) {
+          $parts = [];
+          foreach ($changes as $changeKey => $changeValue) {
+            if (is_scalar($changeValue) || $changeValue === null) {
+              $parts[] = $changeKey . ': ' . (string)$changeValue;
+            } else {
+              $parts[] = $changeKey;
+            }
+          }
+          $changeText = implode(' | ', $parts);
+        } else {
+          $changeText = (string)$changes;
+        }
+        $auditEntries[] = [
+          'time' => (string)($decodedLine['time'] ?? ''),
+          'user' => (string)($decodedLine['user'] ?? 'System'),
+          'text' => trim($changeText) !== '' ? $changeText : 'Settings updated.',
+        ];
+      } else {
+        $auditEntries[] = [
+          'time' => '',
+          'user' => 'System',
+          'text' => trim((string)$line) !== '' ? trim((string)$line) : 'Settings updated.',
+        ];
+      }
+    }
     ?>
     <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
       <div class="md:col-span-8 bg-surface-container-low rounded-xl p-8">
@@ -1358,7 +1438,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <?php if (empty($backups)) echo '<li>No backups yet</li>'; ?>
         </ul>
         <h3 class="text-lg font-bold mb-3">Settings Audit Log</h3>
-        <pre class="max-h-72 overflow-auto bg-surface-container-lowest p-4 rounded-lg border border-outline-variant/20 text-xs"><?php foreach ($lastAudit as $la) echo htmlspecialchars($la) . "\n"; ?></pre>
+        <div class="st-settings-audit-list">
+          <?php if (!empty($auditEntries)): ?>
+            <?php foreach ($auditEntries as $entry): ?>
+              <div class="st-settings-audit-item">
+                <div class="st-settings-audit-meta">
+                  <?php if ($entry['time'] !== ''): ?><span><?= htmlspecialchars($entry['time']) ?></span><?php endif; ?>
+                  <span><?= htmlspecialchars($entry['user']) ?></span>
+                </div>
+                <div class="st-settings-audit-text"><?= htmlspecialchars($entry['text']) ?></div>
+              </div>
+            <?php endforeach; ?>
+          <?php else: ?>
+            <div class="st-settings-audit-item">
+              <div class="st-settings-audit-text">No recent settings changes.</div>
+            </div>
+          <?php endif; ?>
+        </div>
       </div>
     </div>
   </div>

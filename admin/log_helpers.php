@@ -11,7 +11,8 @@ if (!function_exists('admin_parse_attendance_line')) {
     }
 
     $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
-    $newFormat = count($parts) >= 9 && isset($parts[5]) && preg_match($macRegex, $parts[5]);
+    $isAiStructuredRow = count($parts) >= 10 && in_array(strtolower((string)($parts[7] ?? '')), ['ai ticket processor', 'sentinel ai'], true);
+    $newFormat = count($parts) >= 10 && ($isAiStructuredRow || (isset($parts[5]) && preg_match($macRegex, $parts[5])));
 
     if ($newFormat) {
       return [
@@ -98,4 +99,3 @@ if (!function_exists('admin_failed_attempt_entries_for_date')) {
     });
   }
 }
-

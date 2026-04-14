@@ -549,7 +549,7 @@ request_timing_span('load_announcement', $span);
 
       <div class="input-group">
         <label for="matric">Matric Number</label>
-        <input type="text" id="matric" name="matric" minlength="1" maxlength="10" placeholder="0000000000" required />
+        <input type="text" id="matric" name="matric" inputmode="numeric" pattern="[0-9]{6,20}" minlength="6" maxlength="20" placeholder="0000000000" required />
       </div>
 
       <input type="hidden" id="fingerprint" name="fingerprint">
@@ -557,10 +557,9 @@ request_timing_span('load_announcement', $span);
       <input type="hidden" name="course" value="<?= htmlspecialchars($activeCourse) ?>">
 
       <button id="submitBtn" class="btn btn-primary" type="submit" disabled>Submit Attendance</button>
-      <p class="support-row">
-        Need help? If attendance fails, open Support with your course + failed action. AI sends device-specific updates to your fingerprinted session.
+      <div class="support-row">
         <a href="support.php" class="btn btn-accent"><i class='bx bx-message'></i> Support</a>
-      </p>
+      </div>
     </form>
   </div>
 
