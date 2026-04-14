@@ -65,11 +65,12 @@ if (!function_exists('app_storage_migrate_file')) {
   function app_storage_migrate_file($relative, $legacyPath)
   {
     $target = app_storage_file($relative);
+    $dir = dirname($target);
+    if (!is_dir($dir)) {
+      @mkdir($dir, 0775, true);
+    }
+
     if (!file_exists($target) && is_string($legacyPath) && $legacyPath !== '' && file_exists($legacyPath)) {
-      $dir = dirname($target);
-      if (!is_dir($dir)) {
-        @mkdir($dir, 0775, true);
-      }
       @copy($legacyPath, $target);
     }
     return $target;

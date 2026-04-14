@@ -24,6 +24,10 @@ if (!file_exists($permissionsFile)) {
   @file_put_contents($permissionsFile, json_encode($seed, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
   clearstatcache(true, $permissionsFile);
 }
+if (!file_exists($settingsFile)) {
+  @file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+  clearstatcache(true, $settingsFile);
+}
 
 $assignablePages = admin_assignable_pages();
 $assignableKeys = array_fill_keys(array_keys($assignablePages), true);

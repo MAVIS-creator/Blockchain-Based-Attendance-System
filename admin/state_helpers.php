@@ -519,7 +519,6 @@ if (!function_exists('admin_load_permissions_cached')) {
     foreach ($normalized as $role => $pages) {
       $roleCompulsory = admin_role_compulsory_pages((string)$role, $settings);
       $normalized[$role] = array_values(array_unique(array_merge(
-        $role === 'admin' ? $defaultAllowed : [],
         is_array($pages) ? $pages : [],
         $roleCompulsory
       )));

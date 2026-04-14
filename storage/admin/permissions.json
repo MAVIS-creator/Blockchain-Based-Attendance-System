@@ -1,0 +1,15 @@
+{
+  "admin": [
+    "dashboard",
+    "status",
+    "request_timings",
+    "logs",
+    "support_tickets",
+    "ai_suggestions",
+    "ai_context_preview",
+    "ai_rulebook",
+    "announcement",
+    "profile_settings",
+    "manual_attendance"
+  ]
+}
