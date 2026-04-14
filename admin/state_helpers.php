@@ -286,6 +286,118 @@ if (!function_exists('admin_role_compulsory_pages')) {
   }
 }
 
+if (!function_exists('admin_resolve_page_key')) {
+  function admin_resolve_page_key($rawPage)
+  {
+    $rawPage = strtolower(trim((string)$rawPage));
+    if ($rawPage === '') {
+      return '';
+    }
+
+    $assignable = admin_assignable_pages();
+    if (isset($assignable[$rawPage])) {
+      return $rawPage;
+    }
+
+    $normInput = preg_replace('/[^a-z0-9]+/', '', $rawPage);
+    foreach ($assignable as $pageId => $meta) {
+      $label = strtolower(trim((string)($meta['label'] ?? '')));
+      $normId = preg_replace('/[^a-z0-9]+/', '', strtolower((string)$pageId));
+      $normLabel = preg_replace('/[^a-z0-9]+/', '', $label);
+      if ($normInput !== '' && ($normInput === $normId || ($normLabel !== '' && $normInput === $normLabel))) {
+        return (string)$pageId;
+      }
+    }
+
+    return '';
+  }
+}
+
+if (!function_exists('admin_apply_role_compulsory_override')) {
+  function admin_apply_role_compulsory_override($role, $pageKey, $mode)
+  {
+    $role = strtolower(trim((string)$role));
+    $pageKey = admin_resolve_page_key($pageKey);
+    $mode = strtolower(trim((string)$mode));
+
+    if ($role === '' || in_array($role, ['superadmin', 'unauthorized'], true)) {
+      return ['ok' => false, 'error' => 'invalid_role'];
+    }
+    if ($pageKey === '') {
+      return ['ok' => false, 'error' => 'invalid_page'];
+    }
+    if (!in_array($mode, ['lock', 'unlock'], true)) {
+      return ['ok' => false, 'error' => 'invalid_mode'];
+    }
+
+    $permissionsFile = admin_permissions_file();
+    $settingsFile = admin_settings_file();
+
+    $permissions = admin_load_permissions_cached(0);
+    if (!is_array($permissions)) {
+      $permissions = ['admin' => []];
+    }
+    if (!isset($permissions[$role]) || !is_array($permissions[$role])) {
+      $permissions[$role] = [];
+    }
+
+    $settings = admin_load_settings_cached(0);
+    if (!is_array($settings)) {
+      $settings = [];
+    }
+    if (!isset($settings['role_compulsory_pages']) || !is_array($settings['role_compulsory_pages'])) {
+      $settings['role_compulsory_pages'] = [];
+    }
+
+    $current = admin_role_compulsory_pages($role, $settings);
+    $currentMap = array_fill_keys($current, true);
+    $defaults = array_fill_keys(admin_default_compulsory_pages(), true);
+
+    if ($mode === 'lock') {
+      $currentMap[$pageKey] = true;
+    } else {
+      // Never allow removing global defaults.
+      if (isset($defaults[$pageKey])) {
+        return ['ok' => false, 'error' => 'default_compulsory_page'];
+      }
+      unset($currentMap[$pageKey]);
+    }
+
+    $updatedCompulsory = array_values(array_keys($currentMap));
+    $settings['role_compulsory_pages'][$role] = $updatedCompulsory;
+
+    $permMap = [];
+    foreach ($permissions[$role] as $p) {
+      if (is_string($p) && $p !== '') {
+        $permMap[$p] = true;
+      }
+    }
+    foreach ($updatedCompulsory as $mustPage) {
+      $permMap[$mustPage] = true;
+    }
+    $permissions[$role] = array_values(array_keys($permMap));
+
+    if (@file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) === false) {
+      return ['ok' => false, 'error' => 'settings_write_failed'];
+    }
+    clearstatcache(true, $settingsFile);
+
+    if (@file_put_contents($permissionsFile, json_encode($permissions, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) === false) {
+      return ['ok' => false, 'error' => 'permissions_write_failed'];
+    }
+    clearstatcache(true, $permissionsFile);
+
+    return [
+      'ok' => true,
+      'role' => $role,
+      'page' => $pageKey,
+      'mode' => $mode,
+      'compulsory_pages' => $updatedCompulsory,
+      'allowed_pages' => $permissions[$role],
+    ];
+  }
+}
+
 if (!function_exists('admin_log_action')) {
   function admin_log_action($category, $action, $details)
   {

@@ -43,6 +43,136 @@ if (!function_exists('chat_ai_queue_save')) {
     }
 }
 
+if (!function_exists('chat_parse_role_override_command')) {
+    function chat_parse_role_override_command($msg)
+    {
+        $text = trim((string)$msg);
+        if ($text === '') {
+            return ['ok' => false];
+        }
+
+        $lower = strtolower($text);
+        $mentionsAi = (strpos($lower, '@ai') !== false || strpos($lower, 'sentinel ai') !== false || strpos($lower, 'system ai') !== false);
+        $looksRoleIntent = (
+            strpos($lower, 'role') !== false
+            || strpos($lower, 'page') !== false
+            || strpos($lower, 'permission') !== false
+            || strpos($lower, 'access') !== false
+            || strpos($lower, 'compulsory') !== false
+            || strpos($lower, 'mandatory') !== false
+            || strpos($lower, 'locked') !== false
+            || strpos($lower, 'greyed') !== false
+            || strpos($lower, 'grayed') !== false
+        );
+        if (!$mentionsAi && !$looksRoleIntent) {
+            return ['ok' => false];
+        }
+
+        // Mode detection from strict commands and natural language.
+        $mode = '';
+        if (
+            preg_match('/\b(unlock|remove|ungray|ungrey|unblock|uncheck)\b/i', $text)
+            || preg_match('/\b(should\s+not\s+see|shouldn\'?t\s+see|must\s+not\s+see|do\s+not\s+allow|don\'?t\s+allow)\b/i', $text)
+            || preg_match('/\b(not\s+compulsory|not\s+required|not\s+mandatory|not\s+supposed\s+to\s+see)\b/i', $text)
+        ) {
+            $mode = 'unlock';
+        } elseif (
+            preg_match('/\b(lock|force|must|mandatory|required|compulsory|grey|gray|check)\b/i', $text)
+            || preg_match('/\b(should\s+see|must\s+see|needs\s+to\s+see|need\s+to\s+see|allow\s+access)\b/i', $text)
+        ) {
+            $mode = 'lock';
+        }
+
+        if ($mode === '') {
+            return ['ok' => false];
+        }
+
+        $role = '';
+        $page = '';
+
+        $permissions = admin_load_permissions_cached(0);
+        if (!is_array($permissions)) {
+            $permissions = ['admin' => []];
+        }
+        $knownRoles = array_values(array_keys($permissions));
+        if (!in_array('admin', $knownRoles, true)) {
+            $knownRoles[] = 'admin';
+        }
+
+        $assignable = admin_assignable_pages();
+        if (!is_array($assignable)) {
+            $assignable = [];
+        }
+
+        if (preg_match('/\brole\s*[=:]\s*([a-zA-Z0-9_\-]+)/i', $text, $m)) {
+            $role = strtolower(trim((string)$m[1]));
+        } elseif (preg_match('/\brole\s+([a-zA-Z0-9_\-]+)/i', $text, $m)) {
+            $role = strtolower(trim((string)$m[1]));
+        } elseif (preg_match('/\b([a-zA-Z0-9_\-]+)\s+role\b/i', $text, $m)) {
+            $role = strtolower(trim((string)$m[1]));
+        } else {
+            foreach ($knownRoles as $candidateRole) {
+                $rk = strtolower(trim((string)$candidateRole));
+                if ($rk === '') continue;
+                if (preg_match('/\b' . preg_quote($rk, '/') . '\b/i', $lower)) {
+                    $role = $rk;
+                    break;
+                }
+            }
+        }
+
+        if (preg_match('/\bpage\s*[=:]\s*([a-zA-Z0-9_\-\s]+)/i', $text, $m)) {
+            $page = trim((string)$m[1]);
+        } elseif (preg_match('/\bpage\s+([a-zA-Z0-9_\-\s]+)/i', $text, $m)) {
+            $page = trim((string)$m[1]);
+        } elseif (preg_match('/\b([a-zA-Z0-9_\-\s]+)\s+page\b/i', $text, $m)) {
+            $page = trim((string)$m[1]);
+        } else {
+            $bestPage = '';
+            $bestScore = 0;
+            $normLower = preg_replace('/[^a-z0-9]+/', ' ', $lower);
+            foreach ($assignable as $pageId => $meta) {
+                $id = strtolower((string)$pageId);
+                $label = strtolower(trim((string)($meta['label'] ?? '')));
+                $idSpaced = str_replace('_', ' ', $id);
+                $score = 0;
+
+                if ($id !== '' && preg_match('/\b' . preg_quote($id, '/') . '\b/i', $lower)) {
+                    $score += 5;
+                }
+                if ($idSpaced !== '' && strpos($normLower, $idSpaced) !== false) {
+                    $score += 4;
+                }
+                if ($label !== '' && strpos($normLower, $label) !== false) {
+                    $score += 5;
+                }
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $bestPage = (string)$pageId;
+                }
+            }
+
+            if ($bestScore > 0) {
+                $page = $bestPage;
+            }
+        }
+
+        $page = preg_replace('/\s+/', '_', strtolower(trim((string)$page)));
+
+        if ($role === '' || $page === '') {
+            return ['ok' => false, 'needs_help' => true];
+        }
+
+        return [
+            'ok' => true,
+            'mode' => $mode,
+            'role' => $role,
+            'page' => $page,
+        ];
+    }
+}
+
 // parse and validate
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $msg = trim($data['message'] ?? '');
@@ -87,6 +217,66 @@ $messages = json_decode($raw, true);
 if (!is_array($messages)) $messages = [];
 
 $messages[] = $entry;
+
+$overrideReply = '';
+$overrideParsed = chat_parse_role_override_command($msg);
+if (!empty($overrideParsed['ok'])) {
+    $isSuperAdmin = (($_SESSION['admin_role'] ?? 'admin') === 'superadmin');
+    if (!$isSuperAdmin) {
+        $overrideReply = 'Sentinel AI: role override denied. Only superadmin can lock/unlock compulsory role pages.';
+    } else {
+        $result = admin_apply_role_compulsory_override(
+            (string)$overrideParsed['role'],
+            (string)$overrideParsed['page'],
+            (string)$overrideParsed['mode']
+        );
+
+        if (!empty($result['ok'])) {
+            $verb = $overrideParsed['mode'] === 'unlock' ? 'unlocked (no longer compulsory)' : 'locked as compulsory';
+            $overrideReply = sprintf(
+                'Sentinel AI: done ✅ page "%s" is now %s for role "%s". Changes are saved.',
+                (string)$result['page'],
+                $verb,
+                (string)$result['role']
+            );
+            if (function_exists('admin_log_action')) {
+                admin_log_action('Roles', 'Chat Override', sprintf(
+                    'Chat override by %s: %s page %s for role %s',
+                    (string)($_SESSION['admin_user'] ?? 'unknown'),
+                    (string)$overrideParsed['mode'],
+                    (string)$result['page'],
+                    (string)$result['role']
+                ));
+            }
+        } else {
+            $error = (string)($result['error'] ?? 'unknown_error');
+            if ($error === 'default_compulsory_page') {
+                $overrideReply = 'Sentinel AI: cannot unlock that page because it is part of the global compulsory safety baseline.';
+            } elseif ($error === 'invalid_page') {
+                $overrideReply = 'Sentinel AI: page not recognized. Use a valid page key or label (for example: announcement, support_tickets, ai_suggestions).';
+            } elseif ($error === 'invalid_role') {
+                $overrideReply = 'Sentinel AI: role not recognized for override. Check the role name and try again.';
+            } else {
+                $overrideReply = 'Sentinel AI: override failed to save. Please retry or use Roles page directly.';
+            }
+        }
+    }
+} elseif (!empty($overrideParsed['needs_help'])) {
+    $overrideReply = 'Sentinel AI: I understand normal English too. Try: "@ai manager should not see announcement page" or "please lock support_tickets for helpdesk role". Strict format also works: @ai role override <lock|unlock> role=<role_name> page=<page_key>.';
+}
+
+if ($overrideReply !== '') {
+    $messages[] = [
+        'id' => chat_message_id(),
+        'user' => 'system_ai_operator',
+        'name' => 'Sentinel AI',
+        'time' => date('c'),
+        'message' => $overrideReply,
+        'auto_replied_by' => 'system_ai_operator',
+        'context' => 'role_override_command',
+        'deleted' => false,
+    ];
+}
 
 function should_trigger_ai_chat_reply($msg)
 {
@@ -144,7 +334,7 @@ function ai_pending_review_count_from_diag()
     return $count;
 }
 
-if (should_trigger_ai_chat_reply($msg)) {
+if ($overrideReply === '' && should_trigger_ai_chat_reply($msg)) {
     $recentAiReply = false;
     for ($i = count($messages) - 1; $i >= 0; $i--) {
         $candidate = $messages[$i] ?? null;

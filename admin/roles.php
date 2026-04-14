@@ -16,6 +16,14 @@ if (!is_array($permissions)) {
 if (!isset($permissions['admin']) || !is_array($permissions['admin'])) {
   $permissions['admin'] = [];
 }
+if (!file_exists($permissionsFile)) {
+  $seed = $permissions;
+  if (!isset($seed['admin']) || !is_array($seed['admin'])) {
+    $seed['admin'] = [];
+  }
+  @file_put_contents($permissionsFile, json_encode($seed, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+  clearstatcache(true, $permissionsFile);
+}
 
 $assignablePages = admin_assignable_pages();
 $assignableKeys = array_fill_keys(array_keys($assignablePages), true);
@@ -229,8 +237,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
         }
       }
-      $aiPick = admin_role_ai_select_pages($role, $description);
-      $compulsoryForRole = array_values(array_unique($aiPick['pages'] ?? admin_default_compulsory_pages()));
+
+      // Preserve existing compulsory model; do not regenerate it on every save.
+      $compulsoryForRole = admin_role_compulsory_pages($role, $settings);
       foreach ($compulsoryForRole as $mustPage) {
         if (isset($assignableKeys[$mustPage])) {
           $sanitized[$mustPage] = true;
@@ -239,9 +248,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $permissions[$role] = array_keys($sanitized);
       $roleDescriptions[$role] = $description;
-      $roleCompulsoryPages[$role] = $compulsoryForRole;
       $settings['role_descriptions'] = $roleDescriptions;
-      $settings['role_compulsory_pages'] = $roleCompulsoryPages;
+      if (!isset($settings['role_compulsory_pages']) || !is_array($settings['role_compulsory_pages'])) {
+        $settings['role_compulsory_pages'] = [];
+      }
 
       if (@file_put_contents($settingsFile, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX) === false) {
         $error = 'Failed to save role description and compulsory page model.';
@@ -251,7 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         clearstatcache(true, $permissionsFile);
         clearstatcache(true, $settingsFile);
         admin_log_action('Roles', 'Permissions Updated', "Updated allowed modules for role '{$role}'.");
-        $message = "Permissions updated for role '{$role}'. AI compulsory pages were auto-selected and locked (100% confidence).";
+        $message = "Permissions updated for role '{$role}'.";
       } else {
         if ($error === '') {
           $error = 'Failed to write permissions configuration.';
@@ -461,6 +471,13 @@ foreach ($roleUsageCounts as $cnt) {
   </div>
 
   <div class="roles-panel" style="margin-bottom: 14px;">
+    <div class="roles-banner" style="background:var(--surface-container-lowest);color:var(--on-surface-variant);border-color:var(--outline-variant);margin-bottom:12px;">
+      <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">smart_toy</span>
+      Tagged AI override is enabled in admin chat. Example:
+      <code>@ai role override unlock role=manager page=announcement</code>
+      or
+      <code>@ai role override lock role=manager page=support_tickets</code>
+    </div>
     <div class="roles-search-wrap">
       <span class="material-symbols-outlined">search</span>
       <input id="roleSearchInput" class="roles-input" type="text" placeholder="Search role cards (e.g. admin, manager)..." autocomplete="off">
