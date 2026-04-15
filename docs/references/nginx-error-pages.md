@@ -7,6 +7,7 @@ The hosted site is running **nginx**, so `.htaccess` rules are ignored there. If
 See the complete server configuration: [nginx-server-config.conf](nginx-server-config.conf)
 
 That file includes:
+
 - Custom error page directives
 - PHP-FPM routing
 - Security headers

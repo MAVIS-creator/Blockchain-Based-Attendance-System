@@ -44,4 +44,3 @@ if (file_exists($logPath)) {
 
 fclose($output);
 exit;
-?>

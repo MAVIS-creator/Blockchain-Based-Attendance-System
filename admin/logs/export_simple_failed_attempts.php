@@ -28,7 +28,8 @@ foreach (admin_failed_attempt_entries_for_date($failedLogFile, 15) as $entry) {
     $matric = $entry['matric'] ?? '';
     $courseVal = $entry['course'] ?? '';
     if (($course === 'All' || $courseVal === $course) &&
-        ($search === '' || stripos($name, $search) !== false || stripos($matric, $search) !== false)) {
+        ($search === '' || stripos($name, $search) !== false || stripos($matric, $search) !== false)
+    ) {
         $logs[$matric] = ['name' => $name, 'matric' => $matric];
     }
 }
@@ -54,8 +55,10 @@ if (!$checkinOnlyCountsAsSuccess) {
     }
 
     foreach ($checkMap as $entry) {
-        if ($entry['checkin'] && !$entry['checkout'] &&
-            ($search === '' || stripos($entry['name'], $search) !== false || stripos($entry['matric'], $search) !== false)) {
+        if (
+            $entry['checkin'] && !$entry['checkout'] &&
+            ($search === '' || stripos($entry['name'], $search) !== false || stripos($entry['matric'], $search) !== false)
+        ) {
             $logs[$entry['matric']] = ['name' => $entry['name'], 'matric' => $entry['matric']];
         }
     }

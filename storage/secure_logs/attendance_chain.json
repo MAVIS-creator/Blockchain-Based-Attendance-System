@@ -10,5 +10,17 @@
         "course": "Group 14",
         "prevHash": null,
         "hash": "f52eaf5906d7e102a688d38f68d9e96c01c6797290e19219eeae0343d9bd4021"
+    },
+    {
+        "timestamp": "2026-04-15 11:35:16",
+        "name": "Akintunde",
+        "matric": "2023001932",
+        "action": "checkin",
+        "fingerprint": "142295584ccba01b195483d51697f927_12ffaea0-51ae-4fc8-af28-ecdfd1011733",
+        "ip": "::1",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0",
+        "course": "Group 14",
+        "prevHash": "f52eaf5906d7e102a688d38f68d9e96c01c6797290e19219eeae0343d9bd4021",
+        "hash": "fab5693ada5fb9430b710ee6ac18c1a6d1150dfd6d3da1376d20f604eb93ebd9"
     }
 ]

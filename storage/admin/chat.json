@@ -362,5 +362,15 @@
         "auto_replied_by": "system_ai_operator",
         "context": "idle_proactive",
         "deleted": false
+    },
+    {
+        "id": "msg_09118234c8304b9d",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-15T12:35:01+02:00",
+        "message": "Sentinel AI check-in \ud83c\udfaf: We can do a fast page tour, a one-liner joke, or a support queue snapshot.",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
     }
 ]
