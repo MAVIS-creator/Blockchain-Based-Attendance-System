@@ -12,7 +12,12 @@ if (!function_exists('admin_parse_attendance_line')) {
 
     $macRegex = '/([0-9a-f]{2}[:\\-]){5}[0-9a-f]{2}/i';
     $isAiStructuredRow = count($parts) >= 10 && in_array(strtolower((string)($parts[7] ?? '')), ['ai ticket processor', 'sentinel ai'], true);
-    $newFormat = count($parts) >= 10 && ($isAiStructuredRow || (isset($parts[5]) && preg_match($macRegex, $parts[5])));
+    $hasTimestampAtIndex6 = isset($parts[6]) && preg_match('/^\d{4}-\d{2}-\d{2}(?:\s+|T)\d{2}:\d{2}:\d{2}/', (string)$parts[6]);
+    $newFormat = count($parts) >= 10 && (
+      $isAiStructuredRow
+      || (isset($parts[5]) && preg_match($macRegex, (string)$parts[5]))
+      || $hasTimestampAtIndex6
+    );
 
     if ($newFormat) {
       return [

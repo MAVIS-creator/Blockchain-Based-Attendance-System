@@ -5,6 +5,7 @@ require_once dirname(__DIR__, 2) . '/storage_helpers.php';
 require_once dirname(__DIR__) . '/runtime_storage.php';
 require_once dirname(__DIR__) . '/cache_helpers.php';
 require_once dirname(__DIR__) . '/log_helpers.php';
+require_once dirname(__DIR__) . '/state_helpers.php';
 app_storage_init();
 
 $logDir = app_storage_file('logs');
@@ -23,6 +24,8 @@ if (isset($_GET['course']) && trim($_GET['course']) !== '') {
 
 $searchName = trim($_GET['search'] ?? '');
 $filterType = $_GET['filterType'] ?? 'both';
+$settings = admin_load_settings_cached(15);
+$checkinOnlyCountsAsSuccess = !empty($settings['checkin_only_counts_as_success']);
 
 $page = max(1, intval($_GET['page_num'] ?? 1)); // changed from intval($_GET['page'] ?? 1) to avoid collision with router page=logs
 $perPage = 15;
@@ -98,6 +101,9 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
       <span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px;">receipt_long</span>Attendance Logs
     </h2>
     <p style="color:var(--on-surface-variant);font-size:0.88rem;margin:4px 0 0;">Review, filter, and export student attendance records. Source: <strong><?= htmlspecialchars($hybridSource) ?></strong></p>
+    <?php if ($checkinOnlyCountsAsSuccess): ?>
+      <p style="color:#059669;font-size:0.82rem;margin:4px 0 0;font-weight:600;">Check-in only entries are currently treated as successful.</p>
+    <?php endif; ?>
   </div>
   <div style="display:flex;gap:8px;">
     <a href="../admin/logs/export.php?logDate=<?= urlencode($selectedDate) ?>&course=<?= urlencode($selectedCourse) ?>&search=<?= urlencode($searchName) ?>" class="st-btn st-btn-success st-btn-sm">
@@ -195,8 +201,28 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
             <td><?= $row['check_in'] !== '' ? htmlspecialchars(date('H:i:s', strtotime($row['check_in']))) : 'Pending' ?></td>
             <td><?= $row['check_out'] !== '' ? htmlspecialchars(date('H:i:s', strtotime($row['check_out']))) : 'Pending' ?></td>
             <td>
-              <?php $statusLabel = ($row['check_in'] !== '' && $row['check_out'] !== '') ? 'Complete' : (($row['check_in'] !== '') ? 'Check-in only' : 'Check-out only'); ?>
-              <span class="st-chip st-chip-neutral"><?= htmlspecialchars($statusLabel) ?></span>
+              <?php
+              if ($row['check_in'] !== '' && $row['check_out'] !== '') {
+                $statusLabel = 'Complete';
+                $statusClass = 'st-chip st-chip-neutral';
+                $statusStyle = '';
+              } elseif ($row['check_in'] !== '') {
+                if ($checkinOnlyCountsAsSuccess) {
+                  $statusLabel = 'Successful (Check-in only)';
+                  $statusClass = 'st-chip';
+                  $statusStyle = 'background:#dcfce7;color:#166534;border-color:#86efac;';
+                } else {
+                  $statusLabel = 'Check-in only';
+                  $statusClass = 'st-chip st-chip-neutral';
+                  $statusStyle = '';
+                }
+              } else {
+                $statusLabel = 'Check-out only';
+                $statusClass = 'st-chip st-chip-neutral';
+                $statusStyle = '';
+              }
+              ?>
+              <span class="<?= htmlspecialchars($statusClass) ?>" style="<?= htmlspecialchars($statusStyle) ?>"><?= htmlspecialchars($statusLabel) ?></span>
             </td>
             <td class="mobile-hide-col" style="font-family:monospace;font-size:0.8rem;color:var(--on-surface-variant);"><?= htmlspecialchars(substr($row['fingerprint'], 0, 16)) ?>...</td>
             <td class="mobile-hide-col" style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['ip']) ?></td>

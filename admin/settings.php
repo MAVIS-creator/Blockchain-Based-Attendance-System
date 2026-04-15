@@ -473,6 +473,7 @@ if (!file_exists($settingsFile)) {
     'checkin_time_start' => '',
     'checkin_time_end' => '',
     'enforce_one_device_per_day' => false,
+    'checkin_only_counts_as_success' => false,
     'load_test_relax_enabled' => false,
     'load_test_relax_minutes' => 30,
     'load_test_relax_until' => null,
@@ -518,6 +519,7 @@ $settings = array_replace([
   'checkin_time_start' => '',
   'checkin_time_end' => '',
   'enforce_one_device_per_day' => false,
+  'checkin_only_counts_as_success' => false,
   'load_test_relax_enabled' => false,
   'load_test_relax_minutes' => 30,
   'load_test_relax_until' => null,
@@ -639,6 +641,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $checkinStart = trim($_POST['checkin_time_start'] ?? '');
     $checkinEnd = trim($_POST['checkin_time_end'] ?? '');
     $enforceOneDevice = isset($_POST['enforce_one_device_per_day']) && $_POST['enforce_one_device_per_day'] === '1';
+    $checkinOnlyCountsAsSuccess = isset($_POST['checkin_only_counts_as_success']) && $_POST['checkin_only_counts_as_success'] === '1';
     $loadTestRelaxEnabled = isset($_POST['load_test_relax_enabled']) && $_POST['load_test_relax_enabled'] === '1';
     $loadTestRelaxMinutes = intval($_POST['load_test_relax_minutes'] ?? ($settings['load_test_relax_minutes'] ?? 30));
 
@@ -677,6 +680,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $settings['checkin_time_start'] = $checkinStart;
       $settings['checkin_time_end'] = $checkinEnd;
       $settings['enforce_one_device_per_day'] = $enforceOneDevice;
+      $settings['checkin_only_counts_as_success'] = $checkinOnlyCountsAsSuccess;
       $settings['load_test_relax_enabled'] = $loadTestRelaxEnabled;
       $settings['load_test_relax_minutes'] = $loadTestRelaxMinutes;
       $settings['load_test_relax_until'] = $loadTestRelaxEnabled ? (time() + ($loadTestRelaxMinutes * 60)) : null;
@@ -1001,6 +1005,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="space-y-4 pt-4 border-t border-outline-variant/20">
           <label class="flex items-center gap-3"><input class="w-5 h-5 rounded border-outline-variant text-primary" type="checkbox" name="require_fingerprint_match" value="1" <?= ($settings['require_fingerprint_match'] ?? false) ? 'checked' : '' ?>><span class="text-sm">Require biometric fingerprint verification</span></label>
           <label class="flex items-center gap-3"><input class="w-5 h-5 rounded border-outline-variant text-primary" type="checkbox" name="enforce_one_device_per_day" value="1" <?= ($settings['enforce_one_device_per_day'] ?? false) ? 'checked' : '' ?>><span class="text-sm">Enforce single device association per day</span></label>
+          <label class="flex items-center gap-3"><input class="w-5 h-5 rounded border-outline-variant text-primary" type="checkbox" name="checkin_only_counts_as_success" value="1" <?= ($settings['checkin_only_counts_as_success'] ?? false) ? 'checked' : '' ?>><span class="text-sm">Treat check-in only as successful (do not classify as failed log)</span></label>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

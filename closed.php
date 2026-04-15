@@ -391,8 +391,7 @@ if (file_exists($announcementFile)) {
 
   <footer class="page-footer">
     <div class="page-footer-pill">
-      <div class="page-footer-title">Created by CYB 204 Group 5</div>
-      <div class="page-footer-subtitle">(Headed by Maximus and Mavis)</div>
+      <div class="page-footer-title">Created for Cyber Security Department</div>
     </div>
   </footer>
 

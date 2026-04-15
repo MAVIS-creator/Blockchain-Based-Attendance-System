@@ -282,6 +282,8 @@ class AiTicketDiagnoser
       $requestedAction = '';
     }
     $date = date('Y-m-d');
+    $settings = function_exists('admin_load_settings_cached') ? admin_load_settings_cached(15) : [];
+    $checkinOnlyCountsAsSuccess = !empty($settings['checkin_only_counts_as_success']);
 
     $messageInfo = self::classifyMessage($message);
     $courseValidation = self::loadCourseValidationState($course);
@@ -310,6 +312,8 @@ class AiTicketDiagnoser
       'requested_action' => $requestedAction,
       'has_checkin' => $hasCheckin,
       'has_checkout' => $hasCheckout,
+      'checkin_only_counts_as_success' => (bool)$checkinOnlyCountsAsSuccess,
+      'checkin_only_without_checkout' => (bool)($hasCheckin && !$hasCheckout),
     ];
 
     $rulebookOutcome = class_exists('AiRulebook') ? AiRulebook::evaluate($facts) : [];

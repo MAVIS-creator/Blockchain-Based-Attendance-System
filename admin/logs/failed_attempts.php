@@ -5,6 +5,7 @@ require_once dirname(__DIR__, 2) . '/storage_helpers.php';
 require_once dirname(__DIR__) . '/runtime_storage.php';
 require_once dirname(__DIR__) . '/cache_helpers.php';
 require_once dirname(__DIR__) . '/log_helpers.php';
+require_once dirname(__DIR__) . '/state_helpers.php';
 app_storage_init();
 $logDir = app_storage_file('logs');
 $courseFile = admin_course_storage_migrate_file('course.json');
@@ -26,6 +27,8 @@ if (!in_array($selectedCourse, $courses) && $selectedCourse !== 'All') {
 
 $perPage = 20;
 $logs = [];
+$settings = admin_load_settings_cached(15);
+$checkinOnlyCountsAsSuccess = !empty($settings['checkin_only_counts_as_success']);
 
 // Classic failed attempts
 $failedLogFile = $logDir . DIRECTORY_SEPARATOR . $selectedDate . '_failed_attempts.log';
@@ -50,7 +53,7 @@ foreach (admin_failed_attempt_entries_for_date($failedLogFile, 15) as $entry) {
 $mainLogFile = "{$logDir}/{$selectedDate}.log";
 $checkMap = [];
 
-if (file_exists($mainLogFile)) {
+if (!$checkinOnlyCountsAsSuccess && file_exists($mainLogFile)) {
   foreach (admin_attendance_entries_for_date_parsed($mainLogFile, 15) as $entry) {
     $name = $entry['name'] ?? '';
     $matric = $entry['matric'] ?? '';

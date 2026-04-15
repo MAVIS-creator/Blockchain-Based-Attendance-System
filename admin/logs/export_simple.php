@@ -1,10 +1,13 @@
 <?php
 require_once dirname(__DIR__, 2) . '/storage_helpers.php';
 require_once dirname(__DIR__) . '/log_helpers.php';
+require_once dirname(__DIR__) . '/state_helpers.php';
 app_storage_init();
 $logDate = $_GET['logDate'] ?? date('Y-m-d');
 $course = $_GET['course'] ?? 'General';
 $logPath = app_storage_file("logs/{$logDate}.log");
+$settings = admin_load_settings_cached(15);
+$checkinOnlyCountsAsSuccess = !empty($settings['checkin_only_counts_as_success']);
 
 // 🔥 Sanitize the course name for filename (remove spaces, special chars, etc.)
 $sanitizedCourse = preg_replace('/[^a-zA-Z0-9_-]/', '_', $course);
@@ -32,7 +35,7 @@ if (file_exists($logPath)) {
     }
 
     foreach ($entries as $key => $data) {
-        if ($data['checkin'] && $data['checkout']) {
+        if ($data['checkin'] && ($data['checkout'] || $checkinOnlyCountsAsSuccess)) {
             [$name, $matric] = explode('|', $key);
             fputcsv($output, [$name, $matric]);
         }

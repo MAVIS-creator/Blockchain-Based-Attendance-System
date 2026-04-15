@@ -168,6 +168,32 @@
       "updated_at": "2026-04-14T12:00:00+02:00"
     },
     {
+      "id": "rule_sentinel_checkin_only_success_mode",
+      "priority": 1935,
+      "enabled": true,
+      "title": "Check-in only treated as success",
+      "intent": "CHECK-IN ONLY SUCCESS MODE: If check-in exists without checkout and checkin_only_counts_as_success is enabled, do not classify this as failed. Resolve as successful check-in state unless user is explicitly requesting checkout.",
+      "conditions": {
+        "checkin_only_counts_as_success": true,
+        "checkin_only_without_checkout": true,
+        "requested_action": ""
+      },
+      "outcome": {
+        "classification": "attendance_recorded_success",
+        "action": "notify_and_resolve",
+        "confidence": 0.97,
+        "suggested_admin_action": "Treat this as a successful check-in state. Do not push to failed attempts; advise checkout only if needed later.",
+        "reason": "Sentinel policy: check-in-only is configured to count as success."
+      },
+      "examples": [
+        "Student has a valid check-in for this course/day and no checkout yet, with checkin_only_counts_as_success enabled."
+      ],
+      "created_by": "Mavis",
+      "updated_by": "Mavis",
+      "created_at": "2026-04-15T12:00:00+02:00",
+      "updated_at": "2026-04-15T12:00:00+02:00"
+    },
+    {
       "id": "rule_sentinel_duplicate_checkin",
       "priority": 1930,
       "enabled": true,
