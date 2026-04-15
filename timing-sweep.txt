@@ -1,0 +1,27 @@
+=== PASS 1 ===
+pass=1 name=public-index code=302 dns=0.023744 connect=0.185914 tls=0.380714 ttfb=0.783430 total=0.783508
+pass=1 name=admin-index code=302 dns=0.017562 connect=0.194068 tls=0.405570 ttfb=0.774975 total=0.775030
+pass=1 name=admin-dashboard code=404 dns=0.011802 connect=0.151766 tls=0.378939 ttfb=1.327587 total=1.332530
+pass=1 name=submit code=200 dns=0.013867 connect=0.155381 tls=0.325897 ttfb=0.675528 total=0.675615
+pass=1 name=status code=200 dns=0.008942 connect=0.169362 tls=0.347305 ttfb=0.717336 total=0.717393
+pass=1 name=supabase code=401 dns=0.009434 connect=0.145760 tls=0.340238 ttfb=0.538330 total=0.538422
+pass=1 name=azure-origin code=302 dns=0.009838 connect=0.136109 tls=0.283539 ttfb=0.432471 total=0.432508
+
+=== PASS 2 ===
+pass=2 name=public-index code=302 dns=0.009314 connect=0.184446 tls=0.383532 ttfb=0.780590 total=0.780638
+pass=2 name=admin-index code=302 dns=0.009169 connect=0.163946 tls=0.546768 ttfb=0.923209 total=0.923249
+pass=2 name=admin-dashboard code=404 dns=0.011345 connect=0.168888 tls=0.351912 ttfb=1.332106 total=1.332274
+pass=2 name=submit code=200 dns=0.017845 connect=0.160068 tls=0.326117 ttfb=0.719967 total=0.720062
+pass=2 name=status code=200 dns=0.008758 connect=0.153153 tls=0.334009 ttfb=0.706427 total=0.706536
+pass=2 name=supabase code=401 dns=0.014342 connect=0.163163 tls=0.352766 ttfb=0.529265 total=0.529342
+pass=2 name=azure-origin code=302 dns=0.215815 connect=0.338569 tls=0.478390 ttfb=0.647591 total=0.647639
+
+=== PASS 3 ===
+pass=3 name=public-index code=302 dns=0.010132 connect=0.174140 tls=0.364353 ttfb=0.730624 total=0.730666
+pass=3 name=admin-index code=302 dns=0.011767 connect=0.182148 tls=0.368469 ttfb=0.730471 total=0.730519
+pass=3 name=admin-dashboard code=404 dns=0.009554 connect=0.183855 tls=0.422820 ttfb=1.514663 total=1.514736
+pass=3 name=submit code=200 dns=0.010753 connect=0.160631 tls=0.335803 ttfb=1.295479 total=1.295537
+pass=3 name=status code=200 dns=0.008371 connect=0.204854 tls=0.450654 ttfb=0.816058 total=0.816118
+pass=3 name=supabase code=401 dns=0.010322 connect=0.184586 tls=0.365593 ttfb=0.540649 total=0.543863
+pass=3 name=azure-origin code=302 dns=0.010913 connect=0.128903 tls=0.633183 ttfb=0.804560 total=0.804600
+

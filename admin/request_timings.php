@@ -88,6 +88,12 @@ if (empty($records) && file_exists($timingFile)) {
 }
 
 $routeStats = [];
+$diagnosticBuckets = [
+  'database_supabase' => 0,
+  'app_server_azure' => 0,
+  'network_or_edge_uncertain' => 0,
+  'unknown' => 0,
+];
 foreach ($records as $record) {
   $route = (string)($record['route'] ?? 'unknown');
   $duration = (float)($record['duration_ms'] ?? 0);
@@ -97,6 +103,15 @@ foreach ($records as $record) {
   $routeStats[$route]['count']++;
   $routeStats[$route]['durations'][] = $duration;
   $routeStats[$route]['max_ms'] = max($routeStats[$route]['max_ms'], $duration);
+
+  $diag = $record['meta']['diagnostics']['likely_layer'] ?? null;
+  if (!is_string($diag) || $diag === '') {
+    $diag = 'unknown';
+  }
+  if (!isset($diagnosticBuckets[$diag])) {
+    $diagnosticBuckets[$diag] = 0;
+  }
+  $diagnosticBuckets[$diag]++;
 }
 
 foreach ($routeStats as $route => &$stat) {
@@ -149,6 +164,32 @@ uasort($routeStats, function ($a, $b) {
       ?>
     </p>
   </div>
+  <div class="stat" style="text-align:left;border-top:none;">
+    <p class="st-stat-label">Likely DB-Limited</p>
+    <p class="st-stat-value"><?= number_format((int)($diagnosticBuckets['database_supabase'] ?? 0)) ?></p>
+  </div>
+  <div class="stat" style="text-align:left;border-top:none;">
+    <p class="st-stat-label">Likely App-Limited</p>
+    <p class="st-stat-value"><?= number_format((int)($diagnosticBuckets['app_server_azure'] ?? 0)) ?></p>
+  </div>
+</div>
+
+<div class="st-card" style="margin-bottom:24px;">
+  <p style="font-weight:700;color:var(--on-surface);margin:0 0 12px;">Likely Bottleneck Attribution</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+    <div class="st-chip" style="justify-content:flex-start;padding:10px 12px;background:#ecfdf5;color:#065f46;">
+      Supabase/DB: <strong style="margin-left:6px;"><?= (int)($diagnosticBuckets['database_supabase'] ?? 0) ?></strong>
+    </div>
+    <div class="st-chip" style="justify-content:flex-start;padding:10px 12px;background:#eff6ff;color:#1e40af;">
+      Azure App: <strong style="margin-left:6px;"><?= (int)($diagnosticBuckets['app_server_azure'] ?? 0) ?></strong>
+    </div>
+    <div class="st-chip" style="justify-content:flex-start;padding:10px 12px;background:#fff7ed;color:#9a3412;">
+      DNS/Edge Uncertain: <strong style="margin-left:6px;"><?= (int)($diagnosticBuckets['network_or_edge_uncertain'] ?? 0) ?></strong>
+    </div>
+    <div class="st-chip" style="justify-content:flex-start;padding:10px 12px;background:#f8fafc;color:#334155;">
+      Unknown: <strong style="margin-left:6px;"><?= (int)($diagnosticBuckets['unknown'] ?? 0) ?></strong>
+    </div>
+  </div>
 </div>
 
 <div class="st-card" style="margin-bottom:24px;">
@@ -188,6 +229,14 @@ uasort($routeStats, function ($a, $b) {
   <?php if (!empty($records)): ?>
     <div style="display:grid;gap:12px;">
       <?php foreach (array_reverse(array_slice($records, -25)) as $record): ?>
+        <?php
+          $diag = is_array($record['meta']['diagnostics'] ?? null) ? $record['meta']['diagnostics'] : [];
+          $likelyLayer = (string)($diag['likely_layer'] ?? 'unknown');
+          $confidence = isset($diag['confidence']) ? (float)$diag['confidence'] : 0;
+          $reason = (string)($diag['reason'] ?? 'No diagnostic reason captured.');
+          $breakdown = is_array($diag['breakdown_ms'] ?? null) ? $diag['breakdown_ms'] : [];
+          $policy = is_array($record['meta']['timing_policy'] ?? null) ? $record['meta']['timing_policy'] : [];
+        ?>
         <div style="border:1px solid var(--outline-variant);border-radius:12px;padding:14px;background:var(--surface-container-low);">
           <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
             <strong><?= htmlspecialchars((string)$record['route']) ?></strong>
@@ -196,6 +245,23 @@ uasort($routeStats, function ($a, $b) {
           <div style="font-size:0.85rem;color:var(--on-surface-variant);margin-top:4px;">
             <?= htmlspecialchars((string)($record['method'] ?? 'GET')) ?> • <?= htmlspecialchars((string)($record['finished_at'] ?? '')) ?> • peak <?= number_format((float)($record['memory_peak_mb'] ?? 0), 2) ?> MB
           </div>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+            <span class="st-chip" style="background:#f1f5f9;color:#0f172a;">Likely: <?= htmlspecialchars($likelyLayer) ?></span>
+            <span class="st-chip" style="background:#f8fafc;color:#334155;">Confidence: <?= number_format($confidence * 100, 0) ?>%</span>
+            <?php if (!empty($policy['kept_because'])): ?>
+              <span class="st-chip" style="background:#eef2ff;color:#3730a3;">Kept: <?= htmlspecialchars((string)$policy['kept_because']) ?></span>
+            <?php endif; ?>
+          </div>
+          <div style="margin-top:8px;font-size:0.82rem;color:var(--on-surface-variant);">
+            <?= htmlspecialchars($reason) ?>
+          </div>
+          <?php if (!empty($breakdown)): ?>
+            <div style="margin-top:8px;font-size:0.8rem;color:var(--on-surface-variant);display:flex;gap:8px;flex-wrap:wrap;">
+              <span>DB: <?= number_format((float)($breakdown['db_supabase'] ?? 0), 2) ?>ms</span>
+              <span>App: <?= number_format((float)($breakdown['app_server'] ?? 0), 2) ?>ms</span>
+              <span>Unattributed: <?= number_format((float)($breakdown['unattributed'] ?? 0), 2) ?>ms</span>
+            </div>
+          <?php endif; ?>
           <?php if (!empty($record['spans']) && is_array($record['spans'])): ?>
             <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
               <?php foreach ($record['spans'] as $span): ?>

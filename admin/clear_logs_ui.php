@@ -152,7 +152,16 @@ if (empty($_SESSION['admin_logged_in'])) {
       method: 'POST',
       body: fd
     }).then(r => r.json()).then(j => {
-      if (j && j.ok) document.getElementById('restoreResult').innerHTML = '<span style="color:var(--success);font-weight:600;">Restore successful.</span>';
+      if (j && j.ok) {
+        var remote = '';
+        if (j.supabase && j.supabase.attempted) {
+          var att = (j.supabase.inserted && j.supabase.inserted.attendance_logs) || 0;
+          var rt = (j.supabase.inserted && j.supabase.inserted.request_timings) || 0;
+          var errs = (j.supabase.errors && j.supabase.errors.length) || 0;
+          remote = ' Supabase synced (attendance: ' + att + ', timings: ' + rt + (errs ? ', errors: ' + errs : '') + ').';
+        }
+        document.getElementById('restoreResult').innerHTML = '<span style="color:var(--success);font-weight:600;">Restore successful.</span>' + remote;
+      }
       else document.getElementById('restoreResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Restore failed:</span> ' + JSON.stringify(j);
     }).catch(err => document.getElementById('restoreResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Restore transfer error.</span>');
   });
@@ -213,8 +222,15 @@ if (empty($_SESSION['admin_logged_in'])) {
         if (j && j.ok) {
           var deletedCount = j.result && j.result.deleted ? j.result.deleted.length : 0;
           var errorCount = j.result && j.result.errors ? j.result.errors.length : 0;
+          var supaDeleted = j.supabase && j.supabase.deleted ? j.supabase.deleted.length : 0;
+          var supaErrors = j.supabase && j.supabase.errors ? j.supabase.errors.length : 0;
           var msg = 'Successfully deleted ' + deletedCount + ' item(s).';
           if (errorCount > 0) msg += ' ' + errorCount + ' error(s) occurred.';
+          if (j.supabase && j.supabase.attempted) {
+            msg += ' Supabase: ' + supaDeleted + ' table clear(s)';
+            if (supaErrors > 0) msg += ', ' + supaErrors + ' error(s)';
+            msg += '.';
+          }
           document.getElementById('clearResult').innerHTML = '<span style="color:var(--success);font-weight:600;">✓ ' + msg + '</span>';
           if (window.adminAlert) window.adminAlert('Cleared', msg, 'success');
         } else {
@@ -263,6 +279,10 @@ if (empty($_SESSION['admin_logged_in'])) {
               var filesTouched = j.result.files_touched || 0;
               var linesRemoved = j.result.lines_removed || 0;
               var msg = 'Removed ' + linesRemoved + ' line(s) across ' + filesTouched + ' file(s).';
+              if (j.supabase && j.supabase.attempted) {
+                var supaErrors = j.supabase.errors ? j.supabase.errors.length : 0;
+                msg += ' Supabase filtered delete attempted' + (supaErrors ? ' with ' + supaErrors + ' error(s)' : '') + '.';
+              }
               document.getElementById('filteredResult').innerHTML = '<span style="color:var(--success);font-weight:600;">✓ ' + msg + '</span>';
               if (window.adminAlert) window.adminAlert('Filtered cleanup complete', msg, 'success');
             } else {

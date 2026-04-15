@@ -17,6 +17,7 @@ if (function_exists('csrf_check_request') && !csrf_check_request()) {
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/state_helpers.php';
+require_once __DIR__ . '/../hybrid_dual_write.php';
 app_storage_init();
 
 // scope: logs|backups|chain|fingerprints|all (can be comma-separated)
@@ -28,6 +29,7 @@ $backupsDir = app_storage_file('backups');
 $secureDir = app_storage_file('secure_logs');
 
 $result = ['deleted' => [], 'skipped' => [], 'errors' => []];
+$supabase = ['attempted' => false, 'deleted' => [], 'errors' => []];
 
 $cleanupMode = strtolower(trim((string)($_POST['mode'] ?? $_GET['mode'] ?? 'scope')));
 $filterKeyword = trim((string)($_POST['filter_keyword'] ?? $_GET['filter_keyword'] ?? ''));
@@ -109,6 +111,28 @@ function clear_logs_filter_mode($logsDir, $keyword, $actionFilter)
   return $summary;
 }
 
+function clear_supabase_tables(array $tables)
+{
+  $summary = ['attempted' => false, 'deleted' => [], 'errors' => []];
+
+  if (!function_exists('hybrid_enabled') || !function_exists('hybrid_supabase_delete') || !hybrid_enabled()) {
+    return $summary;
+  }
+
+  $summary['attempted'] = true;
+  foreach ($tables as $table) {
+    $err = null;
+    $ok = hybrid_supabase_delete((string)$table, ['id' => 'gt.0'], $err);
+    if ($ok) {
+      $summary['deleted'][] = (string)$table;
+    } else {
+      $summary['errors'][] = ['table' => (string)$table, 'error' => (string)$err];
+    }
+  }
+
+  return $summary;
+}
+
 if ($cleanupMode === 'filter') {
   $defaultKeyword = $filterKeyword !== '' ? $filterKeyword : 'load test';
   $filterSummary = clear_logs_filter_mode($logsDir, $defaultKeyword, $filterAction);
@@ -119,8 +143,28 @@ if ($cleanupMode === 'filter') {
     admin_log_action('Logs', 'Filtered Log Cleanup', $details);
   }
 
+  // Filtered clear can target attendance rows in Supabase (best effort).
+  if (function_exists('hybrid_enabled') && function_exists('hybrid_supabase_delete') && hybrid_enabled()) {
+    $supabase['attempted'] = true;
+    $filters = [];
+    if ($filterAction !== 'all') {
+      $filters['action'] = 'eq.' . $filterAction;
+    }
+    if ($defaultKeyword !== '') {
+      $needle = '*' . str_replace(',', ' ', $defaultKeyword) . '*';
+      $filters['or'] = '(name.ilike.' . $needle . ',matric.ilike.' . $needle . ',fingerprint.ilike.' . $needle . ',ip.ilike.' . $needle . ',mac.ilike.' . $needle . ',course.ilike.' . $needle . ',reason.ilike.' . $needle . ')';
+    }
+    $err = null;
+    $ok = hybrid_supabase_delete('attendance_logs', $filters, $err);
+    if ($ok) {
+      $supabase['deleted'][] = 'attendance_logs(filtered)';
+    } else {
+      $supabase['errors'][] = ['table' => 'attendance_logs', 'error' => (string)$err];
+    }
+  }
+
   header('Content-Type: application/json');
-  echo json_encode(['ok' => true, 'mode' => 'filter', 'result' => $filterSummary]);
+  echo json_encode(['ok' => true, 'mode' => 'filter', 'result' => $filterSummary, 'supabase' => $supabase]);
   exit;
 }
 
@@ -177,11 +221,26 @@ if (in_array('fingerprints', $scopes) || in_array('all', $scopes)) {
   }
 }
 
+if (in_array('logs', $scopes, true) || in_array('all', $scopes, true)) {
+  // Keep cloud source in sync with local clear operation.
+  $tables = ['attendance_logs', 'request_timings', 'admin_audit_logs'];
+  if (in_array('all', $scopes, true)) {
+    $tables[] = 'support_tickets';
+  }
+  $supabase = clear_supabase_tables($tables);
+}
+
 if (function_exists('admin_log_action')) {
   $scopeLabel = implode(',', $scopes);
   $details = "Scope cleanup executed. scopes={$scopeLabel}, deleted=" . count($result['deleted']) . ", errors=" . count($result['errors']);
+  if (!empty($supabase['deleted'])) {
+    $details .= ', supabase_deleted=' . implode('|', $supabase['deleted']);
+  }
+  if (!empty($supabase['errors'])) {
+    $details .= ', supabase_errors=' . count($supabase['errors']);
+  }
   admin_log_action('Logs', 'Scope Log Cleanup', $details);
 }
 
 header('Content-Type: application/json');
-echo json_encode(['ok' => true, 'result' => $result]);
+echo json_encode(['ok' => true, 'result' => $result, 'supabase' => $supabase]);

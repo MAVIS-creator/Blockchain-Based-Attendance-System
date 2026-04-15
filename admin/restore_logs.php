@@ -23,6 +23,8 @@ if (function_exists('csrf_check_request') && !csrf_check_request()) {
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/state_helpers.php';
+require_once __DIR__ . '/../hybrid_dual_write.php';
+require_once __DIR__ . '/log_helpers.php';
 app_storage_init();
 
 $tmp = $_FILES['backup']['tmp_name'];
@@ -68,8 +70,106 @@ if (file_exists($tempDir . '/admin_fingerprints.json')) {
 // cleanup
 // (we won't recursively delete tempDir to avoid permission issues; rely on system temp cleanup)
 
-if (function_exists('admin_log_action')) {
-  admin_log_action('Logs', 'Backup Restored', "Restored backup archive: {$name}");
+$supabaseSync = [
+  'attempted' => false,
+  'cleared' => [],
+  'inserted' => ['attendance_logs' => 0, 'request_timings' => 0],
+  'errors' => [],
+];
+
+if (function_exists('hybrid_enabled') && function_exists('hybrid_supabase_delete') && function_exists('hybrid_supabase_insert') && hybrid_enabled()) {
+  $supabaseSync['attempted'] = true;
+
+  // Keep remote source aligned with restored local snapshot.
+  foreach (['attendance_logs', 'request_timings'] as $table) {
+    $err = null;
+    if (hybrid_supabase_delete($table, ['id' => 'gt.0'], $err)) {
+      $supabaseSync['cleared'][] = $table;
+    } else {
+      $supabaseSync['errors'][] = ['table' => $table, 'stage' => 'clear', 'error' => (string)$err];
+    }
+  }
+
+  $restoredLogsDir = $tempDir . '/logs';
+  if (is_dir($restoredLogsDir)) {
+    foreach (glob($restoredLogsDir . '/*.log') ?: [] as $logFile) {
+      // Attendance day logs are date-based (YYYY-MM-DD.log).
+      if (!preg_match('/\\d{4}-\\d{2}-\\d{2}\\.log$/', (string)basename($logFile))) {
+        continue;
+      }
+
+      $entries = admin_attendance_entries_for_date_parsed($logFile, 0);
+      if (!is_array($entries)) continue;
+
+      foreach ($entries as $entry) {
+        if (!is_array($entry)) continue;
+        $rawTs = (string)($entry['timestamp'] ?? '');
+        $ts = strtotime($rawTs);
+        $payload = [
+          'timestamp' => $ts ? gmdate('c', $ts) : gmdate('c'),
+          'name' => (string)($entry['name'] ?? ''),
+          'matric' => (string)($entry['matric'] ?? ''),
+          'action' => strtolower((string)($entry['action'] ?? 'checkin')),
+          'fingerprint' => (string)($entry['fingerprint'] ?? ''),
+          'ip' => (string)($entry['ip'] ?? ''),
+          'mac' => (string)($entry['mac'] ?? 'UNKNOWN'),
+          'user_agent' => (string)($entry['device'] ?? ''),
+          'course' => (string)($entry['course'] ?? 'General'),
+          'reason' => (string)($entry['reason'] ?? '-'),
+        ];
+
+        $err = null;
+        if (hybrid_supabase_insert('attendance_logs', $payload, $err)) {
+          $supabaseSync['inserted']['attendance_logs']++;
+        } else {
+          $supabaseSync['errors'][] = ['table' => 'attendance_logs', 'stage' => 'insert', 'error' => (string)$err];
+        }
+      }
+    }
+
+    $timingPath = $restoredLogsDir . '/request_timing.jsonl';
+    if (file_exists($timingPath)) {
+      $timingLines = @file($timingPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+      foreach ($timingLines as $line) {
+        $decoded = json_decode((string)$line, true);
+        if (!is_array($decoded) || empty($decoded['route'])) {
+          continue;
+        }
+
+        $payload = [
+          'route' => (string)($decoded['route'] ?? 'unknown'),
+          'started_at_epoch' => (float)($decoded['started_at'] ?? microtime(true)),
+          'finished_at' => (string)($decoded['finished_at'] ?? gmdate('c')),
+          'duration_ms' => (float)($decoded['duration_ms'] ?? 0),
+          'method' => (string)($decoded['method'] ?? ''),
+          'uri' => (string)($decoded['uri'] ?? ''),
+          'status_code' => isset($decoded['status_code']) ? (int)$decoded['status_code'] : null,
+          'memory_peak_mb' => (float)($decoded['memory_peak_mb'] ?? 0),
+          'meta' => is_array($decoded['meta'] ?? null) ? $decoded['meta'] : [],
+          'spans' => is_array($decoded['spans'] ?? null) ? $decoded['spans'] : [],
+        ];
+
+        $err = null;
+        if (hybrid_supabase_insert('request_timings', $payload, $err)) {
+          $supabaseSync['inserted']['request_timings']++;
+        } else {
+          $supabaseSync['errors'][] = ['table' => 'request_timings', 'stage' => 'insert', 'error' => (string)$err];
+        }
+      }
+    }
+  }
 }
 
-echo json_encode(['ok' => true, 'message' => 'Restore complete']);
+if (function_exists('admin_log_action')) {
+  $details = "Restored backup archive: {$name}";
+  if ($supabaseSync['attempted']) {
+    $details .= '; supabase_attendance=' . (int)$supabaseSync['inserted']['attendance_logs'];
+    $details .= '; supabase_timings=' . (int)$supabaseSync['inserted']['request_timings'];
+    if (!empty($supabaseSync['errors'])) {
+      $details .= '; supabase_errors=' . count($supabaseSync['errors']);
+    }
+  }
+  admin_log_action('Logs', 'Backup Restored', $details);
+}
+
+echo json_encode(['ok' => true, 'message' => 'Restore complete', 'supabase' => $supabaseSync]);
