@@ -8,10 +8,19 @@ use Web3p\EthereumTx\Transaction;
 
 function sendLogHashToPolygon($logFilePath)
 {
+    // ✅ Respect the BLOCKCHAIN_ENABLED flag first.
+    // Set BLOCKCHAIN_ENABLED=true in .env to activate Polygon anchoring.
+    // When false/off, the local SHA-256 chain (attendance_chain.json) still
+    // guarantees full tamper-proof protection — Polygon is an optional extra layer.
+    $blockchainEnabled = strtolower(trim((string)getenv('BLOCKCHAIN_ENABLED')));
+    if ($blockchainEnabled !== 'true' && $blockchainEnabled !== '1') {
+        return null; // Disabled — skip silently, no RPC call made
+    }
+
     // Load config from environment or config file
-    $privateKey = getenv('POLYGON_PRIVATE_KEY');
+    $privateKey  = getenv('POLYGON_PRIVATE_KEY');
     $fromAddress = getenv('POLYGON_ADDRESS');
-    $rpcUrl = getenv('POLYGON_RPC_URL');
+    $rpcUrl      = getenv('POLYGON_RPC_URL');
 
     if (!$privateKey || !$fromAddress || !$rpcUrl) {
         throw new Exception("Polygon config missing.");

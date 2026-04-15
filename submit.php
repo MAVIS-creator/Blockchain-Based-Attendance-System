@@ -633,55 +633,67 @@ $chain[] = $block;
 file_put_contents($chainFile, json_encode($chain, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
 request_timing_span('write_chain', $chainSpan, ['chain_blocks' => count($chain)]);
 
-// ✅ Optional hybrid dual-write (file remains source of truth)
+// ✅ Send success response to the browser IMMEDIATELY.
+// The .log file and local blockchain chain are already written above — those are
+// the tamper-proof records. Supabase dual-write + Polygon anchoring run AFTER
+// the response is flushed so the user never waits on network I/O.
+header('Content-Type: application/json');
+header('Content-Length: ' . strlen(json_encode(['ok' => true, 'message' => "Your $action was recorded successfully!"])));
+echo json_encode(['ok' => true, 'message' => "Your $action was recorded successfully!"]);
+
+// Flush the response to the browser now.
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request(); // On Azure/Nginx-FPM: sends response, keeps PHP running
+} elseif (function_exists('ob_end_flush')) {
+    ob_end_flush();
+    flush();
+} else {
+    flush();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BACKGROUND WORK — runs after user already sees "recorded successfully".
+// None of this affects the response the student receives.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ✅ Optional hybrid dual-write to Supabase (file + local chain remain source of truth).
 $dualWriteSpan = microtime(true);
 hybrid_dual_write('attendance', 'attendance_logs', [
-    'timestamp' => date('c'),
-    'name' => $name,
-    'matric' => $matric,
-    'action' => $action,
-    'fingerprint' => $fingerprint,
-    'ip' => $ip,
-    'mac' => $mac,
+    'timestamp'  => date('c'),
+    'name'       => $name,
+    'matric'     => $matric,
+    'action'     => $action,
+    'fingerprint'=> $fingerprint,
+    'ip'         => $ip,
+    'mac'        => $mac,
     'user_agent' => $userAgent,
-    'course' => $course,
-    'reason' => $logReason,
+    'course'     => $course,
+    'reason'     => $logReason,
     'chain_hash' => $block['hash'],
 ]);
 request_timing_span('hybrid_dual_write', $dualWriteSpan);
 
-// Compulsory auto-send trigger once attendance cycle is complete (checkin + checkout) for this matric/course/date.
-// Uses current auto_send settings and a tracker to avoid duplicate sends.
-$autoSendEnabled = !empty($settings['auto_send']['enabled']);
+// Auto-send trigger once a full attendance cycle (checkin + checkout) is complete.
+$autoSendEnabled   = !empty($settings['auto_send']['enabled']);
 $autoSendRecipient = trim((string)($settings['auto_send']['recipient'] ?? ''));
-$autoSendFormat = strtolower(trim((string)($settings['auto_send']['format'] ?? 'csv')));
+$autoSendFormat    = strtolower(trim((string)($settings['auto_send']['format'] ?? 'csv')));
 if (!in_array($autoSendFormat, ['csv', 'pdf'], true)) {
     $autoSendFormat = 'csv';
 }
 
 if ($autoSendEnabled && $autoSendRecipient !== '' && filter_var($autoSendRecipient, FILTER_VALIDATE_EMAIL)) {
     $postWriteLines = @file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-    $cycleCheckin = 0;
-    $cycleCheckout = 0;
+    $cycleCheckin   = 0;
+    $cycleCheckout  = 0;
     foreach ($postWriteLines as $ln) {
         $parts = array_map('trim', explode('|', (string)$ln));
-        if (!isset($parts[1], $parts[2])) {
-            continue;
-        }
-        if ($parts[1] !== $matric) {
-            continue;
-        }
+        if (!isset($parts[1], $parts[2])) continue;
+        if ($parts[1] !== $matric) continue;
         $lineCourse = isset($parts[8]) ? strtolower(trim((string)$parts[8])) : 'general';
-        if ($lineCourse !== $courseNormalized) {
-            continue;
-        }
-
+        if ($lineCourse !== $courseNormalized) continue;
         $lineAction = strtolower((string)$parts[2]);
-        if ($lineAction === 'checkin') {
-            $cycleCheckin++;
-        } elseif ($lineAction === 'checkout') {
-            $cycleCheckout++;
-        }
+        if ($lineAction === 'checkin')  $cycleCheckin++;
+        elseif ($lineAction === 'checkout') $cycleCheckout++;
     }
 
     if ($cycleCheckin > 0 && $cycleCheckout > 0) {
@@ -689,44 +701,36 @@ if ($autoSendEnabled && $autoSendRecipient !== '' && filter_var($autoSendRecipie
         if (!file_exists($trackerFile)) {
             @file_put_contents($trackerFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
         }
-
         $fpTracker = fopen($trackerFile, 'c+');
         if ($fpTracker && flock($fpTracker, LOCK_EX)) {
             rewind($fpTracker);
             $trackerRaw = stream_get_contents($fpTracker);
             $tracker = json_decode($trackerRaw ?: '[]', true);
-            if (!is_array($tracker)) {
-                $tracker = [];
-            }
+            if (!is_array($tracker)) $tracker = [];
 
             $markerKey = $today . '|' . $matric . '|' . $courseNormalized;
             if (!isset($tracker[$markerKey])) {
                 $tracker[$markerKey] = [
                     'triggered_at' => date('c'),
-                    'date' => $today,
+                    'date'   => $today,
                     'matric' => $matric,
                     'course' => $course,
                     'status' => 'queued',
                 ];
-
+                // Fire auto-send as a detached background process (non-blocking).
                 $cmd = escapeshellarg(PHP_BINARY)
                     . ' ' . escapeshellarg(__DIR__ . '/admin/auto_send_logs.php')
                     . ' ' . escapeshellarg($today)
                     . ' --force'
                     . ' --recipient=' . escapeshellarg($autoSendRecipient)
-                    . ' --format=' . escapeshellarg($autoSendFormat);
-                $output = [];
-                $exitCode = 1;
-                @exec($cmd, $output, $exitCode);
-
-                $tracker[$markerKey]['status'] = $exitCode === 0 ? 'success' : 'failed';
-                $tracker[$markerKey]['exit_code'] = $exitCode;
-                $tracker[$markerKey]['output'] = implode("\n", array_slice($output, 0, 20));
-                request_timing_note('auto_send_triggered', $exitCode === 0 ? 'success' : 'failed');
+                    . ' --format='    . escapeshellarg($autoSendFormat)
+                    . ' > /dev/null 2>&1 &';
+                @exec($cmd);
+                $tracker[$markerKey]['status'] = 'dispatched';
+                request_timing_note('auto_send_triggered', 'dispatched_background');
             } else {
                 request_timing_note('auto_send_triggered', 'already_sent');
             }
-
             rewind($fpTracker);
             ftruncate($fpTracker, 0);
             fwrite($fpTracker, json_encode($tracker, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -739,13 +743,15 @@ if ($autoSendEnabled && $autoSendRecipient !== '' && filter_var($autoSendRecipie
     }
 }
 
-// ⚡ Optional: Polygon integration
+// ⚡ Polygon blockchain anchoring — runs in background after response is sent.
+// The local SHA-256 chain (attendance_chain.json) already guarantees tamper-proof
+// logs. Polygon anchors that same hash onto the public blockchain as a second layer.
 require_once __DIR__ . '/polygon_hash.php';
 try {
     $txHash = sendLogHashToPolygon($logFile);
+    if ($txHash) {
+        request_timing_note('polygon_tx', $txHash);
+    }
 } catch (Exception $e) {
     error_log('Polygon error: ' . $e->getMessage());
 }
-
-header('Content-Type: application/json');
-echo json_encode(['ok' => true, 'message' => "Your $action was recorded successfully!"]);
