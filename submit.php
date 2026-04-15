@@ -743,15 +743,15 @@ if ($autoSendEnabled && $autoSendRecipient !== '' && filter_var($autoSendRecipie
     }
 }
 
-// ⚡ Polygon blockchain anchoring — runs in background after response is sent.
-// The local SHA-256 chain (attendance_chain.json) already guarantees tamper-proof
-// logs. Polygon anchors that same hash onto the public blockchain as a second layer.
-require_once __DIR__ . '/polygon_hash.php';
-try {
-    $txHash = sendLogHashToPolygon($logFile);
-    if ($txHash) {
-        request_timing_note('polygon_tx', $txHash);
-    }
-} catch (Exception $e) {
-    error_log('Polygon error: ' . $e->getMessage());
+// ⚡ Self-contained log anchoring — runs in background after response is sent.
+// Hashes today's .log file + the latest chain block hash and pushes both to
+// Supabase as an immutable external witness record.  No Polygon, no gas fees,
+// no RPC latency — just pure SHA-256 verification stored on a separate system.
+require_once __DIR__ . '/chain_anchor.php';
+$anchorResult = chain_anchor_log($logFile, $today, $course, $block['hash']);
+if (!$anchorResult['ok']) {
+    error_log('Chain anchor failed: ' . ($anchorResult['error'] ?? 'unknown'));
+} else {
+    request_timing_note('log_anchor_hash', $anchorResult['hash'] ?? '');
 }
+
