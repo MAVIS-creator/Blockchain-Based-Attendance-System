@@ -169,6 +169,54 @@ function is_revoked_value($bucket, $value, $now)
     return true;
 }
 
+function detect_proxy_vpn_indicators()
+{
+    $indicators = [];
+
+    $forwardedHeaders = [
+        'HTTP_FORWARDED',
+        'HTTP_X_FORWARDED_FOR',
+        'HTTP_X_FORWARDED',
+        'HTTP_X_CLUSTER_CLIENT_IP',
+        'HTTP_CLIENT_IP',
+        'HTTP_VIA',
+        'HTTP_PROXY_CONNECTION',
+        'HTTP_TRUE_CLIENT_IP',
+        'HTTP_CF_CONNECTING_IP',
+    ];
+
+    foreach ($forwardedHeaders as $hdr) {
+        $val = trim((string)($_SERVER[$hdr] ?? ''));
+        if ($val !== '') {
+            $indicators[] = $hdr;
+        }
+    }
+
+    $remoteAddr = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+    if ($remoteAddr === '' || !filter_var($remoteAddr, FILTER_VALIDATE_IP)) {
+        $indicators[] = 'REMOTE_ADDR_INVALID';
+    }
+
+    // If XFF contains multiple hops, treat as proxied path.
+    $xff = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
+    if ($xff !== '' && strpos($xff, ',') !== false) {
+        $indicators[] = 'HTTP_X_FORWARDED_FOR_MULTI_HOP';
+    }
+
+    return array_values(array_unique($indicators));
+}
+
+// -----------------------
+// VPN / Proxy tunneling enforcement (optional)
+// -----------------------
+if (!empty($settings['block_vpn_proxy'])) {
+    $vpnIndicators = detect_proxy_vpn_indicators();
+    if (!empty($vpnIndicators)) {
+        request_timing_note('vpn_proxy_blocked', implode(',', $vpnIndicators));
+        fail('VPN_PROXY_DETECTED', 'VPN or proxy-like routing was detected. Disable VPN/proxy and retry attendance with your direct network.');
+    }
+}
+
 // Helper: read/write store with optional encryption using settings key
 function read_store($file, $encrypt = false)
 {
@@ -359,7 +407,7 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
         $postLng = isset($_POST['lng']) ? floatval($_POST['lng']) : null;
         if ($postLat === null || $postLng === null) {
             request_timing_note('geo_fence_result', 'missing_client_location');
-            fail('GEOFENCE_MISSING', 'Location required for attendance at this time.');
+            fail('GEOFENCE_MISSING', 'Location required for attendance at this time. Enable device location (high accuracy) and disable VPN/proxy if active.');
         }
         // haversine
         $earthRadius = 6371000; // meters
@@ -371,7 +419,7 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
         if ($dist > $gfRadius) {
             request_timing_note('geo_fence_result', 'outside');
             request_timing_note('geo_fence_distance_m', round($dist, 2));
-            fail('GEOFENCE_OUTSIDE', 'You are outside the allowed attendance area.');
+            fail('GEOFENCE_OUTSIDE', 'You are outside the allowed attendance area. If this is unexpected, disable VPN/proxy and retry with accurate GPS location.');
         }
         request_timing_note('geo_fence_result', 'inside');
         request_timing_note('geo_fence_distance_m', round($dist, 2));

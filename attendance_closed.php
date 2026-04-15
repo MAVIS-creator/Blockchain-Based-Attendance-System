@@ -180,6 +180,26 @@
       <a class="btn btn-primary" href="support.php"><i class='bx bx-message'></i> Contact Support</a>
     </div>
   </div>
+
+  <script>
+    async function autoReturnWhenAttendanceOpens() {
+      try {
+        const res = await fetch('status_api.php', {
+          cache: 'no-store'
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && (data.checkin || data.checkout)) {
+          window.location.href = 'index.php';
+        }
+      } catch (e) {
+        // keep page stable if status endpoint is unavailable
+      }
+    }
+
+    autoReturnWhenAttendanceOpens();
+    setInterval(autoReturnWhenAttendanceOpens, 5000);
+  </script>
 </body>
 
 </html>

@@ -481,6 +481,7 @@ if (!file_exists($settingsFile)) {
     'ip_whitelist' => [],
     'encrypted_settings' => false,
     'device_cooldown_seconds' => 0,
+    'block_vpn_proxy' => false,
     'geo_fence_enabled' => false,
     'geo_fence' => ['lat' => null, 'lng' => null, 'radius_m' => 0],
     'user_agent_lock' => false,
@@ -526,6 +527,7 @@ $settings = array_replace([
   'ip_whitelist' => [],
   'encrypted_settings' => false,
   'device_cooldown_seconds' => 0,
+  'block_vpn_proxy' => false,
   'geo_fence_enabled' => false,
   'geo_fence' => ['lat' => null, 'lng' => null, 'radius_m' => 0],
   'user_agent_lock' => false,
@@ -650,6 +652,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ipWhitelist = array_values(array_filter(array_map('trim', preg_split('/[\r\n,]+/', $ipWhitelistRaw))));
     $encryptedSettings = isset($_POST['encrypted_settings']) && $_POST['encrypted_settings'] === '1';
     $deviceCooldown = intval($_POST['device_cooldown_seconds'] ?? 0);
+    $blockVpnProxy = isset($_POST['block_vpn_proxy']) && $_POST['block_vpn_proxy'] === '1';
     $userAgentLock = isset($_POST['user_agent_lock']) && $_POST['user_agent_lock'] === '1';
     $autoBackup = isset($_POST['auto_backup']) && $_POST['auto_backup'] === '1';
     $backupRetention = intval($_POST['backup_retention'] ?? 10);
@@ -687,6 +690,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $settings['ip_whitelist'] = $ipWhitelist;
       $settings['encrypted_settings'] = $encryptedSettings;
       $settings['device_cooldown_seconds'] = $deviceCooldown;
+      $settings['block_vpn_proxy'] = $blockVpnProxy;
       $settings['user_agent_lock'] = $userAgentLock;
       $settings['auto_backup'] = $autoBackup;
       $settings['backup_retention'] = $backupRetention;
@@ -1084,6 +1088,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <label class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">IP whitelist</label>
           <textarea class="mt-2 w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm" name="ip_whitelist" rows="4"><?= htmlspecialchars(implode("\n", $settings['ip_whitelist'] ?? [])) ?></textarea>
         </div>
+        <label class="flex items-center gap-3"><input class="w-5 h-5" type="checkbox" name="block_vpn_proxy" value="1" <?= ($settings['block_vpn_proxy'] ?? false) ? 'checked' : '' ?>> Block VPN / proxy-tunneled requests</label>
+        <p class="text-xs text-on-surface-variant -mt-2">When enabled, requests with proxy/VPN forwarding indicators are rejected with a clear error so attendance cannot be spoofed through tunneled IP changes.</p>
       </section>
 
       <section class="min-w-0 bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant/20 space-y-4 h-full">

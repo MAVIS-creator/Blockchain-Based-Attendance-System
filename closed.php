@@ -582,6 +582,55 @@ if (file_exists($announcementFile)) {
 
     fetchAnnouncement();
     setInterval(fetchAnnouncement, 10000);
+
+    // Auto-recover: when attendance is reopened (or token state is changed),
+    // send user back to index instead of keeping them stuck on closed page.
+    async function autoReturnToAttendanceIfAllowed() {
+      try {
+        const statusRes = await fetch('status_api.php', {
+          cache: 'no-store'
+        });
+        if (!statusRes.ok) return;
+
+        const status = await statusRes.json();
+        const isOpen = !!(status && (status.checkin || status.checkout));
+        if (!isOpen) return;
+
+        let tokenRevoked = false;
+        const token = localStorage.getItem('attendance_token') || '';
+        if (token) {
+          try {
+            const revokedRes = await fetch('admin/revoked_tokens.php', {
+              cache: 'no-store'
+            });
+            if (revokedRes.ok) {
+              const revokedData = await revokedRes.json();
+              const revokedTokens = (revokedData && revokedData.revoked && revokedData.revoked.tokens) ? revokedData.revoked.tokens : {};
+              tokenRevoked = !!(revokedTokens && revokedTokens[token]);
+            }
+          } catch (e) {
+            // If revoke endpoint is temporarily unavailable, continue with status-based recovery.
+          }
+        }
+
+        // Clear local blockers so user can resume once class is reopened.
+        localStorage.removeItem('attendanceBlocked');
+        localStorage.removeItem('attendanceTabAwayStrikes');
+        localStorage.removeItem('attendanceTabAwayLockUntil');
+
+        // If token is revoked or has been cleared by admin workflow, drop stale local token too.
+        if (tokenRevoked) {
+          localStorage.removeItem('attendance_token');
+        }
+
+        window.location.href = 'index.php';
+      } catch (e) {
+        // no-op
+      }
+    }
+
+    autoReturnToAttendanceIfAllowed();
+    setInterval(autoReturnToAttendanceIfAllowed, 5000);
   </script>
 </body>
 
