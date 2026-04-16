@@ -24,25 +24,64 @@ if (!function_exists('hybrid_fetch_attendance_entries')) {
     };
     $selectedCourseNorm = $normalizeCourse($courseFilter);
 
-    $start = $selectedDate . 'T00:00:00Z';
+    // Build a timezone-aware UTC window for the full local calendar day.
+    // Timestamps in Supabase are stored with the local timezone offset (e.g. +01:00 for
+    // Africa/Lagos). Records logged between 00:00–00:59 local time have UTC timestamps
+    // that fall on the *previous* calendar day (e.g. 2026-04-15T00:30+01:00 = 2026-04-14T23:30Z).
+    // Using raw UTC midnight as the lower bound excludes those entries entirely.
+    // We fix this by computing the true UTC start/end for the local day and using
+    // PostgREST's and=() filter to send both bounds in one request.
+    $appTz = (string)(hybrid_env('APP_TIMEZONE', 'Africa/Lagos') ?: 'Africa/Lagos');
+    try {
+      $tz = new DateTimeZone($appTz);
+    } catch (Throwable $e) {
+      $tz = new DateTimeZone('Africa/Lagos');
+    }
+    try {
+      // Local day starts at 00:00:00 in the app timezone
+      $localStart = new DateTime($selectedDate . ' 00:00:00', $tz);
+      // Local day ends just before midnight (exclusive)
+      $localEnd   = new DateTime($selectedDate . ' 00:00:00', $tz);
+      $localEnd->modify('+1 day');
+      // Convert to UTC ISO8601 for Supabase
+      $localStart->setTimezone(new DateTimeZone('UTC'));
+      $localEnd->setTimezone(new DateTimeZone('UTC'));
+      $utcStart = $localStart->format('Y-m-d\TH:i:s\Z');
+      $utcEnd   = $localEnd->format('Y-m-d\TH:i:s\Z');
+    } catch (Throwable $e) {
+      // Fallback: use naive UTC bounds (old behaviour, may miss early local-morning records)
+      $utcStart = $selectedDate . 'T00:00:00Z';
+      $utcEnd   = $selectedDate . 'T23:59:59Z';
+    }
 
-    // Supabase query params can include same key twice; build manually for date range.
+    // PostgREST supports compound filters via and=(col.op.val,col.op.val).
+    // This lets us send both gte AND lt for 'timestamp' in a single GET request.
     $customQuery = [
       'select' => 'name,matric,action,fingerprint,ip,mac,user_agent,course,reason,timestamp',
-      'order' => 'timestamp.asc',
-      'timestamp' => 'gte.' . $start,
+      'order'  => 'timestamp.asc',
+      'and'    => '(timestamp.gte.' . $utcStart . ',timestamp.lt.' . $utcEnd . ')',
     ];
 
     $rows = null;
-    $err = null;
-    $ok = hybrid_supabase_select('attendance_logs', $customQuery, $rows, $err);
+    $err  = null;
+    $ok   = hybrid_supabase_select('attendance_logs', $customQuery, $rows, $err);
     if (!$ok || !is_array($rows)) return null;
 
     $entries = [];
     foreach ($rows as $row) {
       $ts = (string)($row['timestamp'] ?? '');
       if ($ts === '') continue;
-      $tsDate = substr($ts, 0, 10);
+      // Verify the entry falls within the local calendar day.
+      // The timestamp may be stored with a timezone offset (e.g. +01:00).
+      // Parse it so we compare against the local date, not UTC date.
+      try {
+        $dt = new DateTime($ts);
+        $dt->setTimezone($tz);
+        $tsDate = $dt->format('Y-m-d');
+      } catch (Throwable $e) {
+        // Fallback: naive substring (only works when tz offset is absent or +00:00)
+        $tsDate = substr($ts, 0, 10);
+      }
       if ($tsDate !== $selectedDate) continue;
 
       $entry = [

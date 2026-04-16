@@ -45,7 +45,17 @@ if (is_array($hybridEntries)) {
   $entries = $hybridEntries;
 }
 
-if (empty($entries) && file_exists($logFile)) {
+// Always also read the local log file and merge entries.
+// Supabase may be missing records if dual-write failed (network errors, timing, etc.).
+// We merge both sources and deduplicate so every entry is shown exactly once.
+// Dedup key: name|matric|action|timestamp — any entry seen from Supabase is skipped
+// if an identical local entry already covers it.
+$seenEntryKeys = [];
+foreach ($entries as $e) {
+  $seenEntryKeys[strtolower($e['name']) . '|' . $e['matric'] . '|' . strtolower($e['action']) . '|' . $e['timestamp']] = true;
+}
+
+if (file_exists($logFile)) {
   foreach (admin_attendance_entries_for_date_parsed($logFile, 15) as $entry) {
     if (
       $searchName !== '' &&
@@ -59,9 +69,19 @@ if (empty($entries) && file_exists($logFile)) {
     if ($filterType === 'ip' && ($entry['ip'] === '' || $entry['ip'] === 'UNKNOWN')) continue;
     if ($filterType === 'mac' && ($entry['mac'] === '' || $entry['mac'] === 'UNKNOWN')) continue;
 
+    // Deduplicate: skip if this entry is already present from Supabase
+    $dedupKey = strtolower($entry['name']) . '|' . $entry['matric'] . '|' . strtolower($entry['action']) . '|' . $entry['timestamp'];
+    if (isset($seenEntryKeys[$dedupKey])) continue;
+    $seenEntryKeys[$dedupKey] = true;
+
     $entries[] = $entry;
+    // If we added at least one local entry, note the source as merged
+    if ($hybridSource === 'supabase') $hybridSource = 'supabase+file';
+    elseif ($hybridSource === 'file') $hybridSource = 'file';
   }
 }
+// If entries are entirely from local file only, keep source as 'file'
+if (empty($hybridEntries) && !empty($entries)) $hybridSource = 'file';
 
 // Combine check-ins and check-outs
 $combined = [];
