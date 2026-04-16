@@ -14,6 +14,25 @@ $fingerprintFile = admin_storage_migrate_file('fingerprints.json', app_storage_f
 $fingerprintsData = file_exists($fingerprintFile) ? json_decode(file_get_contents($fingerprintFile), true) : [];
 if (!is_array($fingerprintsData)) $fingerprintsData = [];
 
+if (isset($_GET['download']) && $_GET['download'] === 'fingerprints_json') {
+  header('Content-Type: application/json');
+  header('Content-Disposition: attachment; filename="fingerprints_' . date('Ymd_His') . '.json"');
+  echo json_encode($fingerprintsData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+  exit;
+}
+
+$searchMatric = trim((string)($_GET['search_matric'] ?? ''));
+$filteredFingerprints = $fingerprintsData;
+if ($searchMatric !== '') {
+  $filteredFingerprints = array_filter(
+    $fingerprintsData,
+    static function ($hash, $matric) use ($searchMatric) {
+      return stripos((string)$matric, $searchMatric) !== false;
+    },
+    ARRAY_FILTER_USE_BOTH
+  );
+}
+
 function save_fingerprints_atomic($fingerprintFile, $fingerprintsData)
 {
   $fp = fopen($fingerprintFile, 'c+');
@@ -36,12 +55,12 @@ function save_fingerprints_atomic($fingerprintFile, $fingerprintsData)
 
 // Pagination settings
 $entriesPerPage = 10;
-$totalEntries = count($fingerprintsData);
+$totalEntries = count($filteredFingerprints);
 $totalPages = ceil($totalEntries / $entriesPerPage);
 $currentPage = isset($_GET['fp_page']) ? max(1, intval($_GET['fp_page'])) : 1;
 $offset = ($currentPage - 1) * $entriesPerPage;
 
-$paginatedData = array_slice($fingerprintsData, $offset, $entriesPerPage, true);
+$paginatedData = array_slice($filteredFingerprints, $offset, $entriesPerPage, true);
 
 $message = "";
 $messageType = 'success';
@@ -86,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $embedded = (basename($_SERVER['SCRIPT_NAME']) === 'index.php' || isset($page));
 
-function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded, $message, $messageType)
+function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded, $message, $messageType, $totalLinked, $filteredCount, $searchMatric)
 {
   ob_start();
   if (!$embedded) {
@@ -129,13 +148,32 @@ function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded
           </form>
         </div>
 
+        <!-- Search + Download -->
+        <div class="st-card" style="margin-bottom:20px;">
+          <form method="get" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+            <?php if (isset($_GET['page'])): ?>
+              <input type="hidden" name="page" value="<?= htmlspecialchars((string)$_GET['page']) ?>">
+            <?php endif; ?>
+            <div style="flex:1;min-width:220px;">
+              <label style="display:block;font-weight:600;margin-bottom:6px;color:var(--on-surface-variant);font-size:0.85rem;">Search by Matric</label>
+              <input type="text" name="search_matric" value="<?= htmlspecialchars($searchMatric) ?>" placeholder="e.g. 2023001932">
+            </div>
+            <button type="submit" class="st-btn st-btn-secondary st-btn-sm">
+              <span class="material-symbols-outlined" style="font-size:1rem;">search</span> Search
+            </button>
+            <a class="st-btn st-btn-success st-btn-sm" href="?<?= htmlspecialchars(http_build_query(array_merge($_GET, ['download' => 'fingerprints_json']))) ?>">
+              <span class="material-symbols-outlined" style="font-size:1rem;">download</span> Download Fingerprints JSON
+            </a>
+          </form>
+        </div>
+
         <!-- Linked List -->
         <div class="st-card" style="padding:0;">
           <div style="padding:20px 24px;border-bottom:1px solid rgba(194,199,209,0.1);">
             <p style="font-weight:700;color:var(--on-surface);margin:0;display:flex;align-items:center;gap:8px;">
               <span class="material-symbols-outlined" style="font-size:1.1rem;">fingerprint</span>
               Linked Fingerprints
-              <span class="st-chip st-chip-info" style="margin-left:auto;"><?= count($GLOBALS['fingerprintsData'] ?? []) ?: count($paginatedData) ?> linked</span>
+              <span class="st-chip st-chip-info" style="margin-left:auto;"><?= (int)$filteredCount ?> shown / <?= (int)$totalLinked ?> total</span>
             </p>
           </div>
           <?php if (count($paginatedData) > 0): ?>
@@ -213,4 +251,14 @@ function render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded
     return ob_get_clean();
   }
 
-  echo render_unlink_page($paginatedData, $totalPages, $currentPage, $embedded, $message, $messageType);
+  echo render_unlink_page(
+    $paginatedData,
+    $totalPages,
+    $currentPage,
+    $embedded,
+    $message,
+    $messageType,
+    count($fingerprintsData),
+    count($filteredFingerprints),
+    $searchMatric
+  );

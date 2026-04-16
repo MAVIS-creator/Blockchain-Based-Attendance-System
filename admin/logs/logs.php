@@ -15,12 +15,14 @@ $courses = admin_cached_json_file('courses_list', $courseFile, ['General'], 30);
 if (empty($courses)) $courses = ['General'];
 
 $selectedDate = $_GET['logDate'] ?? date('Y-m-d');
-$selectedCourse = null;
-if (isset($_GET['course']) && trim($_GET['course']) !== '') {
-  $selectedCourse = $_GET['course'];
-} else {
-  $selectedCourse = admin_active_course_name_cached(15);
-}
+$selectedCourse = trim((string)($_GET['course'] ?? '__all'));
+if ($selectedCourse === '') $selectedCourse = '__all';
+$courseFilterAll = (strtolower($selectedCourse) === '__all');
+$normalizeCourse = static function ($value) {
+  $value = strtolower(trim((string)$value));
+  return preg_replace('/\s+/', ' ', $value);
+};
+$selectedCourseNorm = $normalizeCourse($selectedCourse);
 
 $searchName = trim($_GET['search'] ?? '');
 $filterType = $_GET['filterType'] ?? 'both';
@@ -52,7 +54,7 @@ if (empty($entries) && file_exists($logFile)) {
       stripos($entry['mac'], $searchName) === false
     ) continue;
 
-    if ($entry['course'] !== $selectedCourse) continue;
+    if (!$courseFilterAll && $normalizeCourse((string)$entry['course']) !== $selectedCourseNorm) continue;
 
     if ($filterType === 'ip' && ($entry['ip'] === '' || $entry['ip'] === 'UNKNOWN')) continue;
     if ($filterType === 'mac' && ($entry['mac'] === '' || $entry['mac'] === 'UNKNOWN')) continue;
@@ -128,8 +130,9 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
     <div>
       <label style="display:block;font-weight:600;margin-bottom:6px;color:var(--on-surface-variant);font-size:0.85rem;">Course</label>
       <select name="course" onchange="this.form.submit()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--outline-variant);background:var(--surface-container-low);color:var(--on-surface);font-family:inherit;">
+        <option value="__all" <?= $courseFilterAll ? 'selected' : '' ?>>All Courses</option>
         <?php foreach ($courses as $course): ?>
-          <option value="<?= htmlspecialchars($course) ?>" <?= $course === $selectedCourse ? 'selected' : '' ?>>
+          <option value="<?= htmlspecialchars($course) ?>" <?= !$courseFilterAll && $normalizeCourse($course) === $selectedCourseNorm ? 'selected' : '' ?>>
             <?= htmlspecialchars($course) ?>
           </option>
         <?php endforeach; ?>

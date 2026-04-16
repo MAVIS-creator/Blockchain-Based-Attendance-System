@@ -524,6 +524,14 @@ $failedLog = $logDir . "/" . $today . "_failed_attempts.log";
 $lines = file_exists($logFile) ? file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
 request_timing_note('existing_log_lines', is_array($lines) ? count($lines) : 0);
 
+$normalize_fingerprint_identity = static function ($value) {
+    $value = trim((string)$value);
+    if ($value === '') return '';
+    $parts = explode('_', $value, 2);
+    return strtolower(trim((string)($parts[0] ?? $value)));
+};
+$currentFingerprintIdentity = $normalize_fingerprint_identity($fingerprint);
+
 // 🔐 Check for duplicate actions
 if (!$loadTestRelaxActive) {
     foreach ($lines as $line) {
@@ -548,17 +556,21 @@ if (!$loadTestRelaxActive) {
             exit;
         }
 
+        $logFingerprintIdentity = $normalize_fingerprint_identity($logFingerprint ?? '');
+        $sameFingerprint = ($currentFingerprintIdentity !== '' && $logFingerprintIdentity !== '' && $currentFingerprintIdentity === $logFingerprintIdentity && $logAction === $action);
         $sameMac = isset($logMac) && $logMac !== 'UNKNOWN' && $mac !== 'UNKNOWN' && $logMac === $mac && $logAction === $action;
-        $sameIp = ($logIp === $ip && $logAction === $action && $ip !== '127.0.0.1');
+        $sameIp = ($logIp === $ip && $logAction === $action && $ip !== '127.0.0.1' && $ip !== '::1');
+        // IP is a weak identifier on hosted/NAT networks. Keep it as fallback only when fingerprint identity is missing.
+        $sameIpFallback = $sameIp && ($currentFingerprintIdentity === '' || $logFingerprintIdentity === '');
 
         $sameDevice = false;
         if ($deviceIdentityMode === 'both') {
-            $sameDevice = $sameIp || $sameMac;
+            $sameDevice = $sameMac || $sameFingerprint || $sameIpFallback;
         } elseif ($deviceIdentityMode === 'ip') {
-            $sameDevice = $sameIp;
+            $sameDevice = $sameFingerprint || $sameIpFallback;
         } else {
-            // mac mode: prefer MAC, fallback to IP when MAC is unavailable
-            $sameDevice = ($mac !== 'UNKNOWN') ? $sameMac : $sameIp;
+            // mac mode: when MAC is unavailable on hosted/proxied networks, prefer fingerprint identity; IP is last-resort fallback.
+            $sameDevice = ($mac !== 'UNKNOWN') ? $sameMac : ($sameFingerprint || $sameIpFallback);
         }
 
         if ($sameDevice && $logCourse === $courseNormalized) {

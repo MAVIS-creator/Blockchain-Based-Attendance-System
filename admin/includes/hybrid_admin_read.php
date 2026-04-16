@@ -16,6 +16,14 @@ if (!function_exists('hybrid_fetch_attendance_entries')) {
   {
     if (!hybrid_admin_read_enabled()) return null;
 
+    $courseFilter = trim((string)$selectedCourse);
+    $courseFilterAll = ($courseFilter === '' || strtolower($courseFilter) === '__all');
+    $normalizeCourse = static function ($value) {
+      $value = strtolower(trim((string)$value));
+      return preg_replace('/\s+/', ' ', $value);
+    };
+    $selectedCourseNorm = $normalizeCourse($courseFilter);
+
     $start = $selectedDate . 'T00:00:00Z';
 
     // Supabase query params can include same key twice; build manually for date range.
@@ -50,7 +58,9 @@ if (!function_exists('hybrid_fetch_attendance_entries')) {
         'reason' => (string)($row['reason'] ?? '-'),
       ];
 
-      if ($entry['course'] !== $selectedCourse) continue;
+      if (!$courseFilterAll) {
+        if ($normalizeCourse($entry['course']) !== $selectedCourseNorm) continue;
+      }
 
       if (
         $searchName !== '' &&
