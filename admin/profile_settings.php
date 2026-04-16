@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         unset($activeSessions[$sid]);
                     }
                 }
-                file_put_contents($sessionsFile, json_encode($activeSessions, JSON_PRETTY_PRINT));
+                admin_write_json_atomic($sessionsFile, $activeSessions);
             }
         }
         echo json_encode(['status' => 'success', 'message' => 'Other sessions terminated.']);

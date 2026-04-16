@@ -11,34 +11,18 @@ require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/state_helpers.php';
 
 // Session Tracking & Validity Check
-$sessionsFile = admin_sessions_file();
 $currentSessionId = session_id();
-if (file_exists($sessionsFile)) {
-  $activeSessions = admin_load_sessions_cached(10);
-  if (!is_array($activeSessions)) $activeSessions = [];
+$activeSessions = admin_sessions_read_fresh();
+if (!isset($activeSessions[$currentSessionId]) || !is_array($activeSessions[$currentSessionId])) {
+  session_unset();
+  session_destroy();
+  header('Location: login.php?msg=session_terminated');
+  exit;
+}
 
-  // If tracking is active but our session isn't in it, we might be hitting a stale APCu cache.
-  if (!isset($activeSessions[$currentSessionId])) {
-    // Force a real disk read to bypass identical mtime/size cache keys
-    $diskRaw = @file_get_contents($sessionsFile);
-    $diskSessions = $diskRaw ? json_decode($diskRaw, true) : [];
-    if (is_array($diskSessions) && isset($diskSessions[$currentSessionId])) {
-      $activeSessions = $diskSessions;
-    }
-  }
-
-  // If still not there, we were terminated
-  if (!isset($activeSessions[$currentSessionId])) {
-    // Destroy PHP session and logout
-    session_unset();
-    session_destroy();
-    header('Location: login.php?msg=session_terminated');
-    exit;
-  } else {
-    // Update last activity
-    $activeSessions[$currentSessionId]['last_activity'] = time();
-    file_put_contents($sessionsFile, json_encode($activeSessions, JSON_PRETTY_PRINT));
-  }
+if (!admin_touch_session_activity($currentSessionId)) {
+  // Avoid logging the user out just because the tracker file could not be refreshed.
+  $activeSessions[$currentSessionId]['last_activity'] = time();
 }
 
 $page = $_GET['page'] ?? 'dashboard';

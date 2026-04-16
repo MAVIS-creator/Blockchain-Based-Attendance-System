@@ -17,6 +17,8 @@ $statusFile = admin_status_file();
 $status = admin_load_status_cached(10);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $errorMessage = null;
+
   if (!csrf_check_request()) {
     $errorMessage = 'Invalid CSRF token.';
   }
@@ -25,8 +27,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   // try to load admin settings to enforce check windows
   $settings = admin_load_settings_cached(15);
-
-  $errorMessage = null;
 
   // helper: check time window
   $nowHM = date('H:i');

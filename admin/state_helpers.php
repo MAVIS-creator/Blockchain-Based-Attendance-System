@@ -469,6 +469,107 @@ if (!function_exists('admin_load_sessions_cached')) {
   }
 }
 
+if (!function_exists('admin_sessions_read_fresh')) {
+  function admin_sessions_read_fresh()
+  {
+    $file = admin_sessions_file();
+    clearstatcache(true, $file);
+    if (!file_exists($file)) {
+      return [];
+    }
+
+    $raw = @file_get_contents($file);
+    if (!is_string($raw) || trim($raw) === '') {
+      return [];
+    }
+
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+  }
+}
+
+if (!function_exists('admin_write_json_atomic')) {
+  function admin_write_json_atomic($file, $data)
+  {
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+      @mkdir($dir, 0775, true);
+    }
+
+    $payload = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if ($payload === false) {
+      return false;
+    }
+
+    $tmp = $file . '.tmp';
+    if (@file_put_contents($tmp, $payload, LOCK_EX) === false) {
+      return false;
+    }
+
+    if (!@rename($tmp, $file)) {
+      @unlink($tmp);
+      return false;
+    }
+
+    clearstatcache(true, $file);
+    return true;
+  }
+}
+
+if (!function_exists('admin_register_session')) {
+  function admin_register_session($username)
+  {
+    $file = admin_sessions_file();
+    $activeSessions = admin_sessions_read_fresh();
+    $activeSessions[session_id()] = [
+      'user' => (string)$username,
+      'ip' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+      'user_agent' => (string)($_SERVER['HTTP_USER_AGENT'] ?? ''),
+      'login_time' => time(),
+      'last_activity' => time(),
+    ];
+    return admin_write_json_atomic($file, $activeSessions);
+  }
+}
+
+if (!function_exists('admin_touch_session_activity')) {
+  function admin_touch_session_activity($sid = null)
+  {
+    $sid = $sid ?: session_id();
+    if ($sid === '') {
+      return false;
+    }
+
+    $file = admin_sessions_file();
+    $activeSessions = admin_sessions_read_fresh();
+    if (!isset($activeSessions[$sid]) || !is_array($activeSessions[$sid])) {
+      return false;
+    }
+
+    $activeSessions[$sid]['last_activity'] = time();
+    return admin_write_json_atomic($file, $activeSessions);
+  }
+}
+
+if (!function_exists('admin_unregister_session')) {
+  function admin_unregister_session($sid = null)
+  {
+    $sid = $sid ?: session_id();
+    if ($sid === '') {
+      return false;
+    }
+
+    $file = admin_sessions_file();
+    $activeSessions = admin_sessions_read_fresh();
+    if (!isset($activeSessions[$sid])) {
+      return true;
+    }
+
+    unset($activeSessions[$sid]);
+    return admin_write_json_atomic($file, $activeSessions);
+  }
+}
+
 if (!function_exists('admin_load_permissions_cached')) {
   function admin_load_permissions_cached($ttl = 30)
   {

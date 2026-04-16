@@ -87,7 +87,6 @@ if (!file_exists($statusFile)) {
     exit;
 }
 
-$statusJson = file_get_contents($statusFile);
 $status = admin_cached_json_file('submit_status', $statusFile, [], 2);
 if (!is_array($status)) {
     header('Content-Type: application/json');
@@ -776,4 +775,3 @@ if (!$anchorResult['ok']) {
 } else {
     request_timing_note('log_anchor_hash', $anchorResult['hash'] ?? '');
 }
-

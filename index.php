@@ -8,7 +8,6 @@ request_timing_start('index.php');
 $statusFile = admin_storage_migrate_file('status.json', app_storage_file('status.json'));
 $span = microtime(true);
 $status = admin_cached_json_file('index_status', $statusFile, [], 2);
-$rawStatus = @file_get_contents($statusFile);
 $status = is_array($status) ? $status : [];
 $normalizedStatus = [
   'checkin' => !empty($status['checkin']),
@@ -27,9 +26,7 @@ if (($status['checkin'] ?? null) !== $normalizedStatus['checkin'] ||
   ($status['checkout'] ?? null) !== $normalizedStatus['checkout'] ||
   (($status['end_time'] ?? null) !== $normalizedStatus['end_time'])
 ) {
-  if (is_array(json_decode((string)$rawStatus, true))) {
-    @file_put_contents($statusFile, json_encode($normalizedStatus, JSON_PRETTY_PRINT), LOCK_EX);
-  }
+  @file_put_contents($statusFile, json_encode($normalizedStatus, JSON_PRETTY_PRINT), LOCK_EX);
 }
 $status = $normalizedStatus;
 request_timing_span('load_status', $span);
@@ -1077,7 +1074,7 @@ request_timing_span('load_announcement', $span);
     }
 
     fetchAnnouncement();
-    setInterval(fetchAnnouncement, 10000);
+    setInterval(fetchAnnouncement, 20000);
 
     // Status auto-refresh
     function checkStatus() {
@@ -1100,7 +1097,7 @@ request_timing_span('load_announcement', $span);
         });
     }
 
-    setInterval(checkStatus, 5000);
+    setInterval(checkStatus, 15000);
   </script>
 </body>
 

@@ -1,9 +1,9 @@
 <?php
-session_start();
 date_default_timezone_set('Africa/Lagos');
 require_once __DIR__ . '/hybrid_dual_write.php';
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
+require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/request_timing.php';
 require_once __DIR__ . '/src/AiTicketAutomationEngine.php';
 app_storage_init();
@@ -58,7 +58,7 @@ $formError = '';
 $courseFile = admin_course_storage_migrate_file('course.json');
 $courseRows = [];
 if (file_exists($courseFile)) {
-  $decodedCourses = json_decode((string)@file_get_contents($courseFile), true);
+  $decodedCourses = admin_cached_json_file('support_courses', $courseFile, [], 15);
   if (is_array($decodedCourses)) {
     $courseRows = $decodedCourses;
   }
@@ -163,7 +163,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 $announcementFile = admin_storage_migrate_file('announcement.json');
 $announcement = ['enabled' => false, 'message' => '', 'severity' => 'info', 'updated_at' => null];
 if (file_exists($announcementFile)) {
-  $json = json_decode(file_get_contents($announcementFile), true);
+  $json = admin_cached_json_file('support_announcement', $announcementFile, [], 5);
   if (is_array($json)) {
     $announcement['enabled'] = isset($json['enabled']) ? (bool)$json['enabled'] : false;
     $announcement['message'] = isset($json['message']) ? (string)$json['message'] : '';
@@ -904,7 +904,7 @@ if (isset($_COOKIE['attendanceBlocked'])) {
     }
 
     fetchAnnouncement();
-    setInterval(fetchAnnouncement, 10000);
+    setInterval(fetchAnnouncement, 20000);
   </script>
 </body>
 

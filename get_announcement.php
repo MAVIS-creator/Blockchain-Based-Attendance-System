@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/state_helpers.php';
+require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/src/AiAnnouncementService.php';
 
 if (!function_exists('sanitize_public_announcement_message')) {
@@ -29,7 +30,7 @@ $announcement = [
 ];
 
 if (file_exists($announcementFile)) {
-    $json = json_decode(file_get_contents($announcementFile), true);
+    $json = admin_cached_json_file('public_announcement', $announcementFile, [], 3);
     if (is_array($json)) {
         $announcement['enabled'] = $json['enabled'] ?? false;
         $announcement['message'] = $json['message'] ?? '';
@@ -39,7 +40,7 @@ if (file_exists($announcementFile)) {
 }
 
 if ($fingerprint !== '' && file_exists($targetedFile)) {
-    $targetedRows = json_decode((string)@file_get_contents($targetedFile), true);
+    $targetedRows = admin_cached_json_file('public_targeted_announcements', $targetedFile, [], 3);
     if (is_array($targetedRows)) {
         foreach ($targetedRows as $row) {
             if (!is_array($row)) {

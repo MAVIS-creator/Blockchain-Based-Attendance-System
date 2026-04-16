@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
+require_once __DIR__ . '/admin/cache_helpers.php';
 app_storage_init();
 
 $statusFile = admin_storage_migrate_file('status.json', app_storage_file('status.json'));
@@ -35,8 +36,7 @@ function normalize_effective_status($status)
 }
 
 header('Content-Type: application/json');
-$raw = file_get_contents($statusFile);
-$decoded = json_decode($raw, true);
+$decoded = admin_cached_json_file('public_status_api', $statusFile, [], 2);
 $normalized = normalize_effective_status($decoded);
 
 if (

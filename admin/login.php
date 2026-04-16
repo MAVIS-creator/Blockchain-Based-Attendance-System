@@ -77,18 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_avatar'] = $accounts[$usernameToUse]['avatar'] ?? null;
         $_SESSION['admin_role'] = $accounts[$usernameToUse]['role'] ?? 'admin';
         $_SESSION['needs_tour'] = !empty($accounts[$usernameToUse]['needs_tour']);
-        // Track session
-        $sessionsFile = admin_sessions_file();
-        $activeSessions = admin_load_sessions_cached(10);
-        if (!is_array($activeSessions)) $activeSessions = [];
-        $activeSessions[session_id()] = [
-            'user' => $usernameToUse,
-            'ip' => $_SERVER['REMOTE_ADDR'],
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'],
-            'login_time' => time(),
-            'last_activity' => time()
-        ];
-        file_put_contents($sessionsFile, json_encode($activeSessions, JSON_PRETTY_PRINT));
+        admin_register_session($usernameToUse);
         header('Location: index.php');
         exit;
     } else {
