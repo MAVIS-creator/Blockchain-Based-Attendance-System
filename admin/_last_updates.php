@@ -8,7 +8,9 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/cache_helpers.php';
+require_once __DIR__ . '/../request_timing.php';
 app_storage_init();
+request_timing_start('admin/_last_updates.php');
 $base = __DIR__ . '/';
 $accounts = admin_storage_migrate_file('accounts.json');
 $settings = admin_storage_migrate_file('settings.json');
@@ -46,6 +48,7 @@ $cacheKey = 'admin_last_updates:' . md5(
     ])
 );
 
+$updateSpan = microtime(true);
 $out = admin_cache_remember($cacheKey, 2, function () use ($accounts, $settings, $chain, $ticketsFile, $fingerprints, $courses, $activeCourse, $statusFile, $viewTicketsPage, $unlinkPage, $addCoursePage, $chatFile) {
     return [
         'accounts' => @filemtime($accounts) ?: 0,
@@ -62,4 +65,5 @@ $out = admin_cache_remember($cacheKey, 2, function () use ($accounts, $settings,
         'chat' => @filemtime($chatFile) ?: 0
     ];
 });
+request_timing_span('compute_last_updates', $updateSpan);
 echo json_encode($out);

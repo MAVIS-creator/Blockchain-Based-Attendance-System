@@ -8,11 +8,47 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/state_helpers.php';
+require_once __DIR__ . '/cache_helpers.php';
+require_once __DIR__ . '/../request_timing.php';
 require_once __DIR__ . '/../src/AiProviderClient.php';
+request_timing_start('admin/chat_fetch.php');
 $chatFile = admin_chat_file();
 if (!file_exists($chatFile)) {
     file_put_contents($chatFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
 }
+
+$cacheSpan = microtime(true);
+$queueFile = admin_chat_ai_queue_file();
+$sessionsFile = admin_sessions_file();
+$chatMtime = @filemtime($chatFile) ?: 0;
+$queueMtime = @filemtime($queueFile) ?: 0;
+$sessionsMtime = @filemtime($sessionsFile) ?: 0;
+$cacheKey = 'admin_chat_fetch_payload:' . md5($chatMtime . '|' . $queueMtime . '|' . $sessionsMtime . '|' . (string)($_SESSION['admin_user'] ?? 'admin'));
+$cacheEligible = true;
+if (file_exists($queueFile)) {
+    $queueRows = json_decode((string)@file_get_contents($queueFile), true);
+    if (is_array($queueRows)) {
+        $nowTs = time();
+        foreach ($queueRows as $row) {
+            if (!is_array($row)) continue;
+            $runAfter = strtotime((string)($row['run_after'] ?? '')) ?: 0;
+            if ($runAfter > 0 && $runAfter <= $nowTs) {
+                $cacheEligible = false;
+                break;
+            }
+        }
+    }
+}
+if ($cacheEligible && admin_cache_enabled() && function_exists('apcu_fetch')) {
+    $hit = false;
+    $cachedPayload = @apcu_fetch($cacheKey, $hit);
+    if ($hit && is_string($cachedPayload) && $cachedPayload !== '') {
+        request_timing_span('chat_fetch_cache_lookup', $cacheSpan, ['hit' => true]);
+        echo $cachedPayload;
+        exit;
+    }
+}
+request_timing_span('chat_fetch_cache_lookup', $cacheSpan, ['hit' => false]);
 
 if (!function_exists('chat_message_id')) {
     function chat_message_id()
@@ -192,7 +228,6 @@ foreach ($messages as $i => $m) {
 }
 
 // Process one due AI queue item at a time so human messages land first, then AI follows naturally.
-$queueFile = admin_chat_ai_queue_file();
 $queue = chat_ai_queue_load($queueFile);
 $queueMutated = false;
 $now = time();
@@ -321,13 +356,20 @@ if (count($messages) > 1000) {
 }
 
 if ($mutated) {
+    $persistSpan = microtime(true);
     rewind($fp);
     ftruncate($fp, 0);
     fwrite($fp, json_encode($messages, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     fflush($fp);
+    request_timing_span('chat_fetch_persist_mutation', $persistSpan);
 }
 
 flock($fp, LOCK_UN);
 fclose($fp);
 
-echo json_encode(array_slice($messages, -200));
+$payload = json_encode(array_slice($messages, -200));
+if ($cacheEligible && is_string($payload) && $payload !== '' && admin_cache_enabled() && function_exists('apcu_store')) {
+    @apcu_store($cacheKey, $payload, 2);
+}
+request_timing_span('chat_fetch_total', $cacheSpan, ['mutated' => $mutated, 'queue_mutated' => $queueMutated]);
+echo $payload;

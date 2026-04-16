@@ -1,13 +1,14 @@
 <?php
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
+require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/request_timing.php';
 app_storage_init();
 request_timing_start('index.php');
 $statusFile = admin_storage_migrate_file('status.json', app_storage_file('status.json'));
 $span = microtime(true);
+$status = admin_cached_json_file('index_status', $statusFile, [], 2);
 $rawStatus = @file_get_contents($statusFile);
-$status = $rawStatus !== false ? json_decode($rawStatus, true) : null;
 $status = is_array($status) ? $status : [];
 $normalizedStatus = [
   'checkin' => !empty($status['checkin']),
@@ -43,7 +44,7 @@ $activeCourse = "General";
 $activeFile = admin_course_storage_migrate_file('active_course.json');
 $span = microtime(true);
 if (file_exists($activeFile)) {
-  $activeData = json_decode(file_get_contents($activeFile), true);
+  $activeData = admin_cached_json_file('index_active_course', $activeFile, [], 10);
   if (is_array($activeData)) {
     $activeCourse = $activeData['course'] ?? "General";
   }
@@ -55,7 +56,7 @@ $announcementFile = admin_storage_migrate_file('announcement.json');
 $announcement = ['enabled' => false, 'message' => '', 'severity' => 'info', 'updated_at' => null];
 $span = microtime(true);
 if (file_exists($announcementFile)) {
-  $json = json_decode(file_get_contents($announcementFile), true);
+  $json = admin_cached_json_file('index_announcement', $announcementFile, [], 5);
   if (is_array($json)) {
     $announcement['enabled'] = isset($json['enabled']) ? (bool)$json['enabled'] : false;
     $announcement['message'] = isset($json['message']) ? (string)$json['message'] : '';
@@ -714,6 +715,28 @@ request_timing_span('load_announcement', $span);
       e.preventDefault();
       const form = this;
       const formData = new FormData(this);
+      const showPopup = ({ icon = 'info', title = '', text = '', allowOutsideClick = true, showConfirmButton = true, timer = undefined, didOpen = undefined } = {}) => {
+        if (window.Swal && typeof Swal.fire === 'function') {
+          return Swal.fire({ icon, title, text, allowOutsideClick, showConfirmButton, timer, didOpen });
+        }
+        if (title || text) {
+          alert((title ? `${title}\n` : '') + text);
+        }
+        return Promise.resolve();
+      };
+
+      submitBtn.disabled = true;
+      showPopup({
+        title: 'Submitting Attendance',
+        text: 'Please wait while we record your attendance...',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          if (window.Swal && typeof Swal.showLoading === 'function') {
+            Swal.showLoading();
+          }
+        }
+      });
 
       // Try to get geolocation (will be sent if available). Timeout after 5s.
       function getLocation(timeout = 5000) {
@@ -752,28 +775,39 @@ request_timing_span('load_announcement', $span);
           formData.append('lng', loc.lng);
         }
 
+        const controller = new AbortController();
+        const timeoutMs = 25000;
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
         fetch('submit.php', {
             method: 'POST',
-            body: formData
+            body: formData,
+            signal: controller.signal
+          })
+          .finally(() => {
+            clearTimeout(timeoutId);
           })
           .then(res => res.json())
           .then(json => {
+            if (window.Swal && typeof Swal.close === 'function') {
+              Swal.close();
+            }
             if (!json || !json.ok) {
-              Swal.fire({
+              showPopup({
                 icon: 'error',
                 title: 'Submission Failed',
                 text: (json && json.message) || 'Submission failed',
-                confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red')
+                showConfirmButton: true
               });
+              submitBtn.disabled = false;
               return;
             }
-            Swal.fire({
+            showPopup({
               icon: 'success',
               title: 'Success',
               text: json.message,
               timer: 2200,
               showConfirmButton: false,
-              background: '#fff'
             });
             form.reset();
             submitBtn.disabled = true;
@@ -795,12 +829,19 @@ request_timing_span('load_announcement', $span);
           })
           .catch(err => {
             console.error(err);
-            Swal.fire({
+            if (window.Swal && typeof Swal.close === 'function') {
+              Swal.close();
+            }
+            const timeoutMessage = err && err.name === 'AbortError'
+              ? 'Submission timed out. Please check your network and try again.'
+              : 'Error occurred. Please try again.';
+            showPopup({
               icon: 'error',
               title: 'Error',
-              text: 'Error occurred. Please try again.',
-              confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-red')
+              text: timeoutMessage,
+              showConfirmButton: true
             });
+            submitBtn.disabled = false;
           });
       });
     });

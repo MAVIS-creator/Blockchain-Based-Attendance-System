@@ -8,6 +8,8 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/state_helpers.php';
+require_once __DIR__ . '/../request_timing.php';
+request_timing_start('admin/chat_typing.php', ['method' => $_SERVER['REQUEST_METHOD'] ?? 'GET']);
 
 $typingFile = admin_chat_typing_file();
 $queueFile = admin_chat_ai_queue_file();
@@ -53,6 +55,7 @@ if (!function_exists('typing_queue_has_pending_ai')) {
 }
 
 $now = time();
+$cleanupSpan = microtime(true);
 $rows = typing_state_load($typingFile);
 $changed = false;
 
@@ -68,8 +71,10 @@ foreach ($rows as $user => $state) {
     $changed = true;
   }
 }
+request_timing_span('typing_state_cleanup', $cleanupSpan, ['entries' => is_array($rows) ? count($rows) : 0]);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $postSpan = microtime(true);
   $csrfPath = __DIR__ . '/includes/csrf.php';
   if (file_exists($csrfPath)) require_once $csrfPath;
   if (function_exists('csrf_check_request') && !csrf_check_request()) {
@@ -94,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   typing_state_save($typingFile, $rows);
+  request_timing_span('typing_state_post', $postSpan, ['typing' => $typing]);
   echo json_encode(['ok' => true]);
   exit;
 }

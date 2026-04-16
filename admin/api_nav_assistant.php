@@ -12,6 +12,8 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 
 require_once __DIR__ . '/../src/AiProviderClient.php';
 require_once __DIR__ . '/cache_helpers.php';
+require_once __DIR__ . '/../request_timing.php';
+request_timing_start('admin/api_nav_assistant.php');
 
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);
@@ -34,7 +36,9 @@ $context = [
 ];
 
 try {
+    $aiSpan = microtime(true);
     $res = AiProviderClient::suggestAdminNavigationHelp($query, $context);
+    request_timing_span('ai_nav_suggestion', $aiSpan, ['query_len' => strlen($query)]);
     echo json_encode($res);
 } catch (\Throwable $e) {
     echo json_encode(['ok' => false, 'error' => $e->getMessage()]);

@@ -3,6 +3,7 @@
 require_once __DIR__ . '/hybrid_dual_write.php';
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
+require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/request_timing.php';
 app_storage_init();
 request_timing_start('submit.php');
@@ -57,8 +58,18 @@ $userAgent = $_SERVER['HTTP_USER_AGENT'];
 // Include shared MAC helper
 require_once __DIR__ . '/admin/includes/get_mac.php';
 
-$mac = get_mac_from_ip($ip);
+$mac = 'UNKNOWN';
 $today = date("Y-m-d");
+$resolveMac = static function () use (&$mac, $ip) {
+    if ($mac !== 'UNKNOWN') {
+        return $mac;
+    }
+    $macSpan = microtime(true);
+    $resolved = get_mac_from_ip($ip);
+    $mac = $resolved ?: 'UNKNOWN';
+    request_timing_span('resolve_mac', $macSpan, ['resolved' => $mac !== 'UNKNOWN']);
+    return $mac;
+};
 
 // Extract client token from fingerprint payload format: visitorId_token
 $clientToken = '';
@@ -77,8 +88,8 @@ if (!file_exists($statusFile)) {
 }
 
 $statusJson = file_get_contents($statusFile);
-$status = json_decode($statusJson, true);
-if (!is_array($status) || json_last_error() !== JSON_ERROR_NONE) {
+$status = admin_cached_json_file('submit_status', $statusFile, [], 2);
+if (!is_array($status)) {
     header('Content-Type: application/json');
     echo json_encode(['ok' => false, 'message' => 'Error reading status file.']);
     exit;
@@ -334,7 +345,7 @@ function link_fingerprint_if_missing_atomic($file, $matric, $hashedFingerprint)
 // -----------------------
 $revokedFile = admin_storage_migrate_file('revoked.json', app_storage_file('revoked.json'));
 if (file_exists($revokedFile)) {
-    $revokedData = json_decode(file_get_contents($revokedFile), true);
+    $revokedData = admin_cached_json_file('submit_revoked', $revokedFile, [], 2);
     if (is_array($revokedData)) {
         $nowTs = time();
         $tokensBucket = is_array($revokedData['tokens'] ?? null) ? $revokedData['tokens'] : [];
@@ -346,6 +357,9 @@ if (file_exists($revokedFile)) {
         }
         if (is_revoked_value($ipsBucket, $ip, $nowTs)) {
             fail('IP_REVOKED', 'Your IP address has been revoked by an administrator.');
+        }
+        if (!empty($macsBucket)) {
+            $mac = $resolveMac();
         }
         if ($mac !== 'UNKNOWN' && is_revoked_value($macsBucket, $mac, $nowTs)) {
             fail('MAC_REVOKED', 'Your device MAC has been revoked by an administrator.');
@@ -437,9 +451,13 @@ $deviceId = 'NOID';
 if ($deviceIdentityMode === 'ip') {
     $deviceId = 'ip:' . $ip;
 } elseif ($deviceIdentityMode === 'both') {
+    $mac = $resolveMac();
+    $hasMac = !empty($mac) && $mac !== 'UNKNOWN';
     $deviceId = 'both:' . $ip . '|' . ($hasMac ? $mac : 'UNKNOWN');
 } else {
     // mac mode with safe fallback
+    $mac = $resolveMac();
+    $hasMac = !empty($mac) && $mac !== 'UNKNOWN';
     $deviceId = $hasMac ? ('mac:' . $mac) : ('ip:' . $ip);
 }
 
@@ -521,8 +539,10 @@ $logFile = $logDir . "/" . $today . ".log";
 $failedLog = $logDir . "/" . $today . "_failed_attempts.log";
 
 // ✅ Read log lines
+$loadLinesSpan = microtime(true);
 $lines = file_exists($logFile) ? file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
 request_timing_note('existing_log_lines', is_array($lines) ? count($lines) : 0);
+request_timing_span('load_attendance_log_lines', $loadLinesSpan);
 
 $normalize_fingerprint_identity = static function ($value) {
     $value = trim((string)$value);
@@ -534,6 +554,8 @@ $currentFingerprintIdentity = $normalize_fingerprint_identity($fingerprint);
 
 // 🔐 Check for duplicate actions
 if (!$loadTestRelaxActive) {
+    $dupSpan = microtime(true);
+    $hasCheckedInForCourse = false;
     foreach ($lines as $line) {
         $fields = array_map('trim', explode('|', $line));
         // Support old logs (without MAC) and new logs (with MAC).
@@ -549,6 +571,9 @@ if (!$loadTestRelaxActive) {
         } else {
             list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
             $logCourse = isset($fields[8]) ? strtolower(trim((string)$fields[8])) : 'general';
+        }
+        if ($action === 'checkout' && $logMatric === $matric && $logAction === 'checkin' && $logCourse === $courseNormalized) {
+            $hasCheckedInForCourse = true;
         }
         if ($logMatric === $matric && $logAction === $action && $logCourse === $courseNormalized) {
             header('Content-Type: application/json');
@@ -579,25 +604,10 @@ if (!$loadTestRelaxActive) {
             exit;
         }
     }
-}
+    request_timing_span('duplicate_scan', $dupSpan, ['lines' => count($lines)]);
 
-// ⛔ Block checkout if no prior check-in
-if ($action === "checkout") {
-    $hasCheckedIn = false;
-
-    foreach (array_reverse($lines) as $line) {
-        $fields = array_map('trim', explode('|', $line));
-        if (count($fields) < 4) continue;
-
-        $lineCourse = isset($fields[8]) ? strtolower(trim((string)$fields[8])) : 'general';
-
-        if ($fields[1] === $matric && $fields[2] === "checkin" && $lineCourse === $courseNormalized) {
-            $hasCheckedIn = true;
-            break;
-        }
-    }
-
-    if (!$hasCheckedIn) {
+    // ⛔ Block checkout if no prior check-in (resolved from same scan above)
+    if ($action === "checkout" && !$hasCheckedInForCourse) {
         // Standardized failed log format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
         $failedLogEntry = "$name | $matric | failed | $fingerprint | $ip | $mac | $today " . date("H:i:s") . " | $userAgent | $course | NO_CHECKIN\n";
         file_put_contents($failedLog, $failedLogEntry, FILE_APPEND | LOCK_EX);

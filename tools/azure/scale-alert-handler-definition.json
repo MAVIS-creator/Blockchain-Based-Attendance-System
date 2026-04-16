@@ -1,0 +1,146 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      }
+    },
+    "triggers": {
+      "manual": {
+        "kind": "Http",
+        "type": "Request"
+      }
+    },
+    "actions": {
+      "withinBusinessWindow": {
+        "type": "If",
+        "expression": "@and(greaterOrEquals(dayOfWeek(convertFromUtc(utcNow(),'W. Central Africa Standard Time')),1),lessOrEquals(dayOfWeek(convertFromUtc(utcNow(),'W. Central Africa Standard Time')),5),greaterOrEquals(int(formatDateTime(convertFromUtc(utcNow(),'W. Central Africa Standard Time'),'HH')),6),less(int(formatDateTime(convertFromUtc(utcNow(),'W. Central Africa Standard Time'),'HH')),16))",
+        "actions": {
+          "getCurrentPlan": {
+            "type": "Http",
+            "inputs": {
+              "method": "GET",
+              "uri": "https://management.azure.com/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2?api-version=2022-03-01",
+              "authentication": {
+                "type": "ManagedServiceIdentity",
+                "audience": "https://management.azure.com/"
+              }
+            }
+          },
+          "severityHigh": {
+            "type": "If",
+            "runAfter": {
+              "getCurrentPlan": [
+                "Succeeded"
+              ]
+            },
+            "expression": "@greaterOrEquals(int(coalesce(triggerBody()?['data']?['essentials']?['severity'], 2)), 2)",
+            "actions": {
+              "alreadyPremiumHigh": {
+                "type": "If",
+                "expression": "@or(startsWith(string(body('getCurrentPlan')?['sku']?['name']), 'S3'), startsWith(string(body('getCurrentPlan')?['sku']?['name']), 'P'))",
+                "actions": {
+                  "alreadyHighNoOp": {
+                    "type": "Compose",
+                    "inputs": "Current plan is already at or above S3. No scaling needed."
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "scaleToS3": {
+                      "type": "Http",
+                      "inputs": {
+                        "method": "PATCH",
+                        "uri": "https://management.azure.com/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2?api-version=2022-03-01",
+                        "headers": {
+                          "Content-Type": "application/json"
+                        },
+                        "body": {
+                          "sku": {
+                            "name": "S3",
+                            "tier": "Standard",
+                            "size": "S3",
+                            "family": "S",
+                            "capacity": 3
+                          },
+                          "properties": {
+                            "reserved": true
+                          }
+                        },
+                        "authentication": {
+                          "type": "ManagedServiceIdentity",
+                          "audience": "https://management.azure.com/"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "else": {
+              "actions": {
+                "alreadyPremiumLow": {
+                  "type": "If",
+                  "expression": "@or(startsWith(string(body('getCurrentPlan')?['sku']?['name']), 'S'), startsWith(string(body('getCurrentPlan')?['sku']?['name']), 'P'))",
+                  "actions": {
+                    "alreadyPremiumNoOp": {
+                      "type": "Compose",
+                      "inputs": "Current plan is already standard or premium. No downscale applied during business hours."
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "scaleToS2": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "PATCH",
+                          "uri": "https://management.azure.com/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2?api-version=2022-03-01",
+                          "headers": {
+                            "Content-Type": "application/json"
+                          },
+                          "body": {
+                            "sku": {
+                              "name": "S2",
+                              "tier": "Standard",
+                              "size": "S2",
+                              "family": "S",
+                              "capacity": 2
+                            },
+                            "properties": {
+                              "reserved": true
+                            }
+                          },
+                          "authentication": {
+                            "type": "ManagedServiceIdentity",
+                            "audience": "https://management.azure.com/"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "skipOutsideBusinessWindow": {
+              "type": "Compose",
+              "inputs": "Outside business window (Mon-Fri, 06:00-15:59 W. Central Africa). No scaling applied."
+            }
+          }
+        }
+      }
+    },
+    "outputs": {}
+  },
+  "parameters": {
+    "$connections": {
+      "value": {}
+    }
+  }
+}

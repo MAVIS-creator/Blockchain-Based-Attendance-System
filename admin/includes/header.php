@@ -236,6 +236,9 @@ if (file_exists($csrfPath)) {
     }
 
     function checkUpdates() {
+      if (document.hidden) {
+        return;
+      }
       safeFetch('_last_updates.php').then(function(data) {
         if (!lastKnown.accounts) {
           lastKnown = data;
@@ -346,7 +349,7 @@ if (file_exists($csrfPath)) {
     window.postChat = postChat;
     window.escapeHtml = escapeHtml;
     checkUpdates();
-    setInterval(checkUpdates, 5000);
+    setInterval(checkUpdates, 20000);
   })();
 </script>
 <!-- Chat UI -->
@@ -929,13 +932,14 @@ if (file_exists($csrfPath)) {
           badge.style.display = 'none';
           closeEmojiPanel();
           fetchAndRender();
-          startPolling();
+          restartPolling();
         } else {
           chatbar.style.display = 'none';
           isOpen = false;
           icon.textContent = 'chat';
           closeEmojiPanel();
-          stopPolling();
+          stopTypingHeartbeat();
+          restartPolling();
         }
       }
 
@@ -1136,7 +1140,9 @@ if (file_exists($csrfPath)) {
               });
             });
           });
-          fetchTypingState();
+          if (isOpen) {
+            fetchTypingState();
+          }
         });
       }
 
@@ -1249,10 +1255,31 @@ if (file_exists($csrfPath)) {
       }
 
       var pollTimer = null;
+      var pollIntervalMs = 20000;
+
+      function resolvePollInterval() {
+        if (document.hidden) {
+          return 45000;
+        }
+        return isOpen ? 5000 : 20000;
+      }
+
+      function restartPolling() {
+        var nextMs = resolvePollInterval();
+        if (pollTimer && pollIntervalMs === nextMs) {
+          return;
+        }
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+        pollIntervalMs = nextMs;
+        startPolling();
+      }
 
       function startPolling() {
         if (pollTimer) return;
-        pollTimer = setInterval(fetchAndRender, 2000);
+        pollTimer = setInterval(fetchAndRender, pollIntervalMs);
       }
 
       function stopPolling() {
@@ -1264,8 +1291,9 @@ if (file_exists($csrfPath)) {
 
       window.openChatBox = openChatBox;
       window.sendChatMessage = send;
+      document.addEventListener('visibilitychange', restartPolling);
       fetchAndRender();
-      startPolling();
+      restartPolling();
 
     })();
   </script>
