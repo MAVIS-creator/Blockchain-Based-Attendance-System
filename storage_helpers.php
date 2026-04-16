@@ -45,6 +45,24 @@ if (!function_exists('app_storage_path')) {
       $normalized = __DIR__ . '/storage';
     }
 
+    // ---- Writable-path safety check ----
+    // If the resolved path does not exist or cannot be written to, fall back to
+    // the project-local storage/ directory. This prevents silent session failures
+    // on hosted environments where the configured path (e.g. /home/data on Azure)
+    // may not have been provisioned or may not be writable.
+    if (!is_dir($normalized)) {
+      @mkdir($normalized, 0775, true);
+    }
+    if (!is_dir($normalized) || !is_writable($normalized)) {
+      // Fallback to project-local storage directory
+      $fallback = __DIR__ . '/storage';
+      if (!is_dir($fallback)) {
+        @mkdir($fallback, 0775, true);
+      }
+      $normalized = $fallback;
+    }
+    // ---- End writable-path safety check ----
+
     if (!defined('STORAGE_PATH')) {
       define('STORAGE_PATH', $normalized . DIRECTORY_SEPARATOR);
     }
@@ -52,6 +70,7 @@ if (!function_exists('app_storage_path')) {
     return $normalized;
   }
 }
+
 
 if (!function_exists('app_storage_file')) {
   function app_storage_file($relative)
