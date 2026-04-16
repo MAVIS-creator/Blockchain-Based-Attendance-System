@@ -1,4 +1,4 @@
-<?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
+<?php if (session_status() === PHP_SESSION_NONE) { if (function_exists('admin_configure_session')) admin_configure_session(); else session_start(); } ?>
 <?php
 require_once __DIR__ . '/../../env_helpers.php';
 $adminLocalMode = app_local_mode_enabled(__DIR__ . '/../../.env');
@@ -272,7 +272,9 @@ if (file_exists($csrfPath)) {
     function refreshCurrent() {
       var container = document.querySelector('.content-wrapper');
       if (!container) return;
-      fetch((currentPage || 'dashboard') + '.php', {
+      // IMPORTANT: Fetch via index.php?page= so session and auth checks run correctly.
+      // Fetching raw .php files directly bypasses session_bootstrap and causes auth failures.
+      fetch('index.php?page=' + (currentPage || 'dashboard'), {
           cache: 'no-store'
         })
         .then(function(r) {
@@ -280,7 +282,16 @@ if (file_exists($csrfPath)) {
           return r.text();
         })
         .then(function(html) {
-          container.innerHTML = html;
+          // Extract just the content-wrapper div from the full page HTML
+          var parser = new DOMParser();
+          var doc = parser.parseFromString(html, 'text/html');
+          var newContent = doc.querySelector('.content-wrapper');
+          if (newContent) {
+            container.innerHTML = newContent.innerHTML;
+          } else {
+            // Fallback: replace entire container
+            container.innerHTML = html;
+          }
           console.info('Refreshed ' + currentPage);
         })
         .catch(function() {

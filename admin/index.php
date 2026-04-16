@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/session_bootstrap.php';
 // Enable output buffering so included page views can send headers (redirects) after POST handling
 if (function_exists('ob_start')) ob_start();
 if (!isset($_SESSION['admin_logged_in'])) {
@@ -14,13 +14,11 @@ require_once __DIR__ . '/state_helpers.php';
 $currentSessionId = session_id();
 $activeSessions = admin_sessions_read_fresh();
 if (!isset($activeSessions[$currentSessionId]) || !is_array($activeSessions[$currentSessionId])) {
-  session_unset();
-  session_destroy();
-  header('Location: login.php?msg=session_terminated');
-  exit;
+  admin_register_session((string)($_SESSION['admin_user'] ?? 'admin'));
+  $activeSessions = admin_sessions_read_fresh();
 }
 
-if (!admin_touch_session_activity($currentSessionId)) {
+if (isset($activeSessions[$currentSessionId]) && !admin_touch_session_activity($currentSessionId)) {
   // Avoid logging the user out just because the tracker file could not be refreshed.
   $activeSessions[$currentSessionId]['last_activity'] = time();
 }

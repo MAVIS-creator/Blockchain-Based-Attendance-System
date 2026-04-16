@@ -1,4 +1,4 @@
-<?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
+<?php if (session_status() === PHP_SESSION_NONE) { if (function_exists('admin_configure_session')) admin_configure_session(); else session_start(); } ?>
 <?php $isSuperAdmin = isset($_SESSION['admin_role']) && $_SESSION['admin_role'] === 'superadmin'; ?>
 <?php
 require_once __DIR__ . '/../cache_helpers.php';
