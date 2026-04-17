@@ -37,14 +37,55 @@ if (!function_exists('admin_configure_session')) {
     $httpsNative = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
     $isSecure = $httpsForwarded || $httpsNative;
 
-    $sessionDir = app_storage_file('sessions');
-    if (!is_dir($sessionDir)) {
-      @mkdir($sessionDir, 0775, true);
+    $isAzureAppService = getenv('WEBSITE_SITE_NAME') !== false || getenv('WEBSITE_INSTANCE_ID') !== false;
+    $isLinuxRuntime = DIRECTORY_SEPARATOR === '/';
+    $tmpSessionDir = rtrim((string)sys_get_temp_dir(), '/\\');
+
+    $sessionDirs = [];
+
+    // Explicit environment override has highest priority.
+    $envSessionPath = trim((string)app_env_value('SESSION_SAVE_PATH', ''));
+    if ($envSessionPath !== '') {
+      $sessionDirs[] = $envSessionPath;
+    }
+
+    // On Azure Linux App Service, prefer shared /home/data session storage so
+    // sessions survive requests routed across multiple workers.
+    if ($isAzureAppService && $isLinuxRuntime) {
+      $sessionDirs[] = '/home/data/attendance_sessions';
+    }
+
+    // App storage sessions path next.
+    $sessionDirs[] = app_storage_file('sessions');
+
+    // Instance-local temp storage remains a fallback only.
+    if ($tmpSessionDir !== '') {
+      $sessionDirs[] = $tmpSessionDir . DIRECTORY_SEPARATOR . 'attendance_sessions';
+    }
+
+    $sessionDir = '';
+    foreach (array_values(array_unique($sessionDirs)) as $candidateDir) {
+      $candidateDir = trim((string)$candidateDir);
+      if ($candidateDir === '') {
+        continue;
+      }
+      if (!is_dir($candidateDir)) {
+        @mkdir($candidateDir, 0775, true);
+      }
+      if (is_dir($candidateDir) && is_writable($candidateDir)) {
+        $sessionDir = $candidateDir;
+        break;
+      }
+    }
+    if ($sessionDir === '') {
+      $sessionDir = app_storage_file('sessions');
     }
 
     @ini_set('session.save_path', $sessionDir);
     @ini_set('session.gc_maxlifetime', (string)$lifetimeSeconds);
     @ini_set('session.use_strict_mode', '1');
+    @ini_set('session.use_cookies', '1');
+    @ini_set('session.use_only_cookies', '1');
     @ini_set('session.cookie_httponly', '1');
     @ini_set('session.cookie_samesite', 'Lax');
     @ini_set('session.cookie_secure', $isSecure ? '1' : '0');
@@ -64,9 +105,31 @@ if (!function_exists('admin_configure_session')) {
       session_set_cookie_params($lifetimeSeconds, '/; samesite=Lax', '', $isSecure, true);
     }
 
-    session_start();
+    $started = @session_start();
+    if (!$started && session_status() !== PHP_SESSION_ACTIVE) {
+      foreach (array_values(array_unique($sessionDirs)) as $fallbackDir) {
+        $fallbackDir = trim((string)$fallbackDir);
+        if ($fallbackDir === '' || $fallbackDir === $sessionDir) {
+          continue;
+        }
+        if (!is_dir($fallbackDir)) {
+          @mkdir($fallbackDir, 0775, true);
+        }
+        if (!is_dir($fallbackDir) || !is_writable($fallbackDir)) {
+          continue;
+        }
+        @ini_set('session.save_path', $fallbackDir);
+        $started = @session_start();
+        if ($started || session_status() === PHP_SESSION_ACTIVE) {
+          break;
+        }
+      }
+    }
+
+    if (!$started && session_status() !== PHP_SESSION_ACTIVE) {
+      @error_log('admin_configure_session: session_start failed; verify save_path permissions and platform storage settings.');
+    }
   }
 }
 
 admin_configure_session();
-

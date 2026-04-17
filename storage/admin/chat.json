@@ -382,5 +382,25 @@
         "auto_replied_by": "system_ai_operator",
         "context": "idle_proactive",
         "deleted": false
+    },
+    {
+        "id": "msg_95b632fdac66eb5e",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-16T23:20:35+02:00",
+        "message": "Sentinel AI waving \ud83d\udc4b: I can keep you company with a 20-second ops summary, a tiny joke, or a mini dashboard tour. Your pick?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_e5b9b8ec89b52088",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-17T16:51:07+02:00",
+        "message": "Sentinel AI here \ud83d\ude0e: Want a quick laugh, quick game, or quick system pulse-check while things are calm?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
     }
 ]

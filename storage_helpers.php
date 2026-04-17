@@ -54,12 +54,39 @@ if (!function_exists('app_storage_path')) {
       @mkdir($normalized, 0775, true);
     }
     if (!is_dir($normalized) || !is_writable($normalized)) {
-      // Fallback to project-local storage directory
+      // Fallback to project-local storage directory first.
       $fallback = __DIR__ . '/storage';
       if (!is_dir($fallback)) {
         @mkdir($fallback, 0775, true);
       }
       $normalized = $fallback;
+    }
+
+    // On Azure App Service Linux, prefer a writable shared /home location
+    // when the project path is not writable (e.g. run-from-package deployments).
+    if (!is_dir($normalized) || !is_writable($normalized)) {
+      $isAzureAppService = getenv('WEBSITE_SITE_NAME') !== false || getenv('WEBSITE_INSTANCE_ID') !== false;
+      $isLinuxRuntime = DIRECTORY_SEPARATOR === '/';
+      if ($isAzureAppService && $isLinuxRuntime) {
+        $azureFallback = '/home/data/attendance_storage';
+        if (!is_dir($azureFallback)) {
+          @mkdir($azureFallback, 0775, true);
+        }
+        if (is_dir($azureFallback) && is_writable($azureFallback)) {
+          $normalized = $azureFallback;
+        }
+      }
+    }
+
+    // Final safety fallback for constrained environments.
+    if (!is_dir($normalized) || !is_writable($normalized)) {
+      $tmpFallback = rtrim((string)sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'attendance_storage';
+      if (!is_dir($tmpFallback)) {
+        @mkdir($tmpFallback, 0775, true);
+      }
+      if (is_dir($tmpFallback) && is_writable($tmpFallback)) {
+        $normalized = $tmpFallback;
+      }
     }
     // ---- End writable-path safety check ----
 
