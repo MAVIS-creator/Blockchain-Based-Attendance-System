@@ -2,8 +2,18 @@
 require_once __DIR__ . '/session_bootstrap.php';
 // Enable output buffering so included page views can send headers (redirects) after POST handling
 if (function_exists('ob_start')) ob_start();
-if (!isset($_SESSION['admin_logged_in'])) {
-  header('Location: login.php');
+$isAdminLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+if (!$isAdminLoggedIn) {
+  admin_auth_debug_log('index_guard_redirect', [
+    'reason' => 'admin_logged_in_missing_or_false',
+    'session_keys' => array_values(array_keys($_SESSION ?? [])),
+    'cookie_present' => isset($_COOKIE[session_name()]),
+  ]);
+  $query = http_build_query([
+    'auth_issue' => 'session_lost_before_index',
+    'auth_debug' => '1',
+  ]);
+  header('Location: login.php?' . $query);
   exit;
 }
 
@@ -14,13 +24,20 @@ require_once __DIR__ . '/state_helpers.php';
 $currentSessionId = session_id();
 $activeSessions = admin_sessions_read_fresh();
 if (!isset($activeSessions[$currentSessionId]) || !is_array($activeSessions[$currentSessionId])) {
-  admin_register_session((string)($_SESSION['admin_user'] ?? 'admin'));
+  $registerOk = admin_register_session((string)($_SESSION['admin_user'] ?? 'admin'));
+  admin_auth_debug_log('index_session_tracker_repair', [
+    'session_id' => $currentSessionId,
+    'register_ok' => (bool)$registerOk,
+  ]);
   $activeSessions = admin_sessions_read_fresh();
 }
 
 if (isset($activeSessions[$currentSessionId]) && !admin_touch_session_activity($currentSessionId)) {
   // Avoid logging the user out just because the tracker file could not be refreshed.
   $activeSessions[$currentSessionId]['last_activity'] = time();
+  admin_auth_debug_log('index_session_touch_failed', [
+    'session_id' => $currentSessionId,
+  ]);
 }
 
 $page = $_GET['page'] ?? 'dashboard';

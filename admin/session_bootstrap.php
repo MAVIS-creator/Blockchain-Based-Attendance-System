@@ -7,6 +7,84 @@ if (!defined('ADMIN_SESSION_NAME')) {
   define('ADMIN_SESSION_NAME', 'ATTENDANCE_ADMIN_SESSION');
 }
 
+if (!function_exists('admin_auth_debug_enabled')) {
+  function admin_auth_debug_enabled()
+  {
+    $queryFlag = strtolower(trim((string)($_GET['auth_debug'] ?? $_POST['auth_debug'] ?? '')));
+    if (in_array($queryFlag, ['1', 'true', 'yes', 'on'], true)) {
+      return true;
+    }
+
+    $envFlag = strtolower(trim((string)app_env_value('AUTH_DEBUG_PANEL', '0')));
+    return in_array($envFlag, ['1', 'true', 'yes', 'on'], true);
+  }
+}
+
+if (!function_exists('admin_auth_debug_file')) {
+  function admin_auth_debug_file()
+  {
+    app_storage_init();
+    $file = app_storage_file('logs/admin_auth_debug.jsonl');
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+      @mkdir($dir, 0775, true);
+    }
+    return $file;
+  }
+}
+
+if (!function_exists('admin_auth_debug_log')) {
+  function admin_auth_debug_log($event, array $context = [])
+  {
+    $payload = [
+      'time' => date('c'),
+      'event' => (string)$event,
+      'sid' => (string)session_id(),
+      'session_name' => (string)session_name(),
+      'request_method' => (string)($_SERVER['REQUEST_METHOD'] ?? ''),
+      'request_uri' => (string)($_SERVER['REQUEST_URI'] ?? ''),
+      'remote_addr' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+      'save_path' => (string)ini_get('session.save_path'),
+      'cookie_present' => isset($_COOKIE[session_name()]),
+      'context' => $context,
+    ];
+
+    $line = json_encode($payload, JSON_UNESCAPED_SLASHES);
+    if (!is_string($line) || $line === '') {
+      return false;
+    }
+
+    return @file_put_contents(admin_auth_debug_file(), $line . PHP_EOL, FILE_APPEND | LOCK_EX) !== false;
+  }
+}
+
+if (!function_exists('admin_auth_debug_recent')) {
+  function admin_auth_debug_recent($limit = 20)
+  {
+    $limit = max(1, (int)$limit);
+    $file = admin_auth_debug_file();
+    if (!is_file($file)) {
+      return [];
+    }
+
+    $lines = @file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($lines) || empty($lines)) {
+      return [];
+    }
+
+    $lines = array_slice($lines, -$limit);
+    $rows = [];
+    foreach ($lines as $line) {
+      $decoded = json_decode((string)$line, true);
+      if (is_array($decoded)) {
+        $rows[] = $decoded;
+      }
+    }
+
+    return $rows;
+  }
+}
+
 if (!function_exists('admin_configure_session')) {
   function admin_configure_session()
   {
@@ -138,6 +216,15 @@ if (!function_exists('admin_configure_session')) {
     if (!$started && session_status() !== PHP_SESSION_ACTIVE) {
       @error_log('admin_configure_session: session_start failed; verify save_path permissions and platform storage settings.');
     }
+
+    admin_auth_debug_log('session_bootstrap', [
+      'started' => ($started || session_status() === PHP_SESSION_ACTIVE),
+      'selected_session_dir' => $sessionDir,
+      'candidate_dirs' => $sessionDirs,
+      'is_secure_cookie' => $isSecure,
+      'is_azure_app_service' => $isAzureAppService,
+      'is_linux_runtime' => $isLinuxRuntime,
+    ]);
   }
 }
 

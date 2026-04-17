@@ -4,6 +4,15 @@ $error = '';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/state_helpers.php';
 
+$authDebugMode = admin_auth_debug_enabled();
+$authIssue = trim((string)($_GET['auth_issue'] ?? ''));
+if ($authIssue !== '') {
+    admin_auth_debug_log('login_issue_hint', [
+        'issue' => $authIssue,
+        'referer' => (string)($_SERVER['HTTP_REFERER'] ?? ''),
+    ]);
+}
+
 // Load environment variables via env_helpers if needed (already loaded by storage_helpers)
 
 // Ensure accounts file exists with a default superadmin (only on first run)
@@ -45,6 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
+    admin_auth_debug_log('login_attempt', [
+        'entered_username' => $username,
+        'accounts_count' => is_array($accounts) ? count($accounts) : 0,
+        'cookie_present' => isset($_COOKIE[session_name()]),
+    ]);
+
     // find account case-insensitively
     $foundUser = null;
     foreach ($accounts as $u => $info) {
@@ -77,13 +92,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_avatar'] = $accounts[$usernameToUse]['avatar'] ?? null;
         $_SESSION['admin_role'] = $accounts[$usernameToUse]['role'] ?? 'admin';
         $_SESSION['needs_tour'] = !empty($accounts[$usernameToUse]['needs_tour']);
-        admin_register_session($usernameToUse);
-        header('Location: index.php');
+        $registered = admin_register_session($usernameToUse);
+        admin_auth_debug_log('login_success', [
+            'user' => $usernameToUse,
+            'registered_tracker' => (bool)$registered,
+            'session_keys' => array_values(array_keys($_SESSION)),
+        ]);
+
+        $redirectQuery = $authDebugMode ? '?auth_debug=1' : '';
+        header('Location: index.php' . $redirectQuery);
         exit;
     } else {
         $error = "Invalid credentials";
+        admin_auth_debug_log('login_failed', [
+            'entered_username' => $username,
+            'user_found' => $foundUser !== null,
+            'reason' => ($foundUser === null ? 'user_not_found' : 'password_mismatch'),
+        ]);
     }
 }
+
+$sessionName = (string)session_name();
+$sessionSavePath = (string)ini_get('session.save_path');
+$sessionSavePathWritable = ($sessionSavePath !== '' && is_dir($sessionSavePath) && is_writable($sessionSavePath));
+$storagePath = app_storage_path();
+$storagePathWritable = ($storagePath !== '' && is_dir($storagePath) && is_writable($storagePath));
+$sessionTrackerFile = admin_sessions_file();
+$sessionTrackerRows = admin_sessions_read_fresh();
+$sessionTrackerCount = is_array($sessionTrackerRows) ? count($sessionTrackerRows) : 0;
+$sessionTracked = isset($sessionTrackerRows[(string)session_id()]);
+$authDebugRows = $authDebugMode ? admin_auth_debug_recent(50) : [];
 ?>
 
 <!DOCTYPE html>
@@ -253,6 +291,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: var(--outline);
             font-size: 0.85rem;
         }
+
+        .debug-card {
+            margin-top: 18px;
+            background: #0b1220;
+            color: #dbe6ff;
+            border: 1px solid #203152;
+            border-radius: 14px;
+            padding: 14px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            font-size: 0.76rem;
+            line-height: 1.5;
+            max-height: 320px;
+            overflow: auto;
+        }
+
+        .debug-row {
+            margin: 0 0 8px;
+            word-break: break-word;
+        }
+
+        .debug-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            background: #1f335a;
+            color: #d8e7ff;
+        }
+
+        .debug-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            color: var(--primary);
+            font-weight: 700;
+            text-decoration: none;
+        }
     </style>
 </head>
 
@@ -270,6 +350,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST">
+                <?php if ($authDebugMode): ?>
+                    <input type="hidden" name="auth_debug" value="1">
+                <?php endif; ?>
                 <div class="st-input-group">
                     <label for="username">Username</label>
                     <input class="st-input" id="username" type="text" name="username" placeholder="Enter username" required>
@@ -290,7 +373,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <span class="material-symbols-outlined" style="font-size:1.2rem;">login</span> Sign In
                 </button>
             </form>
+
+            <?php if ($authDebugMode): ?>
+                <div class="debug-card">
+                    <div class="debug-badge">Auth Debug Container</div>
+                    <?php if ($authIssue !== ''): ?>
+                        <div class="debug-row"><strong>auth_issue:</strong> <?= htmlspecialchars($authIssue) ?></div>
+                    <?php endif; ?>
+                    <div class="debug-row"><strong>session_name:</strong> <?= htmlspecialchars($sessionName) ?></div>
+                    <div class="debug-row"><strong>session_id:</strong> <?= htmlspecialchars((string)session_id()) ?></div>
+                    <div class="debug-row"><strong>session_cookie_present:</strong> <?= isset($_COOKIE[$sessionName]) ? 'yes' : 'no' ?></div>
+                    <div class="debug-row"><strong>session_save_path:</strong> <?= htmlspecialchars($sessionSavePath !== '' ? $sessionSavePath : '(empty)') ?> (<?= $sessionSavePathWritable ? 'writable' : 'not writable' ?>)</div>
+                    <div class="debug-row"><strong>storage_path:</strong> <?= htmlspecialchars($storagePath) ?> (<?= $storagePathWritable ? 'writable' : 'not writable' ?>)</div>
+                    <div class="debug-row"><strong>session_tracker_file:</strong> <?= htmlspecialchars($sessionTrackerFile) ?></div>
+                    <div class="debug-row"><strong>session_tracker_count:</strong> <?= (int)$sessionTrackerCount ?> | <strong>current_session_tracked:</strong> <?= $sessionTracked ? 'yes' : 'no' ?></div>
+                    <div class="debug-row"><strong>request_uri:</strong> <?= htmlspecialchars((string)($_SERVER['REQUEST_URI'] ?? '')) ?></div>
+                    <div class="debug-row"><strong>recent_events:</strong></div>
+                    <?php if (!empty($authDebugRows)): ?>
+                        <?php foreach ($authDebugRows as $row): ?>
+                            <?php
+                            $time = (string)($row['time'] ?? '');
+                            $event = (string)($row['event'] ?? 'unknown');
+                            $ctx = $row['context'] ?? [];
+                            $ctxJson = json_encode($ctx, JSON_UNESCAPED_SLASHES);
+                            if (!is_string($ctxJson)) {
+                                $ctxJson = '{}';
+                            }
+                            ?>
+                            <div class="debug-row">[<?= htmlspecialchars($time) ?>] <strong><?= htmlspecialchars($event) ?></strong> <?= htmlspecialchars($ctxJson) ?></div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="debug-row">(no events yet)</div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
         </div>
+
+        <?php if (!$authDebugMode): ?>
+            <a class="debug-link" href="login.php?auth_debug=1">
+                <span class="material-symbols-outlined" style="font-size:1rem;">bug_report</span>
+                Open auth debug
+            </a>
+        <?php endif; ?>
 
         <div class="footer">
             &copy; <?= date('Y') ?> Admin Panel. All rights reserved.
