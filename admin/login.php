@@ -99,6 +99,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'session_keys' => array_values(array_keys($_SESSION)),
         ]);
 
+        // Explicitly flush the session file to disk BEFORE issuing the redirect.
+        // Without this, session_regenerate_id(true) may not have synced the new
+        // session file by the time the browser follows Location — especially on
+        // Azure App Service where NFS shared storage has slight propagation delay
+        // and multiple instances may handle the next request.
+        session_write_close();
+
         $redirectQuery = $authDebugMode ? '?auth_debug=1' : '';
         header('Location: index.php' . $redirectQuery);
         exit;
