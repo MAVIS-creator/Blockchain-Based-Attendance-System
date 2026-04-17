@@ -1,6 +1,6 @@
 <?php
 // Show the timeout page inside the admin layout so it looks consistent.
-if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/session_bootstrap.php';
 $from = $_GET['from'] ?? '';
 $back = '#';
 try { if ($from) $back = htmlspecialchars(urldecode($from)); } catch(Exception $e) { $back = '#'; }

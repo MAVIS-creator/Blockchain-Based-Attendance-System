@@ -33,8 +33,15 @@ if (!function_exists('app_storage_path')) {
       $isAzureAppService = getenv('WEBSITE_SITE_NAME') !== false || getenv('WEBSITE_INSTANCE_ID') !== false;
       $isLinuxRuntime = DIRECTORY_SEPARATOR === '/';
 
-      if ($looksLikeAzureHome && $isAzureAppService && $isLinuxRuntime) {
-        $configured = DIRECTORY_SEPARATOR . ltrim($configured, '/\\');
+      if ($looksLikeAzureHome && $isAzureAppService) {
+        $azureHome = trim((string)getenv('HOME'));
+        if ($azureHome !== '') {
+          $configured = rtrim($azureHome, '/\\') . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . ltrim(substr($configured, 5), '/\\');
+        } elseif ($isLinuxRuntime) {
+          $configured = DIRECTORY_SEPARATOR . ltrim($configured, '/\\');
+        } else {
+          $configured = __DIR__ . DIRECTORY_SEPARATOR . $configured;
+        }
       } else {
         $configured = __DIR__ . DIRECTORY_SEPARATOR . $configured;
       }
@@ -54,27 +61,39 @@ if (!function_exists('app_storage_path')) {
       @mkdir($normalized, 0775, true);
     }
     if (!is_dir($normalized) || !is_writable($normalized)) {
-      // Fallback to project-local storage directory first.
-      $fallback = __DIR__ . '/storage';
-      if (!is_dir($fallback)) {
-        @mkdir($fallback, 0775, true);
-      }
-      $normalized = $fallback;
-    }
-
-    // On Azure App Service Linux, prefer a writable shared /home location
-    // when the project path is not writable (e.g. run-from-package deployments).
-    if (!is_dir($normalized) || !is_writable($normalized)) {
       $isAzureAppService = getenv('WEBSITE_SITE_NAME') !== false || getenv('WEBSITE_INSTANCE_ID') !== false;
-      $isLinuxRuntime = DIRECTORY_SEPARATOR === '/';
-      if ($isAzureAppService && $isLinuxRuntime) {
-        $azureFallback = '/home/data/attendance_storage';
-        if (!is_dir($azureFallback)) {
-          @mkdir($azureFallback, 0775, true);
+      if ($isAzureAppService) {
+        $azureHome = trim((string)getenv('HOME'));
+        if ($azureHome !== '') {
+          $azureFallback = rtrim($azureHome, '/\\') . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'attendance_storage';
+          if (!is_dir($azureFallback)) {
+            @mkdir($azureFallback, 0775, true);
+          }
+          if (is_dir($azureFallback) && is_writable($azureFallback)) {
+            $normalized = $azureFallback;
+          }
         }
-        if (is_dir($azureFallback) && is_writable($azureFallback)) {
-          $normalized = $azureFallback;
+
+        // Keep the Linux-style /home path as a compatibility fallback.
+        $isLinuxRuntime = DIRECTORY_SEPARATOR === '/';
+        if ((!is_dir($normalized) || !is_writable($normalized)) && $isLinuxRuntime) {
+          $linuxFallback = '/home/data/attendance_storage';
+          if (!is_dir($linuxFallback)) {
+            @mkdir($linuxFallback, 0775, true);
+          }
+          if (is_dir($linuxFallback) && is_writable($linuxFallback)) {
+            $normalized = $linuxFallback;
+          }
         }
+      }
+
+      if (!is_dir($normalized) || !is_writable($normalized)) {
+        // Fallback to project-local storage directory.
+        $fallback = __DIR__ . '/storage';
+        if (!is_dir($fallback)) {
+          @mkdir($fallback, 0775, true);
+        }
+        $normalized = $fallback;
       }
     }
 

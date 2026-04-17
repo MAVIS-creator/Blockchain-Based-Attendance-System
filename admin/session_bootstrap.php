@@ -49,10 +49,19 @@ if (!function_exists('admin_configure_session')) {
       $sessionDirs[] = $envSessionPath;
     }
 
-    // On Azure Linux App Service, prefer shared /home/data session storage so
-    // sessions survive requests routed across multiple workers.
-    if ($isAzureAppService && $isLinuxRuntime) {
-      $sessionDirs[] = '/home/data/attendance_sessions';
+    // On Azure App Service, prefer shared home-based session storage so
+    // sessions survive restarts and requests routed across workers/instances.
+    if ($isAzureAppService) {
+      $azureHome = trim((string)getenv('HOME'));
+      if ($azureHome !== '') {
+        $sessionDirs[] = rtrim($azureHome, '/\\') . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'attendance_sessions';
+      }
+
+      // Keep the Linux-style shared path as an additional fallback for hosts
+      // that expose the shared home volume at /home.
+      if ($isLinuxRuntime) {
+        $sessionDirs[] = '/home/data/attendance_sessions';
+      }
     }
 
     // App storage sessions path next.

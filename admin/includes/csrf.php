@@ -1,16 +1,6 @@
 <?php
 // Simple CSRF helper for admin pages
-// Session must already be started by session_bootstrap.php (which sets the custom
-// session name ATTENDANCE_ADMIN_SESSION). We only fall back to a plain start if
-// called from a context where no session exists yet.
-if (session_status() === PHP_SESSION_NONE) {
-    // Honor the session name if session_bootstrap already configured it
-    if (function_exists('admin_configure_session')) {
-        admin_configure_session();
-    } else {
-        session_start();
-    }
-}
+require_once __DIR__ . '/../session_bootstrap.php';
 
 /**
  * Return (and create if missing) a CSRF token stored in session.
