@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/admin/session_bootstrap.php';
+admin_configure_session();
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
 app_storage_init();

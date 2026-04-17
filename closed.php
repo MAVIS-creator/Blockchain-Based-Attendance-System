@@ -1,6 +1,6 @@
 <?php
-session_start();
-
+require_once __DIR__ . '/admin/session_bootstrap.php';
+admin_configure_session();
 require_once __DIR__ . '/admin/runtime_storage.php';
 $announcementFile = admin_storage_migrate_file('announcement.json');
 $announcement = ['enabled' => false, 'message' => '', 'severity' => 'info', 'updated_at' => null];

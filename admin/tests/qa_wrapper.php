@@ -1,9 +1,7 @@
 <?php
 // Mock PHP script to run the patcher without starting an HTTP server
-if (session_status() === PHP_SESSION_NONE) {
-    session_id('qa-test-session');
-    session_start();
-}
+require_once __DIR__ . '/../admin/session_bootstrap.php';
+admin_configure_session();
 $_SESSION['admin_logged_in'] = true;
 $_SESSION['admin_role'] = 'superadmin';
 

@@ -1,8 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-  session_start();
-}
-
+require_once __DIR__ . '/session_bootstrap.php';
+admin_configure_session();
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/../src/AiSiteStructureContext.php';
 require_once __DIR__ . '/../src/AiRulebook.php';
