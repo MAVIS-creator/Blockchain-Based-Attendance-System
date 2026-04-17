@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://attendancev2app123.azurewebsites.net"><strong>🌐 Live Demo</strong></a> ·
+  <a href="https://smart-attendance-samex.me"><strong>🌐 Live Site</strong></a> ·
   <a href="QUICKSTART.md"><strong>⚡ Quickstart</strong></a> ·
   <a href="FEATURES_IMPLEMENTED.md"><strong>📋 Full Feature Inventory</strong></a> ·
   <a href="CONTRIBUTING.md"><strong>🤝 Contribute</strong></a>
