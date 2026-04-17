@@ -5,7 +5,7 @@
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
 app_storage_init();
-if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/session_bootstrap.php';
 
 // CLI options:
 //   php auto_send_logs.php [YYYY-MM-DD] [--force] [--dry-run] [--recipient=email] [--format=csv|pdf]

@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/session_bootstrap.php';
-admin_configure_session();
 if (empty($_SESSION['admin_logged_in'])) {
   header('Location: login.php');
   exit;

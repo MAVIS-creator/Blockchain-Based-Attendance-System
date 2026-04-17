@@ -1,7 +1,7 @@
 <?php
 // Server-Sent Events endpoint to push revocation updates to connected clients.
 // Long-running script: polls revoked.json filemtime and pushes updates when changed.
-if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/session_bootstrap.php';
 
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');

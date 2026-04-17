@@ -1,5 +1,5 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/../session_bootstrap.php';
 require_once dirname(__DIR__) . '/includes/hybrid_admin_read.php';
 require_once dirname(__DIR__, 2) . '/storage_helpers.php';
 require_once dirname(__DIR__) . '/runtime_storage.php';
