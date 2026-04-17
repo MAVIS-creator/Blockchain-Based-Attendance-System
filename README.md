@@ -330,5 +330,7 @@ This project is licensed under the **MIT License** — see [LICENSE](LICENSE) fo
   <strong>Built with ❤️ by</strong><br><br>
   <a href="https://github.com/MAVIS-creator"><strong>Mavis</strong></a> — Gamer · Web Developer · Security Enthusiast<br>
   📧 <a href="mailto:mavisenquires@gmail.com">mavisenquires@gmail.com</a><br><br>
-  <strong>Co-Author:</strong> <a href="https://github.com/SamexHighshow">SamexHighshow</a>
+  <strong>Co-Authors &amp; Collaborators</strong><br><br>
+  <a href="https://github.com/SamexHighshow"><strong>SamexHighshow</strong></a> · Co-Author<br>
+  <a href="https://github.com/bakareolamilekan365-tech"><strong>Bakare Olamilekan Abdulkarim</strong></a> · Collaborator
 </p>
