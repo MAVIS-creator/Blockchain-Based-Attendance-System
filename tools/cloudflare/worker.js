@@ -155,33 +155,51 @@ async function fetchCustomError(originUrl, status, request) {
   errorUrl.hostname = ORIGIN_HOST;
   errorUrl.pathname = errorPath;
   errorUrl.search = "";
+  errorUrl.protocol = "https:";
 
   try {
+    // Fetch the error page with a reasonable timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
     const errorResponse = await fetch(
       new Request(errorUrl.toString(), {
         method: "GET",
-        headers: request.headers,
+        headers: new Headers({
+          "User-Agent": request.headers.get("User-Agent") || "CloudflareWorker",
+          "Accept": "text/html,application/xhtml+xml",
+        }),
+        redirect: "manual",
+        signal: controller.signal,
       }),
     );
+    
+    clearTimeout(timeoutId);
 
-    if (errorResponse.ok) {
-      const headers = new Headers(errorResponse.headers);
-      headers.set("content-type", "text/html; charset=UTF-8");
-      headers.set("cache-control", "no-store");
-      return new Response(await errorResponse.text(), {
+    // Accept 2xx responses for error pages
+    if (errorResponse.status >= 200 && errorResponse.status < 300) {
+      const htmlContent = await errorResponse.text();
+      return new Response(htmlContent, {
         status,
-        headers,
+        headers: {
+          "content-type": "text/html; charset=UTF-8",
+          "cache-control": "no-store, must-revalidate",
+          "x-error-source": "origin-php",
+        },
       });
     }
   } catch (e) {
-    // Fall through to built-in HTML response.
+    // Log error for debugging (in production, Cloudflare will capture this)
+    console.error(`Failed to fetch error page ${errorPath}: ${e.message}`);
   }
 
+  // Fallback to built-in HTML if fetch fails or returns non-2xx
   return new Response(fallbackHtml(status), {
     status,
     headers: {
       "content-type": "text/html; charset=UTF-8",
-      "cache-control": "no-store",
+      "cache-control": "no-store, must-revalidate",
+      "x-error-source": "fallback",
     },
   });
 }
