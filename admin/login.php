@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/session_bootstrap.php';
+require_once __DIR__ . '/../request_guard.php';
+app_request_guard('admin/login.php', 'admin');
 $error = '';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/state_helpers.php';

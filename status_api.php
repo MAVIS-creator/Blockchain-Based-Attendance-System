@@ -1,8 +1,10 @@
 <?php
 require_once __DIR__ . '/storage_helpers.php';
+require_once __DIR__ . '/request_guard.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/cache_helpers.php';
 app_storage_init();
+app_request_guard('status_api.php', 'public');
 
 $statusFile = admin_storage_migrate_file('status.json', app_storage_file('status.json'));
 if (!file_exists($statusFile)) {

@@ -5,7 +5,9 @@ require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/request_timing.php';
+require_once __DIR__ . '/request_guard.php';
 app_storage_init();
+app_request_guard('submit.php', 'public');
 request_timing_start('submit.php');
 
 // ✅ Set timezone to Nigeria

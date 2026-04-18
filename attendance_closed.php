@@ -1,5 +1,7 @@
 <?php
 // Styled attendance-closed page (general closed state)
+require_once __DIR__ . '/request_guard.php';
+app_request_guard('attendance_closed.php', 'public');
 ?>
 <!DOCTYPE html>
 <html lang="en">

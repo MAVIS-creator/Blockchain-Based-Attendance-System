@@ -5,8 +5,10 @@ require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/request_timing.php';
+require_once __DIR__ . '/request_guard.php';
 require_once __DIR__ . '/src/AiTicketAutomationEngine.php';
 app_storage_init();
+app_request_guard('support.php', 'public');
 request_timing_start('support.php');
 
 $ticketsFile = admin_storage_migrate_file('support_tickets.json', app_storage_file('support_tickets.json'));

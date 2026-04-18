@@ -1,8 +1,10 @@
 <?php
+require_once __DIR__ . '/request_guard.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/state_helpers.php';
 require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/src/AiAnnouncementService.php';
+app_request_guard('get_announcement.php', 'public');
 
 if (!function_exists('sanitize_public_announcement_message')) {
     function sanitize_public_announcement_message($message, $classification = '')

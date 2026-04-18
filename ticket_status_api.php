@@ -3,10 +3,12 @@
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/storage_helpers.php';
+require_once __DIR__ . '/request_guard.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/state_helpers.php';
 
 app_storage_init();
+app_request_guard('ticket_status_api.php', 'public');
 
 $fingerprint = trim((string)($_POST['fingerprint'] ?? $_GET['fingerprint'] ?? ''));
 $ip = trim((string)($_POST['ip'] ?? $_GET['ip'] ?? ($_SERVER['REMOTE_ADDR'] ?? '')));
