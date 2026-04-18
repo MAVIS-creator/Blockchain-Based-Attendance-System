@@ -52,12 +52,13 @@ function can_view_sidebar($pageId, $isSuperAdmin, $allowedPages)
           </a></li>
       <?php endif; ?>
 
-      <?php if (can_view_sidebar('logs', $isSuperAdmin, $allowedPages) || can_view_sidebar('request_timings', $isSuperAdmin, $allowedPages)): ?>
+      <?php if (can_view_sidebar('logs', $isSuperAdmin, $allowedPages) || can_view_sidebar('request_timings', $isSuperAdmin, $allowedPages) || can_view_sidebar('request_guard_monitor', $isSuperAdmin, $allowedPages)): ?>
         <li>
-          <details class="sidebar-group" <?= in_array($page, ['request_timings', 'logs', 'chain', 'failed_attempts', 'clear_logs_ui', 'clear_tokens_ui', 'send_logs_email']) ? 'open' : '' ?>>
+          <details class="sidebar-group" <?= in_array($page, ['request_timings', 'request_guard_monitor', 'logs', 'chain', 'failed_attempts', 'clear_logs_ui', 'clear_tokens_ui', 'send_logs_email']) ? 'open' : '' ?>>
             <summary><span class="material-symbols-outlined">history_edu</span><span class="label-text">Logs</span></summary>
             <ul>
               <?php if (can_view_sidebar('request_timings', $isSuperAdmin, $allowedPages)): ?><li><a href="index.php?page=request_timings" class="<?= $page == 'request_timings' ? 'active' : '' ?>"><span class="material-symbols-outlined">timer</span><span class="label-text">Request Timings</span></a></li><?php endif; ?>
+              <?php if (can_view_sidebar('request_guard_monitor', $isSuperAdmin, $allowedPages)): ?><li><a href="index.php?page=request_guard_monitor" class="<?= $page == 'request_guard_monitor' ? 'active' : '' ?>"><span class="material-symbols-outlined">gpp_maybe</span><span class="label-text">Threat Monitor</span></a></li><?php endif; ?>
               <?php if (can_view_sidebar('logs', $isSuperAdmin, $allowedPages)): ?><li><a href="index.php?page=logs" class="<?= $page == 'logs' ? 'active' : '' ?>"><span class="material-symbols-outlined">description</span><span class="label-text">General Logs</span></a></li><?php endif; ?>
               <?php if (can_view_sidebar('chain', $isSuperAdmin, $allowedPages)): ?><li><a href="index.php?page=chain" class="<?= $page == 'chain' ? 'active' : '' ?>"><span class="material-symbols-outlined">link</span><span class="label-text">Chain</span></a></li><?php endif; ?>
               <?php if (can_view_sidebar('failed_attempts', $isSuperAdmin, $allowedPages)): ?><li><a href="index.php?page=failed_attempts" class="<?= $page == 'failed_attempts' ? 'active' : '' ?>"><span class="material-symbols-outlined">error</span><span class="label-text">Failed Logs</span></a></li><?php endif; ?>

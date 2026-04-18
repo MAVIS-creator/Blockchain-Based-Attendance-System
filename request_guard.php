@@ -75,6 +75,19 @@ if (!function_exists('request_guard_log')) {
   }
 }
 
+if (!function_exists('request_guard_monitor_log_event')) {
+  function request_guard_monitor_log_event(array $event)
+  {
+    $file = app_storage_file('logs/request_guard_monitor.log');
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+      @mkdir($dir, 0775, true);
+    }
+    $event['time'] = isset($event['time']) ? $event['time'] : gmdate('c');
+    @file_put_contents($file, json_encode($event, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
+  }
+}
+
 if (!function_exists('app_request_guard')) {
   function app_request_guard($route, $scope = 'public')
   {
@@ -98,6 +111,10 @@ if (!function_exists('app_request_guard')) {
 
     $publicTimeout = request_guard_env_int('REQUEST_GUARD_PUBLIC_TIMEOUT_SECONDS', 25, 5, 300);
     $adminTimeout = request_guard_env_int('REQUEST_GUARD_ADMIN_TIMEOUT_SECONDS', 45, 5, 600);
+    $burstWindowSec = request_guard_env_int('REQUEST_GUARD_BURST_WINDOW_SECONDS', 10, 2, 300);
+    $burstLimit = request_guard_env_int('REQUEST_GUARD_BURST_PER_WINDOW', 40, 5, 10000);
+    $burstBlockSec = request_guard_env_int('REQUEST_GUARD_BURST_BLOCK_SECONDS', 600, 10, 86400);
+    $monitorSampleEvery = request_guard_env_int('REQUEST_GUARD_MONITOR_SAMPLE_EVERY', 10, 1, 1000);
 
     $route = strtolower(trim((string)$route));
     $isLoginRoute = strpos($route, 'admin/login.php') !== false;
@@ -160,6 +177,86 @@ if (!function_exists('app_request_guard')) {
     }
 
     $state['count'] = (int)($state['count'] ?? 0) + 1;
+
+    $burstTriggered = false;
+    $burstCount = 0;
+    $burstFile = app_storage_file('security/request_guard_burst/' . sha1($ip) . '.json');
+    $burstDir = dirname($burstFile);
+    if (!is_dir($burstDir)) {
+      @mkdir($burstDir, 0775, true);
+    }
+
+    $burstState = [
+      'window_started' => $now,
+      'count' => 0,
+      'last_route' => $route,
+      'ip' => $ip,
+    ];
+    if (file_exists($burstFile)) {
+      $burstRaw = @file_get_contents($burstFile);
+      $burstDecoded = json_decode((string)$burstRaw, true);
+      if (is_array($burstDecoded)) {
+        $burstState = array_merge($burstState, $burstDecoded);
+      }
+    }
+
+    $burstWindowStarted = (int)($burstState['window_started'] ?? $now);
+    if (($now - $burstWindowStarted) >= $burstWindowSec) {
+      $burstState['window_started'] = $now;
+      $burstState['count'] = 0;
+    }
+    $burstState['count'] = (int)($burstState['count'] ?? 0) + 1;
+    $burstState['last_route'] = $route;
+    $burstCount = (int)$burstState['count'];
+    @file_put_contents($burstFile, json_encode($burstState, JSON_UNESCAPED_SLASHES), LOCK_EX);
+
+    if ($burstCount >= $burstLimit) {
+      $burstTriggered = true;
+      $state['blocked_until'] = max((int)($state['blocked_until'] ?? 0), $now + $burstBlockSec);
+    }
+
+    $nearLimit = $state['count'] >= (int)ceil($limit * 0.8);
+    $shouldSample = ($state['count'] === 1) || (($state['count'] % max(1, $monitorSampleEvery)) === 0) || $nearLimit || $burstTriggered;
+    if ($shouldSample) {
+      request_guard_monitor_log_event([
+        'event' => $burstTriggered ? 'burst_detected' : 'request_sample',
+        'ip' => $ip,
+        'route' => $route,
+        'scope' => $scope,
+        'count' => (int)$state['count'],
+        'limit' => (int)$limit,
+        'burst_count' => (int)$burstCount,
+        'burst_limit' => (int)$burstLimit,
+        'burst_window_seconds' => (int)$burstWindowSec,
+        'blocked_until' => (int)($state['blocked_until'] ?? 0),
+        'user_agent' => $ua,
+      ]);
+    }
+
+    if ($burstTriggered) {
+      @file_put_contents($bucketFile, json_encode($state, JSON_UNESCAPED_SLASHES), LOCK_EX);
+      request_guard_log(json_encode([
+        'time' => gmdate('c'),
+        'event' => 'burst_blocked',
+        'ip' => $ip,
+        'route' => $route,
+        'scope' => $scope,
+        'count' => (int)$state['count'],
+        'limit' => (int)$limit,
+        'burst_count' => (int)$burstCount,
+        'burst_limit' => (int)$burstLimit,
+        'burst_window_seconds' => (int)$burstWindowSec,
+        'block_seconds' => (int)$burstBlockSec,
+        'user_agent' => $ua,
+      ], JSON_UNESCAPED_SLASHES));
+
+      request_guard_reject($burstBlockSec, [
+        'ok' => false,
+        'error' => 'burst_limited',
+        'message' => 'Request burst detected. Please slow down and try again later.',
+        'retry_after' => (int)$burstBlockSec,
+      ]);
+    }
 
     if ($state['count'] > $limit) {
       $state['blocked_until'] = $now + $blockSec;
