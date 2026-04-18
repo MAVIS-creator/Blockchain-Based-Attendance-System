@@ -67,10 +67,11 @@ else
     exit 1
 fi
 
-# Set proper permissions
-chmod 755 "$APP_ROOT"
-find "$APP_ROOT" -type d -exec chmod 755 {} \;
-find "$APP_ROOT" -type f -exec chmod 644 {} \;
+# Keep startup fast: avoid recursive chmod across the whole app tree,
+# which can exceed App Service warm-up timeout on large deployments.
+# Only ensure known writable runtime locations exist.
+mkdir -p "$APP_ROOT/storage" "$APP_ROOT/storage/logs" "$APP_ROOT/storage/sessions"
+chmod 755 "$APP_ROOT/storage" "$APP_ROOT/storage/logs" "$APP_ROOT/storage/sessions" || true
 
 echo "=== Setup Complete ==="
 echo "App Root: $APP_ROOT"
