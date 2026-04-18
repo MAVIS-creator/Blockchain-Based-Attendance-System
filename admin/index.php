@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/session_bootstrap.php';
+require_once __DIR__ . '/state_helpers.php';
 // Enable output buffering so included page views can send headers (redirects) after POST handling
 if (function_exists('ob_start')) ob_start();
 $isAdminLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
@@ -31,7 +32,6 @@ if (!$isAdminLoggedIn) {
 }
 
 require_once __DIR__ . '/runtime_storage.php';
-require_once __DIR__ . '/state_helpers.php';
 
 // Session Tracking & Validity Check
 $currentSessionId = session_id();
