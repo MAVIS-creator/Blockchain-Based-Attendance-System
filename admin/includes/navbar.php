@@ -38,6 +38,7 @@ $ticketCount = admin_support_ticket_count(15);
         </button>
         <ul class="dropdown-menu">
           <li><a href="index.php?page=request_timings" class="<?= $page == 'request_timings' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">timer</span>Request Timings</a></li>
+          <li><a href="index.php?page=request_guard_monitor" class="<?= $page == 'request_guard_monitor' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">gpp_maybe</span>Threat Monitor</a></li>
           <li><a href="index.php?page=logs" class="<?= $page == 'logs' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">description</span>General Logs</a></li>
           <li><a href="index.php?page=chain" class="<?= $page == 'chain' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">link</span>Chain</a></li>
           <li><a href="index.php?page=failed_attempts" class="<?= $page == 'failed_attempts' ? 'active' : '' ?>"><span class="material-symbols-outlined" style="font-size:1rem;">error</span>Failed Logs</a></li>
