@@ -130,7 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['admin_avatar'] = $authAccount['avatar'] ?? null;
         $_SESSION['admin_role'] = (string)($authAccount['role'] ?? 'admin');
         $_SESSION['needs_tour'] = !empty($authAccount['needs_tour']);
-        $registered = admin_register_session($usernameToUse);
+        $registered = admin_register_session($usernameToUse, [
+            'role' => (string)($authAccount['role'] ?? 'admin'),
+            'name' => (string)($authAccount['name'] ?? $usernameToUse),
+            'avatar' => $authAccount['avatar'] ?? null,
+            'needs_tour' => !empty($authAccount['needs_tour']),
+        ]);
         admin_auth_debug_log('login_success', [
             'user' => $usernameToUse,
             'registered_tracker' => (bool)$registered,

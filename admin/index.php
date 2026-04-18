@@ -4,8 +4,21 @@ require_once __DIR__ . '/session_bootstrap.php';
 if (function_exists('ob_start')) ob_start();
 $isAdminLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 if (!$isAdminLoggedIn) {
+  $restoreReason = null;
+  if (admin_restore_session_from_tracker(session_id(), $restoreReason) && !empty($_SESSION['admin_logged_in'])) {
+    admin_auth_debug_log('index_session_restored_from_tracker', [
+      'reason' => (string)$restoreReason,
+      'session_id' => (string)session_id(),
+      'session_keys' => array_values(array_keys($_SESSION ?? [])),
+    ]);
+    $isAdminLoggedIn = true;
+  }
+}
+
+if (!$isAdminLoggedIn) {
   admin_auth_debug_log('index_guard_redirect', [
     'reason' => 'admin_logged_in_missing_or_false',
+    'restore_attempt' => isset($restoreReason) ? (string)$restoreReason : 'not_attempted',
     'session_keys' => array_values(array_keys($_SESSION ?? [])),
     'cookie_present' => isset($_COOKIE[session_name()]),
   ]);

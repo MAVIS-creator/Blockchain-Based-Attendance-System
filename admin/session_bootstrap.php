@@ -145,8 +145,9 @@ if (!function_exists('admin_configure_session')) {
     // App storage sessions path next.
     $sessionDirs[] = app_storage_file('sessions');
 
-    // Instance-local temp storage remains a fallback only.
-    if ($tmpSessionDir !== '') {
+    // Instance-local temp storage remains a fallback only and should be avoided
+    // on Azure where requests may land on different workers.
+    if (!$isAzureAppService && $tmpSessionDir !== '') {
       $sessionDirs[] = $tmpSessionDir . DIRECTORY_SEPARATOR . 'attendance_sessions';
     }
 
@@ -170,7 +171,7 @@ if (!function_exists('admin_configure_session')) {
 
     @ini_set('session.save_path', $sessionDir);
     @ini_set('session.gc_maxlifetime', (string)$lifetimeSeconds);
-    @ini_set('session.use_strict_mode', '0');
+    @ini_set('session.use_strict_mode', '1');
     @ini_set('session.use_cookies', '1');
     @ini_set('session.use_only_cookies', '1');
     @ini_set('session.cookie_httponly', '1');
@@ -217,6 +218,10 @@ if (!function_exists('admin_configure_session')) {
       @error_log('admin_configure_session: session_start failed; verify save_path permissions and platform storage settings.');
     }
 
+    $selectedSavePath = (string)ini_get('session.save_path');
+    $normalizedSavePath = str_replace('\\', '/', strtolower($selectedSavePath));
+    $selectedIsEphemeral = (strpos($normalizedSavePath, '/tmp/') === 0);
+
     admin_auth_debug_log('session_bootstrap', [
       'started' => ($started || session_status() === PHP_SESSION_ACTIVE),
       'selected_session_dir' => $sessionDir,
@@ -224,6 +229,7 @@ if (!function_exists('admin_configure_session')) {
       'is_secure_cookie' => $isSecure,
       'is_azure_app_service' => $isAzureAppService,
       'is_linux_runtime' => $isLinuxRuntime,
+      'selected_is_ephemeral' => $selectedIsEphemeral,
     ]);
   }
 }

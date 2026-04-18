@@ -518,18 +518,117 @@ if (!function_exists('admin_write_json_atomic')) {
 }
 
 if (!function_exists('admin_register_session')) {
-  function admin_register_session($username)
+  function admin_register_session($username, array $meta = [])
   {
     $file = admin_sessions_file();
     $activeSessions = admin_sessions_read_fresh();
-    $activeSessions[session_id()] = [
+    $entry = [
       'user' => (string)$username,
       'ip' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
       'user_agent' => (string)($_SERVER['HTTP_USER_AGENT'] ?? ''),
       'login_time' => time(),
       'last_activity' => time(),
     ];
+
+    if (isset($meta['role'])) {
+      $entry['role'] = (string)$meta['role'];
+    }
+    if (array_key_exists('name', $meta)) {
+      $entry['name'] = (string)$meta['name'];
+    }
+    if (array_key_exists('avatar', $meta)) {
+      $entry['avatar'] = $meta['avatar'];
+    }
+    if (array_key_exists('needs_tour', $meta)) {
+      $entry['needs_tour'] = !empty($meta['needs_tour']);
+    }
+
+    $activeSessions[session_id()] = $entry;
     return admin_write_json_atomic($file, $activeSessions);
+  }
+}
+
+if (!function_exists('admin_session_recovery_window_seconds')) {
+  function admin_session_recovery_window_seconds()
+  {
+    $lifetimeMinutes = (int)app_env_value('SESSION_LIFETIME', 120);
+    if ($lifetimeMinutes <= 0) {
+      $lifetimeMinutes = 120;
+    }
+
+    $graceSeconds = (int)app_env_value('SESSION_RECOVERY_GRACE_SECONDS', 900);
+    if ($graceSeconds < 0) {
+      $graceSeconds = 0;
+    }
+
+    return ($lifetimeMinutes * 60) + $graceSeconds;
+  }
+}
+
+if (!function_exists('admin_restore_session_from_tracker')) {
+  function admin_restore_session_from_tracker($sid = null, &$reason = null)
+  {
+    $reason = null;
+    $sid = $sid ?: session_id();
+    if (!is_string($sid) || trim($sid) === '') {
+      $reason = 'missing_session_id';
+      return false;
+    }
+
+    if (!empty($_SESSION['admin_logged_in']) && !empty($_SESSION['admin_user'])) {
+      $reason = 'already_logged_in';
+      return true;
+    }
+
+    $activeSessions = admin_sessions_read_fresh();
+    if (!isset($activeSessions[$sid]) || !is_array($activeSessions[$sid])) {
+      $reason = 'session_not_tracked';
+      return false;
+    }
+
+    $entry = $activeSessions[$sid];
+    $username = trim((string)($entry['user'] ?? ''));
+    if ($username === '') {
+      $reason = 'tracked_user_missing';
+      return false;
+    }
+
+    $now = time();
+    $lastActivity = isset($entry['last_activity']) ? (int)$entry['last_activity'] : 0;
+    $allowedWindow = admin_session_recovery_window_seconds();
+    if ($lastActivity > 0 && ($now - $lastActivity) > $allowedWindow) {
+      $reason = 'tracked_session_expired';
+      return false;
+    }
+
+    $strictMatch = strtolower(trim((string)app_env_value('SESSION_RECOVERY_STRICT', '1')));
+    $strict = in_array($strictMatch, ['1', 'true', 'yes', 'on'], true);
+    if ($strict) {
+      $reqIp = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+      $reqUa = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+      $trackIp = (string)($entry['ip'] ?? '');
+      $trackUa = (string)($entry['user_agent'] ?? '');
+      if ($trackIp !== '' && $reqIp !== '' && $trackIp !== $reqIp) {
+        $reason = 'ip_mismatch';
+        return false;
+      }
+      if ($trackUa !== '' && $reqUa !== '' && $trackUa !== $reqUa) {
+        $reason = 'ua_mismatch';
+        return false;
+      }
+    }
+
+    $_SESSION['admin_logged_in'] = true;
+    $_SESSION['admin_user'] = $username;
+    $_SESSION['admin_name'] = (string)($entry['name'] ?? $username);
+    $_SESSION['admin_avatar'] = array_key_exists('avatar', $entry) ? $entry['avatar'] : null;
+    $_SESSION['admin_role'] = (string)($entry['role'] ?? 'admin');
+    $_SESSION['needs_tour'] = !empty($entry['needs_tour']);
+
+    $activeSessions[$sid]['last_activity'] = $now;
+    admin_write_json_atomic(admin_sessions_file(), $activeSessions);
+    $reason = 'restored';
+    return true;
   }
 }
 
