@@ -123,7 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Forgot Password</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="../asset/favicon.ico">
+    <link rel="icon" type="image/png" href="../asset/image.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="../asset/image.png">
     <link rel="stylesheet" href="style.css">
     <style>
         body {

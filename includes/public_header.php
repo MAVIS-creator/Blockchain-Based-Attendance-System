@@ -38,11 +38,8 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Smart Attendance</title>
-<link rel="icon" type="image/svg+xml" href="asset/attendance-favicon.svg">
-<link rel="icon" type="image/x-icon" href="asset/favicon.ico">
-<link rel="apple-touch-icon" sizes="180x180" href="asset/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="asset/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="asset/favicon-16x16.png">
+<link rel="icon" type="image/png" href="asset/image.png">
+<link rel="apple-touch-icon" sizes="180x180" href="asset/image.png">
 <link rel="manifest" href="asset/site.webmanifest">
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -187,7 +184,7 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
 <header class="sticky top-0 w-full z-50 bg-[#f6faff]/90 dark:bg-[#171c20]/90 backdrop-blur-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)]">
     <div class="flex justify-between items-center px-4 md:px-8 py-4 max-w-[1440px] mx-auto">
         <div class="flex items-center gap-3">
-            <img class="h-8 w-8 object-contain" src="asset/attendance-mark.svg" alt="Attendance Mark">
+            <img class="h-8 w-8 object-contain" src="asset/image.png" alt="Smart Attendance Logo">
             <span class="text-xl font-bold tracking-tighter text-[#00457b] dark:text-[#f0f4f9] uppercase hidden sm:block">Smart Attendance</span>
         </div>
         <nav class="hidden md:flex items-center gap-8 font-inter text-sm font-medium tracking-wide">

@@ -9,7 +9,7 @@ $ticketCount = admin_support_ticket_count(15);
   <div class="navbar-container">
     <!-- Brand -->
     <div class="navbar-brand">
-      <img src="../asset/attendance-mark.svg" alt="Attendance Mark" class="navbar-logo" onerror="this.style.display='none'">
+      <img src="../asset/image.png" alt="Smart Attendance Logo" class="navbar-logo" onerror="this.style.display='none'">
       <div class="navbar-title">
         <h1>Attendance Admin</h1>
         <span class="navbar-subtitle">Smart Attendance</span>
