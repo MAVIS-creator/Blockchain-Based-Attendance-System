@@ -85,7 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($authenticated) {
-        session_regenerate_id(true);
+        // Use false here: On Azure App Service shared storage (CIFS/NFS), 
+        // the session file is locked. Regenerate_id(true) attempts to unlink() the 
+        // active file, which fails on Windows/SMB file shares and can break the login flow.
+        session_regenerate_id(false);
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_user'] = $usernameToUse;
         $_SESSION['admin_name'] = $accounts[$usernameToUse]['name'] ?? $usernameToUse;
