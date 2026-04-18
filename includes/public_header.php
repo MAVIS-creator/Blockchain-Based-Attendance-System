@@ -194,7 +194,13 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
             <a class="<?php echo ($currentPage == 'index.php') ? 'text-[#00457b] dark:text-[#cfe5ff] font-bold border-b-2 border-[#00457b] dark:border-[#cfe5ff] pb-1' : 'text-[#424750] dark:text-[#c2c7d1] hover:text-[#00457b] dark:hover:text-white'; ?> transition-all" href="index.php">Portal</a>
             <a class="<?php echo ($currentPage == 'support.php') ? 'text-[#00457b] dark:text-[#cfe5ff] font-bold border-b-2 border-[#00457b] dark:border-[#cfe5ff] pb-1' : 'text-[#424750] dark:text-[#c2c7d1] hover:text-[#00457b] dark:hover:text-white'; ?> transition-all" href="support.php">Support</a>
         </nav>
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 md:gap-4">
+            <?php if ($headerTimerValid): ?>
+            <div class="flex items-center gap-1.5 bg-surface-container-low border border-outline-variant/20 px-2 md:px-3 py-1.5 md:py-2 rounded-md shadow-sm">
+                <span class="material-symbols-outlined text-[14px] md:text-[16px] text-primary animate-pulse" style="font-variation-settings: 'FILL' 1;">timer</span>
+                <span id="headerCountdown" class="font-mono text-xs md:text-sm font-extrabold text-primary tracking-widest" data-endtime="<?php echo $headerEndTime; ?>">00:00</span>
+            </div>
+            <?php endif; ?>
             <button class="<?php echo $statusBadgeClass; ?> px-4 md:px-5 py-2 rounded-md font-medium text-xs md:text-sm cursor-default opacity-90 transition-transform duration-200" disabled>
                 <?php echo htmlspecialchars($statusLabel); ?>
             </button>

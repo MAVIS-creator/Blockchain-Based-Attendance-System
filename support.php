@@ -205,11 +205,11 @@ include __DIR__ . '/includes/public_header.php';
                     <ul class="space-y-4">
                         <li class="flex gap-3 text-sm text-on-surface-variant">
                             <span class="material-symbols-outlined text-primary text-[20px]">mark_email_read</span>
-                            <span>Support may review the ticket after submission to verify data.</span>
+                            <span>Support may review the ticket after submission to verify data, please make sure your message is clear and concise for better response.</span>
                         </li>
                         <li class="flex gap-3 text-sm text-on-surface-variant">
                             <span class="material-symbols-outlined text-primary text-[20px]">history</span>
-                            <span>Response times typically fall within 24 standard business hours.</span>
+                            <span>Response times are typically almost immediately.</span>
                         </li>
                         <li class="flex gap-3 text-sm text-on-surface-variant">
                             <span class="material-symbols-outlined text-primary text-[20px]">security</span>

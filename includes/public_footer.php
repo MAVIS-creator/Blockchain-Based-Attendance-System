@@ -16,6 +16,131 @@
 </footer>
 
 <script>
+// Header Countdown Timer Logic
+const countdownEl = document.getElementById('headerCountdown');
+let currentEndTime = 0;
+
+function showTimeAdjustmentNotice(minutesStr, isReduced) {
+    const toast = document.createElement('div');
+    const sign = isReduced ? '-' : '+';
+    const action = isReduced ? 'reduced by' : 'extended by';
+    const colorClass = isReduced ? 'text-error' : 'text-primary';
+    const bgClass = isReduced ? 'bg-error-container/10' : 'bg-surface-container-lowest';
+    const borderClass = isReduced ? 'border-error/20' : 'border-outline-variant/20';
+    const icon = isReduced ? 'timer_off' : 'timer';
+    
+    toast.innerHTML = `
+        <div class="flex items-center gap-3 ${bgClass} border ${borderClass} px-5 py-3 rounded-lg shadow-xl backdrop-blur-md">
+            <span class="material-symbols-outlined ${colorClass}" style="font-size: 20px; font-variation-settings: 'FILL' 1;">${icon}</span>
+            <span class="text-sm font-semibold text-on-surface">Time ${action} <span class="${colorClass} font-bold tracking-tight">${sign}${minutesStr}</span></span>
+        </div>
+    `;
+    
+    toast.style.position = 'fixed';
+    toast.style.bottom = '24px';
+    toast.style.right = '24px';
+    toast.style.zIndex = '9999';
+    toast.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(20px)';
+    
+    document.body.appendChild(toast);
+    
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    });
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        setTimeout(() => toast.remove(), 400);
+    }, 4500);
+    
+    if (countdownEl) {
+        countdownEl.classList.add('scale-110');
+        countdownEl.parentElement.classList.add('shadow-md');
+        setTimeout(() => {
+            countdownEl.classList.remove('scale-110');
+            countdownEl.parentElement.classList.remove('shadow-md');
+        }, 500);
+    }
+}
+
+if (countdownEl) {
+    const endTimeStr = countdownEl.getAttribute('data-endtime');
+    currentEndTime = endTimeStr ? parseInt(endTimeStr, 10) : 0;
+    
+    if (currentEndTime > 0) {
+        const updateTimer = () => {
+            const now = Math.floor(Date.now() / 1000);
+            const diff = currentEndTime - now;
+            
+            if (diff <= 0) {
+                countdownEl.textContent = '00:00';
+                countdownEl.classList.remove('text-primary');
+                countdownEl.classList.add('text-error');
+                countdownEl.previousElementSibling.classList.remove('text-primary', 'animate-pulse');
+                countdownEl.previousElementSibling.classList.add('text-error');
+                countdownEl.parentElement.classList.add('bg-error-container/10', 'border-error/20');
+                
+                setTimeout(() => location.reload(), 1500);
+                return;
+            }
+            
+            const m = Math.floor(diff / 60).toString().padStart(2, '0');
+            const s = (diff % 60).toString().padStart(2, '0');
+            countdownEl.textContent = `${m}:${s}`;
+            
+            if (diff <= 60) {
+                countdownEl.classList.remove('text-primary');
+                countdownEl.classList.add('text-error');
+                countdownEl.previousElementSibling.classList.remove('text-primary');
+                countdownEl.previousElementSibling.classList.add('text-error');
+                countdownEl.parentElement.classList.add('bg-error-container/10', 'border-error/20');
+            } else {
+                countdownEl.classList.remove('text-error');
+                countdownEl.classList.add('text-primary');
+                countdownEl.previousElementSibling.classList.add('text-primary');
+                countdownEl.previousElementSibling.classList.remove('text-error');
+                countdownEl.parentElement.classList.remove('bg-error-container/10', 'border-error/20');
+            }
+        };
+        updateTimer();
+        setInterval(updateTimer, 1000);
+        
+        // Poll for backend time adjustments (deductions or additions)
+        setInterval(() => {
+            if (!currentEndTime) return;
+            fetch('status_api.php', { cache: 'no-store' })
+            .then(res => res.json())
+            .then(data => {
+                if (data && typeof data.end_time === 'number') {
+                    if (data.end_time !== currentEndTime) {
+                        const diffSeconds = data.end_time - currentEndTime;
+                        const absMins = Math.abs(Math.round(diffSeconds / 60));
+                        
+                        // Show toast if time drifted cleanly by a minute or more
+                        if (Math.abs(diffSeconds) >= 15) { 
+                            const isReduced = diffSeconds < 0;
+                            const minsLabel = absMins + (absMins === 1 ? ' min' : ' mins');
+                            showTimeAdjustmentNotice(minsLabel, isReduced);
+                        }
+                        
+                        currentEndTime = data.end_time;
+                        countdownEl.setAttribute('data-endtime', currentEndTime);
+                        updateTimer();
+                    }
+                } else if (data && data.end_time === null) {
+                    currentEndTime = 0;
+                    location.reload();
+                }
+            })
+            .catch(() => {});
+        }, 5000);
+    }
+}
+
 // Dynamic Announcement Banner Logic (adapted to new UI)
 const announcementBanner = document.getElementById('announcementBanner');
 const announcementBannerBg = document.getElementById('announcementBannerBg');
