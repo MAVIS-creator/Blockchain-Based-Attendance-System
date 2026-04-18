@@ -15,6 +15,61 @@ const ERROR_PATHS = new Map([
   [504, "/504.php"],
 ]);
 
+const SENSITIVE_JSON_BASENAMES = new Set([
+  "accounts.json",
+  "settings.json",
+  "settings_templates.json",
+  "chat.json",
+  "revoked.json",
+  "support_tickets.json",
+  "sessions.json",
+]);
+
+const BLOCKED_DIR_PREFIXES = ["/storage/", "/vendor/"];
+const BLOCKED_EXTENSIONS = [
+  ".env",
+  ".local",
+  ".log",
+  ".bak",
+  ".lock",
+  ".ps1",
+  ".bat",
+  ".md",
+  ".sql",
+  ".zip",
+];
+
+function shouldBlockPath(url) {
+  const pathname = decodeURIComponent(url.pathname || "/");
+  const lowerPath = pathname.toLowerCase();
+
+  // Allow ACME/challenge style routes if needed.
+  if (lowerPath.startsWith("/.well-known/")) {
+    return false;
+  }
+
+  // Block dotfiles anywhere in the path.
+  if (/(^|\/)\.[^/]/.test(pathname)) {
+    return true;
+  }
+
+  // Block known sensitive top-level directories.
+  if (BLOCKED_DIR_PREFIXES.some((prefix) => lowerPath.startsWith(prefix))) {
+    return true;
+  }
+
+  const basename = lowerPath.split("/").pop() || "";
+  if (SENSITIVE_JSON_BASENAMES.has(basename)) {
+    return true;
+  }
+
+  if (BLOCKED_EXTENSIONS.some((ext) => basename.endsWith(ext))) {
+    return true;
+  }
+
+  return false;
+}
+
 function fallbackHtml(status) {
   const titles = {
     400: "Bad Request",
@@ -142,8 +197,18 @@ export default {
     const originUrl = new URL(request.url);
     originUrl.hostname = ORIGIN_HOST;
     originUrl.protocol = "https:";
+
+    if (shouldBlockPath(url)) {
+      return fetchCustomError(originUrl.toString(), 403, request);
+    }
+
     const originRequest = buildOriginRequest(request, originUrl, url);
-    const response = await fetch(originRequest);
+    let response;
+    try {
+      response = await fetch(originRequest);
+    } catch (e) {
+      return fetchCustomError(originUrl.toString(), 502, request);
+    }
 
     if (
       [400, 401, 403, 404, 405, 408, 429, 500, 502, 503, 504].includes(
