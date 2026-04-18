@@ -5,6 +5,7 @@ app_request_guard('admin/login.php', 'admin');
 $error = '';
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/state_helpers.php';
+require_once __DIR__ . '/sql_accounts.php';
 
 $authDebugMode = admin_auth_debug_enabled();
 $authIssue = trim((string)($_GET['auth_issue'] ?? ''));
@@ -17,39 +18,49 @@ if ($authIssue !== '') {
 
 // Load environment variables via env_helpers if needed (already loaded by storage_helpers)
 
-// Ensure accounts file exists with a default superadmin (only on first run)
+$useSqlAccounts = admin_should_use_sql_accounts();
+$isLocalEnvironment = app_is_local_environment();
 $accountsFile = admin_accounts_file();
-if (!file_exists($accountsFile)) {
-    // Default superadmin: loads from .env or uses default if not set
-    $defaultUser = app_env_value('ADMIN_DEFAULT_USER', 'Mavis');
-    $defaultPassword = app_env_value('ADMIN_DEFAULT_PASSWORD', '.*123$<>Callmelater.,12');
-    $default = [
-        $defaultUser => [
-            'password' => password_hash($defaultPassword, PASSWORD_DEFAULT),
-            'name' => $defaultUser,
-            'avatar' => null,
-            'role' => 'superadmin'
-        ]
-    ];
-    file_put_contents($accountsFile, json_encode($default, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-}
+$accounts = [];
 
-$accounts = admin_load_accounts_cached(15);
+if (!$useSqlAccounts) {
+    if (!file_exists($accountsFile)) {
+        @file_put_contents($accountsFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
 
-// Normalize accounts storage: if the file contains a sequential array (e.g. []), convert to associative
-if (!is_array($accounts)) $accounts = [];
-// If accounts file is empty or not keyed by username, ensure default superadmin exists
-$defaultUser = app_env_value('ADMIN_DEFAULT_USER', 'Mavis');
-if (!isset($accounts[$defaultUser])) {
-    // Create default superadmin only if not present
-    $defaultPassword = app_env_value('ADMIN_DEFAULT_PASSWORD', '.*123$<>Callmelater.,12');
-    $accounts[$defaultUser] = [
-        'password' => password_hash($defaultPassword, PASSWORD_DEFAULT),
-        'name' => $defaultUser,
-        'avatar' => null,
-        'role' => 'superadmin'
-    ];
-    file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    $accounts = admin_load_accounts_cached(15);
+    if (!is_array($accounts)) {
+        $accounts = [];
+    }
+
+    if ($isLocalEnvironment && empty($accounts)) {
+        $localDefaultUser = trim((string)app_env_value('ADMIN_DEFAULT_USER', 'Mavis'));
+        $localDefaultPassword = (string)app_env_value('ADMIN_DEFAULT_PASSWORD', '');
+        if ($localDefaultUser !== '' && $localDefaultPassword !== '') {
+            $accounts[$localDefaultUser] = [
+                'password' => password_hash($localDefaultPassword, PASSWORD_DEFAULT),
+                'name' => $localDefaultUser,
+                'avatar' => null,
+                'role' => 'superadmin'
+            ];
+            @file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        }
+    }
+
+    // Production safeguard: never auto-create default credentials in non-local environments.
+    if (!$isLocalEnvironment && empty($accounts)) {
+        $secureUser = trim((string)app_env_value('ADMIN_DEFAULT_USER', ''));
+        $secureHash = trim((string)app_env_value('ADMIN_DEFAULT_PASSWORD_HASH', ''));
+        if ($secureUser !== '' && $secureHash !== '') {
+            $accounts[$secureUser] = [
+                'password' => $secureHash,
+                'name' => $secureUser,
+                'avatar' => null,
+                'role' => 'superadmin'
+            ];
+            @file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        }
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -58,31 +69,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     admin_auth_debug_log('login_attempt', [
         'entered_username' => $username,
+        'accounts_backend' => $useSqlAccounts ? 'sql' : 'json',
         'accounts_count' => is_array($accounts) ? count($accounts) : 0,
         'cookie_present' => isset($_COOKIE[session_name()]),
     ]);
 
-    // find account case-insensitively
-    $foundUser = null;
-    foreach ($accounts as $u => $info) {
-        if (strcasecmp($u, $username) === 0) {
-            $foundUser = $u;
-            break;
-        }
-    }
-
-    // if not found but username requested is default, ensure it exists (should have been created earlier)
-    $defaultUser = app_env_value('ADMIN_DEFAULT_USER', 'Mavis');
-    if ($foundUser === null && strcasecmp($username, $defaultUser) === 0 && isset($accounts[$defaultUser])) {
-        $foundUser = $defaultUser;
-    }
-
     $authenticated = false;
-    if ($foundUser !== null) {
-        $stored = $accounts[$foundUser]['password'] ?? null;
-        if ($stored && password_verify($password, $stored)) {
+    $authAccount = null;
+    $usernameToUse = '';
+    $foundUser = null;
+
+    if ($useSqlAccounts) {
+        $sqlReason = null;
+        if (admin_sql_authenticate_user($username, $password, $sqlAccount, $sqlReason)) {
             $authenticated = true;
-            $usernameToUse = $foundUser;
+            $authAccount = is_array($sqlAccount) ? $sqlAccount : [];
+            $usernameToUse = (string)($authAccount['username'] ?? $username);
+            $foundUser = $usernameToUse;
+        } else {
+            $foundUser = null;
+            if (is_string($sqlReason) && $sqlReason !== '' && strpos($sqlReason, 'password_mismatch') === false && strpos($sqlReason, 'user_not_found') === false) {
+                admin_auth_debug_log('login_sql_error', [
+                    'reason' => $sqlReason,
+                ]);
+                $error = 'Login backend unavailable. Please verify SQL and secret settings.';
+            }
+        }
+    } else {
+        foreach ($accounts as $u => $info) {
+            if (strcasecmp((string)$u, $username) === 0) {
+                $foundUser = (string)$u;
+                break;
+            }
+        }
+
+        if ($foundUser !== null) {
+            $stored = $accounts[$foundUser]['password'] ?? null;
+            if ($stored && password_verify($password, (string)$stored)) {
+                $authenticated = true;
+                $usernameToUse = $foundUser;
+                $authAccount = [
+                    'username' => $foundUser,
+                    'name' => $accounts[$usernameToUse]['name'] ?? $usernameToUse,
+                    'avatar' => $accounts[$usernameToUse]['avatar'] ?? null,
+                    'role' => $accounts[$usernameToUse]['role'] ?? 'admin',
+                    'needs_tour' => !empty($accounts[$usernameToUse]['needs_tour']),
+                ];
+            }
         }
     }
 
@@ -93,10 +126,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         session_regenerate_id(false);
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_user'] = $usernameToUse;
-        $_SESSION['admin_name'] = $accounts[$usernameToUse]['name'] ?? $usernameToUse;
-        $_SESSION['admin_avatar'] = $accounts[$usernameToUse]['avatar'] ?? null;
-        $_SESSION['admin_role'] = $accounts[$usernameToUse]['role'] ?? 'admin';
-        $_SESSION['needs_tour'] = !empty($accounts[$usernameToUse]['needs_tour']);
+        $_SESSION['admin_name'] = (string)($authAccount['name'] ?? $usernameToUse);
+        $_SESSION['admin_avatar'] = $authAccount['avatar'] ?? null;
+        $_SESSION['admin_role'] = (string)($authAccount['role'] ?? 'admin');
+        $_SESSION['needs_tour'] = !empty($authAccount['needs_tour']);
         $registered = admin_register_session($usernameToUse);
         admin_auth_debug_log('login_success', [
             'user' => $usernameToUse,
@@ -115,7 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: index.php' . $redirectQuery);
         exit;
     } else {
-        $error = "Invalid credentials";
+        if ($error === '') {
+            $error = "Invalid credentials";
+        }
         admin_auth_debug_log('login_failed', [
             'entered_username' => $username,
             'user_found' => $foundUser !== null,

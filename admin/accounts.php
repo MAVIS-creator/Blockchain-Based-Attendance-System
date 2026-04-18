@@ -7,13 +7,19 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/state_helpers.php';
+require_once __DIR__ . '/sql_accounts.php';
 
 $accountsFile = admin_accounts_file();
 $settingsFile = admin_settings_file();
-if (!file_exists($accountsFile)) file_put_contents($accountsFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 if (!file_exists($settingsFile)) file_put_contents($settingsFile, json_encode(['prefer_mac' => true, 'max_admins' => 5], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-$accounts = admin_load_accounts_cached(15);
+$useSqlAccounts = admin_should_use_sql_accounts();
+if (!$useSqlAccounts && !file_exists($accountsFile)) {
+  file_put_contents($accountsFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+}
+
+$accounts = $useSqlAccounts ? admin_sql_list_accounts($sqlAccountsLoadError) : admin_load_accounts_cached(15);
+$sqlAccountsLoadError = $useSqlAccounts ? ($sqlAccountsLoadError ?? null) : null;
 $settings = admin_load_settings_cached(15) ?: ['prefer_mac' => true, 'max_admins' => 5];
 $permissions = admin_load_permissions_cached(15);
 
@@ -63,6 +69,10 @@ $currentRole = $_SESSION['admin_role'] ?? 'admin';
 
 $message = '';
 $errors = [];
+
+if ($useSqlAccounts && is_string($sqlAccountsLoadError) && $sqlAccountsLoadError !== '') {
+  $errors[] = $sqlAccountsLoadError;
+}
 
 $accountsPage = isset($_GET['accounts_pg']) && ctype_digit((string)$_GET['accounts_pg'])
   ? max(1, (int)$_GET['accounts_pg'])
@@ -117,15 +127,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if (isset($accounts[$username])) {
         $errors[] = 'Username already exists.';
       } else {
-        $accounts[$username] = [
-          'password' => password_hash($password, PASSWORD_DEFAULT),
-          'name' => $fullname ?: $username,
-          'email' => $email,
-          'avatar' => null,
-          'role' => $role,
-          'needs_tour' => true
-        ];
-        file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        if ($useSqlAccounts) {
+          if (!admin_sql_create_account($username, $fullname, $email, $password, $role, 1, $sqlWriteError)) {
+            $errors[] = $sqlWriteError ?: 'Unable to create SQL-backed account.';
+          } else {
+            $accounts = admin_sql_list_accounts($sqlReloadError);
+            if (is_string($sqlReloadError) && $sqlReloadError !== '') {
+              $errors[] = $sqlReloadError;
+            }
+          }
+        } else {
+          $accounts[$username] = [
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'name' => $fullname ?: $username,
+            'email' => $email,
+            'avatar' => null,
+            'role' => $role,
+            'needs_tour' => true
+          ];
+          file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        }
+
+        if (empty($errors)) {
         if (function_exists('admin_log_action')) {
           admin_log_action('Accounts', 'Account Created', "Created admin account: {$username} (role: {$role})");
         }
@@ -203,6 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $message = "Admin account '{$username}' created with role '{$role}'." . ($emailSent ? " Email delivery dispatched." : ($email ? " Email delivery failed (check mail config)." : ""));
+        }
       }
     }
   } elseif ($action === 'delete') {
@@ -223,12 +247,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (($accounts[$target]['role'] ?? 'admin') === 'superadmin' && $superCount <= 1) {
           $errors[] = 'Cannot delete the last super-admin.';
         } else {
-          unset($accounts[$target]);
-          file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+          if ($useSqlAccounts) {
+            if (!admin_sql_delete_account($target, $sqlWriteError)) {
+              $errors[] = $sqlWriteError ?: 'Unable to delete SQL-backed account.';
+            } else {
+              $accounts = admin_sql_list_accounts($sqlReloadError);
+              if (is_string($sqlReloadError) && $sqlReloadError !== '') {
+                $errors[] = $sqlReloadError;
+              }
+            }
+          } else {
+            unset($accounts[$target]);
+            file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+          }
+
+          if (empty($errors)) {
           if (function_exists('admin_log_action')) {
             admin_log_action('Accounts', 'Account Deleted', "Deleted admin account: {$target}");
           }
           $message = "Admin account '{$target}' deleted.";
+          }
         }
       }
     }
@@ -249,12 +287,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       } elseif (strlen($new) < 6) {
         $errors[] = 'New password must be at least 6 characters.';
       } else {
-        $accounts[$currentUser]['password'] = password_hash($new, PASSWORD_DEFAULT);
-        file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        if ($useSqlAccounts) {
+          if (!admin_sql_update_password($currentUser, $new, $sqlWriteError)) {
+            $errors[] = $sqlWriteError ?: 'Unable to update SQL-backed password.';
+          } else {
+            $accounts = admin_sql_list_accounts($sqlReloadError);
+            if (is_string($sqlReloadError) && $sqlReloadError !== '') {
+              $errors[] = $sqlReloadError;
+            }
+          }
+        } else {
+          $accounts[$currentUser]['password'] = password_hash($new, PASSWORD_DEFAULT);
+          file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        }
+
+        if (empty($errors)) {
         if (function_exists('admin_log_action')) {
           admin_log_action('Accounts', 'Password Changed', "Admin changed their own password.");
         }
         $message = 'Your password has been changed.';
+        }
       }
     }
   } elseif ($action === 'set_password') {
@@ -265,12 +317,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($new === '' || strlen($new) < 6) {
       $errors[] = 'New password must be at least 6 characters.';
     } else {
-      $accounts[$target]['password'] = password_hash($new, PASSWORD_DEFAULT);
-      file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+      if ($useSqlAccounts) {
+        if (!admin_sql_update_password($target, $new, $sqlWriteError)) {
+          $errors[] = $sqlWriteError ?: 'Unable to update SQL-backed password.';
+        } else {
+          $accounts = admin_sql_list_accounts($sqlReloadError);
+          if (is_string($sqlReloadError) && $sqlReloadError !== '') {
+            $errors[] = $sqlReloadError;
+          }
+        }
+      } else {
+        $accounts[$target]['password'] = password_hash($new, PASSWORD_DEFAULT);
+        file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+      }
+
+      if (empty($errors)) {
       if (function_exists('admin_log_action')) {
         admin_log_action('Accounts', 'Password Reset', "Password reset for account: {$target}");
       }
       $message = "Password updated for {$target}.";
+      }
     }
   } elseif ($action === 'update_role') {
     $target = trim($_POST['target'] ?? '');
@@ -304,12 +370,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
 
       if (empty($errors)) {
-        $accounts[$target]['role'] = $newRole;
-        file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        if ($useSqlAccounts) {
+          if (!admin_sql_update_role($target, $newRole, $sqlWriteError)) {
+            $errors[] = $sqlWriteError ?: 'Unable to update SQL-backed role.';
+          } else {
+            $accounts = admin_sql_list_accounts($sqlReloadError);
+            if (is_string($sqlReloadError) && $sqlReloadError !== '') {
+              $errors[] = $sqlReloadError;
+            }
+          }
+        } else {
+          $accounts[$target]['role'] = $newRole;
+          file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        }
+
+        if (empty($errors)) {
         if (function_exists('admin_log_action')) {
           admin_log_action('Accounts', 'Role Updated', "Updated role for {$target}: {$oldRole} -> {$newRole}");
         }
         $message = "Role updated for {$target}.";
+        }
       }
     }
   }
