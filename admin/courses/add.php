@@ -12,6 +12,21 @@ if (file_exists($csrfPath)) {
 $courses = admin_cached_json_file('courses_list', $courseFile, [], 30);
 if (!is_array($courses)) $courses = [];
 
+$isFlat = false;
+foreach (array_keys($courses) as $key) {
+    if (is_int($key)) { $isFlat = true; break; }
+}
+if ($isFlat) {
+    $migrated = [];
+    foreach ($courses as $c) {
+        if (is_string($c)) {
+            $migrated[$c] = "Course outline not set.";
+        }
+    }
+    $courses = $migrated;
+    file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT), LOCK_EX);
+}
+
 $activeCourse = admin_active_course_name_cached(15);
 $message = '';
 $errorMessage = '';
@@ -34,8 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($errorMessage === '' && isset($_POST['course_name'])) {
     $newCourse = trim($_POST['course_name']);
-    if ($newCourse !== '' && !in_array($newCourse, $courses, true)) {
-      $courses[] = $newCourse;
+    $newOutline = isset($_POST['course_outline']) ? trim($_POST['course_outline']) : "Verified Academic Session";
+    if ($newCourse !== '' && !array_key_exists($newCourse, $courses)) {
+      $courses[$newCourse] = $newOutline;
       file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT), LOCK_EX);
       $message = 'Course added successfully.';
     } elseif ($newCourse === '') {
@@ -47,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($errorMessage === '' && isset($_POST['remove_course'])) {
     $removeCourse = $_POST['remove_course'];
-    $courses = array_values(array_filter($courses, fn($course) => $course !== $removeCourse));
+    unset($courses[$removeCourse]);
     file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT), LOCK_EX);
     $message = 'Course removed successfully.';
   }
@@ -55,9 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if ($errorMessage === '' && isset($_POST['batch_delete']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
     $selected = array_map('strval', $_POST['selected_courses']);
     $selectedSet = array_flip($selected);
-    $courses = array_values(array_filter($courses, function ($course) use ($selectedSet) {
-      return !isset($selectedSet[$course]);
-    }));
+    
+    $courses = array_filter($courses, function ($key) use ($selectedSet) {
+      return !isset($selectedSet[$key]);
+    }, ARRAY_FILTER_USE_KEY);
 
     if ($activeCourse !== '' && isset($selectedSet[$activeCourse])) {
       file_put_contents($activeFile, json_encode(['course' => ''], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
@@ -69,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($errorMessage === '' && isset($_POST['batch_set_active']) && isset($_POST['selected_courses']) && is_array($_POST['selected_courses'])) {
     $selected = array_values(array_filter(array_map('strval', $_POST['selected_courses'])));
-    if (count($selected) === 1 && in_array($selected[0], $courses, true)) {
+    if (count($selected) === 1 && array_key_exists($selected[0], $courses)) {
       file_put_contents($activeFile, json_encode(['course' => $selected[0]], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
       $activeCourse = $selected[0];
       $message = 'Active course updated.';
@@ -93,15 +110,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p style="font-weight:700;color:var(--on-surface);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
       <span class="material-symbols-outlined" style="font-size:1.1rem;">library_add</span> Add New Course
     </p>
-    <form method="post" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+    <form method="post" style="display:flex;gap:12px;flex-direction:column;">
       <?php if (function_exists('csrf_field')) csrf_field(); ?>
-      <div style="flex:1;min-width:200px;">
-        <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--on-surface-variant);font-size:0.85rem;">Course Name</label>
-        <input type="text" id="course_name" name="course_name" placeholder="e.g., CSC101" required>
+      <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--on-surface-variant);font-size:0.85rem;">Course Name</label>
+          <input type="text" id="course_name" name="course_name" placeholder="e.g., CSC101" required>
+        </div>
+        <div style="flex:2;min-width:200px;">
+          <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--on-surface-variant);font-size:0.85rem;">Course Outline / Description</label>
+          <input type="text" id="course_outline" name="course_outline" placeholder="e.g., Verified Academic Session • Semester Fall 2024" required>
+        </div>
       </div>
-      <button type="submit" class="st-btn st-btn-primary">
-        <span class="material-symbols-outlined" style="font-size:1rem;">add</span> Add Course
-      </button>
+      <div style="display:flex;justify-content:flex-end;">
+          <button type="submit" class="st-btn st-btn-primary">
+            <span class="material-symbols-outlined" style="font-size:1rem;">add</span> Add Course
+          </button>
+      </div>
     </form>
   </div>
 
@@ -120,24 +145,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <tr>
                 <th style="padding:10px 12px;text-align:left;"><input type="checkbox" id="select_all_courses" aria-label="Select all courses"></th>
                 <th style="padding:10px 12px;text-align:left;font-size:0.82rem;color:var(--on-surface-variant);text-transform:uppercase;letter-spacing:0.06em;">Course</th>
+                <th style="padding:10px 12px;text-align:left;font-size:0.82rem;color:var(--on-surface-variant);text-transform:uppercase;letter-spacing:0.06em;">Outline</th>
                 <th style="padding:10px 12px;text-align:left;font-size:0.82rem;color:var(--on-surface-variant);text-transform:uppercase;letter-spacing:0.06em;">Status</th>
                 <th style="padding:10px 12px;text-align:right;font-size:0.82rem;color:var(--on-surface-variant);text-transform:uppercase;letter-spacing:0.06em;">Action</th>
               </tr>
             </thead>
             <tbody>
-              <?php foreach ($courses as $course): ?>
+              <?php foreach ($courses as $courseCode => $courseOutline): ?>
                 <tr style="border-top:1px solid var(--outline-variant);">
-                  <td style="padding:10px 12px;"><input class="course-checkbox" type="checkbox" name="selected_courses[]" value="<?= htmlspecialchars($course) ?>"></td>
-                  <td style="padding:10px 12px;font-weight:600;color:var(--on-surface);"><?= htmlspecialchars($course) ?></td>
+                  <td style="padding:10px 12px;"><input class="course-checkbox" type="checkbox" name="selected_courses[]" value="<?= htmlspecialchars($courseCode) ?>"></td>
+                  <td style="padding:10px 12px;font-weight:600;color:var(--on-surface);"><?= htmlspecialchars($courseCode) ?></td>
+                  <td style="padding:10px 12px;color:var(--on-surface-variant);font-size:0.85rem;"><?= htmlspecialchars($courseOutline) ?></td>
                   <td style="padding:10px 12px;">
-                    <?php if ($activeCourse === $course): ?>
+                    <?php if ($activeCourse === $courseCode): ?>
                       <span class="st-chip st-chip-success">Active</span>
                     <?php else: ?>
                       <span class="st-chip">Available</span>
                     <?php endif; ?>
                   </td>
                   <td style="padding:10px 12px;text-align:right;">
-                    <button type="submit" name="remove_course" value="<?= htmlspecialchars($course) ?>" class="st-btn st-btn-danger single-remove-btn" style="padding:6px 10px;font-size:0.8rem;">Remove</button>
+                    <button type="submit" name="remove_course" value="<?= htmlspecialchars($courseCode) ?>" class="st-btn st-btn-danger single-remove-btn" style="padding:6px 10px;font-size:0.8rem;">Remove</button>
                   </td>
                 </tr>
               <?php endforeach; ?>

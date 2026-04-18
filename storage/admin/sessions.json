@@ -33,5 +33,49 @@
         "user_agent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.7920",
         "login_time": 1776463086,
         "last_activity": 1776463086
+    },
+    "cpbcluda0cd9a5qmrlas287vtt": {
+        "user": "Mavis",
+        "ip": "::1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+        "login_time": 1776528305,
+        "last_activity": 1776528305,
+        "role": "superadmin",
+        "name": "Mavis",
+        "avatar": null,
+        "needs_tour": false
+    },
+    "glnjlne6gdnkeb6ssi78f4vg5a": {
+        "user": "Mavis",
+        "ip": "::1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+        "login_time": 1776535589,
+        "last_activity": 1776538500,
+        "role": "superadmin",
+        "name": "Mavis",
+        "avatar": null,
+        "needs_tour": false
+    },
+    "l5uklveipf9ip835l2sncpttqg": {
+        "user": "Mavis",
+        "ip": "::1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+        "login_time": 1776544516,
+        "last_activity": 1776550536,
+        "role": "superadmin",
+        "name": "Mavis",
+        "avatar": null,
+        "needs_tour": false
+    },
+    "acb57mjobjanlbpq78s1sq6i2i": {
+        "user": "Mavis",
+        "ip": "::1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+        "login_time": 1776552104,
+        "last_activity": 1776552735,
+        "role": "superadmin",
+        "name": "Mavis",
+        "avatar": null,
+        "needs_tour": false
     }
 }

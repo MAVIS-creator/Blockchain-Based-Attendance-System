@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Access Restricted | The Immutable Ledger</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#334863",
+                        "on-background": "#171c20",
+                        "inverse-surface": "#2c3135",
+                        "surface-container-highest": "#dfe3e8",
+                        "on-secondary-fixed-variant": "#004a78",
+                        "background": "#f6faff",
+                        "outline": "#727781",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#24609d",
+                        "secondary-fixed-dim": "#99cbff",
+                        "primary-fixed-dim": "#a1c9ff",
+                        "on-secondary-fixed": "#001d34",
+                        "on-surface": "#171c20",
+                        "on-primary-fixed": "#001c37",
+                        "on-surface-variant": "#424750",
+                        "on-primary-fixed-variant": "#004880",
+                        "surface": "#f6faff",
+                        "surface-variant": "#dfe3e8",
+                        "primary": "#00457b",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#d2e4ff",
+                        "outline-variant": "#c2c7d1",
+                        "inverse-on-surface": "#edf1f6",
+                        "surface-bright": "#f6faff",
+                        "on-tertiary-fixed": "#031c36",
+                        "on-secondary-container": "#004e7f",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-dim": "#d6dadf",
+                        "secondary-fixed": "#cfe5ff",
+                        "tertiary-container": "#475c79",
+                        "surface-container-low": "#f0f4f9",
+                        "on-primary-container": "#b8d5ff",
+                        "surface-container-high": "#e4e9ed",
+                        "secondary": "#15629a",
+                        "on-tertiary-container": "#bed4f6",
+                        "inverse-primary": "#a1c9ff",
+                        "surface-container": "#eaeef3",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed-dim": "#b2c8e9",
+                        "tertiary": "#2f4560",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary-container": "#1f5d99",
+                        "tertiary-fixed": "#d3e4ff",
+                        "secondary-container": "#83c1fe"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .security-mesh {
+            background-image: radial-gradient(#d2e4ff 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-background min-h-screen flex flex-col antialiased">
+<!-- Top Announcement Banner -->
+<div class="w-full bg-secondary text-on-secondary px-6 py-2.5 flex items-center justify-center gap-3 z-[60]">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">info</span>
+<span class="text-xs font-medium tracking-wide">SYSTEM NOTICE: Ledger validation cycle in progress. Node access may be temporarily limited.</span>
+</div>
+<!-- TopAppBar Shell -->
+<header class="bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50 shadow-[0_16px_36px_rgba(24,39,75,0.06)]">
+<div class="flex justify-between items-center px-8 py-4 w-full max-w-screen-2xl mx-auto">
+<div class="text-lg font-bold tracking-tighter text-slate-900 dark:text-slate-100 font-headline uppercase">
+                The Immutable Ledger
+            </div>
+<nav class="hidden md:flex items-center space-x-8">
+<a class="font-['Inter'] font-medium tracking-tight text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all duration-300" href="#">Dashboard</a>
+<a class="font-['Inter'] font-medium tracking-tight text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all duration-300" href="#">Logs</a>
+<a class="font-['Inter'] font-medium tracking-tight text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all duration-300" href="#">Verification</a>
+<a class="font-['Inter'] font-medium tracking-tight text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all duration-300" href="#">Security</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 rounded-full transition-all duration-300 active:scale-90">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 rounded-full transition-all duration-300 active:scale-90">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 rounded-full transition-all duration-300 active:scale-90">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex items-center justify-center px-6 py-12 relative overflow-hidden security-mesh">
+<!-- Background Decorative Elements -->
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-fixed/30 blur-[120px] -z-10 rounded-full"></div>
+<div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-secondary-fixed/20 blur-[100px] -z-10 rounded-full"></div>
+<!-- Lockout Card -->
+<div class="max-w-xl w-full bg-surface-container-lowest rounded-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)] overflow-hidden transition-all duration-500 border border-outline-variant/10">
+<!-- Card Visual Accent -->
+<div class="h-1.5 w-full bg-gradient-to-r from-primary to-primary-container"></div>
+<div class="p-10 md:p-14 flex flex-col items-center text-center">
+<!-- Security Icon Cluster -->
+<div class="relative mb-8">
+<div class="absolute inset-0 bg-primary-fixed blur-2xl opacity-40 scale-150"></div>
+<div class="relative w-24 h-24 bg-surface-container-low rounded-2xl flex items-center justify-center text-primary transform rotate-3">
+<span class="material-symbols-outlined text-[48px]" style="font-variation-settings: 'FILL' 1;">enhanced_encryption</span>
+</div>
+<div class="absolute -bottom-2 -right-2 w-10 h-10 bg-error rounded-full flex items-center justify-center text-white border-4 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+</div>
+<!-- Headline -->
+<h1 class="text-[1.75rem] font-bold tracking-tight text-on-surface mb-4 font-headline leading-tight">
+                    Attendance Locked
+                </h1>
+<!-- Status Badge -->
+<div class="mb-6 inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high rounded-full">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+<span class="text-[0.65rem] font-black uppercase tracking-widest text-on-surface-variant">Access Level: Restricted</span>
+</div>
+<!-- Explanation Text -->
+<p class="text-on-surface-variant text-sm leading-[1.6] mb-10 max-w-sm">
+                    The attendance flow is currently restricted for your account or node. This security measure ensures <span class="text-on-surface font-semibold">ledger integrity</span> during validation cycles and prevents unauthorized state mutations.
+                </p>
+<!-- Action Buttons -->
+<div class="flex flex-col sm:flex-row gap-4 w-full">
+<a class="flex-1 px-8 py-3.5 bg-gradient-to-br from-primary to-primary-container text-white font-semibold rounded-lg text-sm shadow-sm hover:shadow-[0_16px_36px_rgba(24,39,75,0.06)] transition-all duration-300 text-center active:scale-95" href="/">
+                        Return Home
+                    </a>
+<a class="flex-1 px-8 py-3.5 bg-secondary-fixed text-on-secondary-fixed-variant font-semibold rounded-lg text-sm transition-all duration-300 text-center hover:bg-secondary-fixed-dim active:scale-95" href="mailto:support@immutableledger.protocol">
+                        Contact Support
+                    </a>
+</div>
+<!-- Metadata/Trace ID -->
+<div class="mt-12 pt-8 border-t border-outline-variant/10 w-full flex flex-col items-center gap-2">
+<span class="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400">Trace ID: 0x8F2...9C44</span>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+<span class="text-[10px] text-slate-500 font-medium tracking-tight">Node: Alpha-7</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+<span class="text-[10px] text-slate-500 font-medium tracking-tight">Cycle: 442.01</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Shell -->
+<footer class="bg-slate-50 dark:bg-slate-950 full-width bottom-0 mt-auto opacity-80 hover:opacity-100 transition-opacity">
+<div class="flex flex-col md:flex-row justify-between items-center px-12 py-8 w-full border-t border-slate-200/10">
+<div class="text-sm font-black text-slate-400 dark:text-slate-600 mb-4 md:mb-0">
+                THE IMMUTABLE LEDGER
+            </div>
+<div class="font-['Inter'] text-xs font-light tracking-wide uppercase text-slate-500 dark:text-slate-500 text-center md:text-left mb-4 md:mb-0">
+                © 2024 The Immutable Ledger. Protocol v4.2. Secure Blockchain Verification Active.
+            </div>
+<div class="flex gap-6">
+<a class="font-['Inter'] text-xs font-light tracking-wide uppercase text-slate-500 dark:text-slate-500 hover:text-blue-800 dark:hover:text-blue-300 transition-colors" href="#">Security Policy</a>
+<a class="font-['Inter'] text-xs font-light tracking-wide uppercase text-slate-500 dark:text-slate-500 hover:text-blue-800 dark:hover:text-blue-300 transition-colors" href="#">Audit Logs</a>
+<a class="font-['Inter'] text-xs font-light tracking-wide uppercase text-slate-500 dark:text-slate-500 hover:text-blue-800 dark:hover:text-blue-300 transition-colors" href="#">Help Center</a>
+</div>
+</div>
+</footer>
+</body></html>

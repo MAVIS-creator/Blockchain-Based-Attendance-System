@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline": "#727781",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#24609d",
+                        "secondary-fixed-dim": "#99cbff",
+                        "primary-fixed-dim": "#a1c9ff",
+                        "on-secondary-fixed": "#001d34",
+                        "on-tertiary-fixed-variant": "#334863",
+                        "on-background": "#171c20",
+                        "inverse-surface": "#2c3135",
+                        "surface-container-highest": "#dfe3e8",
+                        "on-secondary-fixed-variant": "#004a78",
+                        "background": "#f6faff",
+                        "surface": "#f6faff",
+                        "surface-variant": "#dfe3e8",
+                        "primary": "#00457b",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#d2e4ff",
+                        "outline-variant": "#c2c7d1",
+                        "inverse-on-surface": "#edf1f6",
+                        "surface-bright": "#f6faff",
+                        "on-tertiary-fixed": "#031c36",
+                        "on-secondary-container": "#004e7f",
+                        "on-surface": "#171c20",
+                        "on-primary-fixed": "#001c37",
+                        "on-surface-variant": "#424750",
+                        "on-primary-fixed-variant": "#004880",
+                        "on-primary-container": "#b8d5ff",
+                        "surface-container-high": "#e4e9ed",
+                        "secondary": "#15629a",
+                        "on-tertiary-container": "#bed4f6",
+                        "inverse-primary": "#a1c9ff",
+                        "surface-container": "#eaeef3",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-dim": "#d6dadf",
+                        "secondary-fixed": "#cfe5ff",
+                        "tertiary-container": "#475c79",
+                        "surface-container-low": "#f0f4f9",
+                        "on-error": "#ffffff",
+                        "primary-container": "#1f5d99",
+                        "tertiary-fixed": "#d3e4ff",
+                        "secondary-container": "#83c1fe",
+                        "tertiary-fixed-dim": "#b2c8e9",
+                        "tertiary": "#2f4560",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar Suppressed for 403 Page per Shell Visibility & Relevance Rule -->
+<main class="flex-grow flex items-center justify-center px-8">
+<div class="max-w-[1200px] w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+<!-- Information Layer -->
+<div class="lg:col-span-6 flex flex-col space-y-8">
+<div class="space-y-4">
+<div class="inline-flex items-center space-x-3 text-primary">
+<span class="material-symbols-outlined text-2xl" data-icon="lock" data-weight="fill" style="font-variation-settings: 'FILL' 1;">lock</span>
+<span class="font-label text-sm font-bold tracking-[0.2em] uppercase">Security Protocol</span>
+</div>
+<h1 class="text-[6rem] md:text-[8rem] font-bold leading-none tracking-tighter text-primary opacity-10">403</h1>
+<h2 class="text-[2.75rem] font-bold text-on-surface leading-tight -mt-16 md:-mt-20">Access Denied</h2>
+<p class="text-on-surface-variant text-lg leading-relaxed max-w-md">
+                        You do not have permission to access this resource. This action has been logged for security purposes.
+                    </p>
+</div>
+<div class="flex flex-col sm:flex-row gap-4 pt-4">
+<button class="bg-primary hover:bg-primary-container text-on-primary px-8 py-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_16px_36px_rgba(24,39,75,0.06)] hover:translate-y-[-2px]">
+<span class="material-symbols-outlined text-xl" data-icon="home">home</span>
+                        Back to Home
+                    </button>
+<button class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-8 py-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-xl" data-icon="support">support</span>
+                        Contact Support
+                    </button>
+</div>
+<div class="pt-12 border-l-2 border-primary-fixed pl-6 space-y-2">
+<p class="font-label text-xs font-semibold text-outline tracking-widest uppercase">Immutable Log ID</p>
+<p class="font-mono text-sm text-tertiary-container">0x7F4A...B92D_SEC_VIOLATION</p>
+</div>
+</div>
+<!-- Visual Anchor / Tonal Asymmetry -->
+<div class="lg:col-span-6 relative hidden lg:block">
+<div class="relative z-10 bg-surface-container-low p-1 rounded-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)]">
+<div class="aspect-square rounded-lg overflow-hidden relative">
+<img alt="Security interface" class="w-full h-full object-cover" data-alt="abstract architectural glass structure with deep blue gradients and subtle digital grid overlays representing high-security blockchain technology" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4xisbQZ1JymNlQD5ysL2rK7-XOU7N-CGSjRRggmdq9eZc8f-den2DrPn2csxYkVw9wOeECPFhOvhcPi7omiB6OTUHP0YNRfCrxmFHZUpJURVGzj7vSZzUlOz64cdd-B1qU_Ysm1U5sZ736FBZI0EP5_b6FTqwb0UclZDniwL8ORj69mKI-38JLv37E59tvPEl3fBsu7B6tDOGphB_yKP1uG6av7TqCiy7RGCZSd_uS3TKJngONN-3Pi7BqBz4D0dL1ee-0SustQ"/>
+<!-- Glassmorphism Overlay -->
+<div class="absolute inset-0 bg-primary/10 backdrop-blur-[2px]"></div>
+<div class="absolute bottom-8 left-8 right-8 p-6 bg-surface/60 backdrop-blur-xl rounded-xl border border-white/20">
+<div class="flex items-start gap-4">
+<div class="bg-error-container p-3 rounded-lg">
+<span class="material-symbols-outlined text-error" data-icon="gpp_bad">gpp_bad</span>
+</div>
+<div class="space-y-1">
+<p class="font-bold text-on-surface text-sm">Restricted Zone</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">Attempting to bypass the decentralized ledger verification layer without proper credentials.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Decorative tonal layers -->
+<div class="absolute -top-12 -right-12 w-64 h-64 bg-primary-fixed rounded-full blur-[80px] opacity-20 -z-10"></div>
+<div class="absolute -bottom-20 -left-20 w-80 h-80 bg-secondary-container rounded-full blur-[100px] opacity-10 -z-10"></div>
+</div>
+</div>
+</main>
+<footer class="w-full py-12 px-8 bg-[#f0f4f9]">
+<div class="flex flex-col md:flex-row justify-between items-center gap-6 max-w-[1440px] mx-auto">
+<div class="flex flex-col items-center md:items-start gap-2">
+<div class="text-lg font-semibold text-[#424750]">The Immutable Ledger</div>
+<div class="font-inter text-xs font-normal leading-relaxed text-[#424750] opacity-80">© 2024 Immutable Ledger. Blockchain Verified Attendance.</div>
+</div>
+<nav class="flex gap-8">
+<a class="font-inter text-xs font-normal text-[#424750] opacity-80 hover:opacity-100 transition-opacity underline decoration-[#00457b] underline-offset-4" href="#">Privacy Policy</a>
+<a class="font-inter text-xs font-normal text-[#424750] opacity-80 hover:opacity-100 transition-opacity underline decoration-[#00457b] underline-offset-4" href="#">Terms of Service</a>
+<a class="font-inter text-xs font-normal text-[#424750] opacity-80 hover:opacity-100 transition-opacity underline decoration-[#00457b] underline-offset-4" href="#">Technical Support</a>
+</nav>
+</div>
+</footer>
+</body></html>

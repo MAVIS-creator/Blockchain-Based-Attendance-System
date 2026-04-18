@@ -1,0 +1,1 @@
+admin_logged_in|b:1;admin_user|s:5:"Mavis";admin_name|s:5:"Mavis";admin_avatar|N;admin_role|s:10:"superadmin";needs_tour|b:0;_csrf|a:2:{s:5:"token";s:48:"41ffcf0203afe89bd12960d2c15d12932d4045554e86b405";s:7:"expires";i:1776566507;}csrf_token|s:48:"41ffcf0203afe89bd12960d2c15d12932d4045554e86b405";

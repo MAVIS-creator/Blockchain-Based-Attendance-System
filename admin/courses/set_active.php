@@ -8,6 +8,19 @@ $activeFile = admin_course_storage_migrate_file('active_course.json');
 $courses = admin_cached_json_file('courses_list', $courseFile, [], 30);
 if (!is_array($courses)) $courses = [];
 
+$isFlat = false;
+foreach (array_keys($courses) as $key) {
+    if (is_int($key)) { $isFlat = true; break; }
+}
+if ($isFlat) {
+    $migrated = [];
+    foreach ($courses as $c) {
+        if (is_string($c)) $migrated[$c] = "Course outline not set.";
+    }
+    $courses = $migrated;
+    file_put_contents($courseFile, json_encode($courses, JSON_PRETTY_PRINT), LOCK_EX);
+}
+
 // Load current active course
 $activeCourse = admin_active_course_name_cached(15);
 if ($activeCourse === 'General' && !file_exists($activeFile)) {
@@ -17,16 +30,15 @@ if ($activeCourse === 'General' && !file_exists($activeFile)) {
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['disable'])) {
-        // Disable active course by saving empty JSON
-        if (function_exists('admin_log_action')) { admin_log_action('Courses', 'Active Course Changed', "Set active course to: " . ($course ?? 'unknown')); }
+        if (function_exists('admin_log_action')) { admin_log_action('Courses', 'Active Course Changed', "Set active course to: none"); }
         file_put_contents($activeFile, json_encode(['course' => ''], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;
     }
 
     $selected = $_POST['active_course'] ?? '';
-    if (in_array($selected, $courses)) {
-        if (function_exists('admin_log_action')) { admin_log_action('Courses', 'Active Course Changed', "Set active course to: " . ($course ?? 'unknown')); }
+    if (array_key_exists($selected, $courses)) {
+        if (function_exists('admin_log_action')) { admin_log_action('Courses', 'Active Course Changed', "Set active course to: " . $selected); }
         file_put_contents($activeFile, json_encode(['course' => $selected], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit;
@@ -78,9 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--on-surface-variant);font-size:0.85rem;">Course</label>
         <select name="active_course" id="active_course" required>
           <option value="">— Choose Course —</option>
-          <?php foreach ($courses as $course): ?>
-            <option value="<?= htmlspecialchars($course) ?>" <?= $course === $activeCourse ? 'selected' : '' ?>>
-              <?= htmlspecialchars($course) ?>
+          <?php foreach ($courses as $courseCode => $courseOutline): ?>
+            <option value="<?= htmlspecialchars($courseCode) ?>" <?= $courseCode === $activeCourse ? 'selected' : '' ?>>
+              <?= htmlspecialchars($courseCode) ?> (<?= htmlspecialchars($courseOutline) ?>)
             </option>
           <?php endforeach; ?>
         </select>
