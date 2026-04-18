@@ -58,6 +58,16 @@ az sql server firewall-rule create --resource-group $ResourceGroup --server $Sql
 Write-Host "[4/7] Creating Key Vault: $KeyVaultName"
 az keyvault create --name $KeyVaultName --resource-group $ResourceGroup --location $Location | Out-Null
 
+$vaultId = az keyvault show --name $KeyVaultName --query id -o tsv
+$currentUserObjectId = az ad signed-in-user show --query id -o tsv
+if (-not [string]::IsNullOrWhiteSpace($vaultId) -and -not [string]::IsNullOrWhiteSpace($currentUserObjectId)) {
+  try {
+    az role assignment create --assignee-object-id $currentUserObjectId --assignee-principal-type User --role "Key Vault Secrets Officer" --scope $vaultId | Out-Null
+  } catch {
+    Write-Host "Key Vault Secrets Officer assignment may already exist or still be propagating; continuing..." -ForegroundColor Yellow
+  }
+}
+
 Write-Host "[5/7] Storing secrets in Key Vault"
 az keyvault secret set --vault-name $KeyVaultName --name admin-sql-username --value $SqlAdminUsername | Out-Null
 az keyvault secret set --vault-name $KeyVaultName --name admin-sql-password --value $sqlAdminPassword | Out-Null

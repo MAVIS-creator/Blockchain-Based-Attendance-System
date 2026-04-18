@@ -33,28 +33,38 @@ if ([string]::IsNullOrWhiteSpace($principalId)) {
   throw 'Unable to resolve web app managed identity principalId.'
 }
 
-Write-Host "[2/4] Granting Key Vault secret read permission to web app identity ..."
-az keyvault set-policy --name $KeyVaultName --object-id $principalId --secret-permissions get list | Out-Null
+Write-Host "[2/4] Granting Key Vault secret read access to web app identity (RBAC) ..."
+$vaultId = az keyvault show --name $KeyVaultName --query id -o tsv
+if ([string]::IsNullOrWhiteSpace($vaultId)) {
+  throw 'Unable to resolve Key Vault resource id.'
+}
+
+try {
+  az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --role "Key Vault Secrets User" --scope $vaultId | Out-Null
+} catch {
+  Write-Host "Role assignment may already exist or require propagation time; continuing..." -ForegroundColor Yellow
+}
 
 Write-Host "[3/4] Writing App Settings with Key Vault references ..."
-$settings = @(
-  "APP_ENV=production",
-  "APP_DEBUG=false",
-  "ADMIN_ACCOUNTS_BACKEND=sql",
-  "ADMIN_SQL_SERVER=$SqlServerFqdn",
-  "ADMIN_SQL_DATABASE=$SqlDatabaseName",
-  "ADMIN_SQL_USERNAME=$(KvRef $KeyVaultName $SqlUsernameSecretId)",
-  "ADMIN_SQL_PASSWORD=$(KvRef $KeyVaultName $SqlCredentialSecretId)",
-  "ADMIN_BOOTSTRAP_USERNAME=Maximus",
-  "ADMIN_BOOTSTRAP_EMAIL=isholasamuel062@gmail.com",
-  "ADMIN_BOOTSTRAP_PASSWORD=$(KvRef $KeyVaultName $BootstrapSecretId)",
-  "ADMIN_DEFAULT_PASSWORD_HASH=",
-  "ADMIN_DEFAULT_PASSWORD="
-)
-
-foreach ($setting in $settings) {
-  az webapp config appsettings set --resource-group $ResourceGroup --name $WebAppName --settings "$setting" | Out-Null
+$settings = @{
+  APP_ENV = 'production'
+  APP_DEBUG = 'false'
+  ADMIN_ACCOUNTS_BACKEND = 'sql'
+  ADMIN_SQL_SERVER = $SqlServerFqdn
+  ADMIN_SQL_DATABASE = $SqlDatabaseName
+  ADMIN_SQL_USERNAME = (KvRef $KeyVaultName $SqlUsernameSecretId)
+  ADMIN_SQL_PASSWORD = (KvRef $KeyVaultName $SqlCredentialSecretId)
+  ADMIN_BOOTSTRAP_USERNAME = 'Maximus'
+  ADMIN_BOOTSTRAP_EMAIL = 'isholasamuel062@gmail.com'
+  ADMIN_BOOTSTRAP_PASSWORD = (KvRef $KeyVaultName $BootstrapSecretId)
+  ADMIN_DEFAULT_PASSWORD_HASH = ''
+  ADMIN_DEFAULT_PASSWORD = ''
 }
+
+$tempJson = Join-Path $env:TEMP "appsettings-$WebAppName.json"
+$settings | ConvertTo-Json -Compress | Set-Content -Path $tempJson -Encoding utf8
+az webapp config appsettings set --resource-group $ResourceGroup --name $WebAppName --settings "@$tempJson" | Out-Null
+Remove-Item $tempJson -Force -ErrorAction SilentlyContinue
 
 Write-Host "[4/4] Restarting web app ..."
 az webapp restart --resource-group $ResourceGroup --name $WebAppName | Out-Null
