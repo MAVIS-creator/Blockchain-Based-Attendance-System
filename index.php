@@ -163,29 +163,8 @@ include __DIR__ . '/includes/public_header.php';
         try {
           var stored = localStorage.getItem('attendance_token');
           if (!stored) return;
-          if (typeof(EventSource) !== 'undefined') {
-            try {
-              var src = new EventSource('admin/revoke_sse.php');
-              src.addEventListener('revoked', function(e) {
-                try {
-                  var payload = JSON.parse(e.data);
-                  if (payload && payload.revoked && payload.revoked.tokens && payload.revoked.tokens[stored]) {
-                    localStorage.removeItem('attendance_token');
-                    localStorage.removeItem('attendanceBlocked');
-                    try {
-                      Swal.fire({
-                        icon: 'info',
-                        title: 'Token Revoked',
-                        text: 'Your attendance token was revoked by an administrator. The page will reload.',
-                        confirmButtonColor: '#00457b'
-                      }).then(function() { location.reload(); });
-                    } catch (e) { location.reload(); }
-                    src.close();
-                  }
-                } catch (ignore) {}
-              });
-            } catch (e) {}
-          }
+          // Avoid long-lived SSE streams on the public page.
+          // Under high concurrency, SSE can exhaust PHP workers and cause timeouts.
           var attempts = 0;
           var poll = setInterval(function() {
             attempts++;
@@ -329,6 +308,7 @@ include __DIR__ . '/includes/public_header.php';
           method: 'POST',
           body: new URLSearchParams({
             reason: shouldLock ? 'Tab-away limit reached (locked 15m)' : `Tab away beyond 6s grace (${currentStrikes}/${TAB_AWAY_MAX_STRIKES})`,
+            should_lock: shouldLock ? '1' : '0',
             token: tokenToSend,
             fingerprint: fpValue
           })
@@ -340,7 +320,9 @@ include __DIR__ . '/includes/public_header.php';
               'You used all 3 grace periods. This session is now locked for 15 minutes.' : `You were away for more than 6 seconds. Grace used: ${currentStrikes}/3. Remaining: ${strikesLeft}.`,
             confirmButtonColor: '#00457b'
           }).then(function() {
-            window.location.href = 'closed.php';
+            if (shouldLock) {
+              window.location.href = 'closed.php';
+            }
           });
         });
       }, TAB_AWAY_GRACE_MS);

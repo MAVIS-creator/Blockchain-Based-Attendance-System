@@ -152,17 +152,27 @@ const announcementIcon = document.getElementById('announcementIcon');
 let announcementInitialized = false;
 let lastAnnouncementNotificationAt = 0;
 const ANNOUNCEMENT_DISMISS_PREFIX = 'announcementDismissed:';
+const ANNOUNCEMENT_DISMISS_TTL_MS = 2 * 60 * 60 * 1000;
 const ANNOUNCEMENT_ALERT_COOLDOWN_MS = 30 * 1000;
 let lastAnnouncementSignature = '';
 
 function getSeverityMeta(severity) {
     if (severity === 'urgent') {
-        return { title: '🚨 URGENT ALERT', toastLabel: 'Urgent', bgClass: 'bg-error-container/30', textClass: 'text-error', borderClass: 'border-error/20', icon: 'warning' };
+        return { title: '🚨 URGENT ALERT', toastLabel: 'Urgent', bgClass: 'bg-[#ffe8e8]', textClass: 'text-[#9b1111]', borderClass: 'border-[#f0b9b9]', icon: 'warning' };
     }
     if (severity === 'warning') {
-        return { title: '⚠️ WARNING', toastLabel: 'Warning', bgClass: 'bg-[#fff8e8]', textClass: 'text-[#8a5a00]', borderClass: 'border-[#f5dfad]', icon: 'gavel' };
+        return { title: '⚠️ WARNING', toastLabel: 'Warning', bgClass: 'bg-[#fff4d8]', textClass: 'text-[#8a5a00]', borderClass: 'border-[#f0d18e]', icon: 'gavel' };
     }
-    return { title: 'ℹ️ INFORMATION', toastLabel: 'Information', bgClass: 'bg-tertiary-container/10', textClass: 'text-primary', borderClass: 'border-outline-variant/20', icon: 'info' };
+    return { title: 'ℹ️ INFORMATION', toastLabel: 'Information', bgClass: 'bg-[#eef5ff]', textClass: 'text-[#00457b]', borderClass: 'border-[#cad8eb]', icon: 'info' };
+}
+
+function applyAnnouncementOffset() {
+    const root = document.documentElement;
+    if (!announcementBanner || announcementBanner.style.display === 'none') {
+        root.style.setProperty('--announcement-offset', '0px');
+        return;
+    }
+    root.style.setProperty('--announcement-offset', `${announcementBanner.offsetHeight || 0}px`);
 }
 
 function extractMatricNumber(message) {
@@ -192,11 +202,28 @@ function clearDismissFor(signature) {
 }
 
 function isDismissed(signature) {
-    try { return localStorage.getItem(ANNOUNCEMENT_DISMISS_PREFIX + signature) === '1'; } catch (e) { return false; }
+    try {
+        const raw = localStorage.getItem(ANNOUNCEMENT_DISMISS_PREFIX + signature);
+        if (!raw) return false;
+        const payload = JSON.parse(raw);
+        if (!payload || typeof payload.at !== 'number') {
+            localStorage.removeItem(ANNOUNCEMENT_DISMISS_PREFIX + signature);
+            return false;
+        }
+        if ((Date.now() - payload.at) > ANNOUNCEMENT_DISMISS_TTL_MS) {
+            localStorage.removeItem(ANNOUNCEMENT_DISMISS_PREFIX + signature);
+            return false;
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
 }
 
 function setDismissed(signature) {
-    try { localStorage.setItem(ANNOUNCEMENT_DISMISS_PREFIX + signature, '1'); } catch (e) {}
+    try {
+        localStorage.setItem(ANNOUNCEMENT_DISMISS_PREFIX + signature, JSON.stringify({ at: Date.now() }));
+    } catch (e) {}
 }
 
 function showAnnouncementChangedNotice(severityLabel) {
@@ -217,6 +244,7 @@ if (announcementBannerDismiss) {
         setDismissed(lastAnnouncementSignature);
         if (announcementBanner) {
             announcementBanner.style.display = 'none';
+            applyAnnouncementOffset();
         }
     });
 }
@@ -251,6 +279,7 @@ function fetchAnnouncement() {
         } else {
             announcementBanner.style.display = 'none';
         }
+        applyAnnouncementOffset();
 
         if (announcementInitialized && signature !== lastAnnouncementSignature && lastAnnouncementSignature !== '') {
             clearDismissFor(signature);
@@ -267,6 +296,7 @@ function fetchAnnouncement() {
 
 fetchAnnouncement();
 setInterval(fetchAnnouncement, 10000);
+window.addEventListener('resize', applyAnnouncementOffset);
 </script>
 </body>
 </html>

@@ -33,6 +33,7 @@ $blockedLog = $logDir . '/blocked_tokens.log';
 
 // Get reason (just in case you have multiple triggers)
 $reason = $_POST['reason'] ?? 'Unknown reason';
+$shouldLock = trim((string)($_POST['should_lock'] ?? '0')) === '1';
 
 // Try to capture token sent by client
 $token = trim($_POST['token'] ?? '');
@@ -56,8 +57,8 @@ if (file_exists(__DIR__ . '/admin/includes/get_mac.php')) {
 $entry = date('Y-m-d H:i:s') . " | IP: " . $ip . " | Reason: " . $reason . PHP_EOL;
 file_put_contents($inactivityLog, $entry, FILE_APPEND | LOCK_EX);
 
-// If token present, log to blocked_tokens.log with more detail
-if ($token !== '') {
+// If token present and lock threshold is reached, log to blocked_tokens.log with more detail
+if ($token !== '' && $shouldLock) {
 	// Format: timestamp | token | fingerprint | ip | mac | userAgent | reason
 	$safeUA = str_replace("\n", ' ', $ua);
 	$line = date('Y-m-d H:i:s') . " | " . $token . " | " . $fingerprint . " | " . $ip . " | " . $mac . " | " . $safeUA . " | " . $reason . PHP_EOL;
@@ -102,8 +103,10 @@ if ($token !== '') {
 	}
 }
 
-// Optional: you can destroy session or mark in DB here
-session_destroy();
+// Destroy session only for lock events, not for warning-only strikes.
+if ($shouldLock) {
+	session_destroy();
+}
 
 // Respond
 header('Content-Type: application/json');

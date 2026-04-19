@@ -129,8 +129,9 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
       display: none;
       justify-content: space-between;
       align-items: flex-start;
-      z-index: 999;
+            z-index: 80;
       animation: slideDown 0.4s ease;
+            box-shadow: 0 8px 22px rgba(24, 39, 75, 0.14);
     }
 
     @keyframes slideDown {
@@ -165,7 +166,7 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
 
 <!-- Hybrid Announcement Model: Static Top Alert + Toast on Updates -->
 <div id="announcementBanner" class="alert-bar w-full max-w-full">
-    <div class="bg-tertiary-container/10 border-b border-outline-variant/20 px-6 py-3 flex items-start sm:items-center justify-between gap-4 w-full" id="announcementBannerBg">
+    <div class="bg-[#eef5ff] border-b border-[#cad8eb] px-6 py-3 flex items-start sm:items-center justify-between gap-4 w-full" id="announcementBannerBg">
         <div class="flex items-start sm:items-center gap-3">
             <span class="material-symbols-outlined text-primary" data-icon="info" id="announcementIcon">info</span>
             <div class="flex flex-col">
@@ -181,7 +182,7 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
 </div>
 
 <!-- TopAppBar -->
-<header class="sticky top-0 w-full z-50 bg-[#f6faff]/90 dark:bg-[#171c20]/90 backdrop-blur-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)]">
+<header id="publicTopBar" class="sticky w-full z-50 bg-[#f6faff]/95 dark:bg-[#171c20]/95 backdrop-blur-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)]" style="top: var(--announcement-offset, 0px);">
     <div class="flex justify-between items-center px-4 md:px-8 py-4 max-w-[1440px] mx-auto">
         <div class="flex items-center gap-3">
             <img class="h-8 w-8 object-contain" src="asset/image.png" alt="Smart Attendance Logo">
