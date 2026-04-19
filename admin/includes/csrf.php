@@ -2,6 +2,52 @@
 // Simple CSRF helper for admin pages
 require_once __DIR__ . '/../session_bootstrap.php';
 
+if (!defined('ADMIN_CSRF_COOKIE')) {
+    define('ADMIN_CSRF_COOKIE', 'ATTENDANCE_ADMIN_CSRF');
+}
+
+if (!function_exists('csrf_cookie_is_secure')) {
+    function csrf_cookie_is_secure()
+    {
+        $httpsForwarded = strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+        $httpsNative = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
+        return ($httpsForwarded || $httpsNative);
+    }
+}
+
+if (!function_exists('csrf_cookie_set')) {
+    function csrf_cookie_set($token, $ttl)
+    {
+        $expires = time() + max(60, (int)$ttl);
+        setcookie(ADMIN_CSRF_COOKIE, (string)$token, [
+            'expires' => $expires,
+            'path' => '/',
+            'domain' => '',
+            'secure' => csrf_cookie_is_secure(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        // Keep request-scope visibility consistent after setcookie.
+        $_COOKIE[ADMIN_CSRF_COOKIE] = (string)$token;
+    }
+}
+
+if (!function_exists('csrf_expected_token')) {
+    function csrf_expected_token()
+    {
+        if (!empty($_SESSION['_csrf']['token'])) {
+            return (string)$_SESSION['_csrf']['token'];
+        }
+        if (!empty($_COOKIE[ADMIN_CSRF_COOKIE])) {
+            return (string)$_COOKIE[ADMIN_CSRF_COOKIE];
+        }
+        if (!empty($_SESSION['csrf_token'])) {
+            return (string)$_SESSION['csrf_token'];
+        }
+        return '';
+    }
+}
+
 /**
  * Return (and create if missing) a CSRF token stored in session.
  * Tokens expire after a short TTL.
@@ -11,8 +57,17 @@ if (!function_exists('csrf_token')) {
     {
         $ttl = 60 * 60 * 4; // 4 hours
         if (!isset($_SESSION['_csrf'])) $_SESSION['_csrf'] = [];
-        if (!$regenerate && !empty($_SESSION['_csrf']['token']) && !empty($_SESSION['_csrf']['expires']) && $_SESSION['_csrf']['expires'] > time()) {
-            return $_SESSION['_csrf']['token'];
+        if (!$regenerate) {
+            if (!empty($_SESSION['_csrf']['token']) && !empty($_SESSION['_csrf']['expires']) && $_SESSION['_csrf']['expires'] > time()) {
+                return $_SESSION['_csrf']['token'];
+            }
+            if (!empty($_COOKIE[ADMIN_CSRF_COOKIE])) {
+                $tok = (string)$_COOKIE[ADMIN_CSRF_COOKIE];
+                $_SESSION['_csrf']['token'] = $tok;
+                $_SESSION['_csrf']['expires'] = time() + $ttl;
+                $_SESSION['csrf_token'] = $tok;
+                return $tok;
+            }
         }
         try {
             $tok = bin2hex(random_bytes(24));
@@ -23,6 +78,7 @@ if (!function_exists('csrf_token')) {
         $_SESSION['_csrf']['expires'] = time() + $ttl;
         // Backwards-compatible alias used by some pages
         $_SESSION['csrf_token'] = $tok;
+        csrf_cookie_set($tok, $ttl);
         return $tok;
     }
 }
@@ -78,9 +134,14 @@ if (!function_exists('csrf_check_request')) {
         }
 
         if (!$token) return false;
-        if (empty($_SESSION['_csrf']['token'])) return false;
-        if (!hash_equals($_SESSION['_csrf']['token'], (string)$token)) return false;
-        if (empty($_SESSION['_csrf']['expires']) || $_SESSION['_csrf']['expires'] < time()) return false;
+
+        $expected = csrf_expected_token();
+        if ($expected === '') return false;
+        if (!hash_equals($expected, (string)$token)) return false;
+
+        if (!empty($_SESSION['_csrf']['expires']) && $_SESSION['_csrf']['expires'] < time()) {
+            return false;
+        }
         return true;
     }
 }
