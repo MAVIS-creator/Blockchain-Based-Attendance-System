@@ -518,10 +518,14 @@ if (!function_exists('admin_write_json_atomic')) {
 }
 
 if (!function_exists('admin_register_session')) {
-  function admin_register_session($username, array $meta = [])
+  function admin_register_session($username, array $meta = [], $sid = null)
   {
     $file = admin_sessions_file();
     $activeSessions = admin_sessions_read_fresh();
+    $sessionKey = trim((string)($sid ?: session_id()));
+    if ($sessionKey === '') {
+      return false;
+    }
     $entry = [
       'user' => (string)$username,
       'ip' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
@@ -543,7 +547,7 @@ if (!function_exists('admin_register_session')) {
       $entry['needs_tour'] = !empty($meta['needs_tour']);
     }
 
-    $activeSessions[session_id()] = $entry;
+    $activeSessions[$sessionKey] = $entry;
     return admin_write_json_atomic($file, $activeSessions);
   }
 }

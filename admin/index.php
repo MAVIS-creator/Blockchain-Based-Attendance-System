@@ -38,10 +38,13 @@ if (!$isAdminLoggedIn) {
 require_once __DIR__ . '/runtime_storage.php';
 
 // Session Tracking & Validity Check
-$currentSessionId = session_id();
+$currentSessionId = trim((string)session_id());
+if ($currentSessionId === '') {
+  $currentSessionId = trim((string)($_COOKIE[ADMIN_SESSION_TRACKER_COOKIE] ?? ''));
+}
 $activeSessions = admin_sessions_read_fresh();
 if (!isset($activeSessions[$currentSessionId]) || !is_array($activeSessions[$currentSessionId])) {
-  $registerOk = admin_register_session((string)($_SESSION['admin_user'] ?? 'admin'));
+  $registerOk = admin_register_session((string)($_SESSION['admin_user'] ?? 'admin'), [], $currentSessionId);
   admin_auth_debug_log('index_session_tracker_repair', [
     'session_id' => $currentSessionId,
     'register_ok' => (bool)$registerOk,

@@ -124,6 +124,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // the session file is locked. Regenerate_id(true) attempts to unlink() the 
         // active file, which fails on Windows/SMB file shares and can break the login flow.
         session_regenerate_id(false);
+        $trackerSid = trim((string)session_id());
+        if ($trackerSid === '') {
+            try {
+                $trackerSid = bin2hex(random_bytes(16));
+            } catch (Throwable $e) {
+                $trackerSid = sha1(uniqid('admin_sid_', true));
+            }
+        }
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_user'] = $usernameToUse;
         $_SESSION['admin_name'] = (string)($authAccount['name'] ?? $usernameToUse);
@@ -135,10 +143,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'name' => (string)($authAccount['name'] ?? $usernameToUse),
             'avatar' => $authAccount['avatar'] ?? null,
             'needs_tour' => !empty($authAccount['needs_tour']),
-        ]);
+        ], $trackerSid);
         admin_auth_debug_log('login_success', [
             'user' => $usernameToUse,
             'registered_tracker' => (bool)$registered,
+            'tracker_sid' => $trackerSid,
+            'php_session_started' => (session_status() === PHP_SESSION_ACTIVE),
             'session_keys' => array_values(array_keys($_SESSION)),
         ]);
 
@@ -160,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($cookieParams['lifetime'])) {
             $trackerCookieOptions['expires'] = time() + (int)$cookieParams['lifetime'];
         }
-        setcookie(ADMIN_SESSION_TRACKER_COOKIE, (string)session_id(), [
+        setcookie(ADMIN_SESSION_TRACKER_COOKIE, $trackerSid, [
             ...$trackerCookieOptions,
         ]);
         session_write_close();
