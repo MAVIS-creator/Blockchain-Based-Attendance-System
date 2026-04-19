@@ -1,11 +1,10 @@
 param(
-  [Parameter(Mandatory = $true)]
-  [string]$ResourceGroup,
+  [string]$ResourceGroup = 'attendance-app-rgv2',
 
-  [Parameter(Mandatory = $true)]
-  [string]$WebAppName,
+  [string]$WebAppName = 'attendancev2app123',
 
   [string]$GitRemote = 'azure',
+  [string]$DeployBranch = 'master',
   [switch]$PushMaster,
   [switch]$Restart,
   [switch]$ConfigureBuildFlags
@@ -19,12 +18,12 @@ if ($inside -ne 'true') {
   throw 'Current directory is not a git repository.'
 }
 
-Write-Host "Deploying HEAD to $GitRemote/main ..."
-git push $GitRemote HEAD:main
+Write-Host "Deploying HEAD to $GitRemote/$DeployBranch ..."
+git push $GitRemote HEAD:$DeployBranch
 
 if ($PushMaster) {
-  Write-Host "Deploying HEAD to $GitRemote/master ..."
-  git push $GitRemote HEAD:master
+  Write-Host "Deploying HEAD to $GitRemote/main ..."
+  git push $GitRemote HEAD:main
 }
 
 if ($ConfigureBuildFlags) {
