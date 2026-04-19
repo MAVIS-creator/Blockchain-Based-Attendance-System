@@ -162,8 +162,9 @@ if (!function_exists('admin_configure_session')) {
       $sessionDirs[] = $tmpSessionDir . DIRECTORY_SEPARATOR . 'attendance_sessions';
     }
 
+    $sessionCandidates = array_values(array_unique($sessionDirs));
     $sessionDir = '';
-    foreach (array_values(array_unique($sessionDirs)) as $candidateDir) {
+    foreach ($sessionCandidates as $candidateDir) {
       $candidateDir = trim((string)$candidateDir);
       if ($candidateDir === '') {
         continue;
@@ -196,10 +197,6 @@ if (!function_exists('admin_configure_session')) {
     session_name($targetName);
 
     $trackerCookieSid = trim((string)($_COOKIE[ADMIN_SESSION_TRACKER_COOKIE] ?? ''));
-    if ($trackerCookieSid !== '' && session_id() === '') {
-      @session_id($trackerCookieSid);
-    }
-
     if (PHP_VERSION_ID >= 70300) {
       session_set_cookie_params([
         'lifetime' => $lifetimeSeconds,
@@ -213,25 +210,45 @@ if (!function_exists('admin_configure_session')) {
       session_set_cookie_params($lifetimeSeconds, '/; samesite=Lax', '', $isSecure, true);
     }
 
-    $started = @session_start();
-    if (!$started && session_status() !== PHP_SESSION_ACTIVE) {
-      foreach (array_values(array_unique($sessionDirs)) as $fallbackDir) {
-        $fallbackDir = trim((string)$fallbackDir);
-        if ($fallbackDir === '' || $fallbackDir === $sessionDir) {
-          continue;
-        }
-        if (!is_dir($fallbackDir)) {
-          @mkdir($fallbackDir, 0775, true);
-        }
-        if (!is_dir($fallbackDir) || !is_writable($fallbackDir)) {
-          continue;
-        }
-        @ini_set('session.save_path', $fallbackDir);
-        $started = @session_start();
-        if ($started || session_status() === PHP_SESSION_ACTIVE) {
-          break;
-        }
+    $started = false;
+    $startAttemptPath = [];
+    foreach ($sessionCandidates as $candidateDir) {
+      $candidateDir = trim((string)$candidateDir);
+      if ($candidateDir === '') {
+        continue;
       }
+
+      if (!is_dir($candidateDir)) {
+        @mkdir($candidateDir, 0775, true);
+      }
+
+      // Even if is_writable() says true, session_start can still fail due
+      // to platform constraints (open_basedir / mount semantics). Attempt it.
+      @ini_set('session.save_path', $candidateDir);
+      @session_save_path($candidateDir);
+
+      if ($trackerCookieSid !== '' && session_id() === '') {
+        @session_id($trackerCookieSid);
+      }
+
+      $started = @session_start();
+      $active = ($started || session_status() === PHP_SESSION_ACTIVE);
+      $startAttemptPath[] = [
+        'path' => $candidateDir,
+        'started' => $active,
+      ];
+
+      if ($active) {
+        $sessionDir = $candidateDir;
+        break;
+      }
+    }
+
+    if (!$started && session_status() !== PHP_SESSION_ACTIVE) {
+      if ($trackerCookieSid !== '' && session_id() === '') {
+        @session_id($trackerCookieSid);
+      }
+      $started = @session_start();
     }
 
     if (!$started && session_status() !== PHP_SESSION_ACTIVE) {
@@ -250,7 +267,9 @@ if (!function_exists('admin_configure_session')) {
       'ini_get_save_path' => $selectedSavePath,
       'session_save_path_fn' => $activeSavePath,
       'save_path_mismatch' => $savePathMismatch,
-      'candidate_dirs' => $sessionDirs,
+      'candidate_dirs' => $sessionCandidates,
+      'start_attempts' => $startAttemptPath,
+      'tracker_cookie_present' => ($trackerCookieSid !== ''),
       'is_secure_cookie' => $isSecure,
       'is_azure_app_service' => $isAzureAppService,
       'is_linux_runtime' => $isLinuxRuntime,

@@ -148,10 +148,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Azure App Service where NFS shared storage has slight propagation delay
         // and multiple instances may handle the next request.
         $cookieParams = session_get_cookie_params();
+        $httpsForwarded = strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+        $httpsNative = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
         $trackerCookieOptions = [
             'path' => '/',
             'domain' => '',
-            'secure' => !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off',
+            'secure' => ($httpsForwarded || $httpsNative),
             'httponly' => true,
             'samesite' => 'Lax',
         ];
