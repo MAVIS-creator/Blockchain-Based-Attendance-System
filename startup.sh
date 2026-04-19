@@ -45,5 +45,11 @@ fi
 mkdir -p "$APP_ROOT/storage" "$APP_ROOT/storage/logs" "$APP_ROOT/storage/sessions"
 chmod 755 "$APP_ROOT/storage" "$APP_ROOT/storage/logs" "$APP_ROOT/storage/sessions" 2>/dev/null || true
 
+# Ensure shared persistent session directory exists on Azure's /home volume.
+# This MUST be writable before PHP-FPM starts, or sessions will fall back to /tmp.
+mkdir -p /home/data/attendance_sessions
+chmod 755 /home/data/attendance_sessions 2>/dev/null || true
+echo "✓ Session directory ensured: /home/data/attendance_sessions"
+
 echo "=== Setup Complete ==="
 
