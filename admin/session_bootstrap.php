@@ -7,6 +7,10 @@ if (!defined('ADMIN_SESSION_NAME')) {
   define('ADMIN_SESSION_NAME', 'ATTENDANCE_ADMIN_SESSION');
 }
 
+if (!defined('ADMIN_SESSION_TRACKER_COOKIE')) {
+  define('ADMIN_SESSION_TRACKER_COOKIE', 'ATTENDANCE_ADMIN_SESSION_TRACKER');
+}
+
 if (!function_exists('admin_auth_debug_enabled')) {
   function admin_auth_debug_enabled()
   {
@@ -118,8 +122,15 @@ if (!function_exists('admin_configure_session')) {
     $isAzureAppService = getenv('WEBSITE_SITE_NAME') !== false || getenv('WEBSITE_INSTANCE_ID') !== false;
     $isLinuxRuntime = DIRECTORY_SEPARATOR === '/';
     $tmpSessionDir = rtrim((string)sys_get_temp_dir(), '/\\');
+    $currentIniSavePath = trim((string)ini_get('session.save_path'));
 
     $sessionDirs = [];
+
+    // Prefer the live PHP session save path first so we do not bounce between
+    // different writable directories across requests.
+    if ($currentIniSavePath !== '') {
+      $sessionDirs[] = $currentIniSavePath;
+    }
 
     // Explicit environment override has highest priority.
     $envSessionPath = trim((string)app_env_value('SESSION_SAVE_PATH', ''));
@@ -132,13 +143,13 @@ if (!function_exists('admin_configure_session')) {
     if ($isAzureAppService) {
       $azureHome = trim((string)getenv('HOME'));
       if ($azureHome !== '') {
-        $sessionDirs[] = rtrim($azureHome, '/\\') . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'attendance_sessions';
+        $sessionDirs[] = rtrim($azureHome, '/\\') . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'sessions';
       }
 
       // Keep the Linux-style shared path as an additional fallback for hosts
       // that expose the shared home volume at /home.
       if ($isLinuxRuntime) {
-        $sessionDirs[] = '/home/data/attendance_sessions';
+        $sessionDirs[] = '/home/data/sessions';
       }
     }
 
@@ -183,6 +194,11 @@ if (!function_exists('admin_configure_session')) {
     @ini_set('session.cookie_secure', $isSecure ? '1' : '0');
 
     session_name($targetName);
+
+    $trackerCookieSid = trim((string)($_COOKIE[ADMIN_SESSION_TRACKER_COOKIE] ?? ''));
+    if ($trackerCookieSid !== '' && session_id() === '') {
+      @session_id($trackerCookieSid);
+    }
 
     if (PHP_VERSION_ID >= 70300) {
       session_set_cookie_params([

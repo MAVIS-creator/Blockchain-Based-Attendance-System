@@ -6,7 +6,11 @@ if (function_exists('ob_start')) ob_start();
 $isAdminLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 if (!$isAdminLoggedIn) {
   $restoreReason = null;
-  if (admin_restore_session_from_tracker(session_id(), $restoreReason) && !empty($_SESSION['admin_logged_in'])) {
+  $restoreSid = trim((string)session_id());
+  if ($restoreSid === '') {
+    $restoreSid = trim((string)($_COOKIE[ADMIN_SESSION_TRACKER_COOKIE] ?? ''));
+  }
+  if ($restoreSid !== '' && admin_restore_session_from_tracker($restoreSid, $restoreReason) && !empty($_SESSION['admin_logged_in'])) {
     admin_auth_debug_log('index_session_restored_from_tracker', [
       'reason' => (string)$restoreReason,
       'session_id' => (string)session_id(),

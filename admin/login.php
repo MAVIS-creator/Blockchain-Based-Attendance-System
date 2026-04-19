@@ -147,6 +147,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // session file by the time the browser follows Location — especially on
         // Azure App Service where NFS shared storage has slight propagation delay
         // and multiple instances may handle the next request.
+        $cookieParams = session_get_cookie_params();
+        $trackerCookieOptions = [
+            'path' => '/',
+            'domain' => '',
+            'secure' => !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off',
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ];
+        if (!empty($cookieParams['lifetime'])) {
+            $trackerCookieOptions['expires'] = time() + (int)$cookieParams['lifetime'];
+        }
+        setcookie(ADMIN_SESSION_TRACKER_COOKIE, (string)session_id(), [
+            ...$trackerCookieOptions,
+        ]);
         session_write_close();
 
         $redirectQuery = $authDebugMode ? '?auth_debug=1' : '';
