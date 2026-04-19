@@ -169,7 +169,11 @@ if (!function_exists('admin_configure_session')) {
       $sessionDir = app_storage_file('sessions');
     }
 
+    // Both ini_set and session_save_path() are attempted to maximize compatibility.
+    // On Azure PHP-FPM, ini_set for session.save_path may be blocked at PHP_INI_SYSTEM level,
+    // but session_save_path() bypasses that restriction as it directly calls the session module.
     @ini_set('session.save_path', $sessionDir);
+    @session_save_path($sessionDir);
     @ini_set('session.gc_maxlifetime', (string)$lifetimeSeconds);
     @ini_set('session.use_strict_mode', '1');
     @ini_set('session.use_cookies', '1');
@@ -219,12 +223,17 @@ if (!function_exists('admin_configure_session')) {
     }
 
     $selectedSavePath = (string)ini_get('session.save_path');
-    $normalizedSavePath = str_replace('\\', '/', strtolower($selectedSavePath));
-    $selectedIsEphemeral = (strpos($normalizedSavePath, '/tmp/') === 0);
+    $activeSavePath = (string)session_save_path();
+    $normalizedSavePath = str_replace('\\', '/', strtolower($activeSavePath ?: $selectedSavePath));
+    $selectedIsEphemeral = (strpos($normalizedSavePath, '/tmp') === 0 || $normalizedSavePath === '');
+    $savePathMismatch = ($activeSavePath !== '' && $activeSavePath !== $sessionDir);
 
     admin_auth_debug_log('session_bootstrap', [
       'started' => ($started || session_status() === PHP_SESSION_ACTIVE),
       'selected_session_dir' => $sessionDir,
+      'ini_get_save_path' => $selectedSavePath,
+      'session_save_path_fn' => $activeSavePath,
+      'save_path_mismatch' => $savePathMismatch,
       'candidate_dirs' => $sessionDirs,
       'is_secure_cookie' => $isSecure,
       'is_azure_app_service' => $isAzureAppService,
