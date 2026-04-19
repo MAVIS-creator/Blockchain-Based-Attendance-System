@@ -1,7 +1,21 @@
 <?php
 require_once __DIR__ . '/session_bootstrap.php';
+require_once __DIR__ . '/state_helpers.php';
+
+if (empty($_SESSION['admin_logged_in'])) {
+  $restoreReason = null;
+  $restoreSid = trim((string)session_id());
+  if ($restoreSid === '') {
+    $restoreSid = trim((string)($_COOKIE[ADMIN_SESSION_TRACKER_COOKIE] ?? ''));
+  }
+  if ($restoreSid !== '' && function_exists('admin_restore_session_from_tracker')) {
+    admin_restore_session_from_tracker($restoreSid, $restoreReason);
+  }
+}
+
 if (empty($_SESSION['admin_logged_in'])) {
   header('HTTP/1.1 403 Forbidden');
+  header('Content-Type: application/json');
   echo json_encode(['ok' => false, 'message' => 'Not authorized']);
   exit;
 }
@@ -16,13 +30,13 @@ $csrfPath = __DIR__ . '/includes/csrf.php';
 if (file_exists($csrfPath)) require_once $csrfPath;
 if (function_exists('csrf_check_request') && !csrf_check_request()) {
   header('HTTP/1.1 403 Forbidden');
+  header('Content-Type: application/json');
   echo json_encode(['ok' => false, 'message' => 'csrf_failed']);
   exit;
 }
 
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/runtime_storage.php';
-require_once __DIR__ . '/state_helpers.php';
 require_once __DIR__ . '/../hybrid_dual_write.php';
 require_once __DIR__ . '/log_helpers.php';
 app_storage_init();

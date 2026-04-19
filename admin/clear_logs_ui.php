@@ -218,7 +218,22 @@ if (empty($_SESSION['admin_logged_in'])) {
         },
         body: body.toString()
       })
-      .then(r => r.json()).then(j => {
+      .then(async r => {
+        const raw = await r.text();
+        let j = null;
+        try {
+          j = raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          j = null;
+        }
+        return {
+          ok: r.ok,
+          status: r.status,
+          json: j,
+          raw: raw
+        };
+      }).then(res => {
+        const j = res.json;
         if (j && j.ok) {
           var deletedCount = j.result && j.result.deleted ? j.result.deleted.length : 0;
           var errorCount = j.result && j.result.errors ? j.result.errors.length : 0;
@@ -234,11 +249,12 @@ if (empty($_SESSION['admin_logged_in'])) {
           document.getElementById('clearResult').innerHTML = '<span style="color:var(--success);font-weight:600;">✓ ' + msg + '</span>';
           if (window.adminAlert) window.adminAlert('Cleared', msg, 'success');
         } else {
-          document.getElementById('clearResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Failed to clear items.</span> ' + (j.error || '');
+          var detail = (j && (j.message || j.error)) || (res.raw ? res.raw.substring(0, 160) : ('HTTP ' + res.status));
+          document.getElementById('clearResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Failed to clear items.</span> ' + detail;
         }
       })
       .catch(e => {
-        document.getElementById('clearResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Error occurred during clearing.</span>';
+        document.getElementById('clearResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Error occurred during clearing.</span> ' + (e && e.message ? e.message : '');
       });
   }
 
@@ -271,10 +287,23 @@ if (empty($_SESSION['admin_logged_in'])) {
             },
             body: body.toString()
           })
-          .then(function(r) {
-            return r.json();
+          .then(async function(r) {
+            var raw = await r.text();
+            var j = null;
+            try {
+              j = raw ? JSON.parse(raw) : null;
+            } catch (e) {
+              j = null;
+            }
+            return {
+              ok: r.ok,
+              status: r.status,
+              json: j,
+              raw: raw
+            };
           })
-          .then(function(j) {
+          .then(function(res) {
+            var j = res.json;
             if (j && j.ok && j.result) {
               var filesTouched = j.result.files_touched || 0;
               var linesRemoved = j.result.lines_removed || 0;
@@ -286,11 +315,12 @@ if (empty($_SESSION['admin_logged_in'])) {
               document.getElementById('filteredResult').innerHTML = '<span style="color:var(--success);font-weight:600;">✓ ' + msg + '</span>';
               if (window.adminAlert) window.adminAlert('Filtered cleanup complete', msg, 'success');
             } else {
-              document.getElementById('filteredResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Filtered cleanup failed.</span>';
+              var detail = (j && (j.message || j.error)) || (res.raw ? res.raw.substring(0, 160) : ('HTTP ' + res.status));
+              document.getElementById('filteredResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Filtered cleanup failed.</span> ' + detail;
             }
           })
-          .catch(function() {
-            document.getElementById('filteredResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Network error during filtered cleanup.</span>';
+          .catch(function(e) {
+            document.getElementById('filteredResult').innerHTML = '<span style="color:var(--error);font-weight:600;">Network error during filtered cleanup.</span> ' + ((e && e.message) ? e.message : '');
           });
       });
     }

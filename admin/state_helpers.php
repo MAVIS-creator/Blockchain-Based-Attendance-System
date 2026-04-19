@@ -528,7 +528,7 @@ if (!function_exists('admin_register_session')) {
     }
     $entry = [
       'user' => (string)$username,
-      'ip' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+      'ip' => (string)(function_exists('admin_request_client_ip') ? admin_request_client_ip() : ((string)($_SERVER['REMOTE_ADDR'] ?? ''))),
       'user_agent' => (string)($_SERVER['HTTP_USER_AGENT'] ?? ''),
       'login_time' => time(),
       'last_activity' => time(),
@@ -549,6 +549,28 @@ if (!function_exists('admin_register_session')) {
 
     $activeSessions[$sessionKey] = $entry;
     return admin_write_json_atomic($file, $activeSessions);
+  }
+}
+
+if (!function_exists('admin_request_client_ip')) {
+  function admin_request_client_ip()
+  {
+    $cfIp = trim((string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
+    if ($cfIp !== '') {
+      return $cfIp;
+    }
+
+    $xff = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
+    if ($xff !== '') {
+      $parts = array_map('trim', explode(',', $xff));
+      foreach ($parts as $part) {
+        if ($part !== '') {
+          return $part;
+        }
+      }
+    }
+
+    return trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
   }
 }
 
@@ -608,7 +630,7 @@ if (!function_exists('admin_restore_session_from_tracker')) {
     $strictMatch = strtolower(trim((string)app_env_value('SESSION_RECOVERY_STRICT', '1')));
     $strict = in_array($strictMatch, ['1', 'true', 'yes', 'on'], true);
     if ($strict) {
-      $reqIp = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+      $reqIp = function_exists('admin_request_client_ip') ? admin_request_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '');
       $reqUa = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
       $trackIp = (string)($entry['ip'] ?? '');
       $trackUa = (string)($entry['user_agent'] ?? '');
