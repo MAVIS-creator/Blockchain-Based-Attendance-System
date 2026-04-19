@@ -175,8 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         session_write_close();
 
-        $redirectQuery = $authDebugMode ? '?auth_debug=1' : '';
-        header('Location: index.php' . $redirectQuery);
+        header('Location: index.php');
         exit;
     } else {
         if ($error === '') {
@@ -429,9 +428,6 @@ $authDebugRows = $authDebugMode ? admin_auth_debug_recent(50) : [];
             <?php endif; ?>
 
             <form method="POST">
-                <?php if ($authDebugMode): ?>
-                    <input type="hidden" name="auth_debug" value="1">
-                <?php endif; ?>
                 <div class="st-input-group">
                     <label for="username">Username</label>
                     <input class="st-input" id="username" type="text" name="username" placeholder="Enter username" required>
@@ -452,48 +448,7 @@ $authDebugRows = $authDebugMode ? admin_auth_debug_recent(50) : [];
                     <span class="material-symbols-outlined" style="font-size:1.2rem;">login</span> Sign In
                 </button>
             </form>
-
-            <?php if ($authDebugMode): ?>
-                <div class="debug-card">
-                    <div class="debug-badge">Auth Debug Container</div>
-                    <?php if ($authIssue !== ''): ?>
-                        <div class="debug-row"><strong>auth_issue:</strong> <?= htmlspecialchars($authIssue) ?></div>
-                    <?php endif; ?>
-                    <div class="debug-row"><strong>session_name:</strong> <?= htmlspecialchars($sessionName) ?></div>
-                    <div class="debug-row"><strong>session_id:</strong> <?= htmlspecialchars((string)session_id()) ?></div>
-                    <div class="debug-row"><strong>session_cookie_present:</strong> <?= isset($_COOKIE[$sessionName]) ? 'yes' : 'no' ?></div>
-                    <div class="debug-row"><strong>session_save_path:</strong> <?= htmlspecialchars($sessionSavePath !== '' ? $sessionSavePath : '(empty)') ?> (<?= $sessionSavePathWritable ? 'writable' : 'not writable' ?>)</div>
-                    <div class="debug-row"><strong>storage_path:</strong> <?= htmlspecialchars($storagePath) ?> (<?= $storagePathWritable ? 'writable' : 'not writable' ?>)</div>
-                    <div class="debug-row"><strong>session_tracker_file:</strong> <?= htmlspecialchars($sessionTrackerFile) ?></div>
-                    <div class="debug-row"><strong>session_tracker_count:</strong> <?= (int)$sessionTrackerCount ?> | <strong>current_session_tracked:</strong> <?= $sessionTracked ? 'yes' : 'no' ?></div>
-                    <div class="debug-row"><strong>request_uri:</strong> <?= htmlspecialchars((string)($_SERVER['REQUEST_URI'] ?? '')) ?></div>
-                    <div class="debug-row"><strong>recent_events:</strong></div>
-                    <?php if (!empty($authDebugRows)): ?>
-                        <?php foreach ($authDebugRows as $row): ?>
-                            <?php
-                            $time = (string)($row['time'] ?? '');
-                            $event = (string)($row['event'] ?? 'unknown');
-                            $ctx = $row['context'] ?? [];
-                            $ctxJson = json_encode($ctx, JSON_UNESCAPED_SLASHES);
-                            if (!is_string($ctxJson)) {
-                                $ctxJson = '{}';
-                            }
-                            ?>
-                            <div class="debug-row">[<?= htmlspecialchars($time) ?>] <strong><?= htmlspecialchars($event) ?></strong> <?= htmlspecialchars($ctxJson) ?></div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="debug-row">(no events yet)</div>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
         </div>
-
-        <?php if (!$authDebugMode): ?>
-            <a class="debug-link" href="login.php?auth_debug=1">
-                <span class="material-symbols-outlined" style="font-size:1rem;">bug_report</span>
-                Open auth debug
-            </a>
-        <?php endif; ?>
 
         <div class="footer">
             &copy; <?= date('Y') ?> Admin Panel. All rights reserved.
