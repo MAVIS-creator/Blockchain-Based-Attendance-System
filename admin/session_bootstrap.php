@@ -186,7 +186,7 @@ if (!function_exists('admin_configure_session')) {
     @ini_set('session.save_path', $sessionDir);
     @session_save_path($sessionDir);
     @ini_set('session.gc_maxlifetime', (string)$lifetimeSeconds);
-    @ini_set('session.use_strict_mode', '1');
+    @ini_set('session.use_strict_mode', $isAzureAppService ? '0' : '1');
     @ini_set('session.use_cookies', '1');
     @ini_set('session.use_only_cookies', '1');
     @ini_set('session.cookie_httponly', '1');
