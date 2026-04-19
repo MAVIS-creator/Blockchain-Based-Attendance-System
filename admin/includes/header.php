@@ -97,6 +97,85 @@ if (file_exists($csrfPath)) {
   };
   // make CSRF token available to admin scripts
   window.ADMIN_CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
+  (function() {
+    function csrfTokenValue() {
+      return (typeof window.ADMIN_CSRF_TOKEN === 'string') ? window.ADMIN_CSRF_TOKEN : '';
+    }
+
+    function isUnsafeMethod(method) {
+      var m = String(method || 'GET').toUpperCase();
+      return !(m === 'GET' || m === 'HEAD' || m === 'OPTIONS');
+    }
+
+    function isSameOriginUrl(inputUrl) {
+      try {
+        var url = new URL(inputUrl, window.location.href);
+        return url.origin === window.location.origin;
+      } catch (e) {
+        return true;
+      }
+    }
+
+    if (typeof window.fetch === 'function') {
+      var originalFetch = window.fetch.bind(window);
+      window.fetch = function(resource, init) {
+        var token = csrfTokenValue();
+        if (!token) {
+          return originalFetch(resource, init);
+        }
+
+        var method = 'GET';
+        var urlForCheck = '';
+        if (typeof resource === 'string' || resource instanceof URL) {
+          urlForCheck = String(resource);
+          if (init && init.method) method = init.method;
+        } else if (resource && typeof resource === 'object') {
+          urlForCheck = resource.url || '';
+          method = (init && init.method) || resource.method || 'GET';
+        }
+
+        if (!isUnsafeMethod(method) || !isSameOriginUrl(urlForCheck)) {
+          return originalFetch(resource, init);
+        }
+
+        var nextInit = init ? Object.assign({}, init) : {};
+        var headers = new Headers(nextInit.headers || (resource && resource.headers) || undefined);
+        if (!headers.has('X-CSRF-Token')) {
+          headers.set('X-CSRF-Token', token);
+        }
+        nextInit.headers = headers;
+
+        return originalFetch(resource, nextInit);
+      };
+    }
+
+    function attachCsrfToPostForms() {
+      var token = csrfTokenValue();
+      if (!token) return;
+
+      var forms = document.querySelectorAll('form');
+      for (var i = 0; i < forms.length; i++) {
+        var form = forms[i];
+        var method = String(form.getAttribute('method') || 'GET').toUpperCase();
+        if (!isUnsafeMethod(method)) continue;
+
+        var existing = form.querySelector('input[name="csrf_token"]');
+        if (existing) continue;
+
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'csrf_token';
+        input.value = token;
+        form.appendChild(input);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attachCsrfToPostForms);
+    } else {
+      attachCsrfToPostForms();
+    }
+  })();
   // Lightweight helpers so pages can replace native alert/confirm easily
   window.adminAlert = function(title, text, icon) {
     icon = icon || 'info';
