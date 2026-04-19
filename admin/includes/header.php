@@ -2,6 +2,14 @@
 <?php
 require_once __DIR__ . '/../../env_helpers.php';
 $adminLocalMode = app_local_mode_enabled(__DIR__ . '/../../.env');
+
+// Resolve CSRF token before output so setcookie can succeed consistently.
+$csrfToken = '';
+$csrfPath = __DIR__ . '/csrf.php';
+if (file_exists($csrfPath)) {
+  require_once $csrfPath;
+  if (function_exists('csrf_token')) $csrfToken = csrf_token();
+}
 ?>
 <!-- Mobile Page Header (visible <1024px only, hidden on desktop) -->
 <header class="page-header">
@@ -76,15 +84,6 @@ $adminRoot = ($posAdmin !== false) ? substr($scriptPath, 0, $posAdmin + 6) : '/a
 <link rel="stylesheet" href="<?= htmlspecialchars($adminRoot) ?>/swal-theme.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link rel="stylesheet" href="<?= htmlspecialchars($adminRoot) ?>/admin-theme.css">
-<?php
-// expose CSRF token to JS by including the helper
-$csrfToken = '';
-$csrfPath = __DIR__ . '/csrf.php';
-if (file_exists($csrfPath)) {
-  require_once $csrfPath;
-  if (function_exists('csrf_token')) $csrfToken = csrf_token();
-}
-?>
 <script>
   // expose admin root to client scripts so relative redirects are safe
   var ADMIN_ROOT = <?= json_encode($adminRoot) ?>;

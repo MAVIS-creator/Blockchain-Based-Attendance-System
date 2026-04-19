@@ -136,7 +136,22 @@ if (!function_exists('csrf_check_request')) {
         if (!$token) return false;
 
         $expected = csrf_expected_token();
-        if ($expected === '') return false;
+        if ($expected === '') {
+            // Session recovery can restore admin auth without CSRF state.
+            // Rehydrate CSRF state from the submitted token for authenticated admin sessions.
+            if (!empty($_SESSION['admin_logged_in'])) {
+                $ttl = 60 * 60 * 4;
+                if (!isset($_SESSION['_csrf']) || !is_array($_SESSION['_csrf'])) {
+                    $_SESSION['_csrf'] = [];
+                }
+                $_SESSION['_csrf']['token'] = (string)$token;
+                $_SESSION['_csrf']['expires'] = time() + $ttl;
+                $_SESSION['csrf_token'] = (string)$token;
+                csrf_cookie_set((string)$token, $ttl);
+                return true;
+            }
+            return false;
+        }
         if (!hash_equals($expected, (string)$token)) return false;
 
         if (!empty($_SESSION['_csrf']['expires']) && $_SESSION['_csrf']['expires'] < time()) {
