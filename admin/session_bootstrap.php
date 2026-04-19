@@ -145,10 +145,9 @@ if (!function_exists('admin_configure_session')) {
     // App storage sessions path next.
     $sessionDirs[] = app_storage_file('sessions');
 
-    // Instance-local temp storage is a final fallback when shared locations are
-    // unavailable. This prevents total auth failure if /home/data is transiently
-    // unavailable, while ARRAffinity still keeps most traffic sticky.
-    if ($tmpSessionDir !== '') {
+    // Instance-local temp storage remains a fallback only and should be avoided
+    // on Azure where requests may land on different workers causing session loss.
+    if (!$isAzureAppService && $tmpSessionDir !== '') {
       $sessionDirs[] = $tmpSessionDir . DIRECTORY_SEPARATOR . 'attendance_sessions';
     }
 
