@@ -8,8 +8,7 @@
             </p>
         </div>
         <div class="flex gap-8 items-center">
-            <a class="font-inter text-xs font-normal leading-relaxed text-[#424750] dark:text-[#c2c7d1] opacity-80 hover:opacity-100 hover:underline decoration-[#00457b] underline-offset-4 transition-all" href="#">Privacy Policy</a>
-            <a class="font-inter text-xs font-normal leading-relaxed text-[#424750] dark:text-[#c2c7d1] opacity-80 hover:opacity-100 hover:underline decoration-[#00457b] underline-offset-4 transition-all" href="#">Terms of Service</a>
+            <a class="font-inter text-xs font-normal leading-relaxed text-[#424750] dark:text-[#c2c7d1] opacity-80 hover:opacity-100 hover:underline decoration-[#00457b] underline-offset-4 transition-all" href="rules.php">Rules</a>
             <a class="font-inter text-xs font-normal leading-relaxed text-[#424750] dark:text-[#c2c7d1] opacity-80 hover:opacity-100 hover:underline decoration-[#00457b] underline-offset-4 transition-all" href="support.php">Technical Support</a>
         </div>
     </div>

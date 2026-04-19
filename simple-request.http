@@ -1,0 +1,4 @@
+@baseUrl = https://attendancev2app123.azurewebsites.net
+
+GET {{baseUrl}}/
+Content-Type: application/json

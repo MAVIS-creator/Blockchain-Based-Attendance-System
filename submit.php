@@ -166,6 +166,17 @@ request_timing_note('load_test_relax_active', $loadTestRelaxActive ? 'true' : 'f
 // Helper: respond JSON and exit
 function fail($code, $message)
 {
+    $diagFile = app_storage_file('logs/submit_failures.jsonl');
+    $diagEntry = [
+        'timestamp' => date('c'),
+        'code' => (string)$code,
+        'message' => (string)$message,
+        'matric' => preg_replace('/\D+/', '', (string)($_POST['matric'] ?? '')),
+        'action' => strtolower(trim((string)($_POST['action'] ?? ''))),
+        'course' => trim((string)($_POST['course'] ?? '')),
+    ];
+    @file_put_contents($diagFile, json_encode($diagEntry, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
+
     header('Content-Type: application/json');
     echo json_encode(['ok' => false, 'code' => $code, 'message' => $message]);
     exit;
@@ -272,7 +283,7 @@ function write_store($file, $data, $encrypt = false)
     file_put_contents($file, 'ENC:' . $blob, LOCK_EX);
 }
 
-function upsert_fingerprint_atomic($file, $matric, $hashedFingerprint)
+function inspect_fingerprint_atomic($file, $matric, $hashedFingerprint)
 {
     $dir = dirname($file);
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
@@ -292,22 +303,16 @@ function upsert_fingerprint_atomic($file, $matric, $hashedFingerprint)
     if (!is_array($data)) $data = [];
 
     if (isset($data[$matric])) {
-        $matched = ($data[$matric] === $hashedFingerprint);
+        $matched = ((string)$data[$matric] === (string)$hashedFingerprint);
         flock($fp, LOCK_UN);
         fclose($fp);
-        return ['ok' => $matched, 'reason' => $matched ? 'matched' : 'mismatch'];
+        return ['ok' => true, 'status' => $matched ? 'matched' : 'mismatch'];
     }
 
-    $data[$matric] = $hashedFingerprint;
-    $payload = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    rewind($fp);
-    ftruncate($fp, 0);
-    fwrite($fp, $payload);
-    fflush($fp);
     flock($fp, LOCK_UN);
     fclose($fp);
 
-    return ['ok' => true, 'reason' => 'linked'];
+    return ['ok' => true, 'status' => 'unlinked'];
 }
 
 function link_fingerprint_if_missing_atomic($file, $matric, $hashedFingerprint)
@@ -513,22 +518,31 @@ if (!$loadTestRelaxActive && !empty($settings['enforce_one_device_per_day'])) {
 // Load/update fingerprints atomically (toggleable from settings)
 $fingerprintFile = admin_storage_migrate_file('fingerprints.json', app_storage_file('fingerprints.json'));
 $hashedFingerprint = hash('sha256', $fingerprint);
+$shouldLinkFingerprintOnSuccess = false;
+$fpInspect = inspect_fingerprint_atomic($fingerprintFile, $matric, $hashedFingerprint);
+
+if (empty($fpInspect['ok'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'message' => 'Unable to verify fingerprint at the moment. Please try again.']);
+    exit;
+}
+
 if (!empty($settings['require_fingerprint_match'])) {
-    // If fingerprint is already linked to this matric, check; otherwise link atomically
-    $fpResult = upsert_fingerprint_atomic($fingerprintFile, $matric, $hashedFingerprint);
-    if (!$fpResult['ok']) {
+    if (($fpInspect['status'] ?? '') === 'mismatch') {
         header('Content-Type: application/json');
-        if (($fpResult['reason'] ?? '') === 'mismatch') {
-            echo json_encode(['ok' => false, 'message' => 'Fingerprint does not match this Matric Number.']);
-        } else {
-            echo json_encode(['ok' => false, 'message' => 'Unable to verify fingerprint at the moment. Please try again.']);
-        }
+        echo json_encode(['ok' => false, 'message' => 'Fingerprint does not match this Matric Number.']);
         exit;
     }
+    if (($fpInspect['status'] ?? '') === 'unlinked') {
+        $shouldLinkFingerprintOnSuccess = true;
+    }
 } else {
-    // Keep initial link for empty records without enforcing hard mismatch checks.
-    link_fingerprint_if_missing_atomic($fingerprintFile, $matric, $hashedFingerprint);
+    // In relaxed mode, defer first-time link until attendance write succeeds.
+    if (($fpInspect['status'] ?? '') === 'unlinked') {
+        $shouldLinkFingerprintOnSuccess = true;
+    }
 }
+request_timing_note('fingerprint_link_plan', $shouldLinkFingerprintOnSuccess ? 'defer_until_success' : 'already_linked_or_mismatch_checked');
 
 // ✅ Prepare log file paths
 $logDir = app_storage_file('logs');
@@ -623,6 +637,24 @@ $logEntry = "$name | $matric | $action | $fingerprint | $ip | $mac | " . date("Y
 $logWriteSpan = microtime(true);
 file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
 request_timing_span('append_attendance_log', $logWriteSpan);
+
+if ($shouldLinkFingerprintOnSuccess) {
+    $linkSpan = microtime(true);
+    $linked = link_fingerprint_if_missing_atomic($fingerprintFile, $matric, $hashedFingerprint);
+    request_timing_span('link_fingerprint_after_success', $linkSpan, ['linked' => (bool)$linked]);
+}
+
+$pipelineDiagFile = app_storage_file('logs/submit_pipeline.jsonl');
+$pipelineEntry = [
+    'timestamp' => date('c'),
+    'matric' => $matric,
+    'action' => $action,
+    'course' => $course,
+    'attendance_log_written' => true,
+    'fingerprint_deferred_link' => (bool)$shouldLinkFingerprintOnSuccess,
+    'fingerprint_linked_after_success' => isset($linked) ? (bool)$linked : false,
+];
+@file_put_contents($pipelineDiagFile, json_encode($pipelineEntry, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
 
 // ✅ Save as blockchain block (JSON)
 $chainSpan = microtime(true);

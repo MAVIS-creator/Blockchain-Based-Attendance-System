@@ -7,6 +7,7 @@ require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/request_timing.php';
 require_once __DIR__ . '/request_guard.php';
 require_once __DIR__ . '/src/AiTicketAutomationEngine.php';
+require_once __DIR__ . '/src/AiTicketDiagnoser.php';
 app_storage_init();
 app_request_guard('support.php', 'public');
 request_timing_start('support.php');
@@ -54,8 +55,53 @@ function support_run_ai_for_ticket(array $ticket)
   }
 }
 
+function support_assess_message_quality($message, $requestedAction)
+{
+  $message = trim((string)$message);
+  $requestedAction = strtolower(trim((string)$requestedAction));
+  $charCount = mb_strlen($message);
+  $wordCount = preg_match_all('/\\b[\\p{L}\\p{N}_-]+\\b/u', $message, $m);
+
+  if ($charCount < 35 || $wordCount < 7) {
+    return [
+      'ok' => false,
+      'feedback' => 'Please provide a more detailed message (at least 35 characters and 7 words). Include what happened, when it happened, and what you were trying to do.',
+    ];
+  }
+
+  $hasActionKeyword = (bool)preg_match('/check[\\s-]?in|check[\\s-]?out|attendance|submit|submission|fingerprint|ip|network|session|token|blocked|error|failed|course/i', $message);
+  $hasTimelineKeyword = (bool)preg_match('/today|yesterday|when|after|before|during|time|lag|slow|loading|[0-9]{1,2}:[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2}/i', $message);
+
+  if (!$hasActionKeyword || !$hasTimelineKeyword) {
+    return [
+      'ok' => false,
+      'feedback' => 'Sentinel needs clearer context. Add the exact action (check-in/check-out/submission), plus when it failed (time or period), and any visible error message.',
+    ];
+  }
+
+  $classification = AiTicketDiagnoser::classifyMessage($message);
+  $issueType = (string)($classification['issue_type'] ?? 'general_system_complaint');
+  $confidence = (float)($classification['confidence'] ?? 0.0);
+  if ($issueType === 'general_system_complaint' && $confidence < 0.60) {
+    return [
+      'ok' => false,
+      'feedback' => 'Sentinel could not confidently understand this message. Please rewrite with details: action attempted, exact course, time of issue, and what result you expected.',
+    ];
+  }
+
+  if ($requestedAction === '' && !preg_match('/check[\\s-]?in|check[\\s-]?out/i', $message)) {
+    return [
+      'ok' => false,
+      'feedback' => 'Please mention whether this is a check-in or check-out issue so Sentinel can resolve it faster.',
+    ];
+  }
+
+  return ['ok' => true, 'feedback' => ''];
+}
+
 $success = false;
 $formError = '';
+$messageGuidance = '';
 
 $courseFile = admin_course_storage_migrate_file('course.json');
 $courseRows = [];
@@ -118,6 +164,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
   if ($matric !== '' && !preg_match('/^\d{6,20}$/', $matric)) {
     $formError = 'Enter a valid matric number using digits only.';
+  }
+
+  if ($message !== '' && $formError === '') {
+    $quality = support_assess_message_quality($message, $requestedAction);
+    if (empty($quality['ok'])) {
+      $formError = (string)($quality['feedback'] ?? 'Please provide more detail in your message.');
+      $messageGuidance = $formError;
+    }
   }
 
   if ($name && $matric && $message && $formError === '') {
@@ -302,7 +356,15 @@ include __DIR__ . '/includes/public_header.php';
                         <label class="text-[0.75rem] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-2">
                             <span class="material-symbols-outlined text-[16px]">chat_bubble</span> Detailed Message
                         </label>
-                        <textarea name="message" required class="w-full px-4 py-3 rounded-lg bg-surface-container-low border border-outline-variant/20 focus:ring-4 focus:ring-primary-fixed focus:border-primary transition-all placeholder:text-outline/50 outline-none focus:outline-none resize-none" placeholder="Describe the issue in detail..." rows="6"></textarea>
+                      <textarea id="supportMessage" name="message" required minlength="35" class="w-full px-4 py-3 rounded-lg bg-surface-container-low border border-outline-variant/20 focus:ring-4 focus:ring-primary-fixed focus:border-primary transition-all placeholder:text-outline/50 outline-none focus:outline-none resize-none" placeholder="Describe the issue in detail: action attempted, course, time, and exact error shown..." rows="6"></textarea>
+                      <div class="rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-3">
+                        <p class="text-xs font-semibold text-on-surface mb-1">Message checklist for faster resolution</p>
+                        <p class="text-xs text-on-surface-variant">Include: 1) check-in/check-out action, 2) course, 3) when it happened, 4) exact error or what the system showed.</p>
+                        <p id="messageCoach" class="text-xs mt-2 text-on-surface-variant">Sentinel message check: waiting for details...</p>
+                        <?php if ($messageGuidance !== ''): ?>
+                          <p class="text-xs mt-2 text-[#b91c1c] font-semibold"><?= htmlspecialchars($messageGuidance) ?></p>
+                        <?php endif; ?>
+                      </div>
                     </div>
 
                     <input type="hidden" id="fingerprint" name="fingerprint">
@@ -313,7 +375,7 @@ include __DIR__ . '/includes/public_header.php';
                             <span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">verified</span>
                             <span class="text-xs font-medium">Secured with End-to-End Encryption</span>
                         </div>
-                        <button class="w-full md:w-auto bg-gradient-to-br from-primary to-primary-container text-white px-10 py-4 rounded-lg font-bold text-sm tracking-wide shadow-lg hover:shadow-primary/20 transition-all active:scale-95" type="submit">
+                        <button id="supportSubmitBtn" class="w-full md:w-auto bg-gradient-to-br from-primary to-primary-container text-white px-10 py-4 rounded-lg font-bold text-sm tracking-wide shadow-lg hover:shadow-primary/20 transition-all active:scale-95" type="submit">
                             Submit Ticket
                         </button>
                     </div>
@@ -338,6 +400,45 @@ include __DIR__ . '/includes/public_header.php';
 
 <script src="./js/fp.min.js"></script>
 <script>
+    (function () {
+      const messageEl = document.getElementById('supportMessage');
+      const coachEl = document.getElementById('messageCoach');
+      const submitBtn = document.getElementById('supportSubmitBtn');
+      if (!messageEl || !coachEl || !submitBtn) return;
+
+      const evaluateMessage = () => {
+        const msg = String(messageEl.value || '').trim();
+        const charCount = msg.length;
+        const words = (msg.match(/\b[\w-]+\b/g) || []).length;
+        const hasAction = /(check[\s-]?in|check[\s-]?out|attendance|submit|submission|fingerprint|ip|network|session|token|blocked|error|failed|course)/i.test(msg);
+        const hasTime = /(today|yesterday|when|after|before|during|time|lag|slow|loading|[0-9]{1,2}:[0-9]{2}|[0-9]{4}-[0-9]{2}-[0-9]{2})/i.test(msg);
+
+        if (charCount < 35 || words < 7) {
+          coachEl.textContent = `Need more detail: ${charCount}/35 characters, ${words}/7 words.`;
+          coachEl.className = 'text-xs mt-2 text-[#b45309] font-semibold';
+          submitBtn.disabled = true;
+          submitBtn.classList.add('opacity-60', 'cursor-not-allowed');
+          return;
+        }
+
+        if (!hasAction || !hasTime) {
+          coachEl.textContent = 'Add action + timeline: mention check-in/check-out plus when it happened.';
+          coachEl.className = 'text-xs mt-2 text-[#b45309] font-semibold';
+          submitBtn.disabled = true;
+          submitBtn.classList.add('opacity-60', 'cursor-not-allowed');
+          return;
+        }
+
+        coachEl.textContent = 'Looks good. Sentinel should be able to understand this message clearly.';
+        coachEl.className = 'text-xs mt-2 text-[#166534] font-semibold';
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+      };
+
+      evaluateMessage();
+      messageEl.addEventListener('input', evaluateMessage);
+    })();
+
     FingerprintJS.load().then(fp => {
       fp.get().then(result => {
         document.getElementById('fingerprint').value = result.visitorId;
