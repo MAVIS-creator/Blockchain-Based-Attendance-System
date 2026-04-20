@@ -673,7 +673,7 @@ class AiProviderClient
     $fpShort = substr($fingerprint, 0, 8);
 
     $basePrompt = sprintf(
-      "Audience=%s. Response style=%s. Keep response non-generic and tailored to fingerprint segment %s. Ticket context: matric=%s, course=%s, requested_action=%s, classification=%s, action=%s, rulebook_applied=%s, confidence=%.2f, fpMatch=%s, ipMatch=%s, revoked=%s, checkinCount=%d, checkoutCount=%d, policy_reason=%s, student_message=%s",
+      "Audience=%s. Response style=%s. Keep response non-generic and tailored to fingerprint segment %s. Ticket context: matric=%s, course=%s, requested_action=%s, classification=%s, action=%s, rulebook_applied=%s, confidence=%.2f, fpMatch=%s, ipMatch=%s, support_geofence_enabled=%s, support_geofence_inside=%s, support_geofence_distance_m=%s, support_geofence_radius_m=%s, revoked=%s, checkinCount=%d, checkoutCount=%d, policy_reason=%s, student_message=%s",
       $audience,
       $style,
       $fpShort,
@@ -686,6 +686,10 @@ class AiProviderClient
       (float)($diagnosis['confidence'] ?? 0),
       !empty($diagnosis['fpMatch']) ? 'true' : 'false',
       !empty($diagnosis['ipMatch']) ? 'true' : 'false',
+      !empty($diagnosis['support_geofence_enabled']) ? 'true' : 'false',
+      array_key_exists('support_geofence_inside', $diagnosis) ? (($diagnosis['support_geofence_inside'] === true) ? 'true' : (($diagnosis['support_geofence_inside'] === false) ? 'false' : 'unknown')) : 'unknown',
+      isset($diagnosis['support_geofence_distance_m']) ? (string)$diagnosis['support_geofence_distance_m'] : 'unknown',
+      isset($diagnosis['support_geofence_radius_m']) ? (string)$diagnosis['support_geofence_radius_m'] : 'unknown',
       !empty($diagnosis['revoked']) ? 'true' : 'false',
       (int)($diagnosis['checkinCount'] ?? 0),
       (int)($diagnosis['checkoutCount'] ?? 0),

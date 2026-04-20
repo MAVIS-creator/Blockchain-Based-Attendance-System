@@ -277,6 +277,10 @@ class AiTicketDiagnoser
     $message = (string)($ticket['message'] ?? '');
     $course = trim((string)($ticket['course'] ?? 'General'));
     $course = $course !== '' ? $course : 'General';
+    $geofence = isset($ticket['geofence']) && is_array($ticket['geofence']) ? $ticket['geofence'] : [];
+    $geofenceEnabled = !empty($geofence['enabled']);
+    $geofenceInside = array_key_exists('inside', $geofence) ? $geofence['inside'] : null;
+    $geofenceReason = trim((string)($geofence['reason'] ?? ''));
     $requestedAction = strtolower(trim((string)($ticket['requested_action'] ?? '')));
     if (!in_array($requestedAction, ['checkin', 'checkout'], true)) {
       $requestedAction = '';
@@ -309,6 +313,8 @@ class AiTicketDiagnoser
       'revoked' => (bool)$revokedStatus,
       'fp_match' => !empty($logInfo['fpMatch']),
       'ip_match' => !empty($logInfo['ipMatch']),
+      'support_geofence_enabled' => (bool)$geofenceEnabled,
+      'support_geofence_inside' => ($geofenceInside === true),
       'requested_action' => $requestedAction,
       'has_checkin' => $hasCheckin,
       'has_checkout' => $hasCheckout,
@@ -328,7 +334,19 @@ class AiTicketDiagnoser
       $reason = (string)($rulebookOutcome['reason'] ?? $reason);
     }
 
-    if (!empty($rulebookOutcome)) {
+    if ($geofenceEnabled && $geofenceInside === false) {
+      $classification = 'support_geofence_outside';
+      $action = 'deny_and_review';
+      $confidence = 0.99;
+      $suggestedAdminAction = 'Support ticket location evidence is outside the configured attendance geofence. Do not auto-write attendance. Require manual admin review with identity/location verification.';
+      $reason = $geofenceReason !== '' ? ('Support geofence verdict: ' . $geofenceReason) : 'Support geofence verdict indicates outside boundary.';
+    } elseif ($geofenceEnabled && $geofenceInside === null) {
+      $classification = 'support_geofence_unverified';
+      $action = 'manual_review_only';
+      $confidence = max($confidence, 0.9);
+      $suggestedAdminAction = 'Support geofence is enabled but no trusted location evidence was captured in this ticket. Keep manual review for attendance adjustment.';
+      $reason = $geofenceReason !== '' ? ('Support geofence evidence missing: ' . $geofenceReason) : 'Support geofence enabled without location evidence.';
+    } elseif (!empty($rulebookOutcome)) {
       // Rulebook has first priority and fully defines classification/action for matched conditions.
     } elseif (empty($courseValidation['exists'])) {
       $classification = 'invalid_course_reference';
@@ -428,6 +446,11 @@ class AiTicketDiagnoser
       'confidence' => $confidence,
       'fpMatch' => (bool)$logInfo['fpMatch'],
       'ipMatch' => (bool)$logInfo['ipMatch'],
+      'support_geofence_enabled' => (bool)$geofenceEnabled,
+      'support_geofence_inside' => $geofenceInside,
+      'support_geofence_reason' => $geofenceReason,
+      'support_geofence_distance_m' => isset($geofence['distance_m']) ? floatval($geofence['distance_m']) : null,
+      'support_geofence_radius_m' => isset($geofence['radius_m']) ? floatval($geofence['radius_m']) : null,
       'revoked' => (bool)$revokedStatus,
       'attendanceAlreadyRecorded' => (bool)$logInfo['attendanceAlreadyRecorded'],
       'attendanceCycleComplete' => (bool)$logInfo['attendanceCycleComplete'],
