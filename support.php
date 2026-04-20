@@ -7,7 +7,6 @@ require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/request_timing.php';
 require_once __DIR__ . '/request_guard.php';
 require_once __DIR__ . '/src/AiTicketAutomationEngine.php';
-require_once __DIR__ . '/src/AiTicketDiagnoser.php';
 app_storage_init();
 app_request_guard('support.php', 'public');
 request_timing_start('support.php');
@@ -105,14 +104,38 @@ function append_support_ticket_atomic($ticketsFile, $ticket)
   return true;
 }
 
-function support_run_ai_for_ticket(array $ticket)
+function support_ai_queue_file()
 {
-  try {
-    $engine = new AiTicketAutomationEngine();
-    return $engine->processTicket($ticket);
-  } catch (\Throwable $e) {
-    return ['ok' => false, 'error' => 'ai_ticket_processing_failed', 'message' => $e->getMessage()];
+  return app_storage_file('logs/ai_ticket_queue.jsonl');
+}
+
+function support_enqueue_ai_ticket($ticketTimestamp)
+{
+  $ticketTimestamp = trim((string)$ticketTimestamp);
+  if ($ticketTimestamp === '') {
+    return false;
   }
+
+  $entry = [
+    'ticket_timestamp' => $ticketTimestamp,
+    'enqueued_at' => date('c')
+  ];
+  $line = json_encode($entry, JSON_UNESCAPED_SLASHES) . "\n";
+  return (bool)file_put_contents(support_ai_queue_file(), $line, FILE_APPEND | LOCK_EX);
+}
+
+function support_spawn_ai_worker()
+{
+  $script = escapeshellarg(__DIR__ . '/admin/ai_ticket_worker.php');
+  $phpBin = defined('PHP_BINARY') ? escapeshellarg(PHP_BINARY) : 'php';
+  $cmd = $phpBin . ' ' . $script . ' --drain=15';
+
+  if (stripos(PHP_OS, 'WIN') === 0) {
+    @pclose(@popen('start /B "" ' . $cmd, 'r'));
+    return;
+  }
+
+  @exec($cmd . ' > /dev/null 2>&1 &');
 }
 
 function support_assess_message_quality($message, $requestedAction)
@@ -307,24 +330,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
       ]);
       request_timing_span('hybrid_dual_write', $dualWriteSpan);
 
-      $aiTicket = [
-        'name' => $name,
-        'matric' => $matric,
-        'message' => $message,
-        'fingerprint' => $fingerprint,
-        'course' => $course,
-        'requested_action' => $requestedAction,
-        'ip' => $ip,
-        'geofence' => $geofenceSnapshot,
-        'timestamp' => $createdAt,
-        'resolved' => false
-      ];
       $aiSpan = microtime(true);
-      $aiResult = support_run_ai_for_ticket($aiTicket);
-      request_timing_span('ai_ticket_immediate_process', $aiSpan, [
-        'ok' => !empty($aiResult['ok']),
-        'processed' => (int)($aiResult['processed'] ?? 0),
-        'error' => (string)($aiResult['error'] ?? '')
+      $queued = support_enqueue_ai_ticket($createdAt);
+      if ($queued) {
+        support_spawn_ai_worker();
+      }
+      request_timing_span('ai_ticket_enqueue', $aiSpan, [
+        'queued' => $queued,
+        'ticket_ts' => $createdAt
       ]);
     }
 

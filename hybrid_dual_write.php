@@ -58,6 +58,121 @@ if (!function_exists('hybrid_outbox_append')) {
   }
 }
 
+if (!function_exists('hybrid_circuit_file')) {
+  function hybrid_circuit_file()
+  {
+    return app_storage_file('logs/supabase_circuit.json');
+  }
+}
+
+if (!function_exists('hybrid_circuit_load')) {
+  function hybrid_circuit_load()
+  {
+    $file = hybrid_circuit_file();
+    if (!file_exists($file)) {
+      return [
+        'state' => 'closed',
+        'failure_count' => 0,
+        'opened_at' => null,
+        'last_error' => '',
+        'half_open_probe' => false,
+      ];
+    }
+
+    $raw = @file_get_contents($file);
+    $decoded = json_decode((string)$raw, true);
+    if (!is_array($decoded)) {
+      return [
+        'state' => 'closed',
+        'failure_count' => 0,
+        'opened_at' => null,
+        'last_error' => '',
+        'half_open_probe' => false,
+      ];
+    }
+
+    return array_merge([
+      'state' => 'closed',
+      'failure_count' => 0,
+      'opened_at' => null,
+      'last_error' => '',
+      'half_open_probe' => false,
+    ], $decoded);
+  }
+}
+
+if (!function_exists('hybrid_circuit_save')) {
+  function hybrid_circuit_save(array $state)
+  {
+    $payload = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    @file_put_contents(hybrid_circuit_file(), $payload, LOCK_EX);
+  }
+}
+
+if (!function_exists('hybrid_circuit_before_request')) {
+  function hybrid_circuit_before_request(&$reason = null)
+  {
+    $state = hybrid_circuit_load();
+    $cooldown = (int)hybrid_env('SUPABASE_CIRCUIT_COOLDOWN_SEC', 30);
+    $cooldown = max(5, min(600, $cooldown));
+
+    if (($state['state'] ?? 'closed') !== 'open') {
+      return true;
+    }
+
+    $openedAt = strtotime((string)($state['opened_at'] ?? '')) ?: 0;
+    $now = time();
+    if ($openedAt > 0 && ($now - $openedAt) >= $cooldown) {
+      $state['state'] = 'half_open';
+      $state['half_open_probe'] = true;
+      hybrid_circuit_save($state);
+      return true;
+    }
+
+    $reason = 'circuit_open';
+    return false;
+  }
+}
+
+if (!function_exists('hybrid_circuit_after_request')) {
+  function hybrid_circuit_after_request($ok, $error = '')
+  {
+    $state = hybrid_circuit_load();
+    $threshold = (int)hybrid_env('SUPABASE_CIRCUIT_FAILURE_THRESHOLD', 3);
+    $threshold = max(1, min(20, $threshold));
+
+    if ($ok) {
+      $state['state'] = 'closed';
+      $state['failure_count'] = 0;
+      $state['opened_at'] = null;
+      $state['last_error'] = '';
+      $state['half_open_probe'] = false;
+      hybrid_circuit_save($state);
+      return;
+    }
+
+    $stateName = (string)($state['state'] ?? 'closed');
+    $state['failure_count'] = (int)($state['failure_count'] ?? 0) + 1;
+    $state['last_error'] = (string)$error;
+
+    if ($stateName === 'half_open') {
+      $state['state'] = 'open';
+      $state['opened_at'] = date('c');
+      $state['half_open_probe'] = false;
+      hybrid_circuit_save($state);
+      return;
+    }
+
+    if ($state['failure_count'] >= $threshold) {
+      $state['state'] = 'open';
+      $state['opened_at'] = date('c');
+      $state['half_open_probe'] = false;
+    }
+
+    hybrid_circuit_save($state);
+  }
+}
+
 if (!function_exists('hybrid_supabase_insert')) {
   function hybrid_supabase_insert($table, array $payload, &$err = null)
   {
@@ -74,6 +189,13 @@ if (!function_exists('hybrid_supabase_request')) {
     $key = (string)hybrid_env('SUPABASE_SERVICE_ROLE_KEY', '');
     if ($url === '' || $key === '') {
       $err = 'missing_supabase_config';
+      request_timing_span('supabase_request', $startedAt, ['table' => $table, 'method' => $method, 'ok' => false, 'error' => $err]);
+      return false;
+    }
+
+    $gateReason = null;
+    if (!hybrid_circuit_before_request($gateReason)) {
+      $err = $gateReason ?: 'circuit_open';
       request_timing_span('supabase_request', $startedAt, ['table' => $table, 'method' => $method, 'ok' => false, 'error' => $err]);
       return false;
     }
@@ -101,8 +223,8 @@ if (!function_exists('hybrid_supabase_request')) {
     $opts = [
       CURLOPT_CUSTOMREQUEST => $method,
       CURLOPT_RETURNTRANSFER => true,
-      CURLOPT_TIMEOUT => 8,
-      CURLOPT_CONNECTTIMEOUT => 3,
+      CURLOPT_TIMEOUT => max(2, min(15, (int)hybrid_env('SUPABASE_TIMEOUT_SEC', 5))),
+      CURLOPT_CONNECTTIMEOUT => max(1, min(10, (int)hybrid_env('SUPABASE_CONNECT_TIMEOUT_SEC', 2))),
       CURLOPT_HTTPHEADER => $headers,
     ];
 
@@ -119,16 +241,19 @@ if (!function_exists('hybrid_supabase_request')) {
 
     if ($resp === false || $curlErr) {
       $err = 'curl_error:' . $curlErr;
+      hybrid_circuit_after_request(false, $err);
       request_timing_span('supabase_request', $startedAt, ['table' => $table, 'method' => $method, 'ok' => false, 'error' => $err]);
       return false;
     }
     if ($http < 200 || $http >= 300) {
       $err = 'http_' . $http . ':' . substr((string)$resp, 0, 400);
+      hybrid_circuit_after_request(false, $err);
       request_timing_span('supabase_request', $startedAt, ['table' => $table, 'method' => $method, 'ok' => false, 'http' => $http]);
       return false;
     }
 
     $respBody = $resp;
+    hybrid_circuit_after_request(true, '');
     request_timing_span('supabase_request', $startedAt, ['table' => $table, 'method' => $method, 'ok' => true, 'http' => $http]);
     return true;
   }
