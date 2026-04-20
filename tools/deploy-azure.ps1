@@ -7,7 +7,9 @@ param(
   [string]$DeployBranch = 'master',
   [switch]$PushMaster,
   [switch]$Restart,
-  [switch]$ConfigureBuildFlags
+  [switch]$ConfigureBuildFlags,
+  [switch]$SyncEnv,
+  [switch]$SkipSensitive
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,10 +33,32 @@ if ($ConfigureBuildFlags) {
   az webapp config appsettings set --resource-group $ResourceGroup --name $WebAppName --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true ENABLE_ORYX_BUILD=true WEBSITE_RUN_FROM_PACKAGE=0 | Out-Null
 }
 
+# 🔒 Sync .env to Azure App Service (new feature)
+if ($SyncEnv) {
+  Write-Host ""
+  Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
+  Write-Host "🔒 Syncing environment variables from .env to Azure" -ForegroundColor Cyan
+  Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
+  Write-Host ""
+  
+  $syncArgs = @(
+    '-ResourceGroup', $ResourceGroup,
+    '-WebAppName', $WebAppName,
+    '-EnvFile', '.\.env'
+  )
+  
+  if ($SkipSensitive) {
+    $syncArgs += @('-SkipSensitive', $true)
+  }
+  
+  & ".\tools\sync-env-to-azure.ps1" @syncArgs
+}
+
 if ($Restart) {
   Write-Host "Restarting web app..."
   az webapp restart --resource-group $ResourceGroup --name $WebAppName | Out-Null
 }
 
+Write-Host ""
 Write-Host "Deployment complete." -ForegroundColor Green
 az webapp show --resource-group $ResourceGroup --name $WebAppName --query "{state:state,host:defaultHostName}" -o table
