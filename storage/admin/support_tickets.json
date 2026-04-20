@@ -306,5 +306,153 @@
         "ai_reason": "Rulebook: requested course is not currently active.",
         "ai_suggested_admin_action": "AI suggestion: if CYB 206 should be used for this student, activate that course first. Current active course is \"General\". After activation, Sentinel may add guarded manual attendance for this ticket only if identity matches, the device is not blocked/shared, and no duplicate checkin already exists.",
         "ai_handled_at": "2026-04-13T10:31:33+01:00"
+    },
+    {
+        "name": "Support Inside",
+        "matric": "9000011111",
+        "message": "inside geofence test ticket",
+        "fingerprint": "sp-test-in",
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "ip": "127.0.0.1",
+        "geofence": {
+            "enabled": true,
+            "inside": true,
+            "reason": "inside_geofence",
+            "radius_m": 100,
+            "distance_m": 0,
+            "configured_center": {
+                "lat": 8.1688,
+                "lng": 4.2771
+            },
+            "client_location": {
+                "lat": 8.1688,
+                "lng": 4.2771
+            },
+            "client_accuracy_m": 25,
+            "client_source": "browser-geolocation",
+            "client_high_accuracy": true,
+            "client_ts": 1776682720621,
+            "server_ts": 1776682720
+        },
+        "timestamp": "2026-04-20 11:58:40",
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "invalid_course_reference",
+        "ai_confidence": 0.99,
+        "ai_reason": "Sentinel policy: requested course does not exist in configured catalog.",
+        "ai_suggested_admin_action": "Do not write attendance yet. Confirm the correct course with the student; if the ticket course is wrong, update guidance only. If the student meant another configured active course, continue with normal guarded manual attendance checks there.",
+        "ai_handled_at": "2026-04-20T11:58:46+01:00"
+    },
+    {
+        "name": "Support Outside",
+        "matric": "9000011112",
+        "message": "outside geofence test ticket",
+        "fingerprint": "sp-test-out",
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "ip": "127.0.0.1",
+        "geofence": {
+            "enabled": true,
+            "inside": false,
+            "reason": "outside_geofence",
+            "radius_m": 100,
+            "distance_m": 1111.95,
+            "configured_center": {
+                "lat": 8.1688,
+                "lng": 4.2771
+            },
+            "client_location": {
+                "lat": 8.1788,
+                "lng": 4.2771
+            },
+            "client_accuracy_m": 25,
+            "client_source": "browser-geolocation",
+            "client_high_accuracy": true,
+            "client_ts": 1776682720621,
+            "server_ts": 1776682730
+        },
+        "timestamp": "2026-04-20 11:58:50",
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "support_geofence_outside",
+        "ai_confidence": 0.99,
+        "ai_reason": "Support geofence verdict: outside_geofence",
+        "ai_suggested_admin_action": "To address the support ticket, follow these steps:\n\n1. Navigate to the **Support Tickets** page: `admin/index.php?page=support_tickets`\n2. Review the ticket details for matric number 9000011112, course CYB 206, and requested action checkin.\n3. Note the classification as **support_geofence_outside**, action as **deny_and_review**, and policy reason as **outside_geofence**.\n4. Since the action is **deny_and_review**, you will need to review the student's location and geofence settings.\n5. To investigate further, navigate to the **Geo-fence** page: `admin/index.php?page=geofence`\n6. Review the student's geofence settings and location to determine if the denial was correct.\n7. If necessary, update the student's geofence settings or location to resolve the issue.\n8. Once resolved, update the support ticket to reflect the outcome.",
+        "ai_handled_at": "2026-04-20T11:58:57+01:00"
+    },
+    {
+        "name": "Support Inside",
+        "matric": "9000011111",
+        "message": "inside geofence test ticket",
+        "fingerprint": "sp-test-in",
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "ip": "127.0.0.1",
+        "geofence": {
+            "enabled": true,
+            "inside": true,
+            "reason": "inside_geofence",
+            "radius_m": 100,
+            "distance_m": 0,
+            "configured_center": {
+                "lat": 8.1688,
+                "lng": 4.2771
+            },
+            "client_location": {
+                "lat": 8.1688,
+                "lng": 4.2771
+            },
+            "client_accuracy_m": 25,
+            "client_source": "browser-geolocation",
+            "client_high_accuracy": true,
+            "client_ts": 1776682788239,
+            "server_ts": 1776682788
+        },
+        "timestamp": "2026-04-20 11:59:48",
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "invalid_course_reference",
+        "ai_confidence": 0.99,
+        "ai_reason": "Sentinel policy: requested course does not exist in configured catalog.",
+        "ai_suggested_admin_action": "Do not write attendance yet. Confirm the correct course with the student; if the ticket course is wrong, update guidance only. If the student meant another configured active course, continue with normal guarded manual attendance checks there.",
+        "ai_handled_at": "2026-04-20T11:59:53+01:00"
+    },
+    {
+        "name": "Support Outside",
+        "matric": "9000011112",
+        "message": "outside geofence test ticket",
+        "fingerprint": "sp-test-out",
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "ip": "127.0.0.1",
+        "geofence": {
+            "enabled": true,
+            "inside": false,
+            "reason": "outside_geofence",
+            "radius_m": 100,
+            "distance_m": 1111.95,
+            "configured_center": {
+                "lat": 8.1688,
+                "lng": 4.2771
+            },
+            "client_location": {
+                "lat": 8.1788,
+                "lng": 4.2771
+            },
+            "client_accuracy_m": 25,
+            "client_source": "browser-geolocation",
+            "client_high_accuracy": true,
+            "client_ts": 1776682788264,
+            "server_ts": 1776682796
+        },
+        "timestamp": "2026-04-20 11:59:56",
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "support_geofence_outside",
+        "ai_confidence": 0.99,
+        "ai_reason": "Support geofence verdict: outside_geofence",
+        "ai_suggested_admin_action": "Based on the provided ticket context, I will guide you through the admin action guidance.\n\n**Step 1: Review Support Ticket**\n\nNavigate to `admin/index.php?page=support_tickets` to review the support ticket details.\n\n**Step 2: Verify Student Information**\n\nVerify the student's information, including their matric number (9000011112) and course (CYB 206), to ensure accuracy.\n\n**Step 3: Check Geofence Settings**\n\nNavigate to `admin/index.php?page=geofence` to review the geofence settings, including the support geofence enabled status (true), inside status (false), and distance (1111.95 meters).\n\n**Step 4: Review Policy Reason**\n\nReview the policy reason for the denied check-in, which is \"Support geofence verdict: outside_geofence\".\n\n**Step 5: Update Student Message**\n\nUpdate the student message to inform the student that their check-in was denied due to being outside the geofence.\n\n**Step 6: Document Action**\n\nDocument the action taken in the support ticket,",
+        "ai_handled_at": "2026-04-20T12:00:01+01:00"
     }
 ]

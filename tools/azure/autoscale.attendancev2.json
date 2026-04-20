@@ -1,0 +1,116 @@
+{
+  "enabled": true,
+  "id": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/microsoft.insights/autoscalesettings/attendancev2-cpu-autoscale",
+  "location": "southafricanorth",
+  "name": "attendancev2-cpu-autoscale",
+  "notifications": [
+    {
+      "email": {
+        "customEmails": [],
+        "sendToSubscriptionAdministrator": false,
+        "sendToSubscriptionCoAdministrators": false
+      },
+      "operation": "Scale",
+      "webhooks": []
+    }
+  ],
+  "predictiveAutoscalePolicy": {
+    "scaleMode": "Disabled"
+  },
+  "profiles": [
+    {
+      "capacity": {
+        "default": "3",
+        "maximum": "6",
+        "minimum": "2"
+      },
+      "name": "default",
+      "rules": [
+        {
+          "metricTrigger": {
+            "dividePerInstance": false,
+            "metricName": "CpuPercentage",
+            "metricNamespace": "",
+            "metricResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+            "operator": "GreaterThan",
+            "statistic": "Average",
+            "threshold": 65.0,
+            "timeAggregation": "Average",
+            "timeGrain": "PT1M",
+            "timeWindow": "PT5M"
+          },
+          "scaleAction": {
+            "cooldown": "PT5M",
+            "direction": "Increase",
+            "type": "ChangeCount",
+            "value": "1"
+          }
+        },
+        {
+          "metricTrigger": {
+            "dividePerInstance": false,
+            "metricName": "CpuPercentage",
+            "metricNamespace": "",
+            "metricResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+            "operator": "LessThan",
+            "statistic": "Average",
+            "threshold": 35.0,
+            "timeAggregation": "Average",
+            "timeGrain": "PT1M",
+            "timeWindow": "PT15M"
+          },
+          "scaleAction": {
+            "cooldown": "PT15M",
+            "direction": "Decrease",
+            "type": "ChangeCount",
+            "value": "1"
+          }
+        },
+        {
+          "metricTrigger": {
+            "metricName": "AverageResponseTime",
+            "metricNamespace": "Microsoft.Web/sites",
+            "metricResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/sites/attendancev2app123",
+            "timeGrain": "PT1M",
+            "statistic": "Average",
+            "timeWindow": "PT10M",
+            "timeAggregation": "Average",
+            "operator": "GreaterThan",
+            "threshold": 2,
+            "dividePerInstance": false
+          },
+          "scaleAction": {
+            "direction": "Increase",
+            "type": "ChangeCount",
+            "value": "1",
+            "cooldown": "PT10M"
+          }
+        },
+        {
+          "metricTrigger": {
+            "metricName": "AverageResponseTime",
+            "metricNamespace": "Microsoft.Web/sites",
+            "metricResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/sites/attendancev2app123",
+            "timeGrain": "PT1M",
+            "statistic": "Average",
+            "timeWindow": "PT20M",
+            "timeAggregation": "Average",
+            "operator": "LessThan",
+            "threshold": 0.8,
+            "dividePerInstance": false
+          },
+          "scaleAction": {
+            "direction": "Decrease",
+            "type": "ChangeCount",
+            "value": "1",
+            "cooldown": "PT20M"
+          }
+        }
+      ]
+    }
+  ],
+  "resourceGroup": "attendance-app-rgv2",
+  "tags": {},
+  "targetResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+  "type": "Microsoft.Insights/autoscaleSettings"
+}

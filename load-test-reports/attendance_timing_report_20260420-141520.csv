@@ -1,0 +1,352 @@
+timestamp,step,duration_ms,status,detail
+2026-04-20 14:15:21,landing_page,1112.81,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1126.8,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1120.64,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1166.52,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1138.21,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1126.27,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1246.6,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1280.75,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1255.22,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1279.48,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1274.36,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1273.9,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1318.42,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1476.67,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1390.73,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1385.19,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1452.81,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:21,landing_page,1465.15,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1521.07,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1555.01,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1546.08,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1564.09,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1564.95,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1709.81,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1780.82,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1822.44,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1854.46,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1812.15,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1861.73,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1868.37,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,1895.86,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,landing_page,2131.47,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,status_api,982.42,ok,action=checkin; enabled=True
+2026-04-20 14:15:22,landing_page,2161.08,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:22,status_api,1074.01,ok,action=checkin; enabled=True
+2026-04-20 14:15:22,status_api,1115.69,ok,action=checkin; enabled=True
+2026-04-20 14:15:22,status_api,1183.29,ok,action=checkin; enabled=True
+2026-04-20 14:15:22,status_api,1218.59,ok,action=checkin; enabled=True
+2026-04-20 14:15:22,status_api,1129.46,ok,action=checkin; enabled=True
+2026-04-20 14:15:22,status_api,1189.2,ok,action=checkin; enabled=True
+2026-04-20 14:15:22,status_api,1331.39,ok,action=checkin; enabled=True
+2026-04-20 14:15:22,status_api,1185.35,ok,action=checkin; enabled=True
+2026-04-20 14:15:22,status_api,1202.73,ok,action=checkin; enabled=True
+2026-04-20 14:15:22,status_api,1189.73,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1205.28,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1114.11,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1167.15,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1109.41,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1095.03,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1164.28,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1061.5,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,995.49,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,987.89,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1064.99,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1087.58,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1116.8,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,landing_page,1719.29,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1709.79,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1726.92,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1784.93,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1792.79,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1785.55,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1840.88,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1840.59,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1800.59,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1838.34,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1846.12,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1865.73,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,status_api,1324.71,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,landing_page,1843.34,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,status_api,1267.61,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1249.34,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,landing_page,1838.0,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1855.72,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,status_api,1269.34,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,landing_page,1905.55,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1899.33,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,status_api,1281.54,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,status_api,1279.97,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,landing_page,1920.14,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,status_api,1274.77,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,landing_page,1939.06,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,status_api,1288.3,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,landing_page,1947.23,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1917.77,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1973.52,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1965.05,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1974.54,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,1984.01,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,2012.24,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,2019.8,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,status_api,1100.13,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,landing_page,2021.47,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,2035.52,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,status_api,1177.44,ok,action=checkin; enabled=True
+2026-04-20 14:15:23,landing_page,2051.03,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,landing_page,2027.22,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,wave-1,1026.39,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:23,landing_page,2130.62,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:23,wave-1,854.69,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1318.67,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1150.32,ok,Your checkin was recorded successfully!
+2026-04-20 14:15:24,end_to_end,1150.66,ok,Load Test User e7f641c024;wave-1
+2026-04-20 14:15:24,wave-1,1077.1,ok,Your checkin was recorded successfully!
+2026-04-20 14:15:24,end_to_end,1077.92,ok,Load Test User f69f780d0a;wave-1
+2026-04-20 14:15:24,wave-1,1113.31,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1086.65,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1232.46,ok,Your checkin was recorded successfully!
+2026-04-20 14:15:24,end_to_end,1233.01,ok,Load Test User 0e2e0f2ee3;wave-1
+2026-04-20 14:15:24,wave-1,1740.37,ok,Your checkin was recorded successfully!
+2026-04-20 14:15:24,end_to_end,1740.67,ok,Load Test User 0ba646a43a;wave-1
+2026-04-20 14:15:24,wave-1,1402.51,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1390.09,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1639.85,ok,Your checkin was recorded successfully!
+2026-04-20 14:15:24,end_to_end,1640.28,ok,Load Test User a879486f2c;wave-1
+2026-04-20 14:15:24,wave-1,1351.35,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1364.53,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1371.35,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1617.7,ok,Your checkin was recorded successfully!
+2026-04-20 14:15:24,end_to_end,1618.0,ok,Load Test User 6cb4be2090;wave-1
+2026-04-20 14:15:24,wave-1,1479.82,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1095.88,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1173.81,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1625.22,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1620.03,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1173.67,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1610.58,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1130.48,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1527.56,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1144.9,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1441.58,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1122.53,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1121.8,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1152.82,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1511.03,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1143.9,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1115.0,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1129.0,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1148.48,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1142.12,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1087.84,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1175.67,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1080.25,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1108.21,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1143.66,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1101.69,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1168.55,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1177.24,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1207.51,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1172.95,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1178.31,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1193.64,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1115.53,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1113.6,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1124.26,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1323.88,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,wave-1,1316.41,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,wave-1,1311.46,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:24,status_api,1186.24,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1357.46,ok,action=checkin; enabled=True
+2026-04-20 14:15:24,status_api,1261.06,ok,action=checkin; enabled=True
+2026-04-20 14:15:25,status_api,1348.05,ok,action=checkin; enabled=True
+2026-04-20 14:15:25,status_api,1321.45,ok,action=checkin; enabled=True
+2026-04-20 14:15:25,status_api,1329.92,ok,action=checkin; enabled=True
+2026-04-20 14:15:25,status_api,1318.91,ok,action=checkin; enabled=True
+2026-04-20 14:15:25,status_api,1243.79,ok,action=checkin; enabled=True
+2026-04-20 14:15:25,status_api,1364.75,ok,action=checkin; enabled=True
+2026-04-20 14:15:25,wave-1,1395.64,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:25,landing_page,1808.17,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,wave-1,1422.36,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:25,landing_page,1813.61,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,3549.74,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,1894.48,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,1930.06,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,1938.76,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,1988.89,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,1995.95,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,1964.64,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,1944.53,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2052.6,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2050.68,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2057.65,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2063.57,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2075.7,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2081.49,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2113.0,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2125.66,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2156.72,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2228.74,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2266.32,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2324.53,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2323.51,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2351.63,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2361.7,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2356.99,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2358.7,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2363.57,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2403.79,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2394.11,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2399.28,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2450.18,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,landing_page,2470.56,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:25,wave-1,1299.41,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:25,wave-1,1254.98,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:25,wave-1,1385.24,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:25,wave-1,1271.23,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:25,wave-1,1336.87,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1349.49,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1319.98,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1313.79,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1318.6,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1409.3,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1362.23,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,landing_page,2692.68,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,wave-1,1420.07,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1467.18,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1343.49,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1458.41,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1473.75,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1335.67,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1383.23,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1377.07,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1490.83,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1481.52,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1322.58,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1531.34,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1241.35,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1431.2,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1400.88,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1291.58,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1304.65,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1343.29,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,landing_page,1948.55,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,wave-1,1507.76,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,wave-1,1444.83,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,landing_page,2039.65,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,wave-1,1460.19,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:26,landing_page,2058.59,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,status_api,1469.67,ok,action=checkin; enabled=True
+2026-04-20 14:15:26,landing_page,2161.31,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,landing_page,2167.89,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,landing_page,2229.45,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,landing_page,2227.23,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,landing_page,2242.62,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,landing_page,2263.28,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,landing_page,2318.14,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,landing_page,2350.97,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,landing_page,2345.1,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,landing_page,2343.46,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,landing_page,2371.2,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,status_api,1676.86,ok,action=checkin; enabled=True
+2026-04-20 14:15:26,landing_page,2418.32,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:26,status_api,1597.33,ok,action=checkin; enabled=True
+2026-04-20 14:15:26,status_api,1698.89,ok,action=checkin; enabled=True
+2026-04-20 14:15:26,status_api,1699.64,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,landing_page,2489.15,ok,action=checkin; course=CYB 302
+2026-04-20 14:15:27,status_api,1691.03,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1703.29,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1690.24,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1605.3,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1747.24,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1621.59,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1654.17,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1783.82,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1670.07,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1656.33,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1685.32,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1662.63,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1655.46,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1446.43,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1480.67,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1452.86,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1433.04,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1664.19,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1432.74,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1620.89,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1645.0,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1580.94,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1573.24,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1470.48,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,915.87,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1257.43,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1586.05,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,wave-1,767.01,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,status_api,1609.26,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1591.83,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,772.51,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,1536.15,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,918.71,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,761.81,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,833.22,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,776.45,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,953.52,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,666.31,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,wave-1,694.72,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,status_api,833.48,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,820.01,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,769.28,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,808.27,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,762.17,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,status_api,740.49,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,wave-1,740.19,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,status_api,808.85,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,wave-1,650.92,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,656.32,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,status_api,737.9,ok,action=checkin; enabled=True
+2026-04-20 14:15:27,wave-1,767.07,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,817.77,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,835.63,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,770.3,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,746.96,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,763.34,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,754.87,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,839.43,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,799.05,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,799.24,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,791.18,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,807.0,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,771.1,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:27,wave-1,799.55,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,787.66,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,847.3,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,841.59,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,911.14,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,785.92,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,847.05,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,825.42,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,935.75,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,873.92,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,850.66,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,918.26,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,823.72,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,870.75,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,898.44,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,1134.22,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,879.03,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,1077.56,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,858.34,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,864.31,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,1098.85,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,880.13,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,910.66,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,1127.83,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,1116.03,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,954.83,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,880.58,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,1122.27,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,1134.87,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,1205.53,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,1103.9,error,This device has already submitted checkin for CYB 302 today.
+2026-04-20 14:15:28,wave-1,1103.75,error,This device has already submitted checkin for CYB 302 today.

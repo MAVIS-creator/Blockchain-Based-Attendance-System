@@ -1,5 +1,59 @@
 [
     {
+        "timestamp": "2026-04-20 12:00:02",
+        "admin": "system",
+        "role": "unknown",
+        "ip": "127.0.0.1",
+        "category": "AI_Operator",
+        "action": "Ticket Automated",
+        "details": "Ticket 2026-04-20 11:59:56 => support_geofence_outside (confidence=0.99, resolved=yes, announcement=yes)"
+    },
+    {
+        "timestamp": "2026-04-20 11:59:54",
+        "admin": "system",
+        "role": "unknown",
+        "ip": "127.0.0.1",
+        "category": "AI_Operator",
+        "action": "Ticket Automated",
+        "details": "Ticket 2026-04-20 11:59:48 => invalid_course_reference (confidence=0.99, resolved=yes, announcement=yes)"
+    },
+    {
+        "timestamp": "2026-04-20 11:58:58",
+        "admin": "system",
+        "role": "unknown",
+        "ip": "127.0.0.1",
+        "category": "AI_Operator",
+        "action": "Ticket Automated",
+        "details": "Ticket 2026-04-20 11:58:50 => support_geofence_outside (confidence=0.99, resolved=yes, announcement=yes)"
+    },
+    {
+        "timestamp": "2026-04-20 11:58:47",
+        "admin": "system",
+        "role": "unknown",
+        "ip": "127.0.0.1",
+        "category": "AI_Operator",
+        "action": "Ticket Automated",
+        "details": "Ticket 2026-04-20 11:58:40 => invalid_course_reference (confidence=0.99, resolved=yes, announcement=yes)"
+    },
+    {
+        "timestamp": "2026-04-19 05:39:34",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Logs",
+        "action": "Scope Log Cleanup",
+        "details": "Scope cleanup executed. scopes=logs, deleted=6, errors=0, supabase_deleted=attendance_logs|request_timings|admin_audit_logs"
+    },
+    {
+        "timestamp": "2026-04-19 01:18:35",
+        "admin": "Mavis",
+        "role": "superadmin",
+        "ip": "::1",
+        "category": "Courses",
+        "action": "Active Course Changed",
+        "details": "Set active course to: CYB 308"
+    },
+    {
         "timestamp": "2026-04-14 13:57:34",
         "admin": "Mavis",
         "role": "superadmin",

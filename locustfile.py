@@ -96,6 +96,7 @@ class ApiUser(HttpUser):
 
     def on_start(self):
         self.enable_logging = os.getenv("ENABLE_LOGGING", "True") == "True"
+        self.force_inactive_mode = os.getenv("FORCE_INACTIVE_MODE", "False") == "True"
         if self.enable_logging:
             logging.basicConfig(level=logging.DEBUG)
         else:
@@ -173,8 +174,17 @@ class ApiUser(HttpUser):
             else:
                 self.attendance_enabled = False
 
+            # Force a clean benchmark path by skipping submit flow even when server mode is active.
+            if self.force_inactive_mode:
+                self.attendance_enabled = False
+
             duration_ms = (time.perf_counter() - start) * 1000.0
-            _record_timing("status_api", duration_ms, "ok", f"action={self.form_action}; enabled={self.attendance_enabled}")
+            _record_timing(
+                "status_api",
+                duration_ms,
+                "ok",
+                f"action={self.form_action}; enabled={self.attendance_enabled}; forced_inactive={self.force_inactive_mode}",
+            )
             response.success()
 
     def submit_attendance(self):

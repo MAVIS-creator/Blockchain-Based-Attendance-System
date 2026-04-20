@@ -1,0 +1,401 @@
+timestamp,step,duration_ms,status,detail
+2026-04-20 14:54:32,landing_page,1879.22,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,1899.96,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2110.99,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2137.77,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2168.83,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2178.07,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2174.95,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2182.41,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2201.67,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2218.21,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2259.09,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2207.69,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2222.38,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2232.57,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2287.34,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,landing_page,2334.05,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,status_api,510.33,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:32,landing_page,2384.8,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:32,status_api,513.04,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:33,landing_page,2482.49,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,1612.32,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,1679.56,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,status_api,568.59,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:33,landing_page,1785.8,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,status_api,571.56,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:33,status_api,640.12,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:33,status_api,603.73,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:33,landing_page,1898.99,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,1895.58,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,1960.4,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,status_api,727.99,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:33,status_api,701.53,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:33,landing_page,1991.04,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,1981.65,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,1990.2,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,status_api,680.18,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:33,landing_page,2012.96,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,2986.81,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,2123.8,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,status_api,517.18,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:33,landing_page,2129.43,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,3101.07,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,2143.52,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,3114.28,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,2166.22,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,2216.62,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,wave-1,802.29,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:33,end_to_end,802.31,ok,Load Test User 19642b0632;wave-1
+2026-04-20 14:54:33,landing_page,2206.93,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,2219.77,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,2283.81,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,3422.48,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,landing_page,2459.13,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:33,wave-1,1034.48,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:33,end_to_end,1034.51,ok,Load Test User d6b7f28bb2;wave-1
+2026-04-20 14:54:34,landing_page,2455.53,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,2474.31,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,3443.47,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,2476.08,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,status_api,811.78,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,landing_page,2508.61,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,3479.44,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,3488.88,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,status_api,1365.27,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,1390.0,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,landing_page,2537.41,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,status_api,1319.03,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,1293.06,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,1300.71,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,1296.25,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,1194.36,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,wave-1,779.14,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:34,end_to_end,779.17,ok,Load Test User ddb24d3c0c;wave-1
+2026-04-20 14:54:34,status_api,668.15,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,1165.05,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,wave-1,835.36,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:34,end_to_end,835.42,ok,Load Test User 0b15b8fc5a;wave-1
+2026-04-20 14:54:34,landing_page,3575.79,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,status_api,1102.84,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,wave-1,780.48,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:34,end_to_end,780.52,ok,Load Test User ba74a29d9c;wave-1
+2026-04-20 14:54:34,landing_page,2651.09,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,2671.38,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,wave-1,811.89,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:34,end_to_end,811.91,ok,Load Test User 4dfd6e98e1;wave-1
+2026-04-20 14:54:34,landing_page,3677.58,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,status_api,828.3,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,landing_page,2814.23,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,3808.66,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,wave-1,916.41,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:34,end_to_end,916.44,ok,Load Test User 8f3c459aaa;wave-1
+2026-04-20 14:54:34,status_api,916.1,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,973.36,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,966.44,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,960.5,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,wave-1,1040.53,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:34,end_to_end,1040.56,ok,Load Test User 25e22e5595;wave-1
+2026-04-20 14:54:34,status_api,926.52,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,landing_page,1946.09,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,1946.39,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,wave-1,933.18,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:34,end_to_end,933.2,ok,Load Test User f6ae32379f;wave-1
+2026-04-20 14:54:34,landing_page,3066.99,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,status_api,946.81,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,954.21,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,landing_page,2021.96,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,status_api,962.35,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,landing_page,2050.74,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,status_api,1025.0,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,landing_page,2088.19,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,2109.12,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,status_api,1066.76,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,landing_page,2177.55,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,2186.08,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,status_api,1400.43,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,1092.27,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,landing_page,2179.85,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,2199.73,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,wave-1,1347.6,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:34,end_to_end,1347.63,ok,Load Test User 0026dc8862;wave-1
+2026-04-20 14:54:34,status_api,1045.53,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,status_api,1117.47,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:34,landing_page,2228.51,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,2229.71,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,2283.61,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:34,landing_page,2301.92,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,landing_page,2338.8,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,landing_page,2409.64,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,landing_page,4498.29,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,landing_page,2400.26,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,landing_page,2408.86,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,status_api,1079.64,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,landing_page,3543.2,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,landing_page,2425.05,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,status_api,1018.89,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,landing_page,2432.66,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,landing_page,2476.12,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,status_api,1159.89,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,landing_page,3658.93,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,status_api,1226.74,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,landing_page,3715.16,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,status_api,1279.09,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,status_api,1973.12,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,status_api,938.17,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,wave-1,1289.07,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:35,end_to_end,1289.24,ok,Load Test User ed1d12736d;wave-1
+2026-04-20 14:54:35,landing_page,4766.31,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,status_api,1313.02,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,status_api,1366.84,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,status_api,1880.16,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,wave-1,1351.87,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:35,end_to_end,1352.01,ok,Load Test User 55ed833dcf;wave-1
+2026-04-20 14:54:35,status_api,1411.77,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,landing_page,4910.31,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,wave-1,1133.06,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:35,end_to_end,1133.25,ok,Load Test User e89215e30c;wave-1
+2026-04-20 14:54:35,status_api,1438.13,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,landing_page,2867.44,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,landing_page,2893.47,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,landing_page,4997.54,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,status_api,985.85,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,status_api,987.38,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,status_api,1514.79,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,status_api,1906.08,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,status_api,887.96,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,landing_page,1946.34,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,status_api,856.66,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,status_api,821.8,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,status_api,819.99,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,wave-1,1639.15,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:35,end_to_end,1639.19,ok,Load Test User 31670f5d30;wave-1
+2026-04-20 14:54:35,status_api,814.4,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,wave-1,1642.19,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:35,end_to_end,1642.23,ok,Load Test User 0a8c70fa3e;wave-1
+2026-04-20 14:54:35,status_api,848.18,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,wave-1,1656.84,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:35,end_to_end,1656.87,ok,Load Test User 9565f94312;wave-1
+2026-04-20 14:54:35,wave-1,950.68,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:35,end_to_end,950.74,ok,Load Test User c629ab07e3;wave-1
+2026-04-20 14:54:35,landing_page,3131.13,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:35,status_api,711.7,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,wave-1,1717.2,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:35,end_to_end,1717.24,ok,Load Test User 3b40d84f8b;wave-1
+2026-04-20 14:54:35,status_api,890.78,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:35,wave-1,1891.33,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:35,end_to_end,1891.48,ok,Load Test User 350de888b2;wave-1
+2026-04-20 14:54:35,status_api,905.46,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,wave-1,1215.96,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,1216.12,ok,Load Test User 3305b1a330;wave-1
+2026-04-20 14:54:36,wave-1,1289.61,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,1289.64,ok,Load Test User 891a291b21;wave-1
+2026-04-20 14:54:36,status_api,1172.49,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,status_api,2218.54,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,status_api,1052.72,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,landing_page,3707.91,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:36,status_api,861.79,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,wave-1,2293.72,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,2293.75,ok,Load Test User 43b649eae0;wave-1
+2026-04-20 14:54:36,wave-1,1295.95,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,1295.96,ok,Load Test User 097645f6b2;wave-1
+2026-04-20 14:54:36,status_api,2197.25,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,wave-1,2314.86,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,2314.88,ok,Load Test User bbdca42fab;wave-1
+2026-04-20 14:54:36,landing_page,4848.49,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:36,wave-1,2271.48,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,2271.5,ok,Load Test User 6699938583;wave-1
+2026-04-20 14:54:36,status_api,834.08,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,wave-1,1087.68,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,1087.72,ok,Load Test User bc2a459c16;wave-1
+2026-04-20 14:54:36,status_api,823.77,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,status_api,2190.22,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,status_api,2144.55,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,wave-1,2246.09,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,2246.12,ok,Load Test User f642cc9229;wave-1
+2026-04-20 14:54:36,status_api,2054.93,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,wave-1,945.96,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,946.0,ok,Load Test User 4f469775da;wave-1
+2026-04-20 14:54:36,status_api,1117.25,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:36,wave-1,1127.81,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,1127.86,ok,Load Test User 3382978e54;wave-1
+2026-04-20 14:54:36,wave-1,2280.8,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,2280.9,ok,Load Test User dd926019c9;wave-1
+2026-04-20 14:54:36,wave-1,1195.68,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,1195.75,ok,Load Test User 02a74d2182;wave-1
+2026-04-20 14:54:36,wave-1,2381.32,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,2381.41,ok,Load Test User 94796bf927;wave-1
+2026-04-20 14:54:36,wave-1,1270.07,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,1270.17,ok,Load Test User aebd1fdac2;wave-1
+2026-04-20 14:54:36,wave-1,2392.07,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,2392.12,ok,Load Test User f440e20940;wave-1
+2026-04-20 14:54:36,wave-1,2399.64,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:36,end_to_end,2399.69,ok,Load Test User b4a9aa0159;wave-1
+2026-04-20 14:54:36,status_api,2345.08,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,wave-1,1464.1,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,1464.16,ok,Load Test User 4bd853e33a;wave-1
+2026-04-20 14:54:37,wave-1,2468.19,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,2468.27,ok,Load Test User 243586e920;wave-1
+2026-04-20 14:54:37,status_api,1337.49,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,wave-1,1443.08,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,1443.16,ok,Load Test User d379dcee52;wave-1
+2026-04-20 14:54:37,wave-1,1543.82,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,1543.89,ok,Load Test User 5d77998a74;wave-1
+2026-04-20 14:54:37,landing_page,6599.33,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:37,status_api,2500.06,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,wave-1,1516.04,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,1516.2,ok,Load Test User cac9654c74;wave-1
+2026-04-20 14:54:37,wave-1,1540.7,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,1540.77,ok,Load Test User ad78eed1e4;wave-1
+2026-04-20 14:54:37,wave-1,2674.97,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,2675.03,ok,Load Test User a1a46d7665;wave-1
+2026-04-20 14:54:37,wave-1,2666.26,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,2666.37,ok,Load Test User 09125191b4;wave-1
+2026-04-20 14:54:37,wave-1,2760.29,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,2760.35,ok,Load Test User 426ce5f4e5;wave-1
+2026-04-20 14:54:37,wave-1,1615.31,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,1615.37,ok,Load Test User 8376b52e72;wave-1
+2026-04-20 14:54:37,status_api,2580.07,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,landing_page,4766.97,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:37,wave-1,2738.98,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,2739.03,ok,Load Test User 995f85ff71;wave-1
+2026-04-20 14:54:37,wave-1,1487.6,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,1487.66,ok,Load Test User b0c43917bc;wave-1
+2026-04-20 14:54:37,status_api,2656.12,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,wave-1,1570.02,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,1570.11,ok,Load Test User 636abd222f;wave-1
+2026-04-20 14:54:37,landing_page,5041.8,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:37,status_api,2854.71,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,status_api,1356.56,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,status_api,2788.9,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,landing_page,5071.64,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:37,wave-1,1379.16,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,1379.2,ok,Load Test User 014ad153e4;wave-1
+2026-04-20 14:54:37,status_api,1393.41,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,status_api,2891.87,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,wave-1,3020.49,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,3020.54,ok,Load Test User 4d6b16e978;wave-1
+2026-04-20 14:54:37,status_api,2887.7,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:37,wave-1,3070.38,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,3070.43,ok,Load Test User 1af29172d7;wave-1
+2026-04-20 14:54:37,landing_page,5305.56,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:37,wave-1,1602.21,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:37,end_to_end,1602.27,ok,Load Test User 65beae8dfc;wave-1
+2026-04-20 14:54:37,landing_page,5334.56,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:37,status_api,2924.05,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,status_api,2957.71,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,wave-1,1643.89,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,1643.94,ok,Load Test User 6641cfc696;wave-1
+2026-04-20 14:54:38,status_api,2968.41,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,wave-1,3198.68,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,3198.75,ok,Load Test User 594c5a00c4;wave-1
+2026-04-20 14:54:38,status_api,2972.98,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,wave-1,1704.46,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,1704.51,ok,Load Test User 8965b39a7c;wave-1
+2026-04-20 14:54:38,status_api,2986.74,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,wave-1,1418.89,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,1418.96,ok,Load Test User b760ef2181;wave-1
+2026-04-20 14:54:38,wave-1,1787.33,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,1787.4,ok,Load Test User 01813ff320;wave-1
+2026-04-20 14:54:38,status_api,995.35,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,status_api,807.96,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,status_api,3006.63,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,status_api,595.73,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,wave-1,1187.43,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,1187.5,ok,Load Test User c989c01af0;wave-1
+2026-04-20 14:54:38,status_api,633.38,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,landing_page,6926.35,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:38,status_api,484.31,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,wave-1,3308.26,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,3308.34,ok,Load Test User 1a1bf441d9;wave-1
+2026-04-20 14:54:38,status_api,556.06,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:38,wave-1,3318.96,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,3319.03,ok,Load Test User cd6d1318f4;wave-1
+2026-04-20 14:54:38,wave-1,840.24,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,840.33,ok,Load Test User df1aaef82d;wave-1
+2026-04-20 14:54:38,wave-1,923.53,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,923.58,ok,Load Test User 264dac8b1c;wave-1
+2026-04-20 14:54:38,wave-1,3425.01,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,3425.08,ok,Load Test User 9bb36fa3a3;wave-1
+2026-04-20 14:54:38,wave-1,3454.32,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,3454.39,ok,Load Test User 28e5678022;wave-1
+2026-04-20 14:54:38,wave-1,3573.47,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,3573.54,ok,Load Test User b4e71c2b92;wave-1
+2026-04-20 14:54:38,wave-1,716.04,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,716.08,ok,Load Test User 5e5118a70e;wave-1
+2026-04-20 14:54:38,wave-1,653.82,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,653.87,ok,Load Test User 44ec52085f;wave-1
+2026-04-20 14:54:38,wave-1,3610.53,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:38,end_to_end,3610.6,ok,Load Test User 4fcca1f4af;wave-1
+2026-04-20 14:54:39,status_api,3530.16,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:39,wave-1,723.67,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,723.72,ok,Load Test User 6f807d5121;wave-1
+2026-04-20 14:54:39,wave-1,3669.44,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,3669.5,ok,Load Test User e7ae742262;wave-1
+2026-04-20 14:54:39,wave-1,700.58,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,700.62,ok,Load Test User e405f1b1ab;wave-1
+2026-04-20 14:54:39,wave-1,3826.71,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,3826.81,ok,Load Test User 6b3c1c7977;wave-1
+2026-04-20 14:54:39,wave-1,868.17,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,868.22,ok,Load Test User 1a90e5c560;wave-1
+2026-04-20 14:54:39,wave-1,896.38,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,896.44,ok,Load Test User f3471bb4a8;wave-1
+2026-04-20 14:54:39,wave-1,3888.77,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,3888.83,ok,Load Test User d38cb7239f;wave-1
+2026-04-20 14:54:39,landing_page,6808.69,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:39,wave-1,3136.31,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,3136.39,ok,Load Test User bf8b6e665c;wave-1
+2026-04-20 14:54:39,landing_page,6866.69,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:39,landing_page,6923.91,ok,action=checkin; course=CYB 302
+2026-04-20 14:54:39,wave-1,3271.61,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,3271.66,ok,Load Test User 25b92026a0;wave-1
+2026-04-20 14:54:39,wave-1,4156.7,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,4156.88,ok,Load Test User 8944d65ceb;wave-1
+2026-04-20 14:54:39,wave-1,3322.95,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,3323.01,ok,Load Test User 072b72906e;wave-1
+2026-04-20 14:54:39,wave-1,3401.2,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:39,end_to_end,3401.25,ok,Load Test User 66b34c09e1;wave-1
+2026-04-20 14:54:40,wave-1,3572.96,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:40,end_to_end,3573.01,ok,Load Test User c4c293b963;wave-1
+2026-04-20 14:54:40,wave-1,3098.86,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:40,end_to_end,3098.91,ok,Load Test User 488543d061;wave-1
+2026-04-20 14:54:40,wave-1,3156.56,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:40,end_to_end,3156.62,ok,Load Test User bc401cc73a;wave-1
+2026-04-20 14:54:40,wave-1,2927.49,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:40,end_to_end,2927.55,ok,Load Test User e3601ebb9a;wave-1
+2026-04-20 14:54:40,wave-1,3056.97,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:40,end_to_end,3057.06,ok,Load Test User 5b9e90f1b6;wave-1
+2026-04-20 14:54:40,wave-1,2844.8,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:40,end_to_end,2844.87,ok,Load Test User 2ced8d4913;wave-1
+2026-04-20 14:54:40,wave-1,2843.42,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:40,end_to_end,2843.48,ok,Load Test User 226bf28e14;wave-1
+2026-04-20 14:54:40,wave-1,2884.42,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:40,end_to_end,2884.48,ok,Load Test User b7f3220529;wave-1
+2026-04-20 14:54:40,wave-1,3003.76,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:40,end_to_end,3003.82,ok,Load Test User 9e2accb4fc;wave-1
+2026-04-20 14:54:40,wave-1,2904.44,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:40,end_to_end,2904.55,ok,Load Test User 4551f5789b;wave-1
+2026-04-20 14:54:41,wave-1,3004.46,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:41,end_to_end,3004.52,ok,Load Test User cca59fe271;wave-1
+2026-04-20 14:54:41,wave-1,2994.03,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:41,end_to_end,2994.09,ok,Load Test User 9760847e20;wave-1
+2026-04-20 14:54:41,wave-1,2884.18,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:41,end_to_end,2884.26,ok,Load Test User 3a1a38ad99;wave-1
+2026-04-20 14:54:41,status_api,2683.12,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:41,wave-1,3184.57,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:41,end_to_end,3184.63,ok,Load Test User 6b5ad7bddc;wave-1
+2026-04-20 14:54:41,status_api,1895.14,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:41,status_api,1786.55,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:41,status_api,1837.87,ok,action=checkin; enabled=True; forced_inactive=False
+2026-04-20 14:54:41,wave-1,2375.67,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:41,end_to_end,2375.73,ok,Load Test User 8d44ce0a8e;wave-1
+2026-04-20 14:54:41,wave-1,3475.73,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:41,end_to_end,3475.81,ok,Load Test User 3899928a47;wave-1
+2026-04-20 14:54:41,wave-1,652.93,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:41,end_to_end,653.0,ok,Load Test User fda23169a0;wave-1
+2026-04-20 14:54:42,wave-1,684.26,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:42,end_to_end,684.31,ok,Load Test User 4c1e5be41c;wave-1
+2026-04-20 14:54:42,wave-1,744.0,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:42,end_to_end,744.05,ok,Load Test User be2b3bcd66;wave-1
+2026-04-20 14:54:42,wave-1,790.29,ok,Your checkin was recorded successfully!
+2026-04-20 14:54:42,end_to_end,790.34,ok,Load Test User c4d312608f;wave-1

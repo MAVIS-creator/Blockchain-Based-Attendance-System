@@ -37,7 +37,7 @@
                 "Succeeded"
               ]
             },
-            "expression": "@greaterOrEquals(int(coalesce(triggerBody()?['data']?['essentials']?['severity'], 2)), 2)",
+            "expression": "@or(equals(toLower(string(coalesce(triggerBody()?['data']?['essentials']?['severity'], 'sev2'))), 'sev0'), equals(toLower(string(coalesce(triggerBody()?['data']?['essentials']?['severity'], 'sev2'))), 'sev1'), equals(toLower(string(coalesce(triggerBody()?['data']?['essentials']?['severity'], 'sev2'))), 'sev2'), equals(string(coalesce(triggerBody()?['data']?['essentials']?['severity'], '2')), '0'), equals(string(coalesce(triggerBody()?['data']?['essentials']?['severity'], '2')), '1'), equals(string(coalesce(triggerBody()?['data']?['essentials']?['severity'], '2')), '2'))",
             "actions": {
               "alreadyPremiumHigh": {
                 "type": "If",

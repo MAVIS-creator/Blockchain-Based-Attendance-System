@@ -1,21 +1,4 @@
 {
-    "geo_fence_enabled": false,
-    "geo_fence": {
-        "lat": 8.1688,
-        "lng": 4.2771,
-        "radius_m": 10
-    },
-    "geo_landmarks": [
-        {
-            "id": "lm_f5754e5d2590",
-            "name": "Faculty of Computing and Informatics Halls",
-            "lat": 8.168326,
-            "lng": 4.277069,
-            "radius_m": 200,
-            "notes": "FCI Halls",
-            "created_at": "2026-04-11T17:40:52+02:00"
-        }
-    ],
     "device_identity_mode": "mac",
     "prefer_mac": true,
     "max_admins": 5,
@@ -23,12 +6,20 @@
     "checkin_time_start": "",
     "checkin_time_end": "",
     "enforce_one_device_per_day": false,
-    "load_test_relax_enabled": false,
-    "load_test_relax_minutes": 30,
-    "load_test_relax_until": null,
+    "checkin_only_counts_as_success": false,
+    "load_test_relax_enabled": true,
+    "load_test_relax_minutes": 20,
+    "load_test_relax_until": 1776567985,
     "ip_whitelist": [],
     "encrypted_settings": false,
     "device_cooldown_seconds": 0,
+    "block_vpn_proxy": false,
+    "geo_fence_enabled": false,
+    "geo_fence": {
+        "lat": 8.1688,
+        "lng": 4.2771,
+        "radius_m": 10
+    },
     "user_agent_lock": false,
     "auto_backup": false,
     "backup_retention": 10,
@@ -44,10 +35,27 @@
         "from_name": "Attendance System"
     },
     "auto_send": {
-        "enabled": true,
+        "enabled": false,
         "recipient": "akintunde.dolapo1@gmail.com",
         "format": "csv"
     },
-    "sentinel_personality_mode": "balanced",
+    "sentinel_personality_mode": "playful",
+    "geo_landmarks": [
+        {
+            "id": "lm_f5754e5d2590",
+            "name": "Faculty of Computing and Informatics Halls",
+            "lat": 8.168326,
+            "lng": 4.277069,
+            "radius_m": 200,
+            "notes": "FCI Halls",
+            "created_at": "2026-04-11T17:40:52+02:00"
+        }
+    ],
     "audit_retention_days": 90
 }
+
+
+
+
+
+

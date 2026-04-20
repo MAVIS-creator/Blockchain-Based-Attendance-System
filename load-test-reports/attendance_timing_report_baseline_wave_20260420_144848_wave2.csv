@@ -1,0 +1,382 @@
+timestamp,step,duration_ms,status,detail
+2026-04-20 14:48:52,landing_page,1480.27,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1471.06,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1484.53,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1476.02,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1464.76,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1466.39,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1483.59,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1487.02,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1486.76,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1491.35,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1502.77,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1501.44,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1494.95,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1490.85,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1539.73,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1502.87,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1516.21,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1508.73,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1504.39,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1518.0,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1728.24,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1720.78,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1813.64,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1803.66,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1811.3,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,1803.83,ok,action=checkin; course=General
+2026-04-20 14:48:52,status_api,347.38,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,362.82,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,415.94,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,532.21,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,516.56,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,533.02,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,536.75,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,537.57,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,536.77,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,landing_page,2032.95,ok,action=checkin; course=General
+2026-04-20 14:48:52,status_api,558.03,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,546.43,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,577.22,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,landing_page,2049.34,ok,action=checkin; course=General
+2026-04-20 14:48:52,status_api,599.71,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,613.6,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,592.5,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,622.21,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,619.86,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,status_api,699.86,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:52,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:52,landing_page,2239.38,ok,action=checkin; course=General
+2026-04-20 14:48:52,landing_page,2242.05,ok,action=checkin; course=General
+2026-04-20 14:48:53,status_api,967.18,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,status_api,981.75,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,landing_page,2494.01,ok,action=checkin; course=General
+2026-04-20 14:48:53,status_api,1094.82,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,status_api,1129.72,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,status_api,1038.92,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,status_api,1036.45,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,status_api,1043.73,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,landing_page,1895.72,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,1896.18,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,1902.38,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,1897.68,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,1895.04,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,1910.31,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,1898.66,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,1909.43,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,1903.53,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,1906.02,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,2893.81,ok,action=checkin; course=General
+2026-04-20 14:48:53,status_api,860.05,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,landing_page,1918.37,ok,action=checkin; course=General
+2026-04-20 14:48:53,status_api,668.73,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,status_api,631.98,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,landing_page,2158.55,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,3155.62,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,2206.95,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,2223.87,ok,action=checkin; course=General
+2026-04-20 14:48:53,landing_page,2244.89,ok,action=checkin; course=General
+2026-04-20 14:48:53,status_api,1403.85,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,status_api,1292.48,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,status_api,1118.12,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:53,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:53,landing_page,2391.05,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,672.8,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,status_api,807.95,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,status_api,820.69,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,status_api,823.59,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,2736.77,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,937.14,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,2840.0,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,2843.96,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,928.14,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,2846.25,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,984.98,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,2888.93,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,990.88,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,status_api,991.12,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,1895.77,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1915.85,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1915.83,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1927.76,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1923.72,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1941.96,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1934.97,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1927.32,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1944.88,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1939.64,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1953.83,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1949.35,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,1057.68,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,1964.66,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1946.27,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1956.97,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1970.36,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,1954.81,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,1062.58,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,3002.71,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,1080.38,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,3018.63,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,3003.08,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,3015.18,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,3024.13,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,3021.72,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,3027.42,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,3021.11,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,3036.96,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,3032.08,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,3044.5,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,887.71,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,status_api,649.18,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,3124.52,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,2137.94,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,2125.7,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,960.91,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,2131.26,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,2153.29,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,1018.7,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,status_api,1043.09,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,status_api,1019.09,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,landing_page,2276.88,ok,action=checkin; course=General
+2026-04-20 14:48:54,landing_page,2298.77,ok,action=checkin; course=General
+2026-04-20 14:48:54,status_api,588.7,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:54,status_api,608.99,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:54,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,584.34,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,637.52,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,618.02,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,2597.86,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,708.26,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,707.88,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,2651.82,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2644.55,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2672.72,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2668.53,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2697.02,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2681.43,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,777.43,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,763.38,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,2726.7,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,811.94,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,914.96,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,920.84,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,837.14,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,899.3,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,849.49,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,833.78,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,883.82,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,895.79,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,892.64,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,939.81,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,931.86,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,928.03,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,1031.6,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,2015.06,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2019.5,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2018.0,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2021.42,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2015.72,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2017.47,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2024.55,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2023.96,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,1015.34,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,2026.82,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2042.31,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2028.88,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2045.44,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2044.25,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,1097.79,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,1039.85,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,3061.9,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,3042.75,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,3046.97,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,3052.29,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,1100.2,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,3081.98,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,1130.93,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,1137.82,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,1073.9,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,1098.4,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,1089.77,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,1151.28,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,2216.85,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,1091.45,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,1093.66,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,2261.97,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2266.71,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2281.34,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,1152.48,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,2281.97,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2297.52,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2316.27,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2315.46,ok,action=checkin; course=General
+2026-04-20 14:48:55,landing_page,2346.67,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,1205.66,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,2345.34,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,1221.48,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,1088.18,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,1087.11,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,779.61,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,367.38,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,734.23,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,status_api,755.42,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:55,landing_page,2422.09,ok,action=checkin; course=General
+2026-04-20 14:48:55,status_api,398.52,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:55,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,435.67,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,438.6,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,475.92,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,850.63,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,845.71,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,landing_page,2559.19,ok,action=checkin; course=General
+2026-04-20 14:48:56,status_api,547.27,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,879.27,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,926.15,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,606.2,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,897.49,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,595.66,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,650.35,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,648.05,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,677.75,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,664.25,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,705.85,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,712.12,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,734.32,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,734.2,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,756.42,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,736.4,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,680.28,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,671.58,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,700.29,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,718.32,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,700.88,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,781.54,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,774.45,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,804.58,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,828.74,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,826.68,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,796.07,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active
+2026-04-20 14:48:56,status_api,697.13,ok,action=checkin; enabled=False; forced_inactive=True
+2026-04-20 14:48:56,wave-1,0.0,skipped,attendance is not currently active

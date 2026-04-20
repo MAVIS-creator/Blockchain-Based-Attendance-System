@@ -1,0 +1,126 @@
+{
+  "extendedLocation": null,
+  "id": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/microsoft.insights/autoscalesettings/attendancev2-cpu-autoscale",
+  "identity": null,
+  "kind": null,
+  "location": "southafricanorth",
+  "managedBy": null,
+  "name": "attendancev2-cpu-autoscale",
+  "plan": null,
+  "properties": {
+    "enabled": true,
+    "name": "attendancev2-cpu-autoscale",
+    "notifications": [
+      {
+        "email": {
+          "customEmails": [],
+          "sendToSubscriptionAdministrator": false,
+          "sendToSubscriptionCoAdministrators": false
+        },
+        "operation": "Scale",
+        "webhooks": []
+      }
+    ],
+    "predictiveAutoscalePolicy": {
+      "scaleLookAheadTime": null,
+      "scaleMode": "Disabled"
+    },
+    "profiles": [
+      {
+        "capacity": {
+          "default": "3",
+          "maximum": "6",
+          "minimum": "2"
+        },
+        "name": "default",
+        "rules": [
+          {
+            "metricTrigger": {
+              "dividePerInstance": false,
+              "timeAggregation": "Average",
+              "statistic": "Average",
+              "metricResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "timeWindow": "PT5M",
+              "threshold": 65,
+              "operator": "GreaterThan",
+              "timeGrain": "PT1M",
+              "metricName": "CpuPercentage",
+              "metricNamespace": ""
+            },
+            "scaleAction": {
+              "type": "ChangeCount",
+              "cooldown": "PT5M",
+              "value": "1",
+              "direction": "Increase"
+            }
+          },
+          {
+            "metricTrigger": {
+              "dividePerInstance": false,
+              "timeAggregation": "Average",
+              "statistic": "Average",
+              "metricResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "timeWindow": "PT15M",
+              "threshold": 35,
+              "operator": "LessThan",
+              "timeGrain": "PT1M",
+              "metricName": "CpuPercentage",
+              "metricNamespace": ""
+            },
+            "scaleAction": {
+              "type": "ChangeCount",
+              "cooldown": "PT15M",
+              "value": "1",
+              "direction": "Decrease"
+            }
+          },
+          {
+            "metricTrigger": {
+              "dividePerInstance": false,
+              "timeAggregation": "Average",
+              "statistic": "Average",
+              "metricResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/sites/attendancev2app123",
+              "timeWindow": "PT10M",
+              "threshold": 2,
+              "operator": "GreaterThan",
+              "timeGrain": "PT1M",
+              "metricName": "AverageResponseTime",
+              "metricNamespace": "Microsoft.Web/sites"
+            },
+            "scaleAction": {
+              "type": "ChangeCount",
+              "cooldown": "PT10M",
+              "value": "1",
+              "direction": "Increase"
+            }
+          },
+          {
+            "metricTrigger": {
+              "dividePerInstance": false,
+              "timeAggregation": "Average",
+              "statistic": "Average",
+              "metricResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/sites/attendancev2app123",
+              "timeWindow": "PT20M",
+              "threshold": 0.8,
+              "operator": "LessThan",
+              "timeGrain": "PT1M",
+              "metricName": "AverageResponseTime",
+              "metricNamespace": "Microsoft.Web/sites"
+            },
+            "scaleAction": {
+              "type": "ChangeCount",
+              "cooldown": "PT20M",
+              "value": "1",
+              "direction": "Decrease"
+            }
+          }
+        ]
+      }
+    ],
+    "targetResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2"
+  },
+  "resourceGroup": "attendance-app-rgv2",
+  "sku": null,
+  "tags": {},
+  "type": "Microsoft.Insights/autoscaleSettings"
+}

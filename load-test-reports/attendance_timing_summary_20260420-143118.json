@@ -1,0 +1,30 @@
+{
+  "report_csv": "load-test-reports\\attendance_timing_report_20260420-143118.csv",
+  "total_events": 384,
+  "steps": {
+    "landing_page": {
+      "count": 128,
+      "avg_ms": 2063.05,
+      "min_ms": 1451.58,
+      "max_ms": 3130.13,
+      "median_ms": 2052.76,
+      "p90_ms": 2521.16
+    },
+    "status_api": {
+      "count": 128,
+      "avg_ms": 774.6,
+      "min_ms": 385.99,
+      "max_ms": 1246.52,
+      "median_ms": 754.38,
+      "p90_ms": 1173.41
+    },
+    "wave-1": {
+      "count": 128,
+      "avg_ms": 0.0,
+      "min_ms": 0.0,
+      "max_ms": 0.0,
+      "median_ms": 0.0,
+      "p90_ms": 0.0
+    }
+  }
+}

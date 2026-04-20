@@ -22,5 +22,29 @@
         "course": "Group 14",
         "prevHash": "f52eaf5906d7e102a688d38f68d9e96c01c6797290e19219eeae0343d9bd4021",
         "hash": "fab5693ada5fb9430b710ee6ac18c1a6d1150dfd6d3da1376d20f604eb93ebd9"
+    },
+    {
+        "timestamp": "2026-04-20 11:56:33",
+        "name": "Geo Inside",
+        "matric": "9000010011",
+        "action": "checkin",
+        "fingerprint": "fp-in-e4de365d0a1a496aa60ca8c80d6846a1",
+        "ip": "127.0.0.1",
+        "userAgent": "GeoTestAgent/1.0",
+        "course": "General",
+        "prevHash": "fab5693ada5fb9430b710ee6ac18c1a6d1150dfd6d3da1376d20f604eb93ebd9",
+        "hash": "bf630fbe265a9f448633b2b144e78236db9bf3fa4cfca8f2cbea51fd07193c04"
+    },
+    {
+        "timestamp": "2026-04-20 11:56:37",
+        "name": "Geo Edge",
+        "matric": "9000010012",
+        "action": "checkin",
+        "fingerprint": "fp-edge-834c3f72cc7442569a0649a956c99378",
+        "ip": "127.0.0.1",
+        "userAgent": "GeoTestAgent/1.0",
+        "course": "General",
+        "prevHash": "bf630fbe265a9f448633b2b144e78236db9bf3fa4cfca8f2cbea51fd07193c04",
+        "hash": "700bd3a00acf92c4c7d8c47476f492d15af3ecbe90c18e5caef926f0b741f440"
     }
 ]

@@ -1,11 +1,11 @@
 {
     "groq": {
-        "avg_ms": 2470.33,
-        "samples": 38,
-        "success": 26,
+        "avg_ms": 2267.29,
+        "samples": 46,
+        "success": 34,
         "failure": 12,
-        "last_ms": 877,
-        "updated_at": "2026-04-13T12:30:10+02:00"
+        "last_ms": 1053,
+        "updated_at": "2026-04-20T12:00:01+01:00"
     },
     "openrouter": {
         "avg_ms": 1557.2,
