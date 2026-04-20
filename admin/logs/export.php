@@ -1,4 +1,10 @@
 <?php
+require_once dirname(__DIR__, 2) . '/admin/session_bootstrap.php';
+if (empty($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 header('Content-Type: text/csv');
 header('Content-Disposition: attachment; filename="attendance_export.csv"');
 
@@ -33,7 +39,7 @@ if (empty($chain)) {
 }
 
 $output = fopen('php://output', 'w');
-fputcsv($output, ['Name', 'Matric', 'Check-In Time', 'Check-Out Time', 'Fingerprint', 'IP', 'MAC', 'Device', 'Course', 'Integrity']);
+fputcsv($output, ['Name', 'Matric', 'Check-In Time', 'Check-Out Time', 'Fingerprint', 'MAC', 'Device', 'Course', 'Integrity']);
 
 $combined = [];
 foreach (admin_attendance_entries_for_date_parsed($logFile, 15) as $parsed) {
@@ -45,7 +51,6 @@ foreach (admin_attendance_entries_for_date_parsed($logFile, 15) as $parsed) {
             'checkin' => '',
             'checkout' => '',
             'fingerprint' => $parsed['fingerprint'] ?? '',
-            'ip' => $parsed['ip'] ?? '',
             'mac' => $parsed['mac'] ?? 'UNKNOWN',
             'device' => $parsed['device'] ?? '',
             'course' => $parsed['course'] ?? '',
@@ -67,7 +72,6 @@ foreach ($combined as $entry) {
         $entry['checkin'],
         $entry['checkout'],
         $entry['fingerprint'],
-        $entry['ip'],
         $entry['mac'],
         $entry['device'],
         $entry['course'],

@@ -32,7 +32,7 @@ header('Content-Disposition: attachment; filename="failed_attempts_' . $selected
 $output = fopen('php://output', 'w');
 
 // Write CSV headers (include MAC and fingerprint)
-fputcsv($output, ['Name', 'Matric Number', 'Action', 'Fingerprint', 'IP Address', 'MAC', 'Timestamp', 'Device Info', 'Course', 'Reason']);
+fputcsv($output, ['Name', 'Matric Number', 'Action', 'Fingerprint', 'MAC', 'Timestamp', 'Device Info', 'Course', 'Reason']);
 
 foreach (admin_failed_attempt_entries_for_date($logFile, 15) as $entry) {
     fputcsv($output, [
@@ -40,7 +40,6 @@ foreach (admin_failed_attempt_entries_for_date($logFile, 15) as $entry) {
         $entry['matric'] ?? '',
         $entry['action'] ?? '',
         $entry['fingerprint'] ?? '',
-        $entry['ip'] ?? '',
         $entry['mac'] ?? 'UNKNOWN',
         $entry['timestamp'] ?? '',
         $entry['device'] ?? '',

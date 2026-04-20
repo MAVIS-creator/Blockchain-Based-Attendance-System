@@ -40,7 +40,6 @@ foreach (admin_failed_attempt_entries_for_date($failedLogFile, 15) as $entry) {
     $logs[] = [
       'name' => $entry['name'] ?? '',
       'matric' => $entry['matric'] ?? '',
-      'ip' => $entry['ip'] ?? '',
       'fingerprint' => $entry['fingerprint'] ?? '',
       'timestamp' => $entry['timestamp'] ?? '',
       'device' => $entry['device'] ?? '',
@@ -72,7 +71,6 @@ if (!$checkinOnlyCountsAsSuccess && file_exists($mainLogFile)) {
         'matric' => $matric,
         'checkin' => '',
         'checkout' => '',
-        'ip' => $ip,
         'fingerprint' => $finger,
         'timestamp' => $timestamp,
         'device' => $device,
@@ -170,7 +168,7 @@ $logsPage = array_slice($logs, $startIndex, $perPage);
             <th>Fingerprint</th>
             <th>Course</th>
             <th>Timestamp</th>
-            <th>Device/IP</th>
+            <th>Device</th>
           </tr>
         </thead>
         <tbody>
@@ -184,8 +182,7 @@ $logsPage = array_slice($logs, $startIndex, $perPage);
               <td><span class="st-chip st-chip-primary"><?= htmlspecialchars($log['course']) ?></span></td>
               <td style="font-size:0.88rem;color:var(--on-surface-variant);"><?= htmlspecialchars($log['timestamp']) ?></td>
               <td>
-                <div style="font-size:0.85rem;color:var(--on-surface);"><?= htmlspecialchars($log['ip']) ?></div>
-                <div style="font-size:0.75rem;color:var(--outline);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<?= htmlspecialchars($log['device']) ?>"><?= htmlspecialchars($log['device']) ?></div>
+                <div style="font-size:0.75rem;color:var(--outline);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<?= htmlspecialchars($log['device']) ?>"><?= htmlspecialchars($log['device']) ?></div>
               </td>
             </tr>
           <?php endforeach; ?>

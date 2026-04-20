@@ -60,13 +60,11 @@ if (file_exists($logFile)) {
     if (
       $searchName !== '' &&
       stripos($entry['name'], $searchName) === false &&
-      stripos($entry['ip'], $searchName) === false &&
       stripos($entry['mac'], $searchName) === false
     ) continue;
 
     if (!$courseFilterAll && $normalizeCourse((string)$entry['course']) !== $selectedCourseNorm) continue;
 
-    if ($filterType === 'ip' && ($entry['ip'] === '' || $entry['ip'] === 'UNKNOWN')) continue;
     if ($filterType === 'mac' && ($entry['mac'] === '' || $entry['mac'] === 'UNKNOWN')) continue;
 
     // Deduplicate: skip if this entry is already present from Supabase
@@ -160,10 +158,9 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
     </div>
 
     <div>
-      <label style="display:block;font-weight:600;margin-bottom:6px;color:var(--on-surface-variant);font-size:0.85rem;">Filter Network</label>
+      <label style="display:block;font-weight:600;margin-bottom:6px;color:var(--on-surface-variant);font-size:0.85rem;">Filter Device</label>
       <select name="filterType" onchange="this.form.submit()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--outline-variant);background:var(--surface-container-low);color:var(--on-surface);font-family:inherit;">
-        <option value="both" <?= $filterType === 'both' ? 'selected' : '' ?>>IP & MAC</option>
-        <option value="ip" <?= $filterType === 'ip' ? 'selected' : '' ?>>IP Only</option>
+        <option value="both" <?= $filterType === 'both' ? 'selected' : '' ?>>All Devices</option>
         <option value="mac" <?= $filterType === 'mac' ? 'selected' : '' ?>>MAC Only</option>
       </select>
     </div>
@@ -171,7 +168,7 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
     <div style="flex:1;min-width:200px;">
       <label style="display:block;font-weight:600;margin-bottom:6px;color:var(--on-surface-variant);font-size:0.85rem;">Search</label>
       <div style="display:flex;gap:8px;">
-        <input type="text" name="search" placeholder="Name, IP, or MAC..." value="<?= htmlspecialchars($searchName) ?>" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--outline-variant);background:var(--surface-container-low);color:var(--on-surface);font-family:inherit;">
+        <input type="text" name="search" placeholder="Name or MAC..." value="<?= htmlspecialchars($searchName) ?>" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--outline-variant);background:var(--surface-container-low);color:var(--on-surface);font-family:inherit;">
         <button type="submit" class="st-btn st-btn-primary st-btn-sm"><span class="material-symbols-outlined" style="font-size:1.1rem;">search</span></button>
       </div>
     </div>
@@ -210,7 +207,6 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
           <th>Check-Out</th>
           <th>Status</th>
           <th class="mobile-hide-col">Fingerprint</th>
-          <th class="mobile-hide-col">IP</th>
           <th class="mobile-hide-col">MAC</th>
           <th class="mobile-hide-col">Device</th>
         </tr>
@@ -248,7 +244,6 @@ $pagedEntries = array_slice($combined, ($page - 1) * $perPage, $perPage);
               <span class="<?= htmlspecialchars($statusClass) ?>" style="<?= htmlspecialchars($statusStyle) ?>"><?= htmlspecialchars($statusLabel) ?></span>
             </td>
             <td class="mobile-hide-col" style="font-family:monospace;font-size:0.8rem;color:var(--on-surface-variant);"><?= htmlspecialchars(substr($row['fingerprint'], 0, 16)) ?>...</td>
-            <td class="mobile-hide-col" style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['ip']) ?></td>
             <td class="mobile-hide-col" style="font-family:monospace;font-size:0.85rem;"><?= htmlspecialchars($row['mac']) ?></td>
             <td class="mobile-hide-col" style="font-size:0.8rem;color:var(--on-surface-variant);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<?= htmlspecialchars($row['device']) ?>"><?= htmlspecialchars($row['device']) ?></td>
           </tr>

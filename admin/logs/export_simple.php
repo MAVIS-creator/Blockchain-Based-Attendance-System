@@ -1,4 +1,10 @@
 <?php
+require_once dirname(__DIR__, 2) . '/admin/session_bootstrap.php';
+if (empty($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 require_once dirname(__DIR__, 2) . '/storage_helpers.php';
 require_once dirname(__DIR__) . '/log_helpers.php';
 require_once dirname(__DIR__) . '/state_helpers.php';

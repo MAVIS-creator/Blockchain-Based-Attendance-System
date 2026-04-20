@@ -1,4 +1,10 @@
 <?php
+require_once __DIR__ . '/session_bootstrap.php';
+if (empty($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 $logFile = "log.txt";
 
 if (!file_exists($logFile)) {

@@ -151,11 +151,8 @@ if (file_exists($settingsPath)) {
 }
 request_timing_span('load_settings', $span, ['encrypted' => strpos((string)($raw ?? ''), 'ENC:') === 0]);
 
-// Device identity mode: mac | ip | both (backward compatible with prefer_mac)
-$deviceIdentityMode = strtolower(trim((string)($settings['device_identity_mode'] ?? '')));
-if (!in_array($deviceIdentityMode, ['mac', 'ip', 'both'], true)) {
-    $deviceIdentityMode = (!isset($settings['prefer_mac']) || (bool)$settings['prefer_mac']) ? 'mac' : 'ip';
-}
+// Device identity is MAC-first with fingerprint fallback only.
+$deviceIdentityMode = 'mac';
 
 $loadTestRelaxUntil = isset($settings['load_test_relax_until']) && is_numeric($settings['load_test_relax_until'])
     ? (int)$settings['load_test_relax_until']
@@ -361,54 +358,12 @@ if (file_exists($revokedFile)) {
         if (is_revoked_value($tokensBucket, $clientToken, $nowTs)) {
             fail('TOKEN_REVOKED', 'This client token has been revoked by an administrator.');
         }
-        if (is_revoked_value($ipsBucket, $ip, $nowTs)) {
-            fail('IP_REVOKED', 'Your IP address has been revoked by an administrator.');
-        }
         if (!empty($macsBucket)) {
             $mac = $resolveMac();
         }
         if ($mac !== 'UNKNOWN' && is_revoked_value($macsBucket, $mac, $nowTs)) {
             fail('MAC_REVOKED', 'Your device MAC has been revoked by an administrator.');
         }
-    }
-}
-
-// -----------------------
-// IP whitelist
-// -----------------------
-if (!empty($settings['ip_whitelist']) && is_array($settings['ip_whitelist'])) {
-    $whitelist = $settings['ip_whitelist'];
-    // normalize
-    $allowed = false;
-    foreach ($whitelist as $w) {
-        $w = trim($w);
-        if ($w === '') continue;
-        // support CIDR ranges as well
-        if (strpos($w, '/') !== false) {
-            // CIDR match
-            list($net, $mask) = explode('/', $w, 2);
-            if (filter_var($net, FILTER_VALIDATE_IP) && is_numeric($mask)) {
-                $mask = (int)$mask;
-                // only IPv4 supported for now
-                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && filter_var($net, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    $ip_long = ip2long($ip);
-                    $net_long = ip2long($net);
-                    $mask_long = -1 << (32 - $mask);
-                    if (($ip_long & $mask_long) === ($net_long & $mask_long)) {
-                        $allowed = true;
-                        break;
-                    }
-                }
-            }
-        } else {
-            if ($w === $ip) {
-                $allowed = true;
-                break;
-            }
-        }
-    }
-    if (!$allowed) {
-        fail('IP_BLOCK', 'Your IP is not allowed to submit attendance.');
     }
 }
 
@@ -453,19 +408,9 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
 // Device identifier based on configured mode
 // -----------------------
 $hasMac = !empty($mac) && $mac !== 'UNKNOWN';
-$deviceId = 'NOID';
-if ($deviceIdentityMode === 'ip') {
-    $deviceId = 'ip:' . $ip;
-} elseif ($deviceIdentityMode === 'both') {
-    $mac = $resolveMac();
-    $hasMac = !empty($mac) && $mac !== 'UNKNOWN';
-    $deviceId = 'both:' . $ip . '|' . ($hasMac ? $mac : 'UNKNOWN');
-} else {
-    // mac mode with safe fallback
-    $mac = $resolveMac();
-    $hasMac = !empty($mac) && $mac !== 'UNKNOWN';
-    $deviceId = $hasMac ? ('mac:' . $mac) : ('ip:' . $ip);
-}
+$mac = $resolveMac();
+$hasMac = !empty($mac) && $mac !== 'UNKNOWN';
+$deviceId = $hasMac ? ('mac:' . $mac) : ('fp:' . hash('sha256', $fingerprint));
 
 // -----------------------
 // Device cooldown
@@ -599,19 +544,7 @@ if (!$loadTestRelaxActive) {
         $logFingerprintIdentity = $normalize_fingerprint_identity($logFingerprint ?? '');
         $sameFingerprint = ($currentFingerprintIdentity !== '' && $logFingerprintIdentity !== '' && $currentFingerprintIdentity === $logFingerprintIdentity && $logAction === $action);
         $sameMac = isset($logMac) && $logMac !== 'UNKNOWN' && $mac !== 'UNKNOWN' && $logMac === $mac && $logAction === $action;
-        $sameIp = ($logIp === $ip && $logAction === $action && $ip !== '127.0.0.1' && $ip !== '::1');
-        // IP is a weak identifier on hosted/NAT networks. Keep it as fallback only when fingerprint identity is missing.
-        $sameIpFallback = $sameIp && ($currentFingerprintIdentity === '' || $logFingerprintIdentity === '');
-
-        $sameDevice = false;
-        if ($deviceIdentityMode === 'both') {
-            $sameDevice = $sameMac || $sameFingerprint || $sameIpFallback;
-        } elseif ($deviceIdentityMode === 'ip') {
-            $sameDevice = $sameFingerprint || $sameIpFallback;
-        } else {
-            // mac mode: when MAC is unavailable on hosted/proxied networks, prefer fingerprint identity; IP is last-resort fallback.
-            $sameDevice = ($mac !== 'UNKNOWN') ? $sameMac : ($sameFingerprint || $sameIpFallback);
-        }
+        $sameDevice = ($mac !== 'UNKNOWN') ? $sameMac : $sameFingerprint;
 
         if ($sameDevice && $logCourse === $courseNormalized) {
             header('Content-Type: application/json');
