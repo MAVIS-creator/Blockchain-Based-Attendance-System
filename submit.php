@@ -519,6 +519,24 @@ if (!is_dir($logDir)) {
     mkdir($logDir, 0755, true);
 }
 
+// ✅ SAFEGUARD: Clean up old log files older than 7 days
+$cleanupSpan = microtime(true);
+$sevenDaysAgo = time() - (7 * 86400);
+if (is_dir($logDir)) {
+    $files = @scandir($logDir);
+    if (is_array($files)) {
+        foreach ($files as $file) {
+            if (in_array($file, ['.', '..'])) continue;
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}.*\.log$/', $file)) continue;
+            $filePath = $logDir . '/' . $file;
+            if (is_file($filePath) && filemtime($filePath) < $sevenDaysAgo) {
+                @unlink($filePath);
+            }
+        }
+    }
+}
+request_timing_span('log_cleanup', $cleanupSpan);
+
 $logFile = $logDir . "/" . $today . ".log";
 $failedLog = $logDir . "/" . $today . "_failed_attempts.log";
 
@@ -556,6 +574,12 @@ if (!$loadTestRelaxActive) {
         } else {
             list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
             $logCourse = isset($fields[8]) ? strtolower(trim((string)$fields[8])) : 'general';
+        }
+
+        // ✅ CRITICAL FIX: Validate timestamp is from TODAY
+        $logDate = substr((string)$logTimestamp, 0, 10);
+        if ($logDate !== $today) {
+            continue;
         }
 
         // Ignore malformed rows to avoid false duplicate matches.
