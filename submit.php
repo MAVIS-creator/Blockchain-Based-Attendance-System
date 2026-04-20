@@ -196,6 +196,88 @@ function sanitize_log_field($value)
     return trim(preg_replace('/\s+/', ' ', $v));
 }
 
+function normalize_fingerprint_identity_value($value)
+{
+    $value = trim((string)$value);
+    if ($value === '') {
+        return '';
+    }
+    $parts = explode('_', $value, 2);
+    return strtolower(trim((string)($parts[0] ?? $value)));
+}
+
+function build_attendance_duplicate_index($logFile, $today)
+{
+    $index = [
+        'seen_matric' => [],
+        'seen_device' => [],
+        'has_checkin' => [],
+    ];
+
+    if (!file_exists($logFile)) {
+        return $index;
+    }
+
+    $lines = @file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($lines) || empty($lines)) {
+        return $index;
+    }
+
+    foreach ($lines as $line) {
+        $fields = array_map('trim', explode('|', (string)$line));
+        if (count($fields) < 7 || count($fields) > 10) {
+            continue;
+        }
+
+        if (count($fields) === 7) {
+            list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logTimestamp, $logUserAgent) = $fields;
+            $logMac = 'UNKNOWN';
+            $logCourse = 'general';
+        } else {
+            list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
+            $logCourse = isset($fields[8]) ? strtolower(trim((string)$fields[8])) : 'general';
+        }
+
+        $logDate = substr((string)$logTimestamp, 0, 10);
+        if ($logDate !== $today) {
+            continue;
+        }
+
+        if (!preg_match('/^\d{6,20}$/', (string)$logMatric)) {
+            continue;
+        }
+
+        $logAction = strtolower(trim((string)$logAction));
+        if (!in_array($logAction, ['checkin', 'checkout'], true)) {
+            continue;
+        }
+
+        $matricKey = (string)$logMatric . '|' . $logAction . '|' . $logCourse;
+        $index['seen_matric'][$matricKey] = 1;
+
+        if ($logAction === 'checkin') {
+            $index['has_checkin'][(string)$logMatric . '|' . $logCourse] = 1;
+        }
+
+        $deviceIdentity = '';
+        if ((string)$logMac !== '' && strtoupper((string)$logMac) !== 'UNKNOWN') {
+            $deviceIdentity = 'mac:' . (string)$logMac;
+        } else {
+            $fpIdentity = normalize_fingerprint_identity_value($logFingerprint ?? '');
+            if ($fpIdentity !== '') {
+                $deviceIdentity = 'fp:' . $fpIdentity;
+            }
+        }
+
+        if ($deviceIdentity !== '') {
+            $deviceKey = $deviceIdentity . '|' . $logAction . '|' . $logCourse;
+            $index['seen_device'][$deviceKey] = 1;
+        }
+    }
+
+    return $index;
+}
+
 function detect_proxy_vpn_indicators()
 {
     $indicators = [];
@@ -540,95 +622,97 @@ request_timing_span('log_cleanup', $cleanupSpan);
 $logFile = $logDir . "/" . $today . ".log";
 $failedLog = $logDir . "/" . $today . "_failed_attempts.log";
 
-// ✅ Read log lines
-$loadLinesSpan = microtime(true);
-$lines = file_exists($logFile) ? file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
-request_timing_note('existing_log_lines', is_array($lines) ? count($lines) : 0);
-request_timing_span('load_attendance_log_lines', $loadLinesSpan);
+$logReason = '-';
+$logEntry = sanitize_log_field($name) . ' | ' . sanitize_log_field($matric) . ' | ' . sanitize_log_field($action) . ' | ' . sanitize_log_field($fingerprint) . ' | ' . sanitize_log_field($ip) . ' | ' . sanitize_log_field($mac) . ' | ' . date("Y-m-d H:i:s") . ' | ' . sanitize_log_field($userAgent) . ' | ' . sanitize_log_field($course) . ' | ' . sanitize_log_field($logReason) . "\n";
 
-$normalize_fingerprint_identity = static function ($value) {
-    $value = trim((string)$value);
-    if ($value === '') return '';
-    $parts = explode('_', $value, 2);
-    return strtolower(trim((string)($parts[0] ?? $value)));
-};
-$currentFingerprintIdentity = $normalize_fingerprint_identity($fingerprint);
-
-// 🔐 Check for duplicate actions
 if (!$loadTestRelaxActive) {
     $dupSpan = microtime(true);
-    $hasCheckedInForCourse = false;
-    foreach ($lines as $line) {
-        $fields = array_map('trim', explode('|', $line));
-        // Support old logs (without MAC) and new logs (with MAC).
-        if (count($fields) < 7) continue;
-        if (count($fields) > 10) continue;
-
-        // Possible formats:
-        // Old: Name | Matric | Action | Fingerprint | IP | Timestamp | UserAgent
-        // New: Name | Matric | Action | Fingerprint | IP | MAC | Timestamp | UserAgent
-        if (count($fields) === 7) {
-            list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logTimestamp, $logUserAgent) = $fields;
-            $logMac = 'UNKNOWN';
-            $logCourse = 'general';
-        } else {
-            list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
-            $logCourse = isset($fields[8]) ? strtolower(trim((string)$fields[8])) : 'general';
-        }
-
-        // ✅ CRITICAL FIX: Validate timestamp is from TODAY
-        $logDate = substr((string)$logTimestamp, 0, 10);
-        if ($logDate !== $today) {
-            continue;
-        }
-
-        // Ignore malformed rows to avoid false duplicate matches.
-        if (!preg_match('/^\d{6,20}$/', (string)$logMatric)) {
-            continue;
-        }
-        $logAction = strtolower(trim((string)$logAction));
-        if (!in_array($logAction, ['checkin', 'checkout'], true)) {
-            continue;
-        }
-
-        if ($action === 'checkout' && $logMatric === $matric && $logAction === 'checkin' && $logCourse === $courseNormalized) {
-            $hasCheckedInForCourse = true;
-        }
-        if ($logMatric === $matric && $logAction === $action && $logCourse === $courseNormalized) {
-            header('Content-Type: application/json');
-            echo json_encode(['ok' => false, 'message' => "This Matric Number has already submitted $action for {$course} today."]);
-            exit;
-        }
-
-        $logFingerprintIdentity = $normalize_fingerprint_identity($logFingerprint ?? '');
-        $sameFingerprint = ($currentFingerprintIdentity !== '' && $logFingerprintIdentity !== '' && $currentFingerprintIdentity === $logFingerprintIdentity && $logAction === $action);
-        $sameMac = isset($logMac) && $logMac !== 'UNKNOWN' && $mac !== 'UNKNOWN' && $logMac === $mac && $logAction === $action;
-        $sameDevice = ($mac !== 'UNKNOWN') ? $sameMac : $sameFingerprint;
-
-        if ($sameDevice && $logCourse === $courseNormalized) {
-            header('Content-Type: application/json');
-            echo json_encode(['ok' => false, 'message' => "This device has already submitted $action for {$course} today."]);
-            exit;
-        }
+    $currentFingerprintIdentity = normalize_fingerprint_identity_value($fingerprint);
+    $currentDeviceIdentity = '';
+    if ($mac !== 'UNKNOWN') {
+        $currentDeviceIdentity = 'mac:' . $mac;
+    } elseif ($currentFingerprintIdentity !== '') {
+        $currentDeviceIdentity = 'fp:' . $currentFingerprintIdentity;
     }
-    request_timing_span('duplicate_scan', $dupSpan, ['lines' => count($lines)]);
 
-    // ⛔ Block checkout if no prior check-in (resolved from same scan above)
-    if ($action === "checkout" && !$hasCheckedInForCourse) {
-        // Standardized failed log format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
+    $indexFile = $logDir . '/attendance_index_' . $today . '.json';
+    $indexFp = fopen($indexFile, 'c+');
+    if (!$indexFp || !flock($indexFp, LOCK_EX)) {
+        if (is_resource($indexFp)) {
+            fclose($indexFp);
+        }
+        fail('DUPLICATE_INDEX_LOCK_FAILED', 'Attendance is busy right now. Please retry in a moment.');
+    }
+
+    $rebuiltFromLog = false;
+    rewind($indexFp);
+    $indexRaw = stream_get_contents($indexFp);
+    $index = json_decode($indexRaw ?: '[]', true);
+    if (!is_array($index) || !isset($index['seen_matric'], $index['seen_device'], $index['has_checkin'])) {
+        $index = build_attendance_duplicate_index($logFile, $today);
+        $rebuiltFromLog = true;
+    }
+
+    $matricKey = $matric . '|' . $action . '|' . $courseNormalized;
+    $deviceKey = $currentDeviceIdentity !== '' ? ($currentDeviceIdentity . '|' . $action . '|' . $courseNormalized) : '';
+    $checkinKey = $matric . '|'. $courseNormalized;
+
+    if (isset($index['seen_matric'][$matricKey])) {
+        flock($indexFp, LOCK_UN);
+        fclose($indexFp);
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'message' => "This Matric Number has already submitted $action for {$course} today."]);
+        exit;
+    }
+
+    if ($deviceKey !== '' && isset($index['seen_device'][$deviceKey])) {
+        flock($indexFp, LOCK_UN);
+        fclose($indexFp);
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'message' => "This device has already submitted $action for {$course} today."]);
+        exit;
+    }
+
+    if ($action === 'checkout' && !isset($index['has_checkin'][$checkinKey])) {
         $failedLogEntry = sanitize_log_field($name) . ' | ' . sanitize_log_field($matric) . ' | failed | ' . sanitize_log_field($fingerprint) . ' | ' . sanitize_log_field($ip) . ' | ' . sanitize_log_field($mac) . ' | ' . $today . ' ' . date("H:i:s") . ' | ' . sanitize_log_field($userAgent) . ' | ' . sanitize_log_field($course) . " | NO_CHECKIN\n";
         file_put_contents($failedLog, $failedLogEntry, FILE_APPEND | LOCK_EX);
+        flock($indexFp, LOCK_UN);
+        fclose($indexFp);
         header('Content-Type: application/json');
         echo json_encode(['ok' => false, 'message' => "You cannot check out for {$course} without checking in first."]);
         exit;
     }
+
+    $logWriteSpan = microtime(true);
+    $logWriteResult = file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
+    if ($logWriteResult === false) {
+        flock($indexFp, LOCK_UN);
+        fclose($indexFp);
+        fail('ATTENDANCE_LOG_WRITE_FAILED', 'Unable to save attendance right now. Please retry.');
+    }
+    request_timing_span('append_attendance_log', $logWriteSpan);
+
+    $index['seen_matric'][$matricKey] = 1;
+    if ($deviceKey !== '') {
+        $index['seen_device'][$deviceKey] = 1;
+    }
+    if ($action === 'checkin') {
+        $index['has_checkin'][$checkinKey] = 1;
+    }
+
+    rewind($indexFp);
+    ftruncate($indexFp, 0);
+    fwrite($indexFp, json_encode($index, JSON_UNESCAPED_SLASHES));
+    fflush($indexFp);
+    flock($indexFp, LOCK_UN);
+    fclose($indexFp);
+
+    request_timing_span('duplicate_scan', $dupSpan, ['mode' => 'index', 'rebuilt' => $rebuiltFromLog ? 1 : 0]);
+} else {
+    $logWriteSpan = microtime(true);
+    file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
+    request_timing_span('append_attendance_log', $logWriteSpan);
 }
-// ✅ Save to .log file (include MAC when available)
-$logReason = '-';
-$logEntry = sanitize_log_field($name) . ' | ' . sanitize_log_field($matric) . ' | ' . sanitize_log_field($action) . ' | ' . sanitize_log_field($fingerprint) . ' | ' . sanitize_log_field($ip) . ' | ' . sanitize_log_field($mac) . ' | ' . date("Y-m-d H:i:s") . ' | ' . sanitize_log_field($userAgent) . ' | ' . sanitize_log_field($course) . ' | ' . sanitize_log_field($logReason) . "\n";
-$logWriteSpan = microtime(true);
-file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
-request_timing_span('append_attendance_log', $logWriteSpan);
 
 if ($shouldLinkFingerprintOnSuccess) {
     $linkSpan = microtime(true);
