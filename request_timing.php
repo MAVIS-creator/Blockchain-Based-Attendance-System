@@ -20,6 +20,14 @@ if (!function_exists('request_timing_mirror_supabase')) {
     if (!request_timing_hybrid_ready() || !hybrid_enabled()) {
       return;
     }
+    $flag = getenv('APP_TIMING_MIRROR_SUPABASE');
+    if ($flag === false || $flag === '') {
+      return;
+    }
+    $flag = strtolower(trim((string)$flag));
+    if (!in_array($flag, ['1', 'true', 'yes', 'on'], true)) {
+      return;
+    }
 
     $payload = [
       'route' => (string)($ctx['route'] ?? 'unknown'),

@@ -8,7 +8,6 @@ if (empty($_SESSION['admin_logged_in'])) {
 // Gather tokens from blocked_tokens.log (generated when tab-fencing/inactivity fires)
 require_once __DIR__ . '/../storage_helpers.php';
 app_storage_init();
-$blockedFile = app_storage_file('logs/blocked_tokens.log');
 $tokenPage = isset($_GET['token_pg']) && ctype_digit((string)$_GET['token_pg'])
   ? max(1, (int)$_GET['token_pg'])
   : 1;
@@ -188,6 +187,44 @@ $pagedTokens = array_slice($tokens, $tokenOffset, $tokenPerPage, true);
     return 'token';
   }
 
+  async function postJson(url, body) {
+    const response = await fetch(url, {
+      method: 'POST',
+      body: body
+    });
+    const text = await response.text();
+    let json = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch (ignore) {}
+    if (!response.ok) {
+      throw new Error((json && json.message) ? json.message : ('HTTP ' + response.status));
+    }
+    if (json && json.ok === false) {
+      throw new Error(json.message || 'Request failed');
+    }
+    return json || {};
+  }
+
+  async function clearDeviceAndRevocationByKey(type, value) {
+    const clearBody = new URLSearchParams();
+    if (type === 'ip') {
+      clearBody.append('ip', value);
+    } else if (type === 'mac') {
+      clearBody.append('mac', value);
+    } else {
+      clearBody.append('token', value);
+    }
+    if (window.ADMIN_CSRF_TOKEN) {
+      clearBody.append('csrf_token', window.ADMIN_CSRF_TOKEN);
+    }
+
+    const results = {};
+    results.cleared = await postJson('clear_device.php', clearBody);
+    results.revocationCleared = await postJson('clear_revocation.php', clearBody);
+    return results;
+  }
+
   const Toast = Swal.mixin({
     toast: true,
     position: 'top-end',
@@ -214,21 +251,21 @@ $pagedTokens = array_slice($tokens, $tokenOffset, $tokenPerPage, true);
         min: 1,
         step: 1
       }
-    }).then(function(res) {
+    }).then(async function(res) {
       if (!res) return;
       var days = typeof res === 'number' || typeof res === 'string' ? parseInt(res, 10) : 7;
       var body = new URLSearchParams();
       body.append(t, v);
-      body.append('days', days);
+      body.append('days', String(days));
       if (window.ADMIN_CSRF_TOKEN) body.append('csrf_token', window.ADMIN_CSRF_TOKEN);
 
-      fetch('revoke_entry.php', {
-        method: 'POST',
-        body: body
-      }).then(r => r.json()).then(j => {
+      try {
+        const j = await postJson('revoke_entry.php', body);
         if (j && j.ok) window.adminAlert('Done', 'Revoked added.', 'success');
         else window.adminAlert('Failed', (j && j.message) ? j.message : 'Could not revoke', 'error');
-      }).catch(e => window.adminAlert('Error', 'Could not revoke', 'error'));
+      } catch (e) {
+        window.adminAlert('Error', e.message || 'Could not revoke', 'error');
+      }
     });
   });
 
@@ -243,25 +280,23 @@ $pagedTokens = array_slice($tokens, $tokenOffset, $tokenPerPage, true);
     }
     var t = detectType(v);
 
-    window.adminConfirm('Confirm Clear', 'Clear any entries matching this fingerprint/matric/ip?', 'warning').then(function(ok) {
+    window.adminConfirm('Confirm Clear', 'Clear any entries matching this fingerprint/matric/ip?', 'warning').then(async function(ok) {
       if (!ok) return;
-      var p = new URLSearchParams();
-      if (t === 'ip') p.append('ip', v);
-      else if (t === 'mac') p.append('mac', v);
-      else {
-        // For unknown values, try token and legacy fields so admin can clear mixed stores.
-        p.append('token', v);
-        p.append('fingerprint', v);
-        p.append('matric', v);
+      try {
+        var p = new URLSearchParams();
+        if (t === 'ip') p.append('ip', v);
+        else if (t === 'mac') p.append('mac', v);
+        else {
+          p.append('token', v);
+          p.append('fingerprint', v);
+          p.append('matric', v);
+        }
+        if (window.ADMIN_CSRF_TOKEN) p.append('csrf_token', window.ADMIN_CSRF_TOKEN);
+        await clearDeviceAndRevocationByKey(t, v);
+        window.adminAlert('Cleared', 'Device block removed and revocation cleared.', 'success');
+      } catch (e) {
+        window.adminAlert('Error', e.message || 'Could not clear', 'error');
       }
-      if (window.ADMIN_CSRF_TOKEN) p.append('csrf_token', window.ADMIN_CSRF_TOKEN);
-      fetch('clear_device.php', {
-        method: 'POST',
-        body: p
-      }).then(r => r.json()).then(j => {
-        if (j && j.ok) window.adminAlert('Cleared', 'Device block removed', 'success');
-        else window.adminAlert('Failed', (j && j.message) ? j.message : 'Could not clear', 'error');
-      }).catch(e => window.adminAlert('Error', 'Could not clear', 'error'));
     });
   });
 
@@ -270,26 +305,14 @@ $pagedTokens = array_slice($tokens, $tokenOffset, $tokenPerPage, true);
     b.addEventListener('click', function() {
       var t = this.getAttribute('data-token');
       if (!t) return;
-      window.adminConfirm('Clear & Revoke', 'Clear server-side entries for this token AND revoke it on clients?', 'danger').then(function(ok) {
+      window.adminConfirm('Clear & Revoke', 'Clear server-side entries for this token AND revoke it on clients?', 'danger').then(async function(ok) {
         if (!ok) return;
-        var p1 = new URLSearchParams();
-        p1.append('token', t);
-        p1.append('days', 7);
-        if (window.ADMIN_CSRF_TOKEN) p1.append('csrf_token', window.ADMIN_CSRF_TOKEN);
-        fetch('revoke_entry.php', {
-          method: 'POST',
-          body: p1
-        }).then(function() {
-          var p2 = new URLSearchParams();
-          p2.append('token', t);
-          if (window.ADMIN_CSRF_TOKEN) p2.append('csrf_token', window.ADMIN_CSRF_TOKEN);
-          return fetch('clear_device.php', {
-            method: 'POST',
-            body: p2
-          });
-        }).then(r => r.json()).then(j => {
+        try {
+          await clearDeviceAndRevocationByKey('token', t);
           window.adminAlert('Done', 'Cleared & Revoked', 'success').then(() => location.reload());
-        }).catch(e => window.adminAlert('Error', 'Operation failed', 'error'));
+        } catch (e) {
+          window.adminAlert('Error', e.message || 'Operation failed', 'error');
+        }
       });
     });
   });
@@ -301,23 +324,23 @@ $pagedTokens = array_slice($tokens, $tokenOffset, $tokenPerPage, true);
       window.adminConfirm('Revoke token', 'Set expiry (days)', 'warning', {
         input: 'number',
         inputValue: 7
-      }).then(function(res) {
+      }).then(async function(res) {
         if (!res) return;
         var days = parseInt(res, 10) || 7;
         var p = new URLSearchParams();
         p.append('token', t);
-        p.append('days', days);
+        p.append('days', String(days));
         if (window.ADMIN_CSRF_TOKEN) p.append('csrf_token', window.ADMIN_CSRF_TOKEN);
-        fetch('revoke_entry.php', {
-          method: 'POST',
-          body: p
-        }).then(r => r.json()).then(j => {
+        try {
+          const j = await postJson('revoke_entry.php', p);
           if (j && j.ok) Toast.fire({
             icon: 'success',
             title: 'Revocation added'
           });
           else window.adminAlert('Failed', (j && j.message) ? j.message : 'Could not revoke', 'error');
-        }).catch(e => window.adminAlert('Error', 'Could not revoke', 'error'));
+        } catch (e) {
+          window.adminAlert('Error', e.message || 'Could not revoke', 'error');
+        }
       });
     });
   });
@@ -326,29 +349,16 @@ $pagedTokens = array_slice($tokens, $tokenOffset, $tokenPerPage, true);
   document.getElementById('clearAllTokens')?.addEventListener('click', function() {
     var tokens = Array.from(document.querySelectorAll('button.clear-token')).map(b => b.getAttribute('data-token'));
     if (!tokens.length) return;
-    window.adminConfirm('Clear & Revoke All', 'Clear server-side entries ALL tokens found in logs and revoke them?', 'danger').then(function(ok) {
+    window.adminConfirm('Clear & Revoke All', 'Clear server-side entries ALL tokens found in logs and revoke them?', 'danger').then(async function(ok) {
       if (!ok) return;
-      var promises = tokens.map(function(t) {
-        var p1 = new URLSearchParams();
-        p1.append('token', t);
-        p1.append('days', 7);
-        if (window.ADMIN_CSRF_TOKEN) p1.append('csrf_token', window.ADMIN_CSRF_TOKEN);
-        return fetch('revoke_entry.php', {
-          method: 'POST',
-          body: p1
-        }).then(function() {
-          var p2 = new URLSearchParams();
-          p2.append('token', t);
-          if (window.ADMIN_CSRF_TOKEN) p2.append('csrf_token', window.ADMIN_CSRF_TOKEN);
-          return fetch('clear_device.php', {
-            method: 'POST',
-            body: p2
-          });
-        }).then(r => r.json());
-      });
-      Promise.all(promises).then(results => {
+      try {
+        for (const t of tokens) {
+          await clearDeviceAndRevocationByKey('token', t);
+        }
         window.adminAlert('Done', 'Cleared all', 'success').then(() => location.reload());
-      }).catch(e => window.adminAlert('Error', 'Failed', 'error'));
+      } catch (e) {
+        window.adminAlert('Error', e.message || 'Failed', 'error');
+      }
     });
   });
 
@@ -358,26 +368,21 @@ $pagedTokens = array_slice($tokens, $tokenOffset, $tokenPerPage, true);
     window.adminConfirm('Revoke All', 'Set expiry (days) for all tokens?', 'warning', {
       input: 'number',
       inputValue: 7
-    }).then(function(res) {
+    }).then(async function(res) {
       if (!res) return;
       var days = parseInt(res, 10) || 7;
-      var promises = tokens.map(function(t) {
-        var p = new URLSearchParams();
-        p.append('token', t);
-        p.append('days', days);
-        if (window.ADMIN_CSRF_TOKEN) p.append('csrf_token', window.ADMIN_CSRF_TOKEN);
-        return fetch('revoke_entry.php', {
-          method: 'POST',
-          body: p
-        }).then(r => r.json());
-      });
-      Promise.all(promises).then(results => {
-        var failed = results.filter(function(x) {
-          return !x || !x.ok;
-        });
-        if (failed.length) window.adminAlert('Partial failure', 'Some tokens could not be revoked.', 'warning');
-        else window.adminAlert('Done', 'Revoked all', 'success');
-      }).catch(e => window.adminAlert('Error', 'Failed', 'error'));
+      try {
+        for (const t of tokens) {
+          var p = new URLSearchParams();
+          p.append('token', t);
+          p.append('days', String(days));
+          if (window.ADMIN_CSRF_TOKEN) p.append('csrf_token', window.ADMIN_CSRF_TOKEN);
+          await postJson('revoke_entry.php', p);
+        }
+        window.adminAlert('Done', 'Revoked all', 'success');
+      } catch (e) {
+        window.adminAlert('Error', e.message || 'Failed', 'error');
+      }
     });
   });
 
