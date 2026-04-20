@@ -128,9 +128,73 @@ function support_assess_message_quality($message, $requestedAction)
   return ['ok' => true, 'feedback' => ''];
 }
 
+if (!function_exists('support_geofence_snapshot')) {
+  function support_geofence_snapshot(array $settings)
+  {
+    $enabled = !empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && is_array($settings['geo_fence']);
+    if (!$enabled) {
+      return ['enabled' => false];
+    }
+
+    $gf = $settings['geo_fence'];
+    $centerLat = isset($gf['lat']) ? floatval($gf['lat']) : null;
+    $centerLng = isset($gf['lng']) ? floatval($gf['lng']) : null;
+    $radiusM = isset($gf['radius_m']) ? intval($gf['radius_m']) : 0;
+    if ($centerLat === null || $centerLng === null || $radiusM <= 0) {
+      return [
+        'enabled' => true,
+        'inside' => null,
+        'reason' => 'config_invalid',
+      ];
+    }
+
+    $rawLat = trim((string)($_POST['geo_lat'] ?? ''));
+    $rawLng = trim((string)($_POST['geo_lng'] ?? ''));
+    $rawAcc = trim((string)($_POST['geo_accuracy_m'] ?? ''));
+    $rawTs = trim((string)($_POST['geo_client_ts'] ?? ''));
+
+    if ($rawLat === '' || $rawLng === '') {
+      return [
+        'enabled' => true,
+        'inside' => null,
+        'reason' => 'client_location_missing',
+        'radius_m' => $radiusM,
+      ];
+    }
+
+    $clientLat = floatval($rawLat);
+    $clientLng = floatval($rawLng);
+    $accuracyM = is_numeric($rawAcc) ? max(0.0, floatval($rawAcc)) : null;
+    $clientTs = is_numeric($rawTs) ? (int)$rawTs : null;
+
+    $earthRadius = 6371000.0;
+    $dLat = deg2rad($clientLat - $centerLat);
+    $dLon = deg2rad($clientLng - $centerLng);
+    $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($centerLat)) * cos(deg2rad($clientLat)) * sin($dLon / 2) * sin($dLon / 2);
+    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+    $distanceM = $earthRadius * $c;
+    $inside = ($distanceM <= $radiusM);
+
+    return [
+      'enabled' => true,
+      'inside' => $inside,
+      'reason' => $inside ? 'inside_geofence' : 'outside_geofence',
+      'radius_m' => $radiusM,
+      'distance_m' => round($distanceM, 2),
+      'configured_center' => ['lat' => round($centerLat, 7), 'lng' => round($centerLng, 7)],
+      'client_location' => ['lat' => round($clientLat, 7), 'lng' => round($clientLng, 7)],
+      'client_accuracy_m' => $accuracyM,
+      'client_ts' => $clientTs,
+      'server_ts' => time(),
+    ];
+  }
+}
+
 $success = false;
 $formError = '';
 $messageGuidance = '';
+$settings = admin_load_settings_cached(15);
+$supportGeofenceEnabled = !empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && is_array($settings['geo_fence']);
 
 $courseFile = admin_course_storage_migrate_file('course.json');
 $courseRows = [];
@@ -193,6 +257,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $requestedAction = '';
   }
   $ip = $_SERVER['REMOTE_ADDR'];
+  $geofenceSnapshot = support_geofence_snapshot($settings);
 
   if ($matric !== '' && !preg_match('/^\d{6,20}$/', $matric)) {
     $formError = 'Enter a valid matric number using digits only.';
@@ -216,6 +281,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
       'course' => $course,
       'requested_action' => $requestedAction,
       'ip' => $ip,
+      'geofence' => $geofenceSnapshot,
       'timestamp' => $createdAt,
       'resolved' => false
     ]);
@@ -231,6 +297,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         'course' => $course,
         'requested_action' => $requestedAction,
         'ip' => $ip,
+        'geofence' => $geofenceSnapshot,
         'created_at_local' => $createdAt,
         'resolved' => false
       ]);
@@ -244,6 +311,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         'course' => $course,
         'requested_action' => $requestedAction,
         'ip' => $ip,
+        'geofence' => $geofenceSnapshot,
         'timestamp' => $createdAt,
         'resolved' => false
       ];
@@ -393,6 +461,10 @@ include __DIR__ . '/includes/public_header.php';
                     </div>
 
                     <input type="hidden" id="fingerprint" name="fingerprint">
+                    <input type="hidden" id="geoLat" name="geo_lat">
+                    <input type="hidden" id="geoLng" name="geo_lng">
+                    <input type="hidden" id="geoAccuracy" name="geo_accuracy_m">
+                    <input type="hidden" id="geoClientTs" name="geo_client_ts">
                     
                     <!-- Action Bar -->
                     <div class="flex flex-col md:flex-row items-center justify-between gap-6 pt-6">
@@ -441,4 +513,30 @@ include __DIR__ . '/includes/public_header.php';
         console.error('Fingerprint error:', err);
       });
     });
+
+    <?php if ($supportGeofenceEnabled): ?>
+    (function () {
+      const latEl = document.getElementById('geoLat');
+      const lngEl = document.getElementById('geoLng');
+      const accEl = document.getElementById('geoAccuracy');
+      const tsEl = document.getElementById('geoClientTs');
+      if (!latEl || !lngEl || !accEl || !tsEl || !navigator.geolocation) {
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        if (!pos || !pos.coords) return;
+        latEl.value = String(pos.coords.latitude || '');
+        lngEl.value = String(pos.coords.longitude || '');
+        accEl.value = String(pos.coords.accuracy || '');
+        tsEl.value = String(Date.now());
+      }, function () {
+        // Non-blocking: server will still mark geofence evidence as missing.
+      }, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000
+      });
+    })();
+    <?php endif; ?>
 </script>
