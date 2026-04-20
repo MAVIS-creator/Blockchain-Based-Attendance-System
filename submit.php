@@ -189,6 +189,13 @@ function is_revoked_value($bucket, $value, $now)
     return true;
 }
 
+function sanitize_log_field($value)
+{
+    $v = (string)$value;
+    $v = str_replace(["\r", "\n", "|"], ' ', $v);
+    return trim(preg_replace('/\s+/', ' ', $v));
+}
+
 function detect_proxy_vpn_indicators()
 {
     $indicators = [];
@@ -410,18 +417,19 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
         $accuracyM = is_numeric($rawAccuracy) ? max(0.0, floatval($rawAccuracy)) : null;
         $accuracyCapM = isset($settings['geo_fence_max_accuracy_m']) && is_numeric($settings['geo_fence_max_accuracy_m'])
             ? max(20.0, floatval($settings['geo_fence_max_accuracy_m']))
-            : 180.0;
+            : 250.0;
         $baseAccuracyBufferM = isset($settings['geo_fence_accuracy_buffer_m']) && is_numeric($settings['geo_fence_accuracy_buffer_m'])
             ? max(0.0, floatval($settings['geo_fence_accuracy_buffer_m']))
-            : 25.0;
+            : 40.0;
         $accuracyBufferCapM = isset($settings['geo_fence_accuracy_buffer_cap_m']) && is_numeric($settings['geo_fence_accuracy_buffer_cap_m'])
             ? max($baseAccuracyBufferM, floatval($settings['geo_fence_accuracy_buffer_cap_m']))
-            : 70.0;
+            : 250.0;
 
+        // Relaxed mode: low-accuracy fixes are tolerated with a wider buffer.
         if ($accuracyM !== null && $accuracyM > $accuracyCapM) {
-            request_timing_note('geo_fence_result', 'low_accuracy');
+            request_timing_note('geo_fence_result', 'low_accuracy_relaxed');
             request_timing_note('geo_fence_accuracy_m', round($accuracyM, 2));
-            fail('GEOFENCE_LOW_ACCURACY', 'Your GPS accuracy is too low for attendance verification. Move to open sky, keep high-accuracy location on, then retry.');
+            $accuracyM = $accuracyCapM;
         }
 
         $rawClientTs = post_string('geo_client_ts');
@@ -441,7 +449,7 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
 
         $accuracyBufferM = $baseAccuracyBufferM;
         if ($accuracyM !== null) {
-            $accuracyBufferM = max($baseAccuracyBufferM, min($accuracyBufferCapM, $accuracyM * 0.75));
+            $accuracyBufferM = max($baseAccuracyBufferM, min($accuracyBufferCapM, $accuracyM * 1.25));
         }
 
         $dist = geo_distance_m($gfLat, $gfLng, $postLat, $postLng);
@@ -603,6 +611,7 @@ if (!$loadTestRelaxActive) {
         $fields = array_map('trim', explode('|', $line));
         // Support old logs (without MAC) and new logs (with MAC).
         if (count($fields) < 7) continue;
+        if (count($fields) > 10) continue;
 
         // Possible formats:
         // Old: Name | Matric | Action | Fingerprint | IP | Timestamp | UserAgent
@@ -615,6 +624,16 @@ if (!$loadTestRelaxActive) {
             list($logName, $logMatric, $logAction, $logFingerprint, $logIp, $logMac, $logTimestamp, $logUserAgent) = $fields;
             $logCourse = isset($fields[8]) ? strtolower(trim((string)$fields[8])) : 'general';
         }
+
+        // Ignore malformed rows to avoid false duplicate matches.
+        if (!preg_match('/^\d{6,20}$/', (string)$logMatric)) {
+            continue;
+        }
+        $logAction = strtolower(trim((string)$logAction));
+        if (!in_array($logAction, ['checkin', 'checkout'], true)) {
+            continue;
+        }
+
         if ($action === 'checkout' && $logMatric === $matric && $logAction === 'checkin' && $logCourse === $courseNormalized) {
             $hasCheckedInForCourse = true;
         }
@@ -640,7 +659,7 @@ if (!$loadTestRelaxActive) {
     // ⛔ Block checkout if no prior check-in (resolved from same scan above)
     if ($action === "checkout" && !$hasCheckedInForCourse) {
         // Standardized failed log format: name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
-        $failedLogEntry = "$name | $matric | failed | $fingerprint | $ip | $mac | $today " . date("H:i:s") . " | $userAgent | $course | NO_CHECKIN\n";
+        $failedLogEntry = sanitize_log_field($name) . ' | ' . sanitize_log_field($matric) . ' | failed | ' . sanitize_log_field($fingerprint) . ' | ' . sanitize_log_field($ip) . ' | ' . sanitize_log_field($mac) . ' | ' . $today . ' ' . date("H:i:s") . ' | ' . sanitize_log_field($userAgent) . ' | ' . sanitize_log_field($course) . " | NO_CHECKIN\n";
         file_put_contents($failedLog, $failedLogEntry, FILE_APPEND | LOCK_EX);
         header('Content-Type: application/json');
         echo json_encode(['ok' => false, 'message' => "You cannot check out for {$course} without checking in first."]);
@@ -649,7 +668,7 @@ if (!$loadTestRelaxActive) {
 }
 // ✅ Save to .log file (include MAC when available)
 $logReason = '-';
-$logEntry = "$name | $matric | $action | $fingerprint | $ip | $mac | " . date("Y-m-d H:i:s") . " | $userAgent | $course | $logReason\n";
+$logEntry = sanitize_log_field($name) . ' | ' . sanitize_log_field($matric) . ' | ' . sanitize_log_field($action) . ' | ' . sanitize_log_field($fingerprint) . ' | ' . sanitize_log_field($ip) . ' | ' . sanitize_log_field($mac) . ' | ' . date("Y-m-d H:i:s") . ' | ' . sanitize_log_field($userAgent) . ' | ' . sanitize_log_field($course) . ' | ' . sanitize_log_field($logReason) . "\n";
 $logWriteSpan = microtime(true);
 file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
 request_timing_span('append_attendance_log', $logWriteSpan);
