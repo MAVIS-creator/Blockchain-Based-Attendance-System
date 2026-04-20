@@ -152,6 +152,8 @@ if (!function_exists('support_geofence_snapshot')) {
     $rawLng = trim((string)($_POST['geo_lng'] ?? ''));
     $rawAcc = trim((string)($_POST['geo_accuracy_m'] ?? ''));
     $rawTs = trim((string)($_POST['geo_client_ts'] ?? ''));
+    $rawSource = trim((string)($_POST['geo_source'] ?? ''));
+    $rawHighAccuracy = trim((string)($_POST['geo_high_accuracy'] ?? ''));
 
     if ($rawLat === '' || $rawLng === '') {
       return [
@@ -184,6 +186,8 @@ if (!function_exists('support_geofence_snapshot')) {
       'configured_center' => ['lat' => round($centerLat, 7), 'lng' => round($centerLng, 7)],
       'client_location' => ['lat' => round($clientLat, 7), 'lng' => round($clientLng, 7)],
       'client_accuracy_m' => $accuracyM,
+      'client_source' => $rawSource !== '' ? $rawSource : 'unknown',
+      'client_high_accuracy' => ($rawHighAccuracy === '1'),
       'client_ts' => $clientTs,
       'server_ts' => time(),
     ];
@@ -465,6 +469,8 @@ include __DIR__ . '/includes/public_header.php';
                     <input type="hidden" id="geoLng" name="geo_lng">
                     <input type="hidden" id="geoAccuracy" name="geo_accuracy_m">
                     <input type="hidden" id="geoClientTs" name="geo_client_ts">
+                    <input type="hidden" id="geoSource" name="geo_source">
+                    <input type="hidden" id="geoHighAccuracy" name="geo_high_accuracy">
                     
                     <!-- Action Bar -->
                     <div class="flex flex-col md:flex-row items-center justify-between gap-6 pt-6">
@@ -520,9 +526,14 @@ include __DIR__ . '/includes/public_header.php';
       const lngEl = document.getElementById('geoLng');
       const accEl = document.getElementById('geoAccuracy');
       const tsEl = document.getElementById('geoClientTs');
-      if (!latEl || !lngEl || !accEl || !tsEl || !navigator.geolocation) {
+      const sourceEl = document.getElementById('geoSource');
+      const highAccEl = document.getElementById('geoHighAccuracy');
+      if (!latEl || !lngEl || !accEl || !tsEl || !sourceEl || !highAccEl || !navigator.geolocation) {
         return;
       }
+
+      sourceEl.value = 'browser-geolocation';
+      highAccEl.value = '1';
 
       navigator.geolocation.getCurrentPosition(function (pos) {
         if (!pos || !pos.coords) return;

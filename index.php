@@ -242,13 +242,20 @@ include __DIR__ . '/includes/public_header.php';
             if (settled) return;
             settled = true;
             clearTimeout(timer);
-            resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            resolve({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracyM: pos && pos.coords && typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : null,
+              clientTs: Date.now(),
+              highAccuracyRequested: true,
+              source: 'browser-geolocation'
+            });
           }, function() {
             if (settled) return;
             settled = true;
             clearTimeout(timer);
             resolve(null);
-          }, { maximumAge: 60000, timeout: timeout });
+          }, { enableHighAccuracy: true, maximumAge: 60000, timeout: timeout });
         });
       }
 
@@ -256,6 +263,12 @@ include __DIR__ . '/includes/public_header.php';
         if (loc) {
           formData.append('lat', loc.lat);
           formData.append('lng', loc.lng);
+          if (loc.accuracyM !== null && !Number.isNaN(loc.accuracyM)) {
+            formData.append('geo_accuracy_m', loc.accuracyM);
+          }
+          formData.append('geo_client_ts', loc.clientTs || Date.now());
+          formData.append('geo_high_accuracy', loc.highAccuracyRequested ? '1' : '0');
+          formData.append('geo_source', loc.source || 'browser-geolocation');
         }
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 25000);

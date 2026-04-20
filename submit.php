@@ -226,6 +226,16 @@ function detect_proxy_vpn_indicators()
     return array_values(array_unique($indicators));
 }
 
+function geo_distance_m($lat1, $lng1, $lat2, $lng2)
+{
+    $earthRadius = 6371000.0;
+    $dLat = deg2rad($lat2 - $lat1);
+    $dLon = deg2rad($lng2 - $lng1);
+    $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) * sin($dLon / 2);
+    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+    return $earthRadius * $c;
+}
+
 // -----------------------
 // VPN / Proxy tunneling enforcement (optional)
 // -----------------------
@@ -377,27 +387,100 @@ if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && 
     $gfLng = isset($gf['lng']) ? floatval($gf['lng']) : null;
     $gfRadius = isset($gf['radius_m']) ? intval($gf['radius_m']) : 0;
     if ($gfLat !== null && $gfLng !== null && $gfRadius > 0) {
-        // require client to send lat/lng
-        $postLat = isset($_POST['lat']) ? floatval($_POST['lat']) : null;
-        $postLng = isset($_POST['lng']) ? floatval($_POST['lng']) : null;
-        if ($postLat === null || $postLng === null) {
+        // Require numeric client location payload.
+        $rawLat = post_string('lat');
+        $rawLng = post_string('lng');
+        if ($rawLat === '' || $rawLng === '') {
             request_timing_note('geo_fence_result', 'missing_client_location');
             fail('GEOFENCE_MISSING', 'Location required for attendance at this time. Enable device location (high accuracy) and disable VPN/proxy if active.');
         }
-        // haversine
-        $earthRadius = 6371000; // meters
-        $dLat = deg2rad($postLat - $gfLat);
-        $dLon = deg2rad($postLng - $gfLng);
-        $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($gfLat)) * cos(deg2rad($postLat)) * sin($dLon / 2) * sin($dLon / 2);
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        $dist = $earthRadius * $c;
-        if ($dist > $gfRadius) {
+        if (!is_numeric($rawLat) || !is_numeric($rawLng)) {
+            request_timing_note('geo_fence_result', 'invalid_client_location');
+            fail('GEOFENCE_INVALID_COORDS', 'Invalid location payload. Please retry with location services enabled.');
+        }
+
+        $postLat = floatval($rawLat);
+        $postLng = floatval($rawLng);
+        if ($postLat < -90 || $postLat > 90 || $postLng < -180 || $postLng > 180) {
+            request_timing_note('geo_fence_result', 'out_of_range_client_location');
+            fail('GEOFENCE_INVALID_COORDS', 'Location coordinates are out of range. Please retry attendance.');
+        }
+
+        $rawAccuracy = post_string('geo_accuracy_m');
+        $accuracyM = is_numeric($rawAccuracy) ? max(0.0, floatval($rawAccuracy)) : null;
+        $accuracyCapM = isset($settings['geo_fence_max_accuracy_m']) && is_numeric($settings['geo_fence_max_accuracy_m'])
+            ? max(20.0, floatval($settings['geo_fence_max_accuracy_m']))
+            : 180.0;
+        $baseAccuracyBufferM = isset($settings['geo_fence_accuracy_buffer_m']) && is_numeric($settings['geo_fence_accuracy_buffer_m'])
+            ? max(0.0, floatval($settings['geo_fence_accuracy_buffer_m']))
+            : 25.0;
+        $accuracyBufferCapM = isset($settings['geo_fence_accuracy_buffer_cap_m']) && is_numeric($settings['geo_fence_accuracy_buffer_cap_m'])
+            ? max($baseAccuracyBufferM, floatval($settings['geo_fence_accuracy_buffer_cap_m']))
+            : 70.0;
+
+        if ($accuracyM !== null && $accuracyM > $accuracyCapM) {
+            request_timing_note('geo_fence_result', 'low_accuracy');
+            request_timing_note('geo_fence_accuracy_m', round($accuracyM, 2));
+            fail('GEOFENCE_LOW_ACCURACY', 'Your GPS accuracy is too low for attendance verification. Move to open sky, keep high-accuracy location on, then retry.');
+        }
+
+        $rawClientTs = post_string('geo_client_ts');
+        if (is_numeric($rawClientTs)) {
+            $clientTsMs = intval($rawClientTs);
+            $nowMs = (int)round(microtime(true) * 1000);
+            $maxClientAgeMs = isset($settings['geo_fence_client_max_age_ms']) && is_numeric($settings['geo_fence_client_max_age_ms'])
+                ? max(30000, intval($settings['geo_fence_client_max_age_ms']))
+                : 180000;
+            $ageMs = abs($nowMs - $clientTsMs);
+            request_timing_note('geo_fence_client_age_ms', $ageMs);
+            if ($ageMs > $maxClientAgeMs) {
+                request_timing_note('geo_fence_result', 'stale_location');
+                fail('GEOFENCE_STALE_LOCATION', 'Location fix is stale. Refresh location and retry attendance.');
+            }
+        }
+
+        $accuracyBufferM = $baseAccuracyBufferM;
+        if ($accuracyM !== null) {
+            $accuracyBufferM = max($baseAccuracyBufferM, min($accuracyBufferCapM, $accuracyM * 0.75));
+        }
+
+        $dist = geo_distance_m($gfLat, $gfLng, $postLat, $postLng);
+        $allowedRadiusM = $gfRadius + $accuracyBufferM;
+        if ($dist > $allowedRadiusM) {
             request_timing_note('geo_fence_result', 'outside');
             request_timing_note('geo_fence_distance_m', round($dist, 2));
+            request_timing_note('geo_fence_allowed_radius_m', round($allowedRadiusM, 2));
             fail('GEOFENCE_OUTSIDE', 'You are outside the allowed attendance area. If this is unexpected, disable VPN/proxy and retry with accurate GPS location.');
         }
+
+        // Catch impossible jumps while keeping threshold very high to avoid false positives.
+        $geoTrackFile = app_storage_file('logs/geo_track_' . $today . '.json');
+        $geoTrack = read_store($geoTrackFile, !empty($settings['encrypt_logs']));
+        $geoKey = 'fp:' . hash('sha256', $fingerprint);
+        $nowMs = (int)round(microtime(true) * 1000);
+        $prev = isset($geoTrack[$geoKey]) && is_array($geoTrack[$geoKey]) ? $geoTrack[$geoKey] : null;
+        $maxSpeedMps = isset($settings['geo_fence_max_speed_mps']) && is_numeric($settings['geo_fence_max_speed_mps'])
+            ? max(50.0, floatval($settings['geo_fence_max_speed_mps']))
+            : 180.0;
+        if ($prev && isset($prev['lat'], $prev['lng'], $prev['ts_ms']) && is_numeric($prev['ts_ms'])) {
+            $deltaMs = $nowMs - intval($prev['ts_ms']);
+            if ($deltaMs >= 30000 && $deltaMs <= 7200000) {
+                $travelM = geo_distance_m(floatval($prev['lat']), floatval($prev['lng']), $postLat, $postLng);
+                $speedMps = $travelM / max(1.0, ($deltaMs / 1000.0));
+                request_timing_note('geo_fence_speed_mps', round($speedMps, 2));
+                if ($speedMps > $maxSpeedMps) {
+                    request_timing_note('geo_fence_result', 'travel_anomaly');
+                    fail('GEOFENCE_TRAVEL_ANOMALY', 'Location movement pattern is not plausible for this time gap. Disable mock location/VPN and retry from your real location.');
+                }
+            }
+        }
+        $geoTrack[$geoKey] = ['lat' => $postLat, 'lng' => $postLng, 'ts_ms' => $nowMs];
+        write_store($geoTrackFile, $geoTrack, !empty($settings['encrypt_logs']));
+
         request_timing_note('geo_fence_result', 'inside');
         request_timing_note('geo_fence_distance_m', round($dist, 2));
+        request_timing_note('geo_fence_allowed_radius_m', round($allowedRadiusM, 2));
+        request_timing_note('geo_fence_accuracy_m', $accuracyM !== null ? round($accuracyM, 2) : 'na');
     }
     request_timing_span('geo_fence_check', $geoSpan, ['enabled' => true]);
 } else {
