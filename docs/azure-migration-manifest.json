@@ -8,7 +8,8 @@
     "notes": [
       "This manifest is for your own subscription and is not a bypass for someone else's credits or account.",
       "Secret values are intentionally redacted.",
-      "Validate target subscription ownership, quota, and provider registrations before creating anything."
+      "Validate target subscription ownership, quota, and provider registrations before creating anything.",
+      "Use the custom domain as the public site URL and keep the Azure webapp hostname as the origin unless your routing design changes."
     ]
   },
   "preflight": {
@@ -43,6 +44,16 @@
         "name": "identity-and-rbac",
         "description": "Confirm the deploying identity can create managed identities, role assignments, Key Vault references, and Logic Apps workflows.",
         "expected": "Sufficient RBAC"
+      },
+      {
+        "name": "custom-domain-ownership",
+        "description": "Confirm you control smart-attendance-samex.me in DNS and can create the required CNAME, A, or TXT records for Azure/App Service verification.",
+        "expected": "Domain ownership verified"
+      },
+      {
+        "name": "tls-readiness",
+        "description": "Confirm the target subscription can bind a TLS certificate or use Azure-managed certificates for the custom domain.",
+        "expected": "TLS binding available"
       }
     ],
     "deploymentOrder": [
@@ -53,6 +64,7 @@
       "sqlDatabase",
       "appServicePlan",
       "webApp",
+      "customDomain",
       "applicationInsights",
       "actionGroups",
       "metricAlerts",
@@ -102,6 +114,38 @@
         "reserved": true,
         "startupCommand": "bash /home/site/wwwroot/startup.sh"
       }
+    },
+    "customDomain": {
+      "publicDomain": "smart-attendance-samex.me",
+      "wwwDomain": "www.smart-attendance-samex.me",
+      "bindTo": "attendancev2app123",
+      "dnsModel": {
+        "apex": {
+          "preferred": "A record to the Azure/Cloudflare fronting endpoint",
+          "alternate": "CNAME flattening/ANAME if supported by the DNS provider"
+        },
+        "www": {
+          "preferred": "CNAME to the chosen fronting endpoint"
+        },
+        "verification": {
+          "type": "TXT or as required by Azure App Service custom-domain validation"
+        }
+      },
+      "tls": {
+        "mode": "Azure managed certificate or equivalent trusted certificate",
+        "minimum": "TLS 1.2",
+        "hstsRecommended": true
+      },
+      "applicationUrlSettings": {
+        "APP_URL": "https://smart-attendance-samex.me",
+        "PUBLIC_SITE_URL": "https://smart-attendance-samex.me",
+        "ASSET_BASE_URL": "https://smart-attendance-samex.me"
+      },
+      "proxyNotes": [
+        "If Cloudflare is in front, keep the worker/origin host pointing at the Azure App Service hostname unless you redesign the origin routing.",
+        "Set the app's public URL to the custom domain so generated links, redirects, and emails use the branded domain.",
+        "Update any external callback URLs, OAuth redirect URLs, and webhook URLs to the custom domain if they are exposed publicly."
+      ]
     },
     "applicationInsights": {
       "name": "monitor",
@@ -432,6 +476,7 @@
     "applicationSettings": {
       "APP_ENV": "production",
       "APP_DEBUG": false,
+      "APP_URL": "https://smart-attendance-samex.me",
       "ADMIN_ACCOUNTS_BACKEND": "sql",
       "ADMIN_SQL_SERVER": "<key-vault-reference>",
       "ADMIN_SQL_DATABASE": "attendance_admin",
@@ -454,6 +499,7 @@
       "Create storage accounts and Key Vault",
       "Create SQL server and database",
       "Create App Service plan and web app",
+      "Bind custom domain and TLS certificate",
       "Apply app settings and managed identity",
       "Create Application Insights and alerts",
       "Create autoscale setting",
