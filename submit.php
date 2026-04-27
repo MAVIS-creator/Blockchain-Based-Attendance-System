@@ -211,6 +211,7 @@ function build_attendance_duplicate_index($logFile, $today)
     $index = [
         'seen_matric' => [],
         'seen_device' => [],
+        'seen_token'  => [],   // Layer 2: localStorage UUID token
         'has_checkin' => [],
     ];
 
@@ -259,19 +260,29 @@ function build_attendance_duplicate_index($logFile, $today)
             $index['has_checkin'][(string)$logMatric . '|' . $logCourse] = 1;
         }
 
+        // Layer 1: hardware composite fingerprint (part before the underscore)
         $deviceIdentity = '';
         if ((string)$logMac !== '' && strtoupper((string)$logMac) !== 'UNKNOWN') {
             $deviceIdentity = 'mac:' . (string)$logMac;
         } else {
             $fpIdentity = normalize_fingerprint_identity_value($logFingerprint ?? '');
             if ($fpIdentity !== '') {
-                $deviceIdentity = 'fp:' . $fpIdentity;
+                $deviceIdentity = 'fp:' . $fpIdentity . ':' . (string)$logMatric;
             }
         }
-
         if ($deviceIdentity !== '') {
             $deviceKey = $deviceIdentity . '|' . $logAction . '|' . $logCourse;
             $index['seen_device'][$deviceKey] = 1;
+        }
+
+        // Layer 2: localStorage UUID token (part after the underscore)
+        $logFpStr = trim((string)($logFingerprint ?? ''));
+        if (strpos($logFpStr, '_') !== false) {
+            $logToken = trim((string)end(explode('_', $logFpStr)));
+            if ($logToken !== '') {
+                $tokenKey = 'tok:' . $logToken . '|' . $logAction . '|' . $logCourse;
+                $index['seen_token'][$tokenKey] = 1;
+            }
         }
     }
 
@@ -632,7 +643,10 @@ if (!$loadTestRelaxActive) {
     if ($mac !== 'UNKNOWN') {
         $currentDeviceIdentity = 'mac:' . $mac;
     } elseif ($currentFingerprintIdentity !== '') {
-        $currentDeviceIdentity = 'fp:' . $currentFingerprintIdentity;
+        // Include matric in fp-based identity to prevent false cross-student collisions.
+        // Two students on similar devices can share the same FingerprintJS visitorId;
+        // scoping per-matric ensures only the same student's re-submission is blocked.
+        $currentDeviceIdentity = 'fp:' . $currentFingerprintIdentity . ':' . $matric;
     }
 
     $indexFile = $logDir . '/attendance_index_' . $today . '.json';
@@ -652,10 +666,17 @@ if (!$loadTestRelaxActive) {
         $index = build_attendance_duplicate_index($logFile, $today);
         $rebuiltFromLog = true;
     }
+    // Ensure seen_token exists even if index was written by an older version.
+    if (!isset($index['seen_token']) || !is_array($index['seen_token'])) {
+        $index['seen_token'] = [];
+    }
 
     $matricKey = $matric . '|' . $action . '|' . $courseNormalized;
-    $deviceKey = $currentDeviceIdentity !== '' ? ($currentDeviceIdentity . '|' . $action . '|' . $courseNormalized) : '';
-    $checkinKey = $matric . '|'. $courseNormalized;
+    $deviceKey  = $currentDeviceIdentity !== '' ? ($currentDeviceIdentity . '|' . $action . '|' . $courseNormalized) : '';
+    $checkinKey = $matric . '|' . $courseNormalized;
+    // Layer 2: localStorage token key — device-level, NOT scoped per-matric,
+    // so the same browser/device cannot submit under two different matric numbers.
+    $tokenKey = ($clientToken !== '') ? ('tok:' . $clientToken . '|' . $action . '|' . $courseNormalized) : '';
 
     if (isset($index['seen_matric'][$matricKey])) {
         flock($indexFp, LOCK_UN);
@@ -665,7 +686,18 @@ if (!$loadTestRelaxActive) {
         exit;
     }
 
+    // Layer 1: hardware composite fingerprint check
     if ($deviceKey !== '' && isset($index['seen_device'][$deviceKey])) {
+        flock($indexFp, LOCK_UN);
+        fclose($indexFp);
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'message' => "This device has already submitted $action for {$course} today."]);
+        exit;
+    }
+
+    // Layer 2: localStorage token check — catches re-submissions even if hardware
+    // fingerprint changes (e.g. incognito mode or browser data cleared).
+    if ($tokenKey !== '' && isset($index['seen_token'][$tokenKey])) {
         flock($indexFp, LOCK_UN);
         fclose($indexFp);
         header('Content-Type: application/json');
@@ -694,7 +726,10 @@ if (!$loadTestRelaxActive) {
 
     $index['seen_matric'][$matricKey] = 1;
     if ($deviceKey !== '') {
-        $index['seen_device'][$deviceKey] = 1;
+        $index['seen_device'][$deviceKey] = 1;   // Layer 1 written
+    }
+    if ($tokenKey !== '') {
+        $index['seen_token'][$tokenKey] = 1;     // Layer 2 written
     }
     if ($action === 'checkin') {
         $index['has_checkin'][$checkinKey] = 1;

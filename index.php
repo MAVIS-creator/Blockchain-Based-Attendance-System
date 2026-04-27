@@ -193,15 +193,56 @@ include __DIR__ . '/includes/public_header.php';
       })();
     });
 
+    // Build a canvas fingerprint (GPU/font rendering is unique per device)
+    function getCanvasFingerprint() {
+      try {
+        const c = document.createElement('canvas');
+        c.width = 200; c.height = 50;
+        const ctx = c.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#f60';
+        ctx.fillRect(100, 1, 62, 20);
+        ctx.fillStyle = '#069';
+        ctx.fillText('SmartAttend\u2764', 2, 15);
+        ctx.fillStyle = 'rgba(102,204,0,0.3)';
+        ctx.font = '18pt Arial';
+        ctx.fillText('SmartAttend\u2764', 4, 25);
+        return c.toDataURL().slice(-64); // last 64 chars = pixel hash suffix
+      } catch(e) { return 'no-canvas'; }
+    }
+
+    // Hash an arbitrary string with SHA-256 (returns hex string)
+    async function sha256(str) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
     FingerprintJS.load().then(fp => {
-      fp.get().then(result => {
+      fp.get().then(async result => {
         const visitorId = result.visitorId;
+
+        // Collect additional hardware signals
+        const hw = [
+          screen.width, screen.height, screen.colorDepth,
+          navigator.hardwareConcurrency || 0,
+          navigator.deviceMemory || 0,
+          navigator.platform || '',
+          navigator.maxTouchPoints || 0,
+          getCanvasFingerprint()
+        ].join('|');
+
+        // Combine visitorId + hardware signals into one robust composite hash
+        const compositeHash = await sha256(visitorId + '::' + hw);
+
         let token = localStorage.getItem('attendance_token');
         if (!token) {
           token = crypto.randomUUID();
           localStorage.setItem('attendance_token', token);
         }
-        fingerprintInput.value = visitorId + "_" + token;
+
+        // Format: <compositeHash>_<localStorageToken>
+        fingerprintInput.value = compositeHash + "_" + token;
         submitBtn.disabled = false;
       }).catch(err => {
         Swal.fire({

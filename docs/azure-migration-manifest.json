@@ -1,0 +1,471 @@
+{
+  "manifestVersion": "1.0.0",
+  "generatedAt": "2026-04-28T00:00:00Z",
+  "purpose": "Migration manifest for recreating the attendance system in a new legitimate Azure subscription.",
+  "scope": {
+    "sourceResourceGroup": "attendance-app-rgv2",
+    "region": "southafricanorth",
+    "notes": [
+      "This manifest is for your own subscription and is not a bypass for someone else's credits or account.",
+      "Secret values are intentionally redacted.",
+      "Validate target subscription ownership, quota, and provider registrations before creating anything."
+    ]
+  },
+  "preflight": {
+    "mustPassBeforeDeployment": true,
+    "targetSubscriptionChecks": [
+      {
+        "name": "subscription-access",
+        "description": "Confirm you are signed into the correct Azure account and subscription.",
+        "expected": "Authenticated and able to list resource groups"
+      },
+      {
+        "name": "region-availability",
+        "description": "Confirm southafricanorth is available for App Service, SQL, Key Vault, Storage, Logic Apps, Monitor, and autoscale.",
+        "expected": "Region supported"
+      },
+      {
+        "name": "quota-check",
+        "description": "Confirm the subscription has enough quota for the target App Service plan SKU and any SQL/Storage capacity.",
+        "expected": "Sufficient quota"
+      },
+      {
+        "name": "provider-registration",
+        "description": "Confirm Microsoft.Web, Microsoft.Sql, Microsoft.KeyVault, Microsoft.Storage, Microsoft.Insights, and Microsoft.Logic are registered.",
+        "expected": "All required providers registered"
+      },
+      {
+        "name": "name-conflicts",
+        "description": "Confirm the target subscription does not already contain the same resource names.",
+        "expected": "No conflicts or names updated"
+      },
+      {
+        "name": "identity-and-rbac",
+        "description": "Confirm the deploying identity can create managed identities, role assignments, Key Vault references, and Logic Apps workflows.",
+        "expected": "Sufficient RBAC"
+      }
+    ],
+    "deploymentOrder": [
+      "resourceGroup",
+      "storageAccounts",
+      "keyVault",
+      "sqlServer",
+      "sqlDatabase",
+      "appServicePlan",
+      "webApp",
+      "applicationInsights",
+      "actionGroups",
+      "metricAlerts",
+      "autoscale",
+      "logicApps"
+    ]
+  },
+  "resourceGroup": {
+    "name": "attendance-app-rgv2",
+    "location": "southafricanorth"
+  },
+  "resources": {
+    "appServicePlan": {
+      "name": "attendancev2",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "southafricanorth",
+      "kind": "linux",
+      "sku": {
+        "name": "S3",
+        "tier": "Standard",
+        "capacity": 1
+      },
+      "properties": {
+        "reserved": true,
+        "isSpot": false,
+        "hyperV": false,
+        "state": "Ready",
+        "maximumNumberOfWorkers": 10,
+        "numberOfWorkers": 1,
+        "targetWorkerCount": 0,
+        "targetWorkerSizeId": 0
+      }
+    },
+    "webApp": {
+      "name": "attendancev2app123",
+      "type": "Microsoft.Web/sites",
+      "location": "southafricanorth",
+      "kind": "app,linux",
+      "hostname": "attendancev2app123.azurewebsites.net",
+      "state": "AdminDisabled",
+      "identity": {
+        "type": "SystemAssigned",
+        "tenantId": "13634941-779b-48dc-99cf-be9af88078ed",
+        "principalId": "b7f0fc0d-21e2-4df1-9ad8-909333a19cdc"
+      },
+      "properties": {
+        "reserved": true,
+        "startupCommand": "bash /home/site/wwwroot/startup.sh"
+      }
+    },
+    "applicationInsights": {
+      "name": "monitor",
+      "type": "Microsoft.Insights/components",
+      "location": "southafricanorth",
+      "kind": "web",
+      "properties": {
+        "applicationType": "web",
+        "alertState": "Succeeded",
+        "enabled": true,
+        "connectionString": "<redacted>",
+        "instrumentationKey": "<redacted>"
+      }
+    },
+    "autoscale": {
+      "name": "attendancev2-cpu-autoscale",
+      "type": "Microsoft.Insights/autoscalesettings",
+      "location": "southafricanorth",
+      "enabled": false,
+      "targetResourceUri": "/subscriptions/94c4ded6-910a-418f-b124-91a3a3d6bb2d/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+      "capacity": {
+        "default": 4,
+        "minimum": 3,
+        "maximum": 7
+      },
+      "rules": [
+        {
+          "metricName": "CpuPercentage",
+          "scope": "App Service plan",
+          "operator": "GreaterThan",
+          "threshold": 55,
+          "timeWindow": "PT3M",
+          "cooldown": "PT3M",
+          "direction": "Increase"
+        },
+        {
+          "metricName": "CpuPercentage",
+          "scope": "App Service plan",
+          "operator": "LessThan",
+          "threshold": 40,
+          "timeWindow": "PT12M",
+          "cooldown": "PT12M",
+          "direction": "Decrease"
+        },
+        {
+          "metricName": "AverageResponseTime",
+          "scope": "Web app",
+          "operator": "GreaterThan",
+          "threshold": 1.5,
+          "timeWindow": "PT5M",
+          "cooldown": "PT5M",
+          "direction": "Increase"
+        },
+        {
+          "metricName": "AverageResponseTime",
+          "scope": "Web app",
+          "operator": "LessThan",
+          "threshold": 1.0,
+          "timeWindow": "PT15M",
+          "cooldown": "PT15M",
+          "direction": "Decrease"
+        }
+      ]
+    },
+    "monitoring": {
+      "metricAlerts": [
+        {
+          "name": "attendance-cpu-high",
+          "severity": 2,
+          "description": "Sustained high CPU time in 15m window",
+          "scope": "attendancev2app123"
+        },
+        {
+          "name": "attendance-http5xx",
+          "severity": 1,
+          "description": "Sustained 5xx errors (>20) in 15m window",
+          "scope": "attendancev2app123"
+        },
+        {
+          "name": "attendance-latency-high",
+          "severity": 2,
+          "description": "Sustained high latency >3s average in 15m window",
+          "scope": "attendancev2app123"
+        }
+      ],
+      "smartDetectorRules": [
+        {
+          "name": "Failure Anomalies - monitor",
+          "severity": "Sev3",
+          "description": "Failure Anomalies notifies you of an unusual rise in failed HTTP requests or dependency calls.",
+          "scope": "monitor"
+        }
+      ],
+      "actionGroups": [
+        {
+          "name": "Application Insights Smart Detection",
+          "description": "SmartDetect"
+        },
+        {
+          "name": "autoscale-actions",
+          "description": "autoscalev2"
+        },
+        {
+          "name": "autoscale-actionsv2",
+          "description": "autoscalev2"
+        },
+        {
+          "name": "email-alerts",
+          "description": "email-alerts"
+        }
+      ]
+    },
+    "logicApps": [
+      {
+        "name": "scale-morning-b1",
+        "location": "southafricanorth",
+        "state": "Suspended",
+        "identity": {
+          "type": "SystemAssigned",
+          "tenantId": "13634941-779b-48dc-99cf-be9af88078ed",
+          "principalId": "33d590d8-22db-4d2a-bd97-eeecf7e3ed59"
+        },
+        "trigger": {
+          "type": "Recurrence",
+          "schedule": {
+            "frequency": "Day",
+            "interval": 1,
+            "hours": [7],
+            "minutes": [0],
+            "timeZone": "W. Central Africa Standard Time"
+          }
+        },
+        "action": {
+          "type": "PATCH",
+          "target": "Microsoft.Web/serverfarms/attendancev2",
+          "sku": {
+            "name": "S3",
+            "tier": "Standard",
+            "size": "S3",
+            "family": "S",
+            "capacity": 3
+          }
+        }
+      },
+      {
+        "name": "scale-alert-handler",
+        "location": "southafricanorth",
+        "state": "Suspended",
+        "identity": {
+          "type": "SystemAssigned",
+          "tenantId": "13634941-779b-48dc-99cf-be9af88078ed",
+          "principalId": "3fd739ec-916d-4ddf-9d84-2be17bdb07ea"
+        },
+        "trigger": {
+          "type": "Request",
+          "kind": "Http"
+        },
+        "businessWindow": {
+          "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          "startHour": 6,
+          "endHour": 16,
+          "timeZone": "W. Central Africa Standard Time"
+        },
+        "actions": {
+          "highSeverityScale": {
+            "targetSku": "S3",
+            "capacity": 3
+          },
+          "standardScale": {
+            "targetSku": "S2",
+            "capacity": 2
+          }
+        }
+      },
+      {
+        "name": "scale-evening-f1",
+        "location": "southafricanorth",
+        "state": "Suspended",
+        "identity": {
+          "type": "SystemAssigned",
+          "tenantId": "13634941-779b-48dc-99cf-be9af88078ed",
+          "principalId": "8479bbc9-8c0c-416e-bbba-08a64d093b29"
+        },
+        "trigger": {
+          "type": "Recurrence",
+          "schedule": {
+            "frequency": "Week",
+            "interval": 1,
+            "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            "hours": [16],
+            "minutes": [0],
+            "timeZone": "W. Central Africa Standard Time"
+          }
+        },
+        "action": {
+          "type": "PATCH",
+          "target": "Microsoft.Web/serverfarms/attendancev2",
+          "sku": {
+            "name": "B1",
+            "tier": "Basic",
+            "size": "B1",
+            "family": "B",
+            "capacity": 1
+          },
+          "extraAction": "disable_autoscale_offhours"
+        }
+      }
+    ],
+    "data": {
+      "sqlServer": {
+        "name": "attendancev2sql30939",
+        "type": "Microsoft.Sql/servers",
+        "location": "southafricanorth",
+        "version": "12.0",
+        "administratorLogin": "sqladminops",
+        "publicNetworkAccess": "Enabled",
+        "minimalTlsVersion": "1.2",
+        "restrictOutboundNetworkAccess": "Disabled",
+        "fullyQualifiedDomainName": "attendancev2sql30939.database.windows.net",
+        "state": "Disabled"
+      },
+      "sqlDatabases": [
+        {
+          "name": "attendance_admin",
+          "sku": {
+            "name": "Basic",
+            "tier": "Basic",
+            "capacity": 5
+          },
+          "status": "Online",
+          "backupStorageRedundancy": "Geo",
+          "serviceObjective": "Basic",
+          "maxSizeBytes": 2147483648,
+          "readScale": "Disabled",
+          "zoneRedundant": false,
+          "collation": "SQL_Latin1_General_CP1_CI_AS"
+        },
+        {
+          "name": "master",
+          "sku": {
+            "name": "Basic",
+            "tier": "Basic",
+            "capacity": 5
+          },
+          "status": "Online",
+          "backupStorageRedundancy": "Local",
+          "serviceObjective": "Basic",
+          "maxSizeBytes": 53687091200,
+          "readScale": "Disabled",
+          "zoneRedundant": false,
+          "collation": "SQL_Latin1_General_CP1_CI_AS"
+        }
+      ],
+      "keyVault": {
+        "name": "attendancev2kv93385",
+        "type": "Microsoft.KeyVault/vaults",
+        "location": "southafricanorth",
+        "sku": "standard",
+        "tenantId": "13634941-779b-48dc-99cf-be9af88078ed",
+        "enableRbacAuthorization": true,
+        "publicNetworkAccess": "Enabled",
+        "softDeleteRetentionInDays": 90,
+        "enableSoftDelete": true,
+        "enabledForDeployment": false,
+        "enabledForDiskEncryption": false,
+        "enabledForTemplateDeployment": false,
+        "vaultUri": "https://attendancev2kv93385.vault.azure.net/"
+      },
+      "storageAccounts": [
+        {
+          "name": "attendancev2",
+          "type": "Microsoft.Storage/storageAccounts",
+          "location": "southafricanorth",
+          "sku": {
+            "name": "Standard_ZRS",
+            "tier": "Standard"
+          },
+          "kind": "StorageV2",
+          "accessTier": "Hot",
+          "publicNetworkAccess": "Enabled",
+          "allowBlobPublicAccess": false,
+          "allowSharedKeyAccess": true,
+          "minimumTlsVersion": "TLS1_2",
+          "supportsHttpsTrafficOnly": true,
+          "networkAcls": {
+            "defaultAction": "Allow",
+            "bypass": "AzureServices"
+          },
+          "primaryEndpoints": {
+            "blob": "https://attendancev2.blob.core.windows.net/",
+            "file": "https://attendancev2.file.core.windows.net/",
+            "table": "https://attendancev2.table.core.windows.net/",
+            "queue": "https://attendancev2.queue.core.windows.net/",
+            "web": "https://attendancev2.z1.web.core.windows.net/",
+            "dfs": "https://attendancev2.dfs.core.windows.net/"
+          }
+        },
+        {
+          "name": "attendancev2zrs",
+          "type": "Microsoft.Storage/storageAccounts",
+          "location": "southafricanorth",
+          "sku": {
+            "name": "Standard_ZRS",
+            "tier": "Standard"
+          },
+          "kind": "StorageV2",
+          "accessTier": "Hot",
+          "publicNetworkAccess": "<not-set>",
+          "allowBlobPublicAccess": false,
+          "allowSharedKeyAccess": "<not-set>",
+          "minimumTlsVersion": "TLS1_0",
+          "supportsHttpsTrafficOnly": true,
+          "networkAcls": {
+            "defaultAction": "Allow",
+            "bypass": "AzureServices"
+          },
+          "primaryEndpoints": {
+            "blob": "https://attendancev2zrs.blob.core.windows.net/",
+            "file": "https://attendancev2zrs.file.core.windows.net/",
+            "table": "https://attendancev2zrs.table.core.windows.net/",
+            "queue": "https://attendancev2zrs.queue.core.windows.net/",
+            "web": "https://attendancev2zrs.z1.web.core.windows.net/",
+            "dfs": "https://attendancev2zrs.dfs.core.windows.net/"
+          }
+        }
+      ]
+    },
+    "applicationSettings": {
+      "APP_ENV": "production",
+      "APP_DEBUG": false,
+      "ADMIN_ACCOUNTS_BACKEND": "sql",
+      "ADMIN_SQL_SERVER": "<key-vault-reference>",
+      "ADMIN_SQL_DATABASE": "attendance_admin",
+      "ADMIN_SQL_USERNAME": "<key-vault-reference>",
+      "ADMIN_SQL_PASSWORD": "<key-vault-reference>",
+      "ADMIN_BOOTSTRAP_USERNAME": "Maximus",
+      "ADMIN_BOOTSTRAP_EMAIL": "isholasamuel062@gmail.com",
+      "ADMIN_BOOTSTRAP_PASSWORD": "<key-vault-reference>",
+      "HYBRID_MODE": "dual_write",
+      "HYBRID_ADMIN_READ": true,
+      "SUPABASE_URL": "<redacted-or-empty>",
+      "SUPABASE_SERVICE_ROLE_KEY": "<redacted-or-empty>",
+      "APP_TIMEZONE": "Africa/Lagos"
+    }
+  },
+  "restoreAndRecreateNotes": {
+    "recommendedSequence": [
+      "Validate target subscription access and quotas",
+      "Create resource group",
+      "Create storage accounts and Key Vault",
+      "Create SQL server and database",
+      "Create App Service plan and web app",
+      "Apply app settings and managed identity",
+      "Create Application Insights and alerts",
+      "Create autoscale setting",
+      "Deploy Logic Apps",
+      "Run smoke test and load test"
+    ],
+    "manualChecks": [
+      "Confirm the web app is on the intended plan before enabling autoscale",
+      "Confirm Logic Apps identities can patch the App Service plan",
+      "Confirm Key Vault references resolve for app settings",
+      "Confirm SQL firewall and access controls are appropriate",
+      "Confirm storage access and TLS settings meet your policy"
+    ]
+  }
+}
