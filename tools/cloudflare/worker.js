@@ -1,4 +1,4 @@
-const ORIGIN_HOST = "attendancev2app123.azurewebsites.net";
+const ORIGIN_HOST = "attendancev2app7t5g81ps.azurewebsites.net";
 const FALLBACK_HOME = "/index.php";
 
 const ERROR_PATHS = new Map([

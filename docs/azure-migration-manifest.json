@@ -2,6 +2,18 @@
   "manifestVersion": "1.0.0",
   "generatedAt": "2026-04-28T00:00:00Z",
   "purpose": "Migration manifest for recreating the attendance system in a new legitimate Azure subscription.",
+  "sourceSubscription": {
+    "subscriptionId": "94c4ded6-910a-418f-b124-91a3a3d6bb2d",
+    "subscriptionName": "Azure for Students",
+    "tenantId": "13634941-779b-48dc-99cf-be9af88078ed",
+    "note": "Current extension-authenticated environment that holds the existing attendance stack."
+  },
+  "targetSubscription": {
+    "subscriptionId": "5dec528f-5b49-47a5-8549-27e20975b3e2",
+    "subscriptionName": "Azure for Students",
+    "tenantId": "a126b6d0-41fd-41d9-8da3-fe3ab5c210cc",
+    "note": "Azure CLI-authenticated environment that should become the new owner of the resources."
+  },
   "scope": {
     "sourceResourceGroup": "attendance-app-rgv2",
     "region": "southafricanorth",
@@ -118,17 +130,20 @@
     "customDomain": {
       "publicDomain": "smart-attendance-samex.me",
       "wwwDomain": "www.smart-attendance-samex.me",
-      "bindTo": "attendancev2app123",
+      "bindTo": "attendancev2app7t5g81ps",
+      "targetAppServiceHostname": "attendancev2app7t5g81ps.azurewebsites.net",
+      "verificationId": "13F45AD4C706D9D9285F6B345CDA7D258D4F9E7BDC320E7AF95A49C35810BC47",
       "dnsModel": {
         "apex": {
-          "preferred": "A record to the Azure/Cloudflare fronting endpoint",
-          "alternate": "CNAME flattening/ANAME if supported by the DNS provider"
+          "preferred": "CNAME flattening/ANAME to attendancev2app7t5g81ps.azurewebsites.net if your DNS provider supports it",
+          "alternate": "Keep Cloudflare proxied A/worker routing on the apex if you want Cloudflare to stay in front"
         },
         "www": {
-          "preferred": "CNAME to the chosen fronting endpoint"
+          "preferred": "CNAME to attendancev2app7t5g81ps.azurewebsites.net or to the Cloudflare worker endpoint"
         },
         "verification": {
-          "type": "TXT or as required by Azure App Service custom-domain validation"
+          "type": "TXT",
+          "value": "asuid=13F45AD4C706D9D9285F6B345CDA7D258D4F9E7BDC320E7AF95A49C35810BC47"
         }
       },
       "tls": {
@@ -142,7 +157,7 @@
         "ASSET_BASE_URL": "https://smart-attendance-samex.me"
       },
       "proxyNotes": [
-        "If Cloudflare is in front, keep the worker/origin host pointing at the Azure App Service hostname unless you redesign the origin routing.",
+        "If Cloudflare is in front, keep the worker/origin host pointing at attendancev2app7t5g81ps.azurewebsites.net unless you redesign the origin routing.",
         "Set the app's public URL to the custom domain so generated links, redirects, and emails use the branded domain.",
         "Update any external callback URLs, OAuth redirect URLs, and webhook URLs to the custom domain if they are exposed publicly."
       ]
@@ -192,6 +207,67 @@
         },
         {
           "metricName": "AverageResponseTime",
+    "classScheduleAutoscale": {
+      "timeZone": "W. Central Africa Standard Time",
+      "scaleUpSku": {
+        "name": "S3",
+        "tier": "Standard",
+        "size": "S3",
+        "family": "S",
+        "capacity": 3
+      },
+      "scaleDownSku": {
+        "name": "B1",
+        "tier": "Basic",
+        "size": "B1",
+        "family": "B",
+        "capacity": 1
+      },
+      "weeklyWindows": [
+        {
+          "day": "Monday",
+          "classes": [
+            {"course": "Cyb 302", "start": "10:00", "end": "12:00"}
+          ],
+          "scaleUpAt": "10:00",
+          "scaleDownAt": "14:00"
+        },
+        {
+          "day": "Tuesday",
+          "classes": [
+            {"course": "Cyb 306", "start": "11:00", "end": "13:00"}
+          ],
+          "scaleUpAt": "11:00",
+          "scaleDownAt": "14:00"
+        },
+        {
+          "day": "Wednesday",
+          "classes": [
+            {"course": "Cyb 304", "start": "08:00", "end": "10:00"}
+          ],
+          "scaleUpAt": "08:00",
+          "scaleDownAt": "14:00"
+        },
+        {
+          "day": "Thursday",
+          "classes": [
+            {"course": "Cyb 322", "start": "08:00", "end": "10:00"},
+            {"course": "Cyb 308", "start": "12:00", "end": "14:00"}
+          ],
+          "scaleUpAt": ["08:00", "12:00"],
+          "scaleDownAt": "14:00"
+        },
+        {
+          "day": "Friday",
+          "classes": [
+            {"course": "Cyb 310", "start": "10:00", "end": "11:00"}
+          ],
+          "scaleUpAt": "10:00",
+          "scaleDownAt": "14:00"
+        }
+      ],
+      "note": "Only scale to S3 during the listed class windows; return to B1 at 14:00 every weekday."
+    },
           "scope": "Web app",
           "operator": "GreaterThan",
           "threshold": 1.5,
@@ -271,9 +347,10 @@
         "trigger": {
           "type": "Recurrence",
           "schedule": {
-            "frequency": "Day",
+            "frequency": "Week",
             "interval": 1,
-            "hours": [7],
+            "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            "hours": [10, 11, 8, 12],
             "minutes": [0],
             "timeZone": "W. Central Africa Standard Time"
           }
@@ -335,7 +412,7 @@
             "frequency": "Week",
             "interval": 1,
             "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-            "hours": [16],
+            "hours": [14],
             "minutes": [0],
             "timeZone": "W. Central Africa Standard Time"
           }
@@ -512,6 +589,54 @@
       "Confirm Key Vault references resolve for app settings",
       "Confirm SQL firewall and access controls are appropriate",
       "Confirm storage access and TLS settings meet your policy"
+    ]
+  },
+  "migrationStatus": {
+    "targetSubscriptionId": "5dec528f-5b49-47a5-8549-27e20975b3e2",
+    "targetResourceGroup": "attendance-app-rgv2",
+    "provisioningState": "Target subscription already has a deployed attendance stack",
+    "regionParityDecision": "Keep the current target layout for speed; do not rebuild the live target solely to match the source region mix unless you want a full reprovision and downtime window.",
+      "dnsCutover": {
+        "apexRecord": "Prefer CNAME flattening/ANAME to attendancev2app7t5g81ps.azurewebsites.net; if that is not supported, keep the Cloudflare proxied apex route and ensure the worker points at attendancev2app7t5g81ps.azurewebsites.net.",
+        "wwwRecord": "Point www to attendancev2app7t5g81ps.azurewebsites.net and keep it proxied if Cloudflare should stay in front.",
+        "verificationRecord": "Add TXT asuid=13F45AD4C706D9D9285F6B345CDA7D258D4F9E7BDC320E7AF95A49C35810BC47 if Azure asks for domain validation."
+      },
+    "alreadyPresentInTarget": [
+      "resourceGroup",
+      "appServicePlan",
+      "webApp",
+      "storageAccounts",
+      "keyVault",
+      "sqlServer",
+      "sqlDatabases",
+      "applicationInsights",
+      "actionGroups",
+      "monitorWorkspace"
+    ],
+    "missingFromTarget": [
+      "autoscale",
+      "logicApps"
+    ],
+    "appSettingsAligned": [
+      "APP_ENV",
+      "APP_DEBUG",
+      "APP_URL",
+      "ADMIN_ACCOUNTS_BACKEND",
+      "ADMIN_SQL_SERVER",
+      "ADMIN_SQL_DATABASE",
+      "ADMIN_BOOTSTRAP_USERNAME",
+      "APP_TIMEZONE",
+      "HYBRID_MODE",
+      "HYBRID_ADMIN_READ",
+      "ADMIN_SQL_PASSWORD",
+      "ADMIN_BOOTSTRAP_PASSWORD"
+    ],
+    "connectionStringsPresent": false,
+    "stillNeedsAttention": [
+      "Migrate application data and any SQL contents from source to target",
+      "Align DNS and custom domain cutover",
+      "Recreate autoscale settings and Logic Apps in the target if you want full parity with the source",
+      "Decide whether to keep the current target region mix or rebuild for exact source-region parity"
     ]
   }
 }
