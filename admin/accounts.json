@@ -11,5 +11,11 @@
     "name": "Elish",
     "avatar": null,
     "role": "admin"
+  },
+  "Maximus": {
+    "password": "$2y$10$BpX8Kv6MXgeHsUhPvK.MmekHS5Ei1s2r1bB1oGgQWjvXUJeJ6sKc.",
+    "name": "Maximus",
+    "avatar": null,
+    "role": "superadmin"
   }
 }

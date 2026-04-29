@@ -20,7 +20,11 @@ if ($inside -ne 'true') {
   throw 'Current directory is not a git repository.'
 }
 
-Write-Host "Deploying HEAD to $GitRemote/$DeployBranch ..."
+if (-not (Test-Path '.\.env')) {
+  Write-Host "WARNING: .env was not found locally. Git push will not deploy secrets; run with -SyncEnv after deployment if needed." -ForegroundColor Yellow
+}
+
+Write-Host "Deploying HEAD to $GitRemote/$DeployBranch using git push ..."
 git push $GitRemote HEAD:$DeployBranch
 
 if ($PushMaster) {
@@ -33,7 +37,7 @@ if ($ConfigureBuildFlags) {
   az webapp config appsettings set --resource-group $ResourceGroup --name $WebAppName --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true ENABLE_ORYX_BUILD=true WEBSITE_RUN_FROM_PACKAGE=0 | Out-Null
 }
 
-# 🔒 Sync .env to Azure App Service (new feature)
+# Sync .env to Azure App Service as App Settings instead of committing it to git.
 if ($SyncEnv) {
   Write-Host ""
   Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan

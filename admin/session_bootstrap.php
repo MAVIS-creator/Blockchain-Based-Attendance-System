@@ -24,6 +24,34 @@ if (!function_exists('admin_auth_debug_enabled')) {
   }
 }
 
+if (!function_exists('admin_enforce_https')) {
+  function admin_enforce_https()
+  {
+    if (PHP_SAPI === 'cli') {
+      return;
+    }
+
+    if (app_is_local_environment()) {
+      return;
+    }
+
+    $httpsForwarded = strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+    $httpsNative = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
+    if ($httpsForwarded || $httpsNative) {
+      return;
+    }
+
+    $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+    $uri = (string)($_SERVER['REQUEST_URI'] ?? '/');
+    if ($host === '') {
+      return;
+    }
+
+    header('Location: https://' . $host . $uri, true, 301);
+    exit;
+  }
+}
+
 if (!function_exists('admin_auth_debug_file')) {
   function admin_auth_debug_file()
   {
@@ -92,6 +120,8 @@ if (!function_exists('admin_auth_debug_recent')) {
 if (!function_exists('admin_configure_session')) {
   function admin_configure_session()
   {
+    admin_enforce_https();
+
     $targetName = ADMIN_SESSION_NAME;
 
     // If a session is already active, check it is using the right name.

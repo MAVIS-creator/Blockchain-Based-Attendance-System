@@ -6,9 +6,9 @@ if (function_exists('ob_start')) ob_start();
 $isAdminLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 if (!$isAdminLoggedIn) {
   $restoreReason = null;
-  $restoreSid = trim((string)session_id());
+  $restoreSid = trim((string)($_COOKIE[ADMIN_SESSION_TRACKER_COOKIE] ?? ''));
   if ($restoreSid === '') {
-    $restoreSid = trim((string)($_COOKIE[ADMIN_SESSION_TRACKER_COOKIE] ?? ''));
+    $restoreSid = trim((string)session_id());
   }
   if ($restoreSid !== '' && admin_restore_session_from_tracker($restoreSid, $restoreReason) && !empty($_SESSION['admin_logged_in'])) {
     admin_auth_debug_log('index_session_restored_from_tracker', [

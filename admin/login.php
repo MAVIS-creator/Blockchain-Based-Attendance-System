@@ -160,6 +160,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $cookieParams = session_get_cookie_params();
         $httpsForwarded = strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
         $httpsNative = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
+        $phpSessionId = trim((string)session_id());
+        if ($phpSessionId !== '') {
+            setcookie(session_name(), $phpSessionId, [
+                'expires' => time() + (int)$cookieParams['lifetime'],
+                'path' => ($cookieParams['path'] ?? '/'),
+                'domain' => '',
+                'secure' => ($httpsForwarded || $httpsNative),
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        }
         $trackerCookieOptions = [
             'path' => '/',
             'domain' => '',

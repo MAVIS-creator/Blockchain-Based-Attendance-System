@@ -27,6 +27,40 @@ function post_string($key, $default = '')
     return trim((string)$value);
 }
 
+function client_request_ip()
+{
+    $cfIp = trim((string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
+    if ($cfIp !== '' && filter_var($cfIp, FILTER_VALIDATE_IP)) {
+        return $cfIp;
+    }
+
+    $xff = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
+    if ($xff !== '') {
+        $parts = array_map('trim', explode(',', $xff));
+        foreach ($parts as $part) {
+            if ($part !== '' && filter_var($part, FILTER_VALIDATE_IP)) {
+                return $part;
+            }
+        }
+    }
+
+    return trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+}
+
+function ip_is_lan_or_loopback($ip)
+{
+    $ip = trim((string)$ip);
+    if ($ip === '') {
+        return false;
+    }
+
+    if ($ip === '127.0.0.1' || $ip === '::1') {
+        return true;
+    }
+
+    return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+}
+
 // Normalize inputs. Escape on output, validate where rules are strict.
 $name = post_string('name');
 $matric = preg_replace('/\D+/', '', post_string('matric'));
@@ -54,7 +88,7 @@ if (!in_array($action, ['checkin', 'checkout'], true)) {
     exit;
 }
 
-$ip = $_SERVER['REMOTE_ADDR'];
+$ip = client_request_ip();
 $userAgent = $_SERVER['HTTP_USER_AGENT'];
 
 // Include shared MAC helper
@@ -62,8 +96,12 @@ require_once __DIR__ . '/admin/includes/get_mac.php';
 
 $mac = 'UNKNOWN';
 $today = date("Y-m-d");
-$resolveMac = static function () use (&$mac, $ip) {
+$allowServerMacResolution = ip_is_lan_or_loopback($ip) && app_is_local_environment();
+$resolveMac = static function () use (&$mac, $ip, $allowServerMacResolution) {
     if ($mac !== 'UNKNOWN') {
+        return $mac;
+    }
+    if (!$allowServerMacResolution) {
         return $mac;
     }
     $macSpan = microtime(true);
