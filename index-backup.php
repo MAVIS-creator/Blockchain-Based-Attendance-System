@@ -1,7 +1,4 @@
 <?php
-// Load environment variables from Azure App Settings
-require_once __DIR__ . '/env-loader.php';
-
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/cache_helpers.php';

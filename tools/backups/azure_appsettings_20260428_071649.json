@@ -1,0 +1,72 @@
+[
+    {
+        "name":  "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+        "slotSetting":  false,
+        "value":  "false"
+    },
+    {
+        "name":  "DOCKER_REGISTRY_SERVER_URL",
+        "slotSetting":  false,
+        "value":  "https://mcr.microsoft.com"
+    },
+    {
+        "name":  "APP_ENV",
+        "slotSetting":  false,
+        "value":  "production"
+    },
+    {
+        "name":  "APP_DEBUG",
+        "slotSetting":  false,
+        "value":  "false"
+    },
+    {
+        "name":  "APP_URL",
+        "slotSetting":  false,
+        "value":  "https://smart-attendance-samex.me"
+    },
+    {
+        "name":  "ADMIN_ACCOUNTS_BACKEND",
+        "slotSetting":  false,
+        "value":  "sql"
+    },
+    {
+        "name":  "ADMIN_SQL_SERVER",
+        "slotSetting":  false,
+        "value":  "attendancev2sql7t5g81ps.database.windows.net"
+    },
+    {
+        "name":  "ADMIN_SQL_DATABASE",
+        "slotSetting":  false,
+        "value":  "attendance_admin"
+    },
+    {
+        "name":  "ADMIN_BOOTSTRAP_USERNAME",
+        "slotSetting":  false,
+        "value":  "Maximus"
+    },
+    {
+        "name":  "APP_TIMEZONE",
+        "slotSetting":  false,
+        "value":  "Africa/Lagos"
+    },
+    {
+        "name":  "HYBRID_MODE",
+        "slotSetting":  false,
+        "value":  "dual_write"
+    },
+    {
+        "name":  "HYBRID_ADMIN_READ",
+        "slotSetting":  false,
+        "value":  "true"
+    },
+    {
+        "name":  "ADMIN_SQL_PASSWORD",
+        "slotSetting":  false,
+        "value":  "SqlAdmin!727714Sec#498"
+    },
+    {
+        "name":  "ADMIN_BOOTSTRAP_PASSWORD",
+        "slotSetting":  false,
+        "value":  "Boot!819935Sec#252"
+    }
+]
