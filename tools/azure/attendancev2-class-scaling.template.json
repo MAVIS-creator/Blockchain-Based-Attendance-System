@@ -1,0 +1,616 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "Austria East"
+    },
+    "subscriptionId": {
+      "type": "string",
+      "defaultValue": "5dec528f-5b49-47a5-8549-27e20975b3e2"
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "defaultValue": "attendance-app-rgv2"
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": "attendancev2"
+    },
+    "timeZone": {
+      "type": "string",
+      "defaultValue": "W. Central Africa Standard Time"
+    }
+  },
+  "variables": {
+    "planPatchUri": "[format('https://management.azure.com/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Web/serverfarms/{2}?api-version=2022-03-01', parameters('subscriptionId'), parameters('resourceGroupName'), parameters('appServicePlanName'))]",
+    "autoscalePatchUri": "[format('https://management.azure.com/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Insights/autoscalesettings/attendancev2-class-autoscale?api-version=2022-10-01', parameters('subscriptionId'), parameters('resourceGroupName'))]",
+    "planResourceId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "scale-mon-1000-s3",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Week",
+                "interval": 1,
+                "schedule": { "weekDays": ["Monday"], "hours": [10], "minutes": [0] },
+                "timeZone": "[parameters('timeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "scale_plan_to_s3": {
+              "type": "Http",
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('planPatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "sku": { "name": "S3", "tier": "Standard", "size": "S3", "family": "S", "capacity": 1 },
+                  "properties": { "reserved": true }
+                },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            },
+            "enable_autoscale": {
+              "type": "Http",
+              "runAfter": { "scale_plan_to_s3": ["Succeeded"] },
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('autoscalePatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": { "properties": { "enabled": true } },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            }
+          },
+          "outputs": {}
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "scale-tue-1100-s3",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Week",
+                "interval": 1,
+                "schedule": { "weekDays": ["Tuesday"], "hours": [11], "minutes": [0] },
+                "timeZone": "[parameters('timeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "scale_plan_to_s3": {
+              "type": "Http",
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('planPatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "sku": { "name": "S3", "tier": "Standard", "size": "S3", "family": "S", "capacity": 1 },
+                  "properties": { "reserved": true }
+                },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            },
+            "enable_autoscale": {
+              "type": "Http",
+              "runAfter": { "scale_plan_to_s3": ["Succeeded"] },
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('autoscalePatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": { "properties": { "enabled": true } },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            }
+          },
+          "outputs": {}
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "scale-wed-0800-s3",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Week",
+                "interval": 1,
+                "schedule": { "weekDays": ["Wednesday"], "hours": [8], "minutes": [0] },
+                "timeZone": "[parameters('timeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "scale_plan_to_s3": {
+              "type": "Http",
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('planPatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "sku": { "name": "S3", "tier": "Standard", "size": "S3", "family": "S", "capacity": 1 },
+                  "properties": { "reserved": true }
+                },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            },
+            "enable_autoscale": {
+              "type": "Http",
+              "runAfter": { "scale_plan_to_s3": ["Succeeded"] },
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('autoscalePatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": { "properties": { "enabled": true } },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            }
+          },
+          "outputs": {}
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "scale-thu-0800-s3",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Week",
+                "interval": 1,
+                "schedule": { "weekDays": ["Thursday"], "hours": [8], "minutes": [0] },
+                "timeZone": "[parameters('timeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "scale_plan_to_s3": {
+              "type": "Http",
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('planPatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "sku": { "name": "S3", "tier": "Standard", "size": "S3", "family": "S", "capacity": 1 },
+                  "properties": { "reserved": true }
+                },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            },
+            "enable_autoscale": {
+              "type": "Http",
+              "runAfter": { "scale_plan_to_s3": ["Succeeded"] },
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('autoscalePatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": { "properties": { "enabled": true } },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            }
+          },
+          "outputs": {}
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "scale-fri-1000-s3",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Week",
+                "interval": 1,
+                "schedule": { "weekDays": ["Friday"], "hours": [10], "minutes": [0] },
+                "timeZone": "[parameters('timeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "scale_plan_to_s3": {
+              "type": "Http",
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('planPatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "sku": { "name": "S3", "tier": "Standard", "size": "S3", "family": "S", "capacity": 1 },
+                  "properties": { "reserved": true }
+                },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            },
+            "enable_autoscale": {
+              "type": "Http",
+              "runAfter": { "scale_plan_to_s3": ["Succeeded"] },
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('autoscalePatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": { "properties": { "enabled": true } },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            }
+          },
+          "outputs": {}
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "scale-weekdays-1400-b1",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Week",
+                "interval": 1,
+                "schedule": {
+                  "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                  "hours": [14],
+                  "minutes": [0]
+                },
+                "timeZone": "[parameters('timeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "disable_autoscale": {
+              "type": "Http",
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('autoscalePatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": { "properties": { "enabled": false } },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            },
+            "scale_plan_to_b1": {
+              "type": "Http",
+              "runAfter": { "disable_autoscale": ["Succeeded"] },
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('planPatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "sku": { "name": "B1", "tier": "Basic", "size": "B1", "family": "B", "capacity": 1 },
+                  "properties": { "reserved": true }
+                },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            }
+          },
+          "outputs": {}
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "scale-weekdays-1600-b1",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Week",
+                "interval": 1,
+                "schedule": {
+                  "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                  "hours": [16],
+                  "minutes": [0]
+                },
+                "timeZone": "[parameters('timeZone')]"
+              }
+            }
+          },
+          "actions": {
+            "disable_autoscale": {
+              "type": "Http",
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('autoscalePatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": { "properties": { "enabled": false } },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            },
+            "scale_plan_to_b1": {
+              "type": "Http",
+              "runAfter": { "disable_autoscale": ["Succeeded"] },
+              "inputs": {
+                "method": "PATCH",
+                "uri": "[variables('planPatchUri')]",
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "sku": { "name": "B1", "tier": "Basic", "size": "B1", "family": "B", "capacity": 1 },
+                  "properties": { "reserved": true }
+                },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://management.azure.com/" }
+              }
+            }
+          },
+          "outputs": {}
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/autoscalesettings",
+      "apiVersion": "2022-10-01",
+      "name": "attendancev2-class-autoscale",
+      "location": "[parameters('location')]",
+      "properties": {
+        "name": "attendancev2-class-autoscale",
+        "enabled": false,
+        "targetResourceUri": "[variables('planResourceId')]",
+        "profiles": [
+          {
+            "name": "Default Fixed Capacity",
+            "capacity": { "minimum": "1", "maximum": "1", "default": "1" }
+          },
+          {
+            "name": "Monday Class Window",
+            "capacity": { "minimum": "1", "maximum": "3", "default": "1" },
+            "rules": [
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[variables('planResourceId')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT10M",
+                  "timeAggregation": "Average",
+                  "operator": "GreaterThan",
+                  "threshold": 70
+                },
+                "scaleAction": { "direction": "Increase", "type": "ChangeCount", "value": "1", "cooldown": "PT10M" }
+              },
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[variables('planResourceId')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT20M",
+                  "timeAggregation": "Average",
+                  "operator": "LessThan",
+                  "threshold": 35
+                },
+                "scaleAction": { "direction": "Decrease", "type": "ChangeCount", "value": "1", "cooldown": "PT15M" }
+              }
+            ],
+            "recurrence": {
+              "frequency": "Week",
+              "schedule": { "timeZone": "[parameters('timeZone')]", "days": ["Monday"], "hours": [10], "minutes": [0] }
+            }
+          },
+          {
+            "name": "Tuesday Class Window",
+            "capacity": { "minimum": "1", "maximum": "3", "default": "1" },
+            "rules": [
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[variables('planResourceId')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT10M",
+                  "timeAggregation": "Average",
+                  "operator": "GreaterThan",
+                  "threshold": 70
+                },
+                "scaleAction": { "direction": "Increase", "type": "ChangeCount", "value": "1", "cooldown": "PT10M" }
+              },
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[variables('planResourceId')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT20M",
+                  "timeAggregation": "Average",
+                  "operator": "LessThan",
+                  "threshold": 35
+                },
+                "scaleAction": { "direction": "Decrease", "type": "ChangeCount", "value": "1", "cooldown": "PT15M" }
+              }
+            ],
+            "recurrence": {
+              "frequency": "Week",
+              "schedule": { "timeZone": "[parameters('timeZone')]", "days": ["Tuesday"], "hours": [11], "minutes": [0] }
+            }
+          },
+          {
+            "name": "Wednesday Class Window",
+            "capacity": { "minimum": "1", "maximum": "3", "default": "1" },
+            "rules": [
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[variables('planResourceId')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT10M",
+                  "timeAggregation": "Average",
+                  "operator": "GreaterThan",
+                  "threshold": 70
+                },
+                "scaleAction": { "direction": "Increase", "type": "ChangeCount", "value": "1", "cooldown": "PT10M" }
+              },
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[variables('planResourceId')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT20M",
+                  "timeAggregation": "Average",
+                  "operator": "LessThan",
+                  "threshold": 35
+                },
+                "scaleAction": { "direction": "Decrease", "type": "ChangeCount", "value": "1", "cooldown": "PT15M" }
+              }
+            ],
+            "recurrence": {
+              "frequency": "Week",
+              "schedule": { "timeZone": "[parameters('timeZone')]", "days": ["Wednesday"], "hours": [8], "minutes": [0] }
+            }
+          },
+          {
+            "name": "Thursday Class Window",
+            "capacity": { "minimum": "1", "maximum": "3", "default": "1" },
+            "rules": [
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[variables('planResourceId')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT10M",
+                  "timeAggregation": "Average",
+                  "operator": "GreaterThan",
+                  "threshold": 70
+                },
+                "scaleAction": { "direction": "Increase", "type": "ChangeCount", "value": "1", "cooldown": "PT10M" }
+              },
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[variables('planResourceId')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT20M",
+                  "timeAggregation": "Average",
+                  "operator": "LessThan",
+                  "threshold": 35
+                },
+                "scaleAction": { "direction": "Decrease", "type": "ChangeCount", "value": "1", "cooldown": "PT15M" }
+              }
+            ],
+            "recurrence": {
+              "frequency": "Week",
+              "schedule": { "timeZone": "[parameters('timeZone')]", "days": ["Thursday"], "hours": [8], "minutes": [0] }
+            }
+          },
+          {
+            "name": "Friday Class Window",
+            "capacity": { "minimum": "1", "maximum": "3", "default": "1" },
+            "rules": [
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[variables('planResourceId')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT10M",
+                  "timeAggregation": "Average",
+                  "operator": "GreaterThan",
+                  "threshold": 70
+                },
+                "scaleAction": { "direction": "Increase", "type": "ChangeCount", "value": "1", "cooldown": "PT10M" }
+              },
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[variables('planResourceId')]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT20M",
+                  "timeAggregation": "Average",
+                  "operator": "LessThan",
+                  "threshold": 35
+                },
+                "scaleAction": { "direction": "Decrease", "type": "ChangeCount", "value": "1", "cooldown": "PT15M" }
+              }
+            ],
+            "recurrence": {
+              "frequency": "Week",
+              "schedule": { "timeZone": "[parameters('timeZone')]", "days": ["Friday"], "hours": [10], "minutes": [0] }
+            }
+          },
+          {
+            "name": "Weekday End Profile",
+            "capacity": { "minimum": "1", "maximum": "1", "default": "1" },
+            "recurrence": {
+              "frequency": "Week",
+              "schedule": {
+                "timeZone": "[parameters('timeZone')]",
+                "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                "hours": [14],
+                "minutes": [0]
+              }
+            }
+          }
+        ],
+        "notifications": []
+      }
+    }
+  ]
+}
