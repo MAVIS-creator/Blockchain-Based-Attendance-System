@@ -542,5 +542,25 @@
         "auto_replied_by": "system_ai_operator",
         "context": "idle_proactive",
         "deleted": false
+    },
+    {
+        "id": "msg_4f7f28cde1f279df",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-04-30T14:42:31+02:00",
+        "message": "Sentinel AI here \ud83d\ude0e: Want a quick laugh, quick game, or quick system pulse-check while things are calm?",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
+    },
+    {
+        "id": "msg_836d360745407a5a",
+        "user": "system_ai_operator",
+        "name": "Sentinel AI",
+        "time": "2026-05-01T16:19:48+02:00",
+        "message": "Sentinel AI check-in \ud83c\udfaf: We can do a fast page tour, a one-liner joke, or a support queue snapshot.",
+        "auto_replied_by": "system_ai_operator",
+        "context": "idle_proactive",
+        "deleted": false
     }
 ]

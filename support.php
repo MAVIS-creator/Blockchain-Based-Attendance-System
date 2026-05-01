@@ -138,6 +138,21 @@ function support_spawn_ai_worker()
   @exec($cmd . ' > /dev/null 2>&1 &');
 }
 
+function support_process_ai_ticket_now($ticketTimestamp)
+{
+  $ticketTimestamp = trim((string)$ticketTimestamp);
+  if ($ticketTimestamp === '') {
+    return ['ok' => false, 'error' => 'missing_ticket_timestamp'];
+  }
+
+  try {
+    $engine = new AiTicketAutomationEngine();
+    return $engine->processTicketByTimestamp($ticketTimestamp);
+  } catch (Throwable $e) {
+    return ['ok' => false, 'error' => 'inline_ai_processing_failed', 'message' => $e->getMessage()];
+  }
+}
+
 function support_assess_message_quality($message, $requestedAction)
 {
   $message = trim((string)$message);
@@ -338,6 +353,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
       request_timing_span('ai_ticket_enqueue', $aiSpan, [
         'queued' => $queued,
         'ticket_ts' => $createdAt
+      ]);
+
+      // Azure background process spawning is not always reliable. Try an
+      // immediate same-request fallback so the student can still receive the
+      // targeted AI response without waiting on a detached worker.
+      $aiInlineSpan = microtime(true);
+      $inlineResult = support_process_ai_ticket_now($createdAt);
+      request_timing_span('ai_ticket_inline_process', $aiInlineSpan, [
+        'ok' => !empty($inlineResult['ok']),
+        'error' => (string)($inlineResult['error'] ?? ''),
+        'processed' => (int)($inlineResult['processed'] ?? 0),
       ]);
     }
 

@@ -110,5 +110,27 @@
         "name": "Mavis",
         "avatar": null,
         "needs_tour": false
+    },
+    "hp88bc38pk0tev86d62gahgplf": {
+        "user": "Mavis",
+        "ip": "::1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+        "login_time": 1777552947,
+        "last_activity": 1777552947,
+        "role": "superadmin",
+        "name": "Mavis",
+        "avatar": null,
+        "needs_tour": false
+    },
+    "4mqjlekfidieopfg3ianofptbp": {
+        "user": "Mavis",
+        "ip": "::1",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+        "login_time": 1777645184,
+        "last_activity": 1777645195,
+        "role": "superadmin",
+        "name": "Mavis",
+        "avatar": null,
+        "needs_tour": false
     }
 }

@@ -250,7 +250,13 @@ if (announcementBannerDismiss) {
 }
 
 function fetchAnnouncement() {
-    fetch('get_announcement.php', { cache: 'no-store' })
+    const fingerprintField = document.getElementById('fingerprint');
+    const fingerprintValue = fingerprintField && fingerprintField.value ? String(fingerprintField.value).trim() : '';
+    const announcementUrl = fingerprintValue
+        ? `get_announcement.php?fingerprint=${encodeURIComponent(fingerprintValue)}`
+        : 'get_announcement.php';
+
+    fetch(announcementUrl, { cache: 'no-store' })
     .then(res => res.json())
     .then(data => {
         const enabled = !!(data && data.enabled);

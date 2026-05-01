@@ -454,5 +454,47 @@
         "ai_reason": "Support geofence verdict: outside_geofence",
         "ai_suggested_admin_action": "Based on the provided ticket context, I will guide you through the admin action guidance.\n\n**Step 1: Review Support Ticket**\n\nNavigate to `admin/index.php?page=support_tickets` to review the support ticket details.\n\n**Step 2: Verify Student Information**\n\nVerify the student's information, including their matric number (9000011112) and course (CYB 206), to ensure accuracy.\n\n**Step 3: Check Geofence Settings**\n\nNavigate to `admin/index.php?page=geofence` to review the geofence settings, including the support geofence enabled status (true), inside status (false), and distance (1111.95 meters).\n\n**Step 4: Review Policy Reason**\n\nReview the policy reason for the denied check-in, which is \"Support geofence verdict: outside_geofence\".\n\n**Step 5: Update Student Message**\n\nUpdate the student message to inform the student that their check-in was denied due to being outside the geofence.\n\n**Step 6: Document Action**\n\nDocument the action taken in the support ticket,",
         "ai_handled_at": "2026-04-20T12:00:01+01:00"
+    },
+    {
+        "name": "Akintunde Dolapo",
+        "matric": "2023001932",
+        "message": "I cant check in why",
+        "fingerprint": "24364bb6e5ff4ec3997a30c928e83185",
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "ip": "::1",
+        "geofence": {
+            "enabled": false
+        },
+        "timestamp": "2026-04-30 17:41:17",
+        "resolved": false
+    },
+    {
+        "name": "Akintunde Dolapo",
+        "matric": "2023001932",
+        "message": "I Can't CheCk in at all why?",
+        "fingerprint": "24364bb6e5ff4ec3997a30c928e83185",
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "ip": "::1",
+        "geofence": {
+            "enabled": false
+        },
+        "timestamp": "2026-05-01 14:29:14",
+        "resolved": false
+    },
+    {
+        "name": "Akintunde Dolapo",
+        "matric": "2023001932",
+        "message": "I Can't CheCk in at all, why??",
+        "fingerprint": "24364bb6e5ff4ec3997a30c928e83185",
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "ip": "::1",
+        "geofence": {
+            "enabled": false
+        },
+        "timestamp": "2026-05-01 14:30:03",
+        "resolved": false
     }
 ]

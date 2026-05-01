@@ -65,6 +65,17 @@ if (!function_exists('app_storage_path')) {
       if ($isAzureAppService) {
         $azureHome = trim((string)getenv('HOME'));
         if ($azureHome !== '') {
+          $siteStorageFallback = rtrim($azureHome, '/\\') . DIRECTORY_SEPARATOR . 'site' . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'attendance_storage_v2';
+          if (!is_dir($siteStorageFallback)) {
+            @mkdir($siteStorageFallback, 0775, true);
+          }
+          if (is_dir($siteStorageFallback) && is_writable($siteStorageFallback)) {
+            $normalized = $siteStorageFallback;
+          }
+        }
+
+        $azureHome = trim((string)getenv('HOME'));
+        if ($azureHome !== '' && (!is_dir($normalized) || !is_writable($normalized))) {
           $azureFallback = rtrim($azureHome, '/\\') . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'attendance_storage';
           if (!is_dir($azureFallback)) {
             @mkdir($azureFallback, 0775, true);
