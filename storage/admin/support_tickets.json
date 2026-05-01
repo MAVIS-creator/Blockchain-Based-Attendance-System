@@ -467,7 +467,13 @@
             "enabled": false
         },
         "timestamp": "2026-04-30 17:41:17",
-        "resolved": false
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "invalid_course_reference",
+        "ai_confidence": 0.99,
+        "ai_reason": "Sentinel policy: requested course does not exist in configured catalog.",
+        "ai_suggested_admin_action": "Do not write attendance yet. Confirm the correct course with the student; if the ticket course is wrong, update guidance only. If the student meant another configured active course, continue with normal guarded manual attendance checks there.",
+        "ai_handled_at": "2026-05-01T15:45:17+01:00"
     },
     {
         "name": "Akintunde Dolapo",
@@ -481,7 +487,13 @@
             "enabled": false
         },
         "timestamp": "2026-05-01 14:29:14",
-        "resolved": false
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "invalid_course_reference",
+        "ai_confidence": 0.99,
+        "ai_reason": "Sentinel policy: requested course does not exist in configured catalog.",
+        "ai_suggested_admin_action": "Do not write attendance yet. Confirm the correct course with the student; if the ticket course is wrong, update guidance only. If the student meant another configured active course, continue with normal guarded manual attendance checks there.",
+        "ai_handled_at": "2026-05-01T15:45:35+01:00"
     },
     {
         "name": "Akintunde Dolapo",
@@ -495,6 +507,32 @@
             "enabled": false
         },
         "timestamp": "2026-05-01 14:30:03",
-        "resolved": false
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "invalid_course_reference",
+        "ai_confidence": 0.99,
+        "ai_reason": "Sentinel policy: requested course does not exist in configured catalog.",
+        "ai_suggested_admin_action": "Do not write attendance yet. Confirm the correct course with the student; if the ticket course is wrong, update guidance only. If the student meant another configured active course, continue with normal guarded manual attendance checks there.",
+        "ai_handled_at": "2026-05-01T15:45:51+01:00"
+    },
+    {
+        "name": "Codex Local Test",
+        "matric": "999991",
+        "message": "Local support ticket save test on May 1 2026.",
+        "fingerprint": "codex-local-test-fingerprint",
+        "course": "CYB 206",
+        "requested_action": "checkin",
+        "ip": "127.0.0.1",
+        "geofence": {
+            "enabled": false
+        },
+        "timestamp": "2026-05-01 15:44:56",
+        "resolved": true,
+        "ai_handled": true,
+        "ai_classification": "invalid_course_reference",
+        "ai_confidence": 0.99,
+        "ai_reason": "Sentinel policy: requested course does not exist in configured catalog.",
+        "ai_suggested_admin_action": "Do not write attendance yet. Confirm the correct course with the student; if the ticket course is wrong, update guidance only. If the student meant another configured active course, continue with normal guarded manual attendance checks there.",
+        "ai_handled_at": "2026-05-01T15:45:17+01:00"
     }
 ]
