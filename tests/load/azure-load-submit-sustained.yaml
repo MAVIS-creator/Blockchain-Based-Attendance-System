@@ -1,0 +1,17 @@
+version: v0.1
+testId: submit-sustained-azure-host
+displayName: Submit Sustained Azure Host
+description: Sustained phone-style attendance submission load against the direct App Service hostname.
+testType: Locust
+testPlan: locust_submit_sustained.py
+engineInstances: 2
+properties:
+  userPropertyFile: submit_sustained.locust.conf
+env:
+  - name: HOST
+    value: attendancev2app7t5g81ps.azurewebsites.net
+  - name: ENABLE_LOGGING
+    value: "False"
+failureCriteria:
+  - percentage(error) > 5
+  - p95(response_time_ms) > 3000

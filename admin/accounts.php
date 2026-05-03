@@ -23,6 +23,17 @@ $sqlAccountsLoadError = $useSqlAccounts ? ($sqlAccountsLoadError ?? null) : null
 $settings = admin_load_settings_cached(15) ?: ['prefer_mac' => true, 'max_admins' => 5];
 $permissions = admin_load_permissions_cached(15);
 
+$resolveAccountKey = static function (array $rows, string $username): ?string {
+  $needle = strtolower(trim($username));
+  if ($needle === '') return null;
+  foreach ($rows as $key => $_info) {
+    if (strtolower(trim((string)$key)) === $needle) {
+      return (string)$key;
+    }
+  }
+  return null;
+};
+
 $roleMemberLimits = [];
 if (isset($settings['role_member_limits']) && is_array($settings['role_member_limits'])) {
   foreach ($settings['role_member_limits'] as $rk => $rv) {
@@ -124,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-      if (isset($accounts[$username])) {
+      if ($resolveAccountKey($accounts, $username) !== null) {
         $errors[] = 'Username already exists.';
       } else {
         if ($useSqlAccounts) {
@@ -145,7 +156,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'role' => $role,
             'needs_tour' => true
           ];
-          file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+          if (!admin_write_json_atomic($accountsFile, $accounts)) {
+            $errors[] = 'Unable to save JSON-backed account.';
+          }
         }
 
         if (empty($errors)) {
@@ -159,11 +172,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $ENV = app_load_env_layers(__DIR__ . '/../.env');
 
           $loginLink = app_public_url('/admin/login.php');
+          $fromHost = (string)(parse_url($loginLink, PHP_URL_HOST) ?: parse_url((string)app_env_value('APP_URL', ''), PHP_URL_HOST) ?: 'localhost');
 
           $subject = "Your Admin Account Details";
           $headers = "MIME-Version: 1.0\r\n";
           $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-          $headers .= "From: Admin System <noreply@" . $host . ">\r\n";
+          $headers .= "From: Admin System <noreply@" . $fromHost . ">\r\n";
 
           $htmlMsg = "
             <html>
@@ -231,24 +245,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   } elseif ($action === 'delete') {
     $target = trim($_POST['target'] ?? '');
+    $targetKey = $resolveAccountKey($accounts, $target);
     if ($target === '') {
       $errors[] = 'Invalid target.';
-    } elseif (!isset($accounts[$target])) {
+    } elseif ($targetKey === null) {
       $errors[] = 'Target user does not exist.';
     } else {
       $currentUser = $_SESSION['admin_user'] ?? '';
-      if ($currentUser === $target) {
+      if (strcasecmp($currentUser, $targetKey) === 0) {
         $errors[] = 'You cannot delete your own account.';
       } else {
         $superCount = 0;
         foreach ($accounts as $u => $a) {
           if (($a['role'] ?? 'admin') === 'superadmin') $superCount++;
         }
-        if (($accounts[$target]['role'] ?? 'admin') === 'superadmin' && $superCount <= 1) {
+        if (($accounts[$targetKey]['role'] ?? 'admin') === 'superadmin' && $superCount <= 1) {
           $errors[] = 'Cannot delete the last super-admin.';
         } else {
           if ($useSqlAccounts) {
-            if (!admin_sql_delete_account($target, $sqlWriteError)) {
+            if (!admin_sql_delete_account($targetKey, $sqlWriteError)) {
               $errors[] = $sqlWriteError ?: 'Unable to delete SQL-backed account.';
             } else {
               $accounts = admin_sql_list_accounts($sqlReloadError);
@@ -257,30 +272,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               }
             }
           } else {
-            unset($accounts[$target]);
-            file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            unset($accounts[$targetKey]);
+            if (!admin_write_json_atomic($accountsFile, $accounts)) {
+              $errors[] = 'Unable to save JSON-backed account deletion.';
+            }
           }
 
           if (empty($errors)) {
           if (function_exists('admin_log_action')) {
-            admin_log_action('Accounts', 'Account Deleted', "Deleted admin account: {$target}");
+            admin_log_action('Accounts', 'Account Deleted', "Deleted admin account: {$targetKey}");
           }
-          $message = "Admin account '{$target}' deleted.";
+          $message = "Admin account '{$targetKey}' deleted.";
           }
         }
       }
     }
   } elseif ($action === 'change_self') {
     $currentUser = $_SESSION['admin_user'] ?? '';
+    $currentUserKey = $resolveAccountKey($accounts, $currentUser);
     $old = $_POST['current_password'] ?? '';
     $new = $_POST['new_password'] ?? '';
     $confirm = $_POST['confirm_password'] ?? '';
-    if ($currentUser === '' || !isset($accounts[$currentUser])) {
+    if ($currentUser === '' || $currentUserKey === null) {
       $errors[] = 'Account not found.';
     } else {
       if ($old === '' || $new === '' || $confirm === '') {
         $errors[] = 'All password fields are required.';
-      } elseif (!password_verify($old, $accounts[$currentUser]['password'])) {
+      } elseif (!password_verify($old, $accounts[$currentUserKey]['password'])) {
         $errors[] = 'Current password is incorrect.';
       } elseif ($new !== $confirm) {
         $errors[] = 'New passwords do not match.';
@@ -288,7 +306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'New password must be at least 6 characters.';
       } else {
         if ($useSqlAccounts) {
-          if (!admin_sql_update_password($currentUser, $new, $sqlWriteError)) {
+          if (!admin_sql_update_password($currentUserKey, $new, $sqlWriteError)) {
             $errors[] = $sqlWriteError ?: 'Unable to update SQL-backed password.';
           } else {
             $accounts = admin_sql_list_accounts($sqlReloadError);
@@ -297,8 +315,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
           }
         } else {
-          $accounts[$currentUser]['password'] = password_hash($new, PASSWORD_DEFAULT);
-          file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+          $accounts[$currentUserKey]['password'] = password_hash($new, PASSWORD_DEFAULT);
+          if (!admin_write_json_atomic($accountsFile, $accounts)) {
+            $errors[] = 'Unable to save JSON-backed password change.';
+          }
         }
 
         if (empty($errors)) {
@@ -311,14 +331,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   } elseif ($action === 'set_password') {
     $target = trim($_POST['target'] ?? '');
+    $targetKey = $resolveAccountKey($accounts, $target);
     $new = $_POST['new_password'] ?? '';
-    if ($target === '' || !isset($accounts[$target])) {
+    if ($target === '' || $targetKey === null) {
       $errors[] = 'Target user does not exist.';
     } elseif ($new === '' || strlen($new) < 6) {
       $errors[] = 'New password must be at least 6 characters.';
     } else {
       if ($useSqlAccounts) {
-        if (!admin_sql_update_password($target, $new, $sqlWriteError)) {
+        if (!admin_sql_update_password($targetKey, $new, $sqlWriteError)) {
           $errors[] = $sqlWriteError ?: 'Unable to update SQL-backed password.';
         } else {
           $accounts = admin_sql_list_accounts($sqlReloadError);
@@ -327,27 +348,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
         }
       } else {
-        $accounts[$target]['password'] = password_hash($new, PASSWORD_DEFAULT);
-        file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $accounts[$targetKey]['password'] = password_hash($new, PASSWORD_DEFAULT);
+        if (!admin_write_json_atomic($accountsFile, $accounts)) {
+          $errors[] = 'Unable to save JSON-backed password reset.';
+        }
       }
 
       if (empty($errors)) {
       if (function_exists('admin_log_action')) {
-        admin_log_action('Accounts', 'Password Reset', "Password reset for account: {$target}");
+        admin_log_action('Accounts', 'Password Reset', "Password reset for account: {$targetKey}");
       }
-      $message = "Password updated for {$target}.";
+      $message = "Password updated for {$targetKey}.";
       }
     }
   } elseif ($action === 'update_role') {
     $target = trim($_POST['target'] ?? '');
+    $targetKey = $resolveAccountKey($accounts, $target);
     $newRole = strtolower(trim((string)($_POST['new_role'] ?? 'admin')));
 
-    if ($target === '' || !isset($accounts[$target])) {
+    if ($target === '' || $targetKey === null) {
       $errors[] = 'Target user does not exist.';
     } elseif (!in_array($newRole, $availableRoles, true)) {
       $errors[] = 'Selected role is invalid.';
     } else {
-      $oldRole = (string)($accounts[$target]['role'] ?? 'admin');
+      $oldRole = (string)($accounts[$targetKey]['role'] ?? 'admin');
       $oldRoleNorm = strtolower(trim($oldRole));
       if ($oldRoleNorm === '') $oldRoleNorm = 'admin';
       $superCount = 0;
@@ -371,7 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       if (empty($errors)) {
         if ($useSqlAccounts) {
-          if (!admin_sql_update_role($target, $newRole, $sqlWriteError)) {
+          if (!admin_sql_update_role($targetKey, $newRole, $sqlWriteError)) {
             $errors[] = $sqlWriteError ?: 'Unable to update SQL-backed role.';
           } else {
             $accounts = admin_sql_list_accounts($sqlReloadError);
@@ -380,15 +404,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
           }
         } else {
-          $accounts[$target]['role'] = $newRole;
-          file_put_contents($accountsFile, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+          $accounts[$targetKey]['role'] = $newRole;
+          if (!admin_write_json_atomic($accountsFile, $accounts)) {
+            $errors[] = 'Unable to save JSON-backed role update.';
+          }
         }
 
         if (empty($errors)) {
         if (function_exists('admin_log_action')) {
-          admin_log_action('Accounts', 'Role Updated', "Updated role for {$target}: {$oldRole} -> {$newRole}");
+          admin_log_action('Accounts', 'Role Updated', "Updated role for {$targetKey}: {$oldRole} -> {$newRole}");
         }
-        $message = "Role updated for {$target}.";
+        $message = "Role updated for {$targetKey}.";
         }
       }
     }

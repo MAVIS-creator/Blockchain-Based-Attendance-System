@@ -1404,7 +1404,7 @@ $h_tour_catalog = [
     'page' => 'dashboard',
     'title' => 'Live Dashboard',
     'text' => 'Your command center for attendance activity and operational health.',
-    'selector' => 'a[href="index.php?page=dashboard"]',
+    'selector' => '[data-tour-page="dashboard"]',
     'position' => 'right',
   ],
   [
@@ -1412,7 +1412,7 @@ $h_tour_catalog = [
     'page' => 'status',
     'title' => 'Attendance Status',
     'text' => 'Enable or pause check-in and check-out modes from this control point.',
-    'selector' => 'a[href="index.php?page=status"]',
+    'selector' => '[data-tour-page="status"]',
     'position' => 'right',
   ],
   [
@@ -1420,7 +1420,7 @@ $h_tour_catalog = [
     'page' => 'set_active',
     'title' => 'Active Course',
     'text' => 'Set the active course before opening attendance windows.',
-    'selector' => 'a[href="index.php?page=set_active"]',
+    'selector' => '[data-tour-page="set_active"]',
     'position' => 'right',
   ],
   [
@@ -1428,7 +1428,7 @@ $h_tour_catalog = [
     'page' => 'manual_attendance',
     'title' => 'Manual Attendance',
     'text' => 'Use controlled manual override for valid attendance exceptions.',
-    'selector' => 'a[href="index.php?page=manual_attendance"]',
+    'selector' => '[data-tour-page="manual_attendance"]',
     'position' => 'right',
   ],
   [
@@ -1436,7 +1436,7 @@ $h_tour_catalog = [
     'page' => 'support_tickets',
     'title' => 'Support Tickets',
     'text' => 'Review student complaints and resolution workflow from one queue.',
-    'selector' => 'a[href="index.php?page=support_tickets"]',
+    'selector' => '[data-tour-page="support_tickets"]',
     'position' => 'right',
   ],
   [
@@ -1444,7 +1444,7 @@ $h_tour_catalog = [
     'page' => 'ai_suggestions',
     'title' => 'AI Suggestions',
     'text' => 'Inspect AI recommendations, confidence, and required manual-review actions.',
-    'selector' => 'a[href="index.php?page=ai_suggestions"]',
+    'selector' => '[data-tour-page="ai_suggestions"]',
     'position' => 'right',
   ],
   [
@@ -1452,7 +1452,7 @@ $h_tour_catalog = [
     'page' => 'request_timings',
     'title' => 'Request Timings',
     'text' => 'Track latency and identify slow admin routes quickly.',
-    'selector' => 'a[href="index.php?page=request_timings"]',
+    'selector' => '[data-tour-page="request_timings"]',
     'position' => 'right',
   ],
   [
@@ -1460,7 +1460,7 @@ $h_tour_catalog = [
     'page' => 'logs',
     'title' => 'General Logs',
     'text' => 'Browse attendance activity and operational records.',
-    'selector' => 'a[href="index.php?page=logs"]',
+    'selector' => '[data-tour-page="logs"]',
     'position' => 'right',
   ],
   [
@@ -1468,7 +1468,7 @@ $h_tour_catalog = [
     'page' => 'failed_attempts',
     'title' => 'Failed Attempts',
     'text' => 'Review blocked and suspicious attempts for security monitoring.',
-    'selector' => 'a[href="index.php?page=failed_attempts"]',
+    'selector' => '[data-tour-page="failed_attempts"]',
     'position' => 'right',
   ],
   [
@@ -1476,7 +1476,7 @@ $h_tour_catalog = [
     'page' => 'announcement',
     'title' => 'Announcements',
     'text' => 'Broadcast important updates to students instantly.',
-    'selector' => 'a[href="index.php?page=announcement"]',
+    'selector' => '[data-tour-page="announcement"]',
     'position' => 'right',
   ],
   [
@@ -1484,7 +1484,7 @@ $h_tour_catalog = [
     'page' => 'unlink_fingerprint',
     'title' => 'Unlink Fingerprint',
     'text' => 'Safely unlink biometric mapping when remediation is required.',
-    'selector' => 'a[href="index.php?page=unlink_fingerprint"]',
+    'selector' => '[data-tour-page="unlink_fingerprint"]',
     'position' => 'right',
   ],
   [
@@ -1492,7 +1492,7 @@ $h_tour_catalog = [
     'page' => 'status_debug',
     'title' => 'Status Diagnostics',
     'text' => 'Deep-dive debug panel for advanced operational diagnostics.',
-    'selector' => 'a[href="index.php?page=status_debug"]',
+    'selector' => '[data-tour-page="status_debug"]',
     'position' => 'right',
   ],
   [
@@ -1500,7 +1500,7 @@ $h_tour_catalog = [
     'page' => 'roles',
     'title' => 'Role Privileges',
     'text' => 'Manage role permissions and governance boundaries.',
-    'selector' => 'a[href="index.php?page=roles"]',
+    'selector' => '[data-tour-page="roles"]',
     'position' => 'right',
   ],
   [
@@ -1508,7 +1508,7 @@ $h_tour_catalog = [
     'page' => 'accounts',
     'title' => 'Manage Accounts',
     'text' => 'Create, update, and secure admin accounts by role.',
-    'selector' => 'a[href="index.php?page=accounts"]',
+    'selector' => '[data-tour-page="accounts"]',
     'position' => 'right',
   ],
   [
@@ -1516,7 +1516,7 @@ $h_tour_catalog = [
     'page' => 'audit',
     'title' => 'Action Audit Log',
     'text' => 'Track privileged changes for accountability and compliance.',
-    'selector' => 'a[href="index.php?page=audit"]',
+    'selector' => '[data-tour-page="audit"]',
     'position' => 'right',
   ],
   [
@@ -1524,10 +1524,35 @@ $h_tour_catalog = [
     'page' => 'settings',
     'title' => 'System Settings',
     'text' => 'Configure system-level behavior, automation, and platform defaults.',
-    'selector' => 'a[href="index.php?page=settings"]',
+    'selector' => '[data-tour-page="settings"]',
     'position' => 'right',
   ],
 ];
+
+$h_routeCatalog = function_exists('admin_route_catalog') ? admin_route_catalog() : [];
+$h_tour_pages_present = [];
+foreach ($h_tour_catalog as $tourStep) {
+  $tourPage = (string)($tourStep['page'] ?? '');
+  if ($tourPage !== '') {
+    $h_tour_pages_present[$tourPage] = true;
+  }
+}
+
+foreach ($h_routeCatalog as $pageId => $routeMeta) {
+  $pageId = (string)$pageId;
+  if ($pageId === '' || isset($h_tour_pages_present[$pageId]) || !h_can_view($pageId)) {
+    continue;
+  }
+
+  $h_tour_catalog[] = [
+    'id' => $pageId,
+    'page' => $pageId,
+    'title' => (string)($routeMeta['label'] ?? ucwords(str_replace('_', ' ', $pageId))),
+    'text' => 'This page is available for your role and can be opened from the admin navigation whenever you need it.',
+    'selector' => '[data-tour-page="' . $pageId . '"]',
+    'position' => 'right',
+  ];
+}
 
 $h_tour_steps_for_role = [];
 foreach ($h_tour_catalog as $tourStep) {
@@ -1633,6 +1658,17 @@ usort($h_tour_steps_for_role, static function ($a, $b) use ($h_rank) {
 foreach ($h_tour_steps_for_role as $idx => $step) {
   unset($h_tour_steps_for_role[$idx]['_orig_idx']);
 }
+
+$h_currentPageId = (string)($page ?? 'dashboard');
+$h_currentRoleLabel = ucfirst((string)($_SESSION['admin_role'] ?? 'admin'));
+$h_accessibleTourLabels = [];
+foreach ($h_tour_steps_for_role as $step) {
+  $label = trim((string)($step['title'] ?? ''));
+  if ($label !== '') {
+    $h_accessibleTourLabels[] = $label;
+  }
+}
+$h_accessibleTourPreview = array_slice($h_accessibleTourLabels, 0, 6);
 ?>
 <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.0.1/dist/js/shepherd.min.js"></script>
 <style>
@@ -1771,6 +1807,9 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
   document.addEventListener("DOMContentLoaded", function() {
     const steps = [];
     const rolePageTourSteps = <?= json_encode($h_tour_steps_for_role, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    const currentPageId = <?= json_encode($h_currentPageId, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    const currentRoleLabel = <?= json_encode($h_currentRoleLabel, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    const accessibleTourPreview = <?= json_encode($h_accessibleTourPreview, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
     const navButtons = [{
       text: 'Back',
       action: function() {
@@ -1786,16 +1825,41 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
       classes: 'shepherd-button'
     }];
 
+    function rolePreviewText() {
+      if (!Array.isArray(accessibleTourPreview) || !accessibleTourPreview.length) {
+        return 'We will walk through the admin areas your role can access.';
+      }
+      return `Your ${currentRoleLabel} role can access pages like ${accessibleTourPreview.join(', ')}.`;
+    }
+
+    function isCompactScreen() {
+      return window.matchMedia('(max-width: 768px)').matches;
+    }
+
+    function preferredStepPosition(stepConfig) {
+      if (isCompactScreen()) {
+        return 'bottom';
+      }
+      return (stepConfig && stepConfig.position) ? stepConfig.position : 'right';
+    }
+
     function pushRoleStep(stepConfig) {
       if (!stepConfig || !stepConfig.id || !stepConfig.selector) return;
+      const isCurrentPage = stepConfig.page && stepConfig.page === currentPageId;
+      const stepText = isCurrentPage
+        ? `${stepConfig.text || 'Important workspace module.'} You are currently viewing this page now.`
+        : `${stepConfig.text || 'Important workspace module.'} Open it from your role navigation when needed.`;
+
       steps.push({
         id: stepConfig.id,
         title: stepConfig.title || 'Module',
-        text: stepConfig.text || 'Important workspace module.',
+        text: stepText,
         attachTo: {
-          element: stepConfig.selector,
-          on: stepConfig.position || 'right'
+          element: isCurrentPage ? '.content-wrapper' : stepConfig.selector,
+          on: preferredStepPosition(stepConfig)
         },
+        pageId: stepConfig.page || '',
+        isCurrentPage: !!isCurrentPage,
         buttons: navButtons
       });
     }
@@ -1803,9 +1867,9 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
     steps.push({
       id: 'intro',
       title: 'Welcome to the Platform!',
-      text: 'Let\'s take a quick tour of your day-to-day administrative tools. You can exit this at any time.',
+      text: `Let\'s take a quick tour of your day-to-day administrative tools. ${rolePreviewText()} You can exit this at any time.`,
       attachTo: {
-        element: 'h1',
+        element: '.content-wrapper',
         on: 'bottom'
       },
       buttons: [{
@@ -1827,10 +1891,10 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
     steps.push({
       id: 'ai_copilot',
       title: 'AI Navigation & Chat',
-      text: 'Pro Tip: Press Cmd+K anywhere to Search! Click the sidebar chat bubble for help.',
+      text: 'Pro Tip: Press Cmd+K anywhere to search. Use the AI chat bubble when you want help finding the right page for your role.',
       attachTo: {
         element: '#chatToggle',
-        on: 'top-left'
+        on: preferredStepPosition({ position: 'top-left' })
       },
       buttons: [{
         text: 'Finish',
@@ -1876,14 +1940,17 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
 
     function resolveTourTarget(selector) {
       if (typeof selector !== 'string') return selector;
+      if (selector === '.content-wrapper') {
+        return resolveVisibleElement(selector);
+      }
       const isMobile = window.matchMedia('(max-width: 1024px)').matches;
       if (!isMobile) {
         return resolveVisibleElement(selector);
       }
 
-      const hrefMatch = selector.match(/a\[href=['\"]([^'\"]+)['\"]\]/i);
-      if (hrefMatch && hrefMatch[1]) {
-        const sidebarTarget = resolveVisibleElement(`.sidebar a[href="${hrefMatch[1]}"]`);
+      const pageMatch = selector.match(/\[data-tour-page=['\"]([^'\"]+)['\"]\]/i);
+      if (pageMatch && pageMatch[1]) {
+        const sidebarTarget = resolveVisibleElement(`.sidebar [data-tour-page="${pageMatch[1]}"]`);
         if (sidebarTarget) return sidebarTarget;
       }
       return resolveVisibleElement(selector);
@@ -1904,8 +1971,16 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
           )
           .then(async () => {
             const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+            step.attachTo = step.attachTo || {};
+            step.attachTo.on = preferredStepPosition({ position: step.attachTo.on });
             const selector = step._selector;
-            const attached = resolveTourTarget(selector || (step.attachTo && step.attachTo.element));
+            let attached = null;
+            if (step.isCurrentPage) {
+              attached = resolveVisibleElement('.content-wrapper');
+            }
+            if (!(attached instanceof Element)) {
+              attached = resolveTourTarget(selector || (step.attachTo && step.attachTo.element));
+            }
             if (attached instanceof Element) {
               if (isMobile && attached.closest('.sidebar') && !document.body.classList.contains('sidebar-open') && typeof window.toggleSidebar === 'function') {
                 window.toggleSidebar();
@@ -1922,6 +1997,8 @@ foreach ($h_tour_steps_for_role as $idx => $step) {
                 block: 'center',
                 inline: 'nearest'
               });
+            } else {
+              delete step.attachTo.element;
             }
           });
       };

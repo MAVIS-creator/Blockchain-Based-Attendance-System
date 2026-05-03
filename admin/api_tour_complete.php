@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/session_bootstrap.php';
+require_once __DIR__ . '/sql_accounts.php';
+require_once __DIR__ . '/state_helpers.php';
 
 header('Content-Type: application/json');
 
@@ -16,29 +18,39 @@ if (!$username) {
     exit;
 }
 
-$accountsFile = admin_accounts_file();
-if (!file_exists($accountsFile)) {
-    echo json_encode(['ok' => false, 'error' => 'File not found']);
-    exit;
-}
-
-// Write lock to prevent race conditions
-$fp = fopen($accountsFile, 'c+');
-if ($fp) {
-    flock($fp, LOCK_EX);
-    $size = filesize($accountsFile) ?: 0;
-    $raw = $size > 0 ? fread($fp, $size) : '';
-    $accounts = json_decode($raw, true) ?: [];
-
-    if (isset($accounts[$username]) && isset($accounts[$username]['needs_tour'])) {
-        unset($accounts[$username]['needs_tour']);
-        ftruncate($fp, 0);
-        rewind($fp);
-        fwrite($fp, json_encode($accounts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+if (admin_should_use_sql_accounts()) {
+    $sqlError = null;
+    if (!admin_sql_update_needs_tour($username, false, $sqlError)) {
+        echo json_encode(['ok' => false, 'error' => $sqlError ?: 'Failed to update SQL tour state']);
+        exit;
     }
-    
-    flock($fp, LOCK_UN);
-    fclose($fp);
+} else {
+    $accountsFile = admin_accounts_file();
+    if (!file_exists($accountsFile)) {
+        echo json_encode(['ok' => false, 'error' => 'File not found']);
+        exit;
+    }
+
+    $accounts = admin_load_accounts_cached(0);
+    if (!is_array($accounts)) {
+        $accounts = [];
+    }
+
+    $accountKey = null;
+    foreach ($accounts as $key => $_account) {
+        if (strcasecmp((string)$key, (string)$username) === 0) {
+            $accountKey = (string)$key;
+            break;
+        }
+    }
+
+    if ($accountKey !== null && isset($accounts[$accountKey]['needs_tour'])) {
+        unset($accounts[$accountKey]['needs_tour']);
+        if (!admin_write_json_atomic($accountsFile, $accounts)) {
+            echo json_encode(['ok' => false, 'error' => 'Failed to update JSON tour state']);
+            exit;
+        }
+    }
 }
 
 // Clear the session flag so it doesn't trigger on reload

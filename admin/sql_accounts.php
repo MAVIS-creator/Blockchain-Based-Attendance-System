@@ -422,3 +422,29 @@ if (!function_exists('admin_sql_update_role')) {
     }
   }
 }
+
+if (!function_exists('admin_sql_update_needs_tour')) {
+  function admin_sql_update_needs_tour($username, $needsTour, &$error = null)
+  {
+    $error = null;
+    $pdo = admin_sql_accounts_connect($connectError);
+    if (!$pdo) {
+      $error = $connectError;
+      return false;
+    }
+    if (!admin_sql_accounts_ensure_schema($pdo, $schemaError)) {
+      $error = $schemaError;
+      return false;
+    }
+
+    $table = admin_sql_accounts_table();
+    try {
+      $stmt = $pdo->prepare("UPDATE [dbo].[{$table}] SET needs_tour = ?, updated_at = SYSUTCDATETIME() WHERE LOWER(username) = LOWER(?) AND is_active = 1");
+      $stmt->execute([$needsTour ? 1 : 0, trim((string)$username)]);
+      return true;
+    } catch (Throwable $e) {
+      $error = 'Failed to update SQL tour state: ' . $e->getMessage();
+      return false;
+    }
+  }
+}

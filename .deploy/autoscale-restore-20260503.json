@@ -1,0 +1,408 @@
+{
+  "extendedLocation": null,
+  "id": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/microsoft.insights/autoscalesettings/attendancev2-class-autoscale",
+  "identity": null,
+  "kind": null,
+  "location": "Austria East",
+  "managedBy": null,
+  "name": "attendancev2-class-autoscale",
+  "plan": null,
+  "properties": {
+    "enabled": false,
+    "name": "attendancev2-class-autoscale",
+    "notifications": [
+      {
+        "email": {
+          "customEmails": [],
+          "sendToSubscriptionAdministrator": false,
+          "sendToSubscriptionCoAdministrators": false
+        },
+        "operation": "Scale",
+        "webhooks": []
+      }
+    ],
+    "predictiveAutoscalePolicy": {
+      "scaleLookAheadTime": null,
+      "scaleMode": "Disabled"
+    },
+    "profiles": [
+      {
+        "capacity": {
+          "default": "1",
+          "maximum": "3",
+          "minimum": "1"
+        },
+        "name": "Default Fixed Capacity",
+        "rules": []
+      },
+      {
+        "capacity": {
+          "default": "1",
+          "maximum": "3",
+          "minimum": "1"
+        },
+        "name": "Monday Class Window",
+        "recurrence": {
+          "frequency": "Week",
+          "schedule": {
+            "days": [
+              "Monday"
+            ],
+            "hours": [
+              10
+            ],
+            "minutes": [
+              0
+            ],
+            "timeZone": "W. Central Africa Standard Time"
+          }
+        },
+        "rules": [
+          {
+            "metricTrigger": {
+              "dimensions": null,
+              "dividePerInstance": false,
+              "metricName": "CpuPercentage",
+              "metricNamespace": "",
+              "metricResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "operator": "GreaterThan",
+              "statistic": "Average",
+              "threshold": 70.0,
+              "timeAggregation": "Average",
+              "timeGrain": "PT1M",
+              "timeWindow": "PT10M"
+            },
+            "scaleAction": {
+              "cooldown": "PT10M",
+              "direction": "Increase",
+              "type": "ChangeCount",
+              "value": "1"
+            }
+          },
+          {
+            "metricTrigger": {
+              "dimensions": null,
+              "dividePerInstance": false,
+              "metricName": "CpuPercentage",
+              "metricNamespace": "",
+              "metricResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "operator": "LessThan",
+              "statistic": "Average",
+              "threshold": 35.0,
+              "timeAggregation": "Average",
+              "timeGrain": "PT1M",
+              "timeWindow": "PT20M"
+            },
+            "scaleAction": {
+              "cooldown": "PT15M",
+              "direction": "Decrease",
+              "type": "ChangeCount",
+              "value": "1"
+            }
+          }
+        ]
+      },
+      {
+        "capacity": {
+          "default": "1",
+          "maximum": "3",
+          "minimum": "1"
+        },
+        "name": "Tuesday Class Window",
+        "recurrence": {
+          "frequency": "Week",
+          "schedule": {
+            "days": [
+              "Tuesday"
+            ],
+            "hours": [
+              11
+            ],
+            "minutes": [
+              0
+            ],
+            "timeZone": "W. Central Africa Standard Time"
+          }
+        },
+        "rules": [
+          {
+            "metricTrigger": {
+              "dimensions": null,
+              "dividePerInstance": false,
+              "metricName": "CpuPercentage",
+              "metricNamespace": "",
+              "metricResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "operator": "GreaterThan",
+              "statistic": "Average",
+              "threshold": 70.0,
+              "timeAggregation": "Average",
+              "timeGrain": "PT1M",
+              "timeWindow": "PT10M"
+            },
+            "scaleAction": {
+              "cooldown": "PT10M",
+              "direction": "Increase",
+              "type": "ChangeCount",
+              "value": "1"
+            }
+          },
+          {
+            "metricTrigger": {
+              "dimensions": null,
+              "dividePerInstance": false,
+              "metricName": "CpuPercentage",
+              "metricNamespace": "",
+              "metricResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "operator": "LessThan",
+              "statistic": "Average",
+              "threshold": 35.0,
+              "timeAggregation": "Average",
+              "timeGrain": "PT1M",
+              "timeWindow": "PT20M"
+            },
+            "scaleAction": {
+              "cooldown": "PT15M",
+              "direction": "Decrease",
+              "type": "ChangeCount",
+              "value": "1"
+            }
+          }
+        ]
+      },
+      {
+        "capacity": {
+          "default": "1",
+          "maximum": "3",
+          "minimum": "1"
+        },
+        "name": "Wednesday Class Window",
+        "recurrence": {
+          "frequency": "Week",
+          "schedule": {
+            "days": [
+              "Wednesday"
+            ],
+            "hours": [
+              8
+            ],
+            "minutes": [
+              0
+            ],
+            "timeZone": "W. Central Africa Standard Time"
+          }
+        },
+        "rules": [
+          {
+            "metricTrigger": {
+              "dimensions": null,
+              "dividePerInstance": false,
+              "metricName": "CpuPercentage",
+              "metricNamespace": "",
+              "metricResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "operator": "GreaterThan",
+              "statistic": "Average",
+              "threshold": 70.0,
+              "timeAggregation": "Average",
+              "timeGrain": "PT1M",
+              "timeWindow": "PT10M"
+            },
+            "scaleAction": {
+              "cooldown": "PT10M",
+              "direction": "Increase",
+              "type": "ChangeCount",
+              "value": "1"
+            }
+          },
+          {
+            "metricTrigger": {
+              "dimensions": null,
+              "dividePerInstance": false,
+              "metricName": "CpuPercentage",
+              "metricNamespace": "",
+              "metricResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "operator": "LessThan",
+              "statistic": "Average",
+              "threshold": 35.0,
+              "timeAggregation": "Average",
+              "timeGrain": "PT1M",
+              "timeWindow": "PT20M"
+            },
+            "scaleAction": {
+              "cooldown": "PT15M",
+              "direction": "Decrease",
+              "type": "ChangeCount",
+              "value": "1"
+            }
+          }
+        ]
+      },
+      {
+        "capacity": {
+          "default": "1",
+          "maximum": "3",
+          "minimum": "1"
+        },
+        "name": "Thursday Class Window",
+        "recurrence": {
+          "frequency": "Week",
+          "schedule": {
+            "days": [
+              "Thursday"
+            ],
+            "hours": [
+              8
+            ],
+            "minutes": [
+              0
+            ],
+            "timeZone": "W. Central Africa Standard Time"
+          }
+        },
+        "rules": [
+          {
+            "metricTrigger": {
+              "dimensions": null,
+              "dividePerInstance": false,
+              "metricName": "CpuPercentage",
+              "metricNamespace": "",
+              "metricResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "operator": "GreaterThan",
+              "statistic": "Average",
+              "threshold": 70.0,
+              "timeAggregation": "Average",
+              "timeGrain": "PT1M",
+              "timeWindow": "PT10M"
+            },
+            "scaleAction": {
+              "cooldown": "PT10M",
+              "direction": "Increase",
+              "type": "ChangeCount",
+              "value": "1"
+            }
+          },
+          {
+            "metricTrigger": {
+              "dimensions": null,
+              "dividePerInstance": false,
+              "metricName": "CpuPercentage",
+              "metricNamespace": "",
+              "metricResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "operator": "LessThan",
+              "statistic": "Average",
+              "threshold": 35.0,
+              "timeAggregation": "Average",
+              "timeGrain": "PT1M",
+              "timeWindow": "PT20M"
+            },
+            "scaleAction": {
+              "cooldown": "PT15M",
+              "direction": "Decrease",
+              "type": "ChangeCount",
+              "value": "1"
+            }
+          }
+        ]
+      },
+      {
+        "capacity": {
+          "default": "1",
+          "maximum": "3",
+          "minimum": "1"
+        },
+        "name": "Friday Class Window",
+        "recurrence": {
+          "frequency": "Week",
+          "schedule": {
+            "days": [
+              "Friday"
+            ],
+            "hours": [
+              10
+            ],
+            "minutes": [
+              0
+            ],
+            "timeZone": "W. Central Africa Standard Time"
+          }
+        },
+        "rules": [
+          {
+            "metricTrigger": {
+              "dimensions": null,
+              "dividePerInstance": false,
+              "metricName": "CpuPercentage",
+              "metricNamespace": "",
+              "metricResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "operator": "GreaterThan",
+              "statistic": "Average",
+              "threshold": 70.0,
+              "timeAggregation": "Average",
+              "timeGrain": "PT1M",
+              "timeWindow": "PT10M"
+            },
+            "scaleAction": {
+              "cooldown": "PT10M",
+              "direction": "Increase",
+              "type": "ChangeCount",
+              "value": "1"
+            }
+          },
+          {
+            "metricTrigger": {
+              "dimensions": null,
+              "dividePerInstance": false,
+              "metricName": "CpuPercentage",
+              "metricNamespace": "",
+              "metricResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2",
+              "operator": "LessThan",
+              "statistic": "Average",
+              "threshold": 35.0,
+              "timeAggregation": "Average",
+              "timeGrain": "PT1M",
+              "timeWindow": "PT20M"
+            },
+            "scaleAction": {
+              "cooldown": "PT15M",
+              "direction": "Decrease",
+              "type": "ChangeCount",
+              "value": "1"
+            }
+          }
+        ]
+      },
+      {
+        "capacity": {
+          "default": "1",
+          "maximum": "1",
+          "minimum": "1"
+        },
+        "name": "Weekday End Profile",
+        "recurrence": {
+          "frequency": "Week",
+          "schedule": {
+            "days": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday"
+            ],
+            "hours": [
+              14
+            ],
+            "minutes": [
+              0
+            ],
+            "timeZone": "W. Central Africa Standard Time"
+          }
+        },
+        "rules": []
+      }
+    ],
+    "targetResourceUri": "/subscriptions/5dec528f-5b49-47a5-8549-27e20975b3e2/resourceGroups/attendance-app-rgv2/providers/Microsoft.Web/serverfarms/attendancev2"
+  },
+  "resourceGroup": "attendance-app-rgv2",
+  "sku": null,
+  "tags": {},
+  "type": "Microsoft.Insights/autoscaleSettings"
+}
