@@ -1,0 +1,38 @@
+{
+  "report_csv": "load-test-reports\\attendance_timing_report_submit_smoke_20260503.csv",
+  "total_events": 100,
+  "steps": {
+    "landing_page": {
+      "count": 25,
+      "avg_ms": 1359.28,
+      "min_ms": 836.67,
+      "max_ms": 1943.44,
+      "median_ms": 1086.86,
+      "p90_ms": 1917.77
+    },
+    "status_api": {
+      "count": 25,
+      "avg_ms": 281.36,
+      "min_ms": 222.19,
+      "max_ms": 366.37,
+      "median_ms": 289.88,
+      "p90_ms": 325.87
+    },
+    "wave-1": {
+      "count": 25,
+      "avg_ms": 690.48,
+      "min_ms": 287.6,
+      "max_ms": 1318.0,
+      "median_ms": 566.43,
+      "p90_ms": 1279.26
+    },
+    "end_to_end": {
+      "count": 25,
+      "avg_ms": 690.55,
+      "min_ms": 287.71,
+      "max_ms": 1318.07,
+      "median_ms": 566.5,
+      "p90_ms": 1279.44
+    }
+  }
+}

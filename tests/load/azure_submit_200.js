@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { parseHTML } from 'k6/html';
 
-const BASE_URL = (__ENV.BASE_URL || 'https://attendancev2app123.azurewebsites.net').replace(/\/+$/, '');
+const BASE_URL = (__ENV.BASE_URL || 'https://smart-attendance-samex.me').replace(/\/+$/, '');
 const INDEX_URL = `${BASE_URL}/index.php`;
 const SUBMIT_URL = `${BASE_URL}/submit.php`;
 const GEO_LAT = (__ENV.GEO_LAT || '').trim();

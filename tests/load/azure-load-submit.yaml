@@ -1,0 +1,19 @@
+version: v0.1
+testId: submit-azure-host
+displayName: Submit Azure Host
+description: Submit-path load test against the direct App Service hostname for landing, status, and submit endpoints.
+testType: Locust
+testPlan: locustfile.py
+engineInstances: 2
+properties:
+  userPropertyFile: submit.locust.conf
+env:
+  - name: HOST
+    value: attendancev2app7t5g81ps.azurewebsites.net
+  - name: ENABLE_LOGGING
+    value: "False"
+  - name: FORCE_INACTIVE_MODE
+    value: "False"
+failureCriteria:
+  - percentage(error) > 5
+  - p95(response_time_ms) > 3000

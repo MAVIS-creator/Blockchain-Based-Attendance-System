@@ -17,7 +17,7 @@ USERS = 100
 SPAWN_RATE = 33  # 33 users per second (~3 second ramp-up per wave)
 DURATION_PER_WAVE = 60  # 60 seconds per wave
 WAVES = 3
-HOST = "https://attendancev2app123.azurewebsites.net"
+HOST = os.getenv("HOST", "https://smart-attendance-samex.me").strip()
 
 REPORT_DIR = Path("load-test-reports")
 REPORT_DIR.mkdir(parents=True, exist_ok=True)

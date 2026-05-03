@@ -90,7 +90,7 @@ atexit.register(_write_report)
 
 class ApiUser(HttpUser):
     wait_time = between(1, 2)
-    _configured_host = os.getenv("HOST", "attendancev2app123.azurewebsites.net").strip()
+    _configured_host = os.getenv("HOST", "https://smart-attendance-samex.me").strip()
     host = _configured_host if _configured_host.startswith(("http://", "https://")) else f"https://{_configured_host}"
     timeout_duration = 90  # seconds
 
