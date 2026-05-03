@@ -18,6 +18,8 @@
 // Header Countdown Timer Logic
 const countdownEl = document.getElementById('headerCountdown');
 let currentEndTime = 0;
+const STATUS_POLL_INTERVAL_MS = 15000;
+const ANNOUNCEMENT_POLL_INTERVAL_MS = 20000;
 
 function showTimeAdjustmentNotice(minutesStr, isReduced) {
     const toast = document.createElement('div');
@@ -110,6 +112,7 @@ if (countdownEl) {
         
         // Poll for backend time adjustments (deductions or additions)
         setInterval(() => {
+            if (document.hidden) return;
             if (!currentEndTime) return;
             fetch('status_api.php', { cache: 'no-store' })
             .then(res => res.json())
@@ -136,7 +139,7 @@ if (countdownEl) {
                 }
             })
             .catch(() => {});
-        }, 5000);
+        }, STATUS_POLL_INTERVAL_MS);
     }
 }
 
@@ -301,7 +304,10 @@ function fetchAnnouncement() {
 }
 
 fetchAnnouncement();
-setInterval(fetchAnnouncement, 10000);
+setInterval(() => {
+    if (document.hidden) return;
+    fetchAnnouncement();
+}, ANNOUNCEMENT_POLL_INTERVAL_MS);
 window.addEventListener('resize', applyAnnouncementOffset);
 </script>
 </body>

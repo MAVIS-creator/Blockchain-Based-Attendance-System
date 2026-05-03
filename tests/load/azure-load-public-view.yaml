@@ -1,7 +1,7 @@
 version: v0.1
 testId: public-view-azure-host
 displayName: Public View Azure Host
-description: Read-path load test against the direct App Service hostname for index, status, and announcement endpoints.
+description: Read-path load test against the direct App Service hostname.
 testType: Locust
 testPlan: locust_public_view.py
 engineInstances: 2

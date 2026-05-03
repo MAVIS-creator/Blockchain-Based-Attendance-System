@@ -3,21 +3,13 @@ if (!function_exists('admin_storage_migrate_file')) {
     require_once __DIR__ . '/../storage_helpers.php';
     require_once __DIR__ . '/../admin/runtime_storage.php';
 }
+require_once __DIR__ . '/../public_status_helpers.php';
 
-$headerStatusFile = admin_storage_migrate_file('status.json', app_storage_file('status.json'));
-$headerStatusData = @file_get_contents($headerStatusFile);
-$headerStatusJson = $headerStatusData ? json_decode($headerStatusData, true) : [];
+$headerStatusJson = public_status_current('public_header_status', 2);
 $headerIsCheckin = !empty($headerStatusJson['checkin']);
 $headerIsCheckout = !empty($headerStatusJson['checkout']);
 $headerEndTime = isset($headerStatusJson['end_time']) && is_numeric($headerStatusJson['end_time']) ? (int)$headerStatusJson['end_time'] : null;
-
 $headerTimerValid = $headerEndTime !== null && $headerEndTime > time();
-$headerActiveModeConfigured = $headerIsCheckin || $headerIsCheckout;
-
-if ($headerActiveModeConfigured && !$headerTimerValid) {
-    $headerIsCheckin = false;
-    $headerIsCheckout = false;
-}
 
 $statusLabel = "Status: Closed";
 $statusBadgeClass = "bg-surface-container-high text-on-surface-variant font-semibold";

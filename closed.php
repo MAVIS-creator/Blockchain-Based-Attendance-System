@@ -78,8 +78,18 @@ include __DIR__ . '/includes/public_header.php';
 <?php include __DIR__ . '/includes/public_footer.php'; ?>
 
 <script>
+    const TAB_AWAY_LOCK_UNTIL_KEY = 'attendanceTabAwayLockUntil';
+
+    function isLocalTabAwayLockActive() {
+      const lockUntil = parseInt(localStorage.getItem(TAB_AWAY_LOCK_UNTIL_KEY) || '0', 10);
+      return Number.isFinite(lockUntil) && lockUntil > Date.now();
+    }
+
     async function autoReturnToAttendanceIfAllowed() {
       try {
+        if (isLocalTabAwayLockActive()) {
+          return;
+        }
         const statusRes = await fetch('status_api.php', { cache: 'no-store' });
         if (!statusRes.ok) return;
         const status = await statusRes.json();
@@ -112,5 +122,5 @@ include __DIR__ . '/includes/public_header.php';
     }
 
     autoReturnToAttendanceIfAllowed();
-    setInterval(autoReturnToAttendanceIfAllowed, 5000);
+    setInterval(autoReturnToAttendanceIfAllowed, 15000);
 </script>

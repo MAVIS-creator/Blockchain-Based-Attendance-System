@@ -17,6 +17,39 @@ if (!function_exists('sanitize_public_announcement_message')) {
     }
 }
 
+if (!function_exists('public_targeted_announcement_index')) {
+    function public_targeted_announcement_index($path, $ttl = 3)
+    {
+        $mtime = @filemtime($path) ?: 0;
+        $size = @filesize($path) ?: 0;
+        $cacheKey = 'public_targeted_announcement_index:' . md5($path . '|' . $mtime . '|' . $size);
+
+        return admin_cache_remember($cacheKey, $ttl, function () use ($path, $ttl) {
+            $rows = admin_cached_json_file('public_targeted_announcements', $path, [], $ttl);
+            $index = [];
+
+            if (!is_array($rows)) {
+                return $index;
+            }
+
+            foreach ($rows as $row) {
+                if (!is_array($row) || empty($row['enabled'])) {
+                    continue;
+                }
+
+                $fingerprint = trim((string)($row['target_fingerprint'] ?? ''));
+                if ($fingerprint === '') {
+                    continue;
+                }
+
+                $index[$fingerprint] = $row;
+            }
+
+            return $index;
+        });
+    }
+}
+
 $announcementFile = admin_storage_migrate_file('announcement.json');
 $targetedFile = function_exists('ai_targeted_announcements_file')
     ? ai_targeted_announcements_file()
@@ -42,36 +75,24 @@ if (file_exists($announcementFile)) {
 }
 
 if ($fingerprint !== '' && file_exists($targetedFile)) {
-    $targetedRows = admin_cached_json_file('public_targeted_announcements', $targetedFile, [], 3);
-    if (is_array($targetedRows)) {
-        foreach ($targetedRows as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            if (empty($row['enabled'])) {
-                continue;
-            }
-            if ((string)($row['target_fingerprint'] ?? '') !== $fingerprint) {
-                continue;
-            }
-
-            $announcement = [
-                'enabled' => true,
-                'message' => class_exists('AiAnnouncementService') && method_exists('AiAnnouncementService', 'normalizeStudentTargetedMessage')
-                    ? AiAnnouncementService::normalizeStudentTargetedMessage(
-                        (string)($row['message'] ?? ''),
-                        (string)($row['classification'] ?? ''),
-                        is_array($row) ? $row : []
-                    )
-                    : sanitize_public_announcement_message((string)($row['message'] ?? ''), (string)($row['classification'] ?? '')),
-                'severity' => in_array(($row['severity'] ?? 'info'), ['info', 'warning', 'urgent'], true) ? (string)$row['severity'] : 'info',
-                'updated_at' => $row['updated_at'] ?? null,
-                'target_fingerprint' => (string)($row['target_fingerprint'] ?? ''),
-                'auto_generated_by' => (string)($row['auto_generated_by'] ?? ''),
-                'id' => (string)($row['id'] ?? ''),
-            ];
-            break;
-        }
+    $targetedIndex = public_targeted_announcement_index($targetedFile, 3);
+    $row = is_array($targetedIndex) ? ($targetedIndex[$fingerprint] ?? null) : null;
+    if (is_array($row)) {
+        $announcement = [
+            'enabled' => true,
+            'message' => class_exists('AiAnnouncementService') && method_exists('AiAnnouncementService', 'normalizeStudentTargetedMessage')
+                ? AiAnnouncementService::normalizeStudentTargetedMessage(
+                    (string)($row['message'] ?? ''),
+                    (string)($row['classification'] ?? ''),
+                    is_array($row) ? $row : []
+                )
+                : sanitize_public_announcement_message((string)($row['message'] ?? ''), (string)($row['classification'] ?? '')),
+            'severity' => in_array(($row['severity'] ?? 'info'), ['info', 'warning', 'urgent'], true) ? (string)$row['severity'] : 'info',
+            'updated_at' => $row['updated_at'] ?? null,
+            'target_fingerprint' => (string)($row['target_fingerprint'] ?? ''),
+            'auto_generated_by' => (string)($row['auto_generated_by'] ?? ''),
+            'id' => (string)($row['id'] ?? ''),
+        ];
     }
 }
 

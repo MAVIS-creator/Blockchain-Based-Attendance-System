@@ -5,36 +5,15 @@ require_once __DIR__ . '/env-loader.php';
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/cache_helpers.php';
+require_once __DIR__ . '/public_status_helpers.php';
 require_once __DIR__ . '/request_timing.php';
 require_once __DIR__ . '/request_guard.php';
 app_storage_init();
 app_request_guard('index.php', 'public');
 request_timing_start('index.php');
 
-$statusFile = admin_storage_migrate_file('status.json', app_storage_file('status.json'));
 $span = microtime(true);
-$status = admin_cached_json_file('index_status', $statusFile, [], 2);
-$status = is_array($status) ? $status : [];
-$normalizedStatus = [
-  'checkin' => !empty($status['checkin']),
-  'checkout' => !empty($status['checkout']),
-  'end_time' => isset($status['end_time']) && is_numeric($status['end_time']) ? (int)$status['end_time'] : null,
-];
-$activeModeConfigured = $normalizedStatus['checkin'] || $normalizedStatus['checkout'];
-$timerValid = $normalizedStatus['end_time'] !== null && $normalizedStatus['end_time'] > time();
-if ($activeModeConfigured && !$timerValid) {
-  $normalizedStatus = ['checkin' => false, 'checkout' => false, 'end_time' => null];
-}
-if (!$normalizedStatus['checkin'] && !$normalizedStatus['checkout']) {
-  $normalizedStatus['end_time'] = null;
-}
-if (($status['checkin'] ?? null) !== $normalizedStatus['checkin'] ||
-  ($status['checkout'] ?? null) !== $normalizedStatus['checkout'] ||
-  (($status['end_time'] ?? null) !== $normalizedStatus['end_time'])
-) {
-  @file_put_contents($statusFile, json_encode($normalizedStatus, JSON_PRETTY_PRINT), LOCK_EX);
-}
-$status = $normalizedStatus;
+$status = public_status_current('index_status', 2);
 request_timing_span('load_status', $span);
 $activeMode = $status["checkin"] ? "checkin" : ($status["checkout"] ? "checkout" : "");
 if (!$activeMode) {
@@ -134,6 +113,8 @@ include __DIR__ . '/includes/public_header.php';
 <script>
     const submitBtn = document.getElementById('submitBtn');
     const fingerprintInput = document.getElementById('fingerprint');
+    const ATTENDANCE_SERVER_DAY = <?= json_encode(date('Y-m-d')) ?>;
+    const ATTENDANCE_ACTIVE_COURSE = <?= json_encode($activeCourse) ?>;
 
     let inactivityTimer;
     let fencingActive = true;
@@ -142,11 +123,51 @@ include __DIR__ . '/includes/public_header.php';
     const TAB_AWAY_MAX_STRIKES = 3;
     const TAB_AWAY_STRIKES_KEY = 'attendanceTabAwayStrikes';
     const TAB_AWAY_LOCK_UNTIL_KEY = 'attendanceTabAwayLockUntil';
+    const ATTENDANCE_SUBMISSION_BYPASS_KEY = 'attendanceSubmissionBypass';
+
+    function readSubmissionBypass() {
+      try {
+        const raw = localStorage.getItem(ATTENDANCE_SUBMISSION_BYPASS_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function clearTabAwayLockState() {
+      try {
+        localStorage.removeItem(TAB_AWAY_STRIKES_KEY);
+        localStorage.removeItem(TAB_AWAY_LOCK_UNTIL_KEY);
+        localStorage.removeItem('attendanceBlocked');
+      } catch (e) {}
+    }
+
+    function submissionBypassMatches(token) {
+      const bypass = readSubmissionBypass();
+      if (!bypass || !token) return false;
+      return bypass.token === token
+        && bypass.day === ATTENDANCE_SERVER_DAY
+        && bypass.course === ATTENDANCE_ACTIVE_COURSE;
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
+      const existingToken = localStorage.getItem('attendance_token') || '';
+      if (submissionBypassMatches(existingToken)) {
+        fencingActive = false;
+        clearTimeout(inactivityTimer);
+        clearTabAwayLockState();
+      }
+
       const lockUntil = parseInt(localStorage.getItem(TAB_AWAY_LOCK_UNTIL_KEY) || '0', 10);
       const now = Date.now();
       if (lockUntil > now) {
+        if (submissionBypassMatches(existingToken)) {
+          clearTabAwayLockState();
+          fencingActive = false;
+          return;
+        }
         const remainingSec = Math.max(1, Math.ceil((lockUntil - now) / 1000));
         Swal.fire({
           icon: 'warning',
@@ -168,30 +189,40 @@ include __DIR__ . '/includes/public_header.php';
           if (!stored) return;
           // Avoid long-lived SSE streams on the public page.
           // Under high concurrency, SSE can exhaust PHP workers and cause timeouts.
-          var attempts = 0;
-          var poll = setInterval(function() {
-            attempts++;
+          var revocationCheckInFlight = false;
+          function checkRevocationOnce() {
+            if (revocationCheckInFlight) return;
+            revocationCheckInFlight = true;
             fetch('admin/revoked_tokens.php', { cache: 'no-store' })
-            .then(r => r.ok ? r.json() : null)
-            .then(data => {
-              if (!data || !data.revoked) return;
-              var tokensObj = data.revoked.tokens || {};
-              if (tokensObj[stored] || (Array.isArray(tokensObj) && tokensObj.indexOf(stored) !== -1)) {
-                localStorage.removeItem('attendance_token');
-                localStorage.removeItem('attendanceBlocked');
-                try {
-                  Swal.fire({
-                    icon: 'info',
-                    title: 'Token Revoked',
-                    text: 'Your attendance token was revoked. Reloading...',
-                    confirmButtonColor: '#00457b'
-                  }).then(function() { location.reload(); });
-                } catch (e) { location.reload(); }
-                clearInterval(poll);
-              }
-            }).catch(() => {});
-            if (attempts >= 120) clearInterval(poll);
-          }, 5000);
+              .then(r => r.ok ? r.json() : null)
+              .then(data => {
+                if (!data || !data.revoked) return;
+                var tokensObj = data.revoked.tokens || {};
+                if (tokensObj[stored] || (Array.isArray(tokensObj) && tokensObj.indexOf(stored) !== -1)) {
+                  localStorage.removeItem('attendance_token');
+                  localStorage.removeItem('attendanceBlocked');
+                  try {
+                    Swal.fire({
+                      icon: 'info',
+                      title: 'Token Revoked',
+                      text: 'Your attendance token was revoked. Reloading...',
+                      confirmButtonColor: '#00457b'
+                    }).then(function() { location.reload(); });
+                  } catch (e) { location.reload(); }
+                }
+              })
+              .catch(() => {})
+              .finally(() => {
+                revocationCheckInFlight = false;
+              });
+          }
+
+          checkRevocationOnce();
+          document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+              checkRevocationOnce();
+            }
+          });
         } catch (e) {}
       })();
     });
@@ -242,6 +273,12 @@ include __DIR__ . '/includes/public_header.php';
         if (!token) {
           token = crypto.randomUUID();
           localStorage.setItem('attendance_token', token);
+        }
+
+        if (submissionBypassMatches(token)) {
+          fencingActive = false;
+          clearTimeout(inactivityTimer);
+          clearTabAwayLockState();
         }
 
         // Format: <compositeHash>_<localStorageToken>
@@ -327,6 +364,21 @@ include __DIR__ . '/includes/public_header.php';
               submitBtn.disabled = false;
               return;
             }
+            fencingActive = false;
+            clearTimeout(inactivityTimer);
+            clearTabAwayLockState();
+            try {
+              const token = localStorage.getItem('attendance_token') || '';
+              if (token) {
+                localStorage.setItem(ATTENDANCE_SUBMISSION_BYPASS_KEY, JSON.stringify({
+                  token: token,
+                  course: ATTENDANCE_ACTIVE_COURSE,
+                  day: ATTENDANCE_SERVER_DAY,
+                  action: <?= json_encode($activeMode) ?>,
+                  at: Date.now()
+                }));
+              }
+            } catch (e) {}
             if (json.warning) {
               showPopup({ icon: 'warning', title: 'Attendance Marked with Warning', text: json.message }).then(() => {
                  window.location.href = json.redirect || 'index.php';
@@ -394,23 +446,4 @@ include __DIR__ . '/includes/public_header.php';
       }
     });
 
-    function checkStatus() {
-      fetch('status_api.php')
-        .then(res => res.json())
-        .then(data => {
-          if (!data.checkin && !data.checkout) {
-            Swal.fire({
-              icon: 'info',
-              title: 'Attendance Closed',
-              text: 'Attendance has now closed!',
-              confirmButtonColor: '#00457b'
-            }).then(function() {
-              location.reload();
-            });
-          }
-        })
-        .catch(err => { });
-    }
-
-    setInterval(checkStatus, 15000);
 </script>

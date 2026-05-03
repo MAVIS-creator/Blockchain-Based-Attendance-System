@@ -1,9 +1,9 @@
 version: v0.1
 testId: submit-azure-host
 displayName: Submit Azure Host
-description: Submit-path load test against the direct App Service hostname for landing, status, and submit endpoints.
+description: Submit-path load test against the direct App Service hostname.
 testType: Locust
-testPlan: locustfile.py
+testPlan: locust_submit.py
 engineInstances: 2
 properties:
   userPropertyFile: submit.locust.conf
