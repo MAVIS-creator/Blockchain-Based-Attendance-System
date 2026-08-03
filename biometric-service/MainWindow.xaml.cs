@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -86,7 +87,6 @@ namespace HighQBiometricService
                     string body = await reader.ReadToEndAsync();
                     
                     _totalScanCount++;
-                    Dispatcher.Invoke(() => TxtTotalScans.Text = $"{_totalScanCount} Scans");
 
                     // Generate enrollment template
                     string mockTemplate = "DP_SDK_TEMPLATE_" + Guid.NewGuid().ToString("N") + "_" + DateTime.UtcNow.Ticks;
@@ -148,7 +148,6 @@ namespace HighQBiometricService
         private void BtnSimulate_Click(object sender, RoutedEventArgs e)
         {
             _totalScanCount++;
-            TxtTotalScans.Text = $"{_totalScanCount} Scans";
 
             _pendingScanEvent = new
             {
@@ -159,6 +158,22 @@ namespace HighQBiometricService
             };
 
             LogMessage("[SIMULATED TOUCH] Fingerprint scanned on DigitalPersona 5160 reader. Triggered check-in.");
+        }
+
+        private void BtnOpenSystem_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "http://localhost/highq-attendance/",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"[ERROR] Could not open browser: {ex.Message}");
+            }
         }
 
         protected override void OnClosed(EventArgs e)

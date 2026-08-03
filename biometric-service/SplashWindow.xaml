@@ -1,0 +1,42 @@
+<Window x:Class="HighQBiometricService.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="High-Q Biometric Service" Height="300" Width="480"
+        WindowStartupLocation="CenterScreen" WindowStyle="None"
+        AllowsTransparency="True" Background="Transparent"
+        Icon="biometric_service desktop icon.png">
+    <Border Background="White" CornerRadius="12" BorderBrush="#E1E2E4" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20" Color="#000000" Opacity="0.15" Direction="270" ShadowDepth="4"/>
+        </Border.Effect>
+        <Grid>
+            <!-- Top Blue Line -->
+            <Border Height="4" Background="#004AC6" VerticalAlignment="Top" CornerRadius="12,12,0,0"/>
+
+            <StackPanel Margin="32,24,32,16" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <!-- Logo & Icon -->
+                <Border Width="64" Height="64" CornerRadius="16" Background="#E0F2FE" HorizontalAlignment="Center" Margin="0,0,0,16">
+                    <TextBlock Text="🖐️" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- Titles -->
+                <TextBlock Text="High-Q Biometric Service" FontSize="22" FontWeight="Bold" Foreground="#191C1E" HorizontalAlignment="Center"/>
+                <TextBlock Text="Biometric Attendance Infrastructure" FontSize="13" Foreground="#434655" HorizontalAlignment="Center" Margin="0,4,0,24"/>
+
+                <!-- Progress Bar & Status Text -->
+                <StackPanel Width="300">
+                    <TextBlock x:Name="TxtStatus" Text="Starting biometric service..." FontSize="12" FontFamily="Consolas" Foreground="#515F74" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                    <ProgressBar x:Name="SplashProgressBar" Height="4" Minimum="0" Maximum="100" Value="10" Foreground="#004AC6" Background="#E1E2E4" BorderThickness="0"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Bottom Footer -->
+            <Border VerticalAlignment="Bottom" Background="#F8F9FB" BorderBrush="#E1E2E4" BorderThickness="0,1,0,0" Padding="16,10" CornerRadius="0,0,12,12">
+                <DockPanel>
+                    <TextBlock Text="High-Q Solid Academy" FontSize="11" Foreground="#737686" FontWeight="SemiBold"/>
+                    <TextBlock Text="Version 1.0.0" FontSize="11" Foreground="#737686" DockPanel.Dock="Right" HorizontalAlignment="Right"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
