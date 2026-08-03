@@ -99,7 +99,7 @@ require_once __DIR__ . '/includes/header.php';
         tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-on-surface-variant">Loading records...</td></tr>';
 
         try {
-            const url = `api/attendance.php?action=list&date=${encodeURIComponent(date)}&class=${encodeURIComponent(cls)}&status=${encodeURIComponent(status)}&search=${encodeURIComponent(search)}`;
+            const url = `../api/attendance.php?action=list&date=${encodeURIComponent(date)}&class=${encodeURIComponent(cls)}&status=${encodeURIComponent(status)}&search=${encodeURIComponent(search)}`;
             const resp = await fetch(url);
             const data = await resp.json();
 

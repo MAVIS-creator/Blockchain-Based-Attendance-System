@@ -1,184 +1,238 @@
 <?php
-$pageTitle = 'Dashboard';
-$activePage = 'dashboard';
-require_once __DIR__ . '/includes/header.php';
+/**
+ * High-Q Solid Academy - Public Attendance Marking Fingerprint Page
+ */
+require_once __DIR__ . '/includes/db.php';
 ?>
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>High-Q Solid Academy | Biometric Attendance Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Hanken+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface": "#0b1c30",
+                        "on-surface-variant": "#44474c",
+                        "primary": "#000000",
+                        "secondary": "#795900",
+                        "border-subtle": "#E2E8F0",
+                        "surface-container": "#e5eeff",
+                        "surface-container-low": "#eff4ff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#fdc014",
+                        "background": "#f8f9ff"
+                    },
+                    fontFamily: {
+                        "title-md": ["Hanken Grotesk"],
+                        "display-lg": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "body-md": ["Inter"],
+                        "code-snippet": ["JetBrains Mono"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .scan-animation-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+        }
+        .scan-line {
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(to right, transparent, #fdc014, transparent);
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+            animation: scan 2.5s infinite linear;
+            box-shadow: 0 0 15px #fdc014;
+        }
+        @keyframes scan {
+            0% { top: 5%; opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { top: 95%; opacity: 0; }
+        }
+        .kiosk-gradient {
+            background: radial-gradient(circle at center, #ffffff 0%, #f0f4ff 100%);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen overflow-hidden kiosk-gradient flex flex-col justify-between p-8 font-body-md select-none">
 
-<div class="mb-8 flex justify-between items-end">
-    <div>
-        <h2 class="font-headline-lg text-3xl font-bold text-on-surface">Academy Overview</h2>
-        <p class="font-body-md text-on-surface-variant">Real-time attendance metrics for <?= date('F j, Y') ?></p>
+<!-- Header -->
+<header class="flex items-center justify-between z-20">
+    <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-2xl bg-black text-white font-bold text-2xl flex items-center justify-center shadow-lg border-2 border-white">
+            HQ
+        </div>
+        <div>
+            <h1 class="font-title-md text-2xl font-bold text-on-surface">High-Q Solid Academy</h1>
+            <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Biometric Fingerprint Attendance Marking Terminal</p>
+        </div>
     </div>
-    <div class="flex gap-2">
-        <a href="register_student.php" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-navy-muted shadow transition-all">
-            <span class="material-symbols-outlined text-sm">person_add</span> Add Student
+    <div class="flex items-center gap-6">
+        <a href="admin/login.php" class="px-4 py-2 bg-surface-container-lowest border border-border-subtle rounded-xl text-xs font-bold text-primary hover:bg-surface-container transition-colors shadow-sm flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">admin_panel_settings</span> Admin Portal
         </a>
-        <a href="enroll_fingerprint.php" class="px-4 py-2 bg-secondary-container text-on-secondary-container rounded-lg text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-all">
-            <span class="material-symbols-outlined text-sm">fingerprint</span> Enroll Fingerprint
-        </a>
+        <div class="text-right">
+            <div class="font-display-lg text-4xl font-bold text-primary leading-none" id="kioskTime">00:00:00</div>
+            <div class="text-sm font-semibold text-on-surface-variant mt-1" id="kioskDate">--</div>
+        </div>
+    </div>
+</header>
+
+<!-- Main Scanner Area -->
+<main class="flex-1 flex flex-col items-center justify-center relative z-10">
+    <div class="text-center mb-8">
+        <h2 class="font-headline-lg text-3xl font-bold text-primary mb-1" id="kioskPromptTitle">Place Your Registered Finger</h2>
+        <p class="text-on-surface-variant text-base" id="kioskPromptSub">Place finger firmly on the DigitalPersona scanner glass to mark attendance</p>
+    </div>
+
+    <!-- Scanner Graphics -->
+    <div class="relative flex items-center justify-center">
+        <div class="scan-animation-container bg-surface-container-lowest rounded-3xl shadow-2xl border border-border-subtle flex items-center justify-center overflow-hidden">
+            <div class="scan-line"></div>
+            <span class="material-symbols-outlined text-9xl text-primary opacity-80" id="terminalFpIcon">fingerprint</span>
+        </div>
+    </div>
+
+    <!-- Status Badge -->
+    <div class="mt-10 flex items-center gap-3 px-6 py-2.5 bg-surface-container-low border border-border-subtle rounded-full text-xs font-semibold text-on-surface">
+        <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+        <span id="terminalStatusText">Biometric Scanner Ready & Listening</span>
+    </div>
+</main>
+
+<!-- Result Overlay (Matches & Verification) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 backdrop-blur-md transition-all duration-300 opacity-0 pointer-events-none translate-y-4" id="successOverlay">
+    <div class="bg-surface-container-lowest w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl p-8 flex flex-col items-center text-center space-y-6">
+        <div class="w-24 h-24 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-3xl" id="modalInitials">
+            --
+        </div>
+
+        <div class="space-y-1">
+            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold uppercase tracking-wide" id="modalBadge">CHECK-IN SUCCESS</span>
+            <h3 class="font-headline-lg text-3xl font-bold text-primary pt-2" id="modalName">Student Name</h3>
+            <p class="text-sm font-semibold text-on-surface-variant" id="modalSub">Class &bull; Admission Number</p>
+        </div>
+
+        <div class="w-full bg-surface-container-low p-4 rounded-2xl flex justify-around text-center text-xs">
+            <div>
+                <p class="text-on-surface-variant uppercase font-semibold">Time Recorded</p>
+                <p class="text-base font-bold text-primary" id="modalTime">--</p>
+            </div>
+            <div class="h-8 w-[1px] bg-border-subtle"></div>
+            <div>
+                <p class="text-on-surface-variant uppercase font-semibold">Attendance Status</p>
+                <p class="text-base font-bold text-primary" id="modalStatus">Present</p>
+            </div>
+        </div>
+
+        <p class="text-xs text-on-surface-variant italic" id="modalMessage">Welcome to High-Q Solid Academy! Have a great day.</p>
     </div>
 </div>
 
-<!-- Stats Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-    <div class="bg-surface-container-lowest p-5 rounded-xl border border-border-subtle shadow-sm">
-        <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary">
-                <span class="material-symbols-outlined">group</span>
-            </div>
-            <span class="text-xs font-semibold text-on-surface-variant">Total</span>
-        </div>
-        <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">TOTAL STUDENTS</h3>
-        <p class="text-3xl font-bold text-on-surface" id="statTotalStudents">0</p>
+<!-- Footer / Testing Controls -->
+<footer class="flex justify-between items-center z-20 pt-4 border-t border-border-subtle/40 text-xs">
+    <div class="flex items-center gap-4 text-on-surface-variant font-semibold">
+        <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">wifi</span> ONLINE</span>
+        <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">database</span> DB SYNCED</span>
     </div>
 
-    <div class="bg-surface-container-lowest p-5 rounded-xl border border-border-subtle shadow-sm">
-        <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
-                <span class="material-symbols-outlined">check_circle</span>
-            </div>
-            <span class="text-xs font-semibold text-green-600">Today</span>
-        </div>
-        <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">PRESENT TODAY</h3>
-        <p class="text-3xl font-bold text-on-surface" id="statPresentToday">0</p>
+    <!-- Quick Simulation for Testing -->
+    <div class="flex items-center gap-2">
+        <input type="text" id="simAdmInput" placeholder="Simulate Adm No (e.g. HQ/2026/001)" class="px-3 py-1.5 bg-white border border-border-subtle rounded-lg text-xs">
+        <button onclick="simulateScanFromInput()" class="px-4 py-1.5 bg-primary text-white font-semibold rounded-lg hover:opacity-90">Simulate Touch</button>
     </div>
-
-    <div class="bg-surface-container-lowest p-5 rounded-xl border border-border-subtle shadow-sm">
-        <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
-                <span class="material-symbols-outlined">cancel</span>
-            </div>
-            <span class="text-xs font-semibold text-red-600">Today</span>
-        </div>
-        <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">ABSENT</h3>
-        <p class="text-3xl font-bold text-on-surface" id="statAbsentToday">0</p>
-    </div>
-
-    <div class="bg-primary-container p-5 rounded-xl border border-primary shadow-sm text-white">
-        <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-secondary-container">
-                <span class="material-symbols-outlined">sensors</span>
-            </div>
-            <span class="flex h-2 w-2 rounded-full bg-secondary-container animate-pulse"></span>
-        </div>
-        <h3 class="text-on-primary-container text-xs font-semibold uppercase tracking-wider mb-1">CURRENTLY IN SCHOOL</h3>
-        <p class="text-3xl font-bold" id="statCurrentlyIn">0</p>
-    </div>
-
-    <div class="bg-surface-container-lowest p-5 rounded-xl border border-border-subtle shadow-sm">
-        <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600">
-                <span class="material-symbols-outlined">fingerprint</span>
-            </div>
-            <span class="text-xs font-semibold text-yellow-600">Pending</span>
-        </div>
-        <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">AWAITING FINGERPRINT</h3>
-        <p class="text-3xl font-bold text-on-surface" id="statAwaitingFp">0</p>
-    </div>
-</div>
-
-<!-- Main Grid -->
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-    <!-- Class Summary & Actions -->
-    <div class="lg:col-span-7 space-y-6">
-        <div class="bg-surface-container-lowest p-6 rounded-xl border border-border-subtle shadow-sm">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="font-bold text-lg text-on-surface">Quick Access Modules</h3>
-            </div>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <a href="students.php" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
-                    <span class="material-symbols-outlined text-3xl text-primary mb-2">groups</span>
-                    <h4 class="font-semibold text-sm">Student Directory</h4>
-                    <p class="text-xs text-on-surface-variant">View & Manage</p>
-                </a>
-                <a href="students.php?open_import=1" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
-                    <span class="material-symbols-outlined text-3xl text-primary mb-2">upload_file</span>
-                    <h4 class="font-semibold text-sm">CSV / Excel Import</h4>
-                    <p class="text-xs text-on-surface-variant">Bulk Student Import</p>
-                </a>
-                <a href="enroll_fingerprint.php" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
-                    <span class="material-symbols-outlined text-3xl text-primary mb-2">fingerprint</span>
-                    <h4 class="font-semibold text-sm">Biometric Enroll</h4>
-                    <p class="text-xs text-on-surface-variant">Link Templates</p>
-                </a>
-                <a href="attendance_records.php" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
-                    <span class="material-symbols-outlined text-3xl text-primary mb-2">history</span>
-                    <h4 class="font-semibold text-sm">Attendance Logs</h4>
-                    <p class="text-xs text-on-surface-variant">Check-In / Out</p>
-                </a>
-                <a href="reports.php" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
-                    <span class="material-symbols-outlined text-3xl text-primary mb-2">article</span>
-                    <h4 class="font-semibold text-sm">Reports & PDF</h4>
-                    <p class="text-xs text-on-surface-variant">Export & Print</p>
-                </a>
-                <a href="terminal.php" target="_blank" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
-                    <span class="material-symbols-outlined text-3xl text-primary mb-2">desktop_windows</span>
-                    <h4 class="font-semibold text-sm">Kiosk Terminal</h4>
-                    <p class="text-xs text-on-surface-variant">Scanner Mode</p>
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Live Activity Log Sidebar -->
-    <div class="lg:col-span-5 bg-surface-container-lowest rounded-xl border border-border-subtle shadow-sm flex flex-col">
-        <div class="p-4 border-b border-border-subtle flex justify-between items-center bg-surface-container-low/50 rounded-t-xl">
-            <h3 class="font-bold text-base">Today's Attendance Activity</h3>
-            <span class="flex items-center gap-1.5 text-secondary font-bold text-xs bg-secondary-container/20 px-2.5 py-1 rounded-full">
-                <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> LIVE
-            </span>
-        </div>
-        <div class="p-4 space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar" id="recentActivityList">
-            <p class="text-xs text-center text-on-surface-variant py-8">Loading activity...</p>
-        </div>
-        <div class="p-3 border-t border-border-subtle text-center">
-            <a href="attendance_records.php" class="text-primary font-bold text-xs hover:underline">View All Records &rarr;</a>
-        </div>
-    </div>
-</div>
+</footer>
 
 <script>
-    async function loadDashboardStats() {
-        try {
-            const resp = await fetch('api/attendance.php?action=dashboard_stats');
-            const data = await resp.json();
-            if (data.success) {
-                document.getElementById('statTotalStudents').innerText = data.stats.total_students.toLocaleString();
-                document.getElementById('statPresentToday').innerText = data.stats.present_today.toLocaleString();
-                document.getElementById('statAbsentToday').innerText = data.stats.absent_today.toLocaleString();
-                document.getElementById('statCurrentlyIn').innerText = data.stats.currently_in_school.toLocaleString();
-                document.getElementById('statAwaitingFp').innerText = data.stats.awaiting_fingerprint.toLocaleString();
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('kioskTime').innerText = now.toLocaleTimeString('en-US', { hour12: false });
+        document.getElementById('kioskDate').innerText = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
 
-                const listContainer = document.getElementById('recentActivityList');
-                if (data.recent_activity.length === 0) {
-                    listContainer.innerHTML = '<p class="text-xs text-center text-on-surface-variant py-8">No attendance records logged today yet.</p>';
-                } else {
-                    listContainer.innerHTML = data.recent_activity.map(act => `
-                        <div class="flex items-center gap-3 p-2 border-b border-border-subtle/50 last:border-0">
-                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center font-bold text-primary text-sm flex-shrink-0">
-                                ${act.firstname.charAt(0)}${act.surname.charAt(0)}
-                            </div>
-                            <div class="flex-grow min-w-0">
-                                <p class="text-sm font-semibold text-on-surface truncate">${act.surname} ${act.firstname}</p>
-                                <p class="text-xs text-on-surface-variant">${act.class} &bull; ${act.admission_number}</p>
-                            </div>
-                            <div class="text-right flex-shrink-0">
-                                <span class="text-xs font-bold px-2 py-0.5 rounded ${act.check_out ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">
-                                    ${act.check_out ? 'Checked Out' : 'Checked In'}
-                                </span>
-                                <p class="text-[10px] text-on-surface-variant mt-1">${act.check_out || act.check_in || ''}</p>
-                            </div>
-                        </div>
-                    `).join('');
-                }
+    async function triggerBiometricAttendance(studentId, admissionNo = '') {
+        const formData = new FormData();
+        if (studentId) formData.append('student_id', studentId);
+        if (admissionNo) formData.append('admission_number', admissionNo);
+
+        try {
+            const resp = await fetch('api/attendance.php?action=record_biometric', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                showResultModal(data);
+            } else {
+                alert(data.message || 'Student attendance match failed.');
             }
         } catch (e) {
             console.error(e);
         }
     }
 
-    loadDashboardStats();
-    setInterval(loadDashboardStats, 10000);
-</script>
+    function showResultModal(data) {
+        const overlay = document.getElementById('successOverlay');
+        const st = data.student || {};
 
-<?php require_once __DIR__ . '/includes/footer.php'; ?>
+        document.getElementById('modalInitials').innerText = st.name ? st.name.split(' ').map(n => n[0]).join('') : 'HQ';
+        document.getElementById('modalBadge').innerText = data.type === 'check_out' ? 'CHECK-OUT SUCCESS' : (data.type === 'completed' ? 'ALREADY RECORDED' : 'CHECK-IN SUCCESS');
+        document.getElementById('modalName').innerText = st.name || 'Student';
+        document.getElementById('modalSub').innerText = `${st.class || ''} \u2022 ${st.admission_number || ''}`;
+        document.getElementById('modalTime').innerText = data.time || new Date().toLocaleTimeString();
+        document.getElementById('modalStatus').innerText = data.status || 'Present';
+        document.getElementById('modalMessage').innerText = data.message || 'Welcome to High-Q Solid Academy!';
+
+        overlay.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+        overlay.classList.add('opacity-100', 'translate-y-0');
+
+        // Automatically hide after 5 seconds
+        setTimeout(() => {
+            overlay.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+            overlay.classList.remove('opacity-100', 'translate-y-0');
+        }, 5000);
+    }
+
+    function simulateScanFromInput() {
+        const val = document.getElementById('simAdmInput').value.trim();
+        if (!val) {
+            alert('Please enter an admission number to simulate.');
+            return;
+        }
+        triggerBiometricAttendance(null, val);
+    }
+
+    // Poll local C# Biometric Service for real scanner matches
+    async function pollBiometricService() {
+        try {
+            const resp = await fetch('http://localhost:8080/terminal_scan_event');
+            const event = await resp.json();
+            if (event && event.matched && event.student_id) {
+                triggerBiometricAttendance(event.student_id, event.admission_number);
+            }
+        } catch (e) {
+            // Quiet fail if desktop service is offline
+        }
+    }
+    setInterval(pollBiometricService, 1500);
+</script>
+</body>
+</html>

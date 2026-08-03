@@ -83,7 +83,7 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
 
 <script>
     let selectedStudent = null;
-    let biometricServiceUrl = 'http://localhost:8080'; // Default local service port
+    let biometricServiceUrl = 'http://localhost:8080';
 
     async function checkServiceStatus() {
         const badge = document.getElementById('serviceStatusBadge');
@@ -114,7 +114,7 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
         if (!query || query.length < 2) return;
         const resDiv = document.getElementById('searchResults');
         try {
-            const resp = await fetch(`api/students.php?action=list&limit=10&search=${encodeURIComponent(query)}`);
+            const resp = await fetch(`../api/students.php?action=list&limit=10&search=${encodeURIComponent(query)}`);
             const data = await resp.json();
             if (data.success && data.data) {
                 if (data.data.length === 0) {
@@ -179,7 +179,6 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
         spinner.classList.remove('hidden');
 
         try {
-            // Send enrollment request to local C# service
             const res = await fetch(`${biometricServiceUrl}/enroll`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -191,7 +190,6 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
             circle.className = 'relative w-40 h-40 rounded-full bg-surface-container-low border-4 border-border-subtle flex items-center justify-center transition-all';
 
             if (data.success && data.template) {
-                // Save template to PHP MySQL
                 await saveFingerprintToBackend(selectedStudent.id, data.template, data.quality || 'Good');
             } else {
                 title.innerText = 'Capture Failed or Simulated Mode';
@@ -224,7 +222,7 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
         formData.append('quality', quality);
 
         try {
-            const resp = await fetch('api/fingerprints.php?action=save', {
+            const resp = await fetch('../api/fingerprints.php?action=save', {
                 method: 'POST',
                 body: formData
             });
@@ -254,7 +252,7 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
         formData.append('student_id', selectedStudent.id);
 
         try {
-            const resp = await fetch('api/fingerprints.php?action=delete', {
+            const resp = await fetch('../api/fingerprints.php?action=delete', {
                 method: 'POST',
                 body: formData
             });
@@ -270,9 +268,8 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
         }
     }
 
-    // Auto-select preset student if passed in query string
     if (<?= $presetStudentId ?> > 0) {
-        fetch(`api/students.php?action=get&id=<?= $presetStudentId ?>`)
+        fetch(`../api/students.php?action=get&id=<?= $presetStudentId ?>`)
             .then(res => res.json())
             .then(data => { if (data.success && data.student) selectStudent(data.student); });
     }

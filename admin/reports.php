@@ -164,7 +164,7 @@ if ($val = $stmt->fetchColumn()) {
         tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-gray-500">Generating report...</td></tr>';
 
         try {
-            const resp = await fetch(`api/attendance.php?action=list&date=${encodeURIComponent(date)}&class=${encodeURIComponent(cls)}`);
+            const resp = await fetch(`../api/attendance.php?action=list&date=${encodeURIComponent(date)}&class=${encodeURIComponent(cls)}`);
             const data = await resp.json();
 
             if (data.success) {

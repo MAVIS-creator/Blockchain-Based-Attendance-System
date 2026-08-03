@@ -132,7 +132,7 @@ $studentId = (int)($_GET['id'] ?? 0);
     async function loadStudentData() {
         if (studentId <= 0) return;
         try {
-            const resp = await fetch(`api/students.php?action=get&id=${studentId}`);
+            const resp = await fetch(`../api/students.php?action=get&id=${studentId}`);
             const data = await resp.json();
             if (data.success && data.student) {
                 const s = data.student;
@@ -164,7 +164,7 @@ $studentId = (int)($_GET['id'] ?? 0);
         formData.append('action', 'save');
 
         try {
-            const resp = await fetch('api/students.php', {
+            const resp = await fetch('../api/students.php', {
                 method: 'POST',
                 body: formData
             });

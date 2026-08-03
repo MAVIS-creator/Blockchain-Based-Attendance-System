@@ -143,7 +143,7 @@ require_once __DIR__ . '/includes/header.php';
         tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-on-surface-variant">Loading students...</td></tr>';
 
         try {
-            const url = `api/students.php?action=list&page=${page}&limit=15&search=${encodeURIComponent(search)}&class=${encodeURIComponent(classVal)}&status=${encodeURIComponent(statusVal)}`;
+            const url = `../api/students.php?action=list&page=${page}&limit=15&search=${encodeURIComponent(search)}&class=${encodeURIComponent(classVal)}&status=${encodeURIComponent(statusVal)}`;
             const resp = await fetch(url);
             const data = await resp.json();
 
@@ -204,7 +204,7 @@ require_once __DIR__ . '/includes/header.php';
         formData.append('id', id);
 
         try {
-            const resp = await fetch('api/students.php?action=delete', {
+            const resp = await fetch('../api/students.php?action=delete', {
                 method: 'POST',
                 body: formData
             });
@@ -243,7 +243,7 @@ require_once __DIR__ . '/includes/header.php';
         validateBtn.innerText = 'Validating...';
 
         try {
-            const resp = await fetch('api/students.php?action=validate_import', {
+            const resp = await fetch('../api/students.php?action=validate_import', {
                 method: 'POST',
                 body: formData
             });
@@ -294,7 +294,7 @@ require_once __DIR__ . '/includes/header.php';
         formData.append('csv_file', fileInput.files[0]);
 
         try {
-            const resp = await fetch('api/students.php?action=import', {
+            const resp = await fetch('../api/students.php?action=import', {
                 method: 'POST',
                 body: formData
             });
