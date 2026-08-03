@@ -1,7 +1,0 @@
-{
-  "properties": {
-    "linuxFxVersion": "PHP|8.2",
-    "appCommandLine": "",
-    "alwaysOn": true
-  }
-}

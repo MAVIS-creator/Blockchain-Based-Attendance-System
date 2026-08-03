@@ -1,449 +1,184 @@
 <?php
-// Load environment variables from Azure App Settings
-require_once __DIR__ . '/env-loader.php';
-
-require_once __DIR__ . '/storage_helpers.php';
-require_once __DIR__ . '/admin/runtime_storage.php';
-require_once __DIR__ . '/admin/cache_helpers.php';
-require_once __DIR__ . '/public_status_helpers.php';
-require_once __DIR__ . '/request_timing.php';
-require_once __DIR__ . '/request_guard.php';
-app_storage_init();
-app_request_guard('index.php', 'public');
-request_timing_start('index.php');
-
-$span = microtime(true);
-$status = public_status_current('index_status', 2);
-request_timing_span('load_status', $span);
-$activeMode = $status["checkin"] ? "checkin" : ($status["checkout"] ? "checkout" : "");
-if (!$activeMode) {
-  header('Location: attendance_closed.php');
-  exit;
-}
-
-// Read active course
-$activeCourse = "General";
-$activeFile = admin_course_storage_migrate_file('active_course.json');
-$span = microtime(true);
-if (file_exists($activeFile)) {
-  $activeData = admin_cached_json_file('index_active_course', $activeFile, [], 10);
-  if (is_array($activeData)) {
-    $activeCourse = $activeData['course'] ?? "General";
-  }
-}
-request_timing_span('load_active_course', $span);
-
-$courseFile = admin_course_storage_migrate_file('course.json');
-$activeCourseOutline = "Verified Academic Session";
-if (file_exists($courseFile)) {
-    $courses = admin_cached_json_file('index_courses', $courseFile, [], 10);
-    if (is_array($courses) && isset($courses[$activeCourse])) {
-        $activeCourseOutline = $courses[$activeCourse];
-    }
-}
-
-// Load unified header
-include __DIR__ . '/includes/public_header.php';
+$pageTitle = 'Dashboard';
+$activePage = 'dashboard';
+require_once __DIR__ . '/includes/header.php';
 ?>
 
-<!-- Main Content Canvas -->
-<main class="flex-grow flex flex-col items-center justify-start pt-8 pb-16 px-4">
-    <div class="w-full max-w-2xl mt-8">
-        <div class="bg-surface-container-low rounded-xl p-1 overflow-hidden">
-            <div class="bg-surface-container-lowest rounded-lg shadow-[0_16px_36px_rgba(24,39,75,0.06)] overflow-hidden">
-                <div class="blockchain-gradient p-8 text-white relative flex flex-col">
-                    <div class="absolute top-0 right-0 p-8 opacity-10">
-                        <span class="material-symbols-outlined text-8xl" data-icon="hub">hub</span>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-3 mb-4 z-10">
-                        <span class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                            Attendance Active
-                        </span>
-                        <span class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                            <?= ucfirst($activeMode) ?> Mode
-                        </span>
-                    </div>
-                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-2 z-10">
-                        <?= htmlspecialchars($activeCourse) ?>
-                    </h1>
-                    <p class="text-white/70 text-sm font-medium z-10"><?= htmlspecialchars($activeCourseOutline) ?></p>
-                </div>
-                <div class="p-8 md:p-12">
-                    <form id="attendanceForm" action="#" class="space-y-8" method="POST">
-                        <div class="space-y-6">
-                            <div class="space-y-2">
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider ml-1">Full Name</label>
-                                <div class="relative group">
-                                    <input class="w-full bg-surface-container-low border-none rounded-lg px-4 py-4 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/40" id="name" name="name" placeholder="Enter your official name" required="" type="text"/>
-                                    <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30" data-icon="person">person</span>
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="block text-xs font-bold text-on-surface-variant uppercase tracking-wider ml-1">Matric Number</label>
-                                <div class="relative group">
-                                    <input class="w-full bg-surface-container-low border-none rounded-lg px-4 py-4 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/40" id="matric" name="matric" inputmode="numeric" pattern="[0-9]{6,20}" minlength="6" maxlength="20" placeholder="0000000000" required="" type="text"/>
-                                    <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30" data-icon="fingerprint">fingerprint</span>
-                                </div>
-                            </div>
-                            <input type="hidden" id="fingerprint" name="fingerprint">
-                            <input type="hidden" name="action" value="<?= htmlspecialchars($activeMode) ?>">
-                            <input type="hidden" name="course" value="<?= htmlspecialchars($activeCourse) ?>">
-                        </div>
-                        <div class="pt-4 space-y-4">
-                            <button id="submitBtn" disabled class="w-full blockchain-gradient text-white font-bold py-4 rounded-lg shadow-lg hover:shadow-primary/20 transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed" type="submit">
-                                <span class="material-symbols-outlined" data-icon="verified">verified</span>
-                                Submit Attendance
-                            </button>
-                            <a href="support.php" class="w-full bg-surface-container-high text-on-surface-variant font-semibold py-4 rounded-lg hover:bg-surface-container-highest transition-colors flex items-center justify-center gap-3 decoration-none cursor-pointer">
-                                <span class="material-symbols-outlined" data-icon="help_center">help_center</span>
-                                Support
-                            </a>
-                        </div>
-                    </form>
-                </div>
+<div class="mb-8 flex justify-between items-end">
+    <div>
+        <h2 class="font-headline-lg text-3xl font-bold text-on-surface">Academy Overview</h2>
+        <p class="font-body-md text-on-surface-variant">Real-time attendance metrics for <?= date('F j, Y') ?></p>
+    </div>
+    <div class="flex gap-2">
+        <a href="register_student.php" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-navy-muted shadow transition-all">
+            <span class="material-symbols-outlined text-sm">person_add</span> Add Student
+        </a>
+        <a href="enroll_fingerprint.php" class="px-4 py-2 bg-secondary-container text-on-secondary-container rounded-lg text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-all">
+            <span class="material-symbols-outlined text-sm">fingerprint</span> Enroll Fingerprint
+        </a>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+    <div class="bg-surface-container-lowest p-5 rounded-xl border border-border-subtle shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined">group</span>
+            </div>
+            <span class="text-xs font-semibold text-on-surface-variant">Total</span>
+        </div>
+        <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">TOTAL STUDENTS</h3>
+        <p class="text-3xl font-bold text-on-surface" id="statTotalStudents">0</p>
+    </div>
+
+    <div class="bg-surface-container-lowest p-5 rounded-xl border border-border-subtle shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
+                <span class="material-symbols-outlined">check_circle</span>
+            </div>
+            <span class="text-xs font-semibold text-green-600">Today</span>
+        </div>
+        <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">PRESENT TODAY</h3>
+        <p class="text-3xl font-bold text-on-surface" id="statPresentToday">0</p>
+    </div>
+
+    <div class="bg-surface-container-lowest p-5 rounded-xl border border-border-subtle shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
+                <span class="material-symbols-outlined">cancel</span>
+            </div>
+            <span class="text-xs font-semibold text-red-600">Today</span>
+        </div>
+        <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">ABSENT</h3>
+        <p class="text-3xl font-bold text-on-surface" id="statAbsentToday">0</p>
+    </div>
+
+    <div class="bg-primary-container p-5 rounded-xl border border-primary shadow-sm text-white">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-secondary-container">
+                <span class="material-symbols-outlined">sensors</span>
+            </div>
+            <span class="flex h-2 w-2 rounded-full bg-secondary-container animate-pulse"></span>
+        </div>
+        <h3 class="text-on-primary-container text-xs font-semibold uppercase tracking-wider mb-1">CURRENTLY IN SCHOOL</h3>
+        <p class="text-3xl font-bold" id="statCurrentlyIn">0</p>
+    </div>
+
+    <div class="bg-surface-container-lowest p-5 rounded-xl border border-border-subtle shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600">
+                <span class="material-symbols-outlined">fingerprint</span>
+            </div>
+            <span class="text-xs font-semibold text-yellow-600">Pending</span>
+        </div>
+        <h3 class="text-on-surface-variant text-xs font-semibold uppercase tracking-wider mb-1">AWAITING FINGERPRINT</h3>
+        <p class="text-3xl font-bold text-on-surface" id="statAwaitingFp">0</p>
+    </div>
+</div>
+
+<!-- Main Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <!-- Class Summary & Actions -->
+    <div class="lg:col-span-7 space-y-6">
+        <div class="bg-surface-container-lowest p-6 rounded-xl border border-border-subtle shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-lg text-on-surface">Quick Access Modules</h3>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <a href="students.php" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
+                    <span class="material-symbols-outlined text-3xl text-primary mb-2">groups</span>
+                    <h4 class="font-semibold text-sm">Student Directory</h4>
+                    <p class="text-xs text-on-surface-variant">View & Manage</p>
+                </a>
+                <a href="students.php?open_import=1" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
+                    <span class="material-symbols-outlined text-3xl text-primary mb-2">upload_file</span>
+                    <h4 class="font-semibold text-sm">CSV / Excel Import</h4>
+                    <p class="text-xs text-on-surface-variant">Bulk Student Import</p>
+                </a>
+                <a href="enroll_fingerprint.php" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
+                    <span class="material-symbols-outlined text-3xl text-primary mb-2">fingerprint</span>
+                    <h4 class="font-semibold text-sm">Biometric Enroll</h4>
+                    <p class="text-xs text-on-surface-variant">Link Templates</p>
+                </a>
+                <a href="attendance_records.php" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
+                    <span class="material-symbols-outlined text-3xl text-primary mb-2">history</span>
+                    <h4 class="font-semibold text-sm">Attendance Logs</h4>
+                    <p class="text-xs text-on-surface-variant">Check-In / Out</p>
+                </a>
+                <a href="reports.php" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
+                    <span class="material-symbols-outlined text-3xl text-primary mb-2">article</span>
+                    <h4 class="font-semibold text-sm">Reports & PDF</h4>
+                    <p class="text-xs text-on-surface-variant">Export & Print</p>
+                </a>
+                <a href="terminal.php" target="_blank" class="p-4 border border-border-subtle rounded-xl hover:bg-surface-container-low transition-all text-center block">
+                    <span class="material-symbols-outlined text-3xl text-primary mb-2">desktop_windows</span>
+                    <h4 class="font-semibold text-sm">Kiosk Terminal</h4>
+                    <p class="text-xs text-on-surface-variant">Scanner Mode</p>
+                </a>
             </div>
         </div>
     </div>
-</main>
 
-<?php include __DIR__ . '/includes/public_footer.php'; ?>
+    <!-- Live Activity Log Sidebar -->
+    <div class="lg:col-span-5 bg-surface-container-lowest rounded-xl border border-border-subtle shadow-sm flex flex-col">
+        <div class="p-4 border-b border-border-subtle flex justify-between items-center bg-surface-container-low/50 rounded-t-xl">
+            <h3 class="font-bold text-base">Today's Attendance Activity</h3>
+            <span class="flex items-center gap-1.5 text-secondary font-bold text-xs bg-secondary-container/20 px-2.5 py-1 rounded-full">
+                <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> LIVE
+            </span>
+        </div>
+        <div class="p-4 space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar" id="recentActivityList">
+            <p class="text-xs text-center text-on-surface-variant py-8">Loading activity...</p>
+        </div>
+        <div class="p-3 border-t border-border-subtle text-center">
+            <a href="attendance_records.php" class="text-primary font-bold text-xs hover:underline">View All Records &rarr;</a>
+        </div>
+    </div>
+</div>
 
-<script src="./js/fp.min.js"></script>
 <script>
-    const submitBtn = document.getElementById('submitBtn');
-    const fingerprintInput = document.getElementById('fingerprint');
-    const ATTENDANCE_SERVER_DAY = <?= json_encode(date('Y-m-d')) ?>;
-    const ATTENDANCE_ACTIVE_COURSE = <?= json_encode($activeCourse) ?>;
-
-    let inactivityTimer;
-    let fencingActive = true;
-    const TAB_AWAY_GRACE_MS = 6 * 1000;
-    const FENCING_BLOCK_MS = 15 * 60 * 1000;
-    const TAB_AWAY_MAX_STRIKES = 3;
-    const TAB_AWAY_STRIKES_KEY = 'attendanceTabAwayStrikes';
-    const TAB_AWAY_LOCK_UNTIL_KEY = 'attendanceTabAwayLockUntil';
-    const ATTENDANCE_SUBMISSION_BYPASS_KEY = 'attendanceSubmissionBypass';
-
-    function readSubmissionBypass() {
-      try {
-        const raw = localStorage.getItem(ATTENDANCE_SUBMISSION_BYPASS_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === 'object' ? parsed : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function clearTabAwayLockState() {
-      try {
-        localStorage.removeItem(TAB_AWAY_STRIKES_KEY);
-        localStorage.removeItem(TAB_AWAY_LOCK_UNTIL_KEY);
-        localStorage.removeItem('attendanceBlocked');
-      } catch (e) {}
-    }
-
-    function submissionBypassMatches(token) {
-      const bypass = readSubmissionBypass();
-      if (!bypass || !token) return false;
-      return bypass.token === token
-        && bypass.day === ATTENDANCE_SERVER_DAY
-        && bypass.course === ATTENDANCE_ACTIVE_COURSE;
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const existingToken = localStorage.getItem('attendance_token') || '';
-      if (submissionBypassMatches(existingToken)) {
-        fencingActive = false;
-        clearTimeout(inactivityTimer);
-        clearTabAwayLockState();
-      }
-
-      const lockUntil = parseInt(localStorage.getItem(TAB_AWAY_LOCK_UNTIL_KEY) || '0', 10);
-      const now = Date.now();
-      if (lockUntil > now) {
-        if (submissionBypassMatches(existingToken)) {
-          clearTabAwayLockState();
-          fencingActive = false;
-          return;
-        }
-        const remainingSec = Math.max(1, Math.ceil((lockUntil - now) / 1000));
-        Swal.fire({
-          icon: 'warning',
-          title: 'Temporarily Locked',
-          text: `Too many tab-away violations. Please wait ${remainingSec}s before trying again.`,
-          confirmButtonColor: '#00457b'
-        }).then(() => {
-          window.location.href = 'closed.php';
-        });
-        return;
-      }
-      if (lockUntil > 0 && lockUntil <= now) {
-        localStorage.removeItem(TAB_AWAY_LOCK_UNTIL_KEY);
-        localStorage.setItem(TAB_AWAY_STRIKES_KEY, '0');
-      }
-      (function() {
+    async function loadDashboardStats() {
         try {
-          var stored = localStorage.getItem('attendance_token');
-          if (!stored) return;
-          // Avoid long-lived SSE streams on the public page.
-          // Under high concurrency, SSE can exhaust PHP workers and cause timeouts.
-          var revocationCheckInFlight = false;
-          function checkRevocationOnce() {
-            if (revocationCheckInFlight) return;
-            revocationCheckInFlight = true;
-            fetch('admin/revoked_tokens.php', { cache: 'no-store' })
-              .then(r => r.ok ? r.json() : null)
-              .then(data => {
-                if (!data || !data.revoked) return;
-                var tokensObj = data.revoked.tokens || {};
-                if (tokensObj[stored] || (Array.isArray(tokensObj) && tokensObj.indexOf(stored) !== -1)) {
-                  localStorage.removeItem('attendance_token');
-                  localStorage.removeItem('attendanceBlocked');
-                  try {
-                    Swal.fire({
-                      icon: 'info',
-                      title: 'Token Revoked',
-                      text: 'Your attendance token was revoked. Reloading...',
-                      confirmButtonColor: '#00457b'
-                    }).then(function() { location.reload(); });
-                  } catch (e) { location.reload(); }
+            const resp = await fetch('api/attendance.php?action=dashboard_stats');
+            const data = await resp.json();
+            if (data.success) {
+                document.getElementById('statTotalStudents').innerText = data.stats.total_students.toLocaleString();
+                document.getElementById('statPresentToday').innerText = data.stats.present_today.toLocaleString();
+                document.getElementById('statAbsentToday').innerText = data.stats.absent_today.toLocaleString();
+                document.getElementById('statCurrentlyIn').innerText = data.stats.currently_in_school.toLocaleString();
+                document.getElementById('statAwaitingFp').innerText = data.stats.awaiting_fingerprint.toLocaleString();
+
+                const listContainer = document.getElementById('recentActivityList');
+                if (data.recent_activity.length === 0) {
+                    listContainer.innerHTML = '<p class="text-xs text-center text-on-surface-variant py-8">No attendance records logged today yet.</p>';
+                } else {
+                    listContainer.innerHTML = data.recent_activity.map(act => `
+                        <div class="flex items-center gap-3 p-2 border-b border-border-subtle/50 last:border-0">
+                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center font-bold text-primary text-sm flex-shrink-0">
+                                ${act.firstname.charAt(0)}${act.surname.charAt(0)}
+                            </div>
+                            <div class="flex-grow min-w-0">
+                                <p class="text-sm font-semibold text-on-surface truncate">${act.surname} ${act.firstname}</p>
+                                <p class="text-xs text-on-surface-variant">${act.class} &bull; ${act.admission_number}</p>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <span class="text-xs font-bold px-2 py-0.5 rounded ${act.check_out ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">
+                                    ${act.check_out ? 'Checked Out' : 'Checked In'}
+                                </span>
+                                <p class="text-[10px] text-on-surface-variant mt-1">${act.check_out || act.check_in || ''}</p>
+                            </div>
+                        </div>
+                    `).join('');
                 }
-              })
-              .catch(() => {})
-              .finally(() => {
-                revocationCheckInFlight = false;
-              });
-          }
-
-          checkRevocationOnce();
-          document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
-              checkRevocationOnce();
             }
-          });
-        } catch (e) {}
-      })();
-    });
-
-    // Build a canvas fingerprint (GPU/font rendering is unique per device)
-    function getCanvasFingerprint() {
-      try {
-        const c = document.createElement('canvas');
-        c.width = 200; c.height = 50;
-        const ctx = c.getContext('2d');
-        ctx.textBaseline = 'top';
-        ctx.font = '14px Arial';
-        ctx.fillStyle = '#f60';
-        ctx.fillRect(100, 1, 62, 20);
-        ctx.fillStyle = '#069';
-        ctx.fillText('SmartAttend\u2764', 2, 15);
-        ctx.fillStyle = 'rgba(102,204,0,0.3)';
-        ctx.font = '18pt Arial';
-        ctx.fillText('SmartAttend\u2764', 4, 25);
-        return c.toDataURL().slice(-64); // last 64 chars = pixel hash suffix
-      } catch(e) { return 'no-canvas'; }
+        } catch (e) {
+            console.error(e);
+        }
     }
 
-    // Hash an arbitrary string with SHA-256 (returns hex string)
-    async function sha256(str) {
-      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-    }
-
-    FingerprintJS.load().then(fp => {
-      fp.get().then(async result => {
-        const visitorId = result.visitorId;
-
-        // Collect additional hardware signals
-        const hw = [
-          screen.width, screen.height, screen.colorDepth,
-          navigator.hardwareConcurrency || 0,
-          navigator.deviceMemory || 0,
-          navigator.platform || '',
-          navigator.maxTouchPoints || 0,
-          getCanvasFingerprint()
-        ].join('|');
-
-        // Combine visitorId + hardware signals into one robust composite hash
-        const compositeHash = await sha256(visitorId + '::' + hw);
-
-        let token = localStorage.getItem('attendance_token');
-        if (!token) {
-          token = crypto.randomUUID();
-          localStorage.setItem('attendance_token', token);
-        }
-
-        if (submissionBypassMatches(token)) {
-          fencingActive = false;
-          clearTimeout(inactivityTimer);
-          clearTabAwayLockState();
-        }
-
-        // Format: <compositeHash>_<localStorageToken>
-        fingerprintInput.value = compositeHash + "_" + token;
-        submitBtn.disabled = false;
-      }).catch(err => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Fingerprint Error',
-          text: 'Fingerprint could not be generated. Please try again.',
-          confirmButtonColor: '#00457b'
-        });
-      });
-    });
-
-    document.getElementById('attendanceForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const form = this;
-      const formData = new FormData(this);
-      const showPopup = ({ icon = 'info', title = '', text = '', allowOutsideClick = true, showConfirmButton = true }) => {
-        if (window.Swal && typeof Swal.fire === 'function') {
-          return Swal.fire({ icon, title, text, allowOutsideClick, showConfirmButton });
-        }
-        return Promise.resolve();
-      };
-
-      submitBtn.disabled = true;
-      Swal.fire({
-        title: 'Submitting Attendance',
-        text: 'Please wait...',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => { Swal.showLoading(); }
-      });
-
-      function getLocation(timeout = 5000) {
-        return new Promise((resolve) => {
-          if (!navigator.geolocation) return resolve(null);
-          let settled = false;
-          const timer = setTimeout(() => { if (!settled) { settled = true; resolve(null); } }, timeout);
-          navigator.geolocation.getCurrentPosition(function(pos) {
-            if (settled) return;
-            settled = true;
-            clearTimeout(timer);
-            resolve({
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude,
-              accuracyM: pos && pos.coords && typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : null,
-              clientTs: Date.now(),
-              highAccuracyRequested: true,
-              source: 'browser-geolocation'
-            });
-          }, function() {
-            if (settled) return;
-            settled = true;
-            clearTimeout(timer);
-            resolve(null);
-          }, { enableHighAccuracy: true, maximumAge: 60000, timeout: timeout });
-        });
-      }
-
-      getLocation(5000).then(loc => {
-        if (loc) {
-          formData.append('lat', loc.lat);
-          formData.append('lng', loc.lng);
-          if (loc.accuracyM !== null && !Number.isNaN(loc.accuracyM)) {
-            formData.append('geo_accuracy_m', loc.accuracyM);
-          }
-          formData.append('geo_client_ts', loc.clientTs || Date.now());
-          formData.append('geo_high_accuracy', loc.highAccuracyRequested ? '1' : '0');
-          formData.append('geo_source', loc.source || 'browser-geolocation');
-        }
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
-
-        fetch('submit.php', { method: 'POST', body: formData, signal: controller.signal })
-          .finally(() => { clearTimeout(timeoutId); })
-          .then(res => res.json())
-          .then(json => {
-            Swal.close();
-            if (!json || !json.ok) {
-              showPopup({ icon: 'error', title: 'Submission Failed', text: (json && json.message) || 'Submission failed' });
-              submitBtn.disabled = false;
-              return;
-            }
-            fencingActive = false;
-            clearTimeout(inactivityTimer);
-            clearTabAwayLockState();
-            try {
-              const token = localStorage.getItem('attendance_token') || '';
-              if (token) {
-                localStorage.setItem(ATTENDANCE_SUBMISSION_BYPASS_KEY, JSON.stringify({
-                  token: token,
-                  course: ATTENDANCE_ACTIVE_COURSE,
-                  day: ATTENDANCE_SERVER_DAY,
-                  action: <?= json_encode($activeMode) ?>,
-                  at: Date.now()
-                }));
-              }
-            } catch (e) {}
-            if (json.warning) {
-              showPopup({ icon: 'warning', title: 'Attendance Marked with Warning', text: json.message }).then(() => {
-                 window.location.href = json.redirect || 'index.php';
-              });
-            } else {
-              showPopup({ icon: 'success', title: 'Success', text: json.message || 'Attendance recorded.' }).then(() => {
-                 window.location.href = json.redirect || 'index.php';
-              });
-            }
-          })
-          .catch(err => {
-            Swal.close();
-            if (err.name === 'AbortError') {
-              showPopup({ icon: 'error', title: 'Timeout', text: 'Request timed out' });
-            } else {
-              showPopup({ icon: 'error', title: 'Network Error', text: 'Could not communicate with the server. Please check your connection.' });
-            }
-            submitBtn.disabled = false;
-          });
-      });
-    });
-
-    function startInactivityTimer() {
-      inactivityTimer = setTimeout(() => {
-        const currentStrikes = parseInt(localStorage.getItem(TAB_AWAY_STRIKES_KEY) || '0', 10) + 1;
-        localStorage.setItem(TAB_AWAY_STRIKES_KEY, String(currentStrikes));
-        const strikesLeft = Math.max(0, TAB_AWAY_MAX_STRIKES - currentStrikes);
-        const shouldLock = currentStrikes >= TAB_AWAY_MAX_STRIKES;
-        if (shouldLock) {
-          localStorage.setItem(TAB_AWAY_LOCK_UNTIL_KEY, String(Date.now() + FENCING_BLOCK_MS));
-        }
-
-        var tokenToSend = localStorage.getItem('attendance_token') || '';
-        var fpValue = document.getElementById('fingerprint') ? document.getElementById('fingerprint').value : '';
-        fetch('log_inactivity.php', {
-          method: 'POST',
-          body: new URLSearchParams({
-            reason: shouldLock ? 'Tab-away limit reached (locked 15m)' : `Tab away beyond 6s grace (${currentStrikes}/${TAB_AWAY_MAX_STRIKES})`,
-            should_lock: shouldLock ? '1' : '0',
-            token: tokenToSend,
-            fingerprint: fpValue
-          })
-        }).finally(() => {
-          Swal.fire({
-            icon: 'warning',
-            title: shouldLock ? 'Session Locked' : 'Tab Away Warning',
-            text: shouldLock ?
-              'You used all 3 grace periods. This session is now locked for 15 minutes.' : `You were away for more than 6 seconds. Grace used: ${currentStrikes}/3. Remaining: ${strikesLeft}.`,
-            confirmButtonColor: '#00457b'
-          }).then(function() {
-            if (shouldLock) {
-              window.location.href = 'closed.php';
-            }
-          });
-        });
-      }, TAB_AWAY_GRACE_MS);
-    }
-
-    document.addEventListener('visibilitychange', () => {
-      if (!fencingActive) return;
-      if (document.hidden) {
-        startInactivityTimer();
-      } else {
-        clearTimeout(inactivityTimer);
-      }
-    });
-
+    loadDashboardStats();
+    setInterval(loadDashboardStats, 10000);
 </script>
+
+<?php require_once __DIR__ . '/includes/footer.php'; ?>
