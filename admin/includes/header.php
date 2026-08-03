@@ -16,6 +16,7 @@ $activePage = $activePage ?? 'dashboard';
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title><?= htmlspecialchars($pageTitle ?? 'Dashboard') ?> | Admin Portal | High-Q Solid Academy</title>
+    <link rel="shortcut icon" href="../icon.png" type="image/png"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hanken+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -83,7 +84,9 @@ $activePage = $activePage ?? 'dashboard';
     <!-- Sidebar -->
     <aside class="fixed left-0 top-0 h-full w-sidebar-width bg-surface-container-lowest border-r border-border-subtle shadow-sm flex flex-col p-4 gap-2 z-50">
         <div class="mb-6 px-2 flex items-center gap-3">
-            <div class="w-10 h-10 bg-primary text-white font-bold rounded-lg flex items-center justify-center text-lg">HQ</div>
+            <div class="w-10 h-10 rounded-lg bg-white p-0.5 border border-border-subtle shadow-sm flex items-center justify-center overflow-hidden">
+                <img src="../logo.png" alt="High-Q Logo" class="w-full h-full object-contain"/>
+            </div>
             <div>
                 <h1 class="font-title-md text-title-md font-bold text-primary leading-tight">High-Q Solid</h1>
                 <p class="text-[12px] text-on-surface-variant leading-none">Admin Management</p>

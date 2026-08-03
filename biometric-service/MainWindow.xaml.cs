@@ -81,13 +81,14 @@ namespace HighQBiometricService
                 }
                 else if (rawUrl == "/enroll" && req.HttpMethod == "POST")
                 {
-                    using var reader = new StreamReader(req.InputStream, req.Encoding);
+                    Encoding encoding = req.ContentEncoding ?? Encoding.UTF8;
+                    using var reader = new StreamReader(req.InputStream, encoding);
                     string body = await reader.ReadToEndAsync();
                     
                     _totalScanCount++;
-                    Dispatcher.Invoke(() => TxtTotalScans.Text = _totalScanCount.ToString());
+                    Dispatcher.Invoke(() => TxtTotalScans.Text = $"{_totalScanCount} Scans");
 
-                    // Generate enrollment template (or call DigitalPersona SDK DPUruNet DLL)
+                    // Generate enrollment template
                     string mockTemplate = "DP_SDK_TEMPLATE_" + Guid.NewGuid().ToString("N") + "_" + DateTime.UtcNow.Ticks;
 
                     responseJson = JsonConvert.SerializeObject(new
@@ -147,7 +148,7 @@ namespace HighQBiometricService
         private void BtnSimulate_Click(object sender, RoutedEventArgs e)
         {
             _totalScanCount++;
-            TxtTotalScans.Text = _totalScanCount.ToString();
+            TxtTotalScans.Text = $"{_totalScanCount} Scans";
 
             _pendingScanEvent = new
             {

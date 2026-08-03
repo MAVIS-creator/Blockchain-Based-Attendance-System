@@ -43,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Admin Login | High-Q Solid Academy</title>
+    <link rel="shortcut icon" href="../icon.png" type="image/png"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Hanken+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -100,8 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Branding Header -->
     <div class="mb-8 text-center animate-float">
         <div class="mb-4 flex justify-center">
-            <div class="w-20 h-20 rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-black flex items-center justify-center text-white font-bold text-2xl">
-                HQ
+            <div class="w-20 h-20 rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-white p-1 flex items-center justify-center">
+                <img src="../logo.png" alt="High-Q Logo" class="w-full h-full object-contain"/>
             </div>
         </div>
         <h1 class="font-headline-lg text-3xl font-bold text-primary mb-1">High-Q Solid Academy</h1>

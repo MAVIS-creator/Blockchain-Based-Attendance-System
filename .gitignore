@@ -30,15 +30,18 @@ admin/logs/hybrid_outbox.jsonl
 vendor/
 vendor/**
 
-# Cloud sync / cloud repo folders (if present)
-cloud/
-Cloud/
-cloud-repo/
-cloud_repo/
-onedrive/
-OneDrive/
-drive/
-Drive/
+# .NET Build Outputs
+bin/
+obj/
+**/bin/
+**/obj/
+biometric-service/bin/
+biometric-service/obj/
+biometric-service/Output/
+Output/
+*.exe
+*.dll
+*.pdb
 
 # Node (if you ever use npm/yarn later)
 /node_modules/
@@ -51,4 +54,3 @@ Drive/
 # Large SDK & UI Source assets
 stitch_high_q_biometric_attendance_system/
 Digital-Persona-U.are.U-SDK-master/
-

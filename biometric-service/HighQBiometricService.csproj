@@ -3,24 +3,30 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
-    <Title>High-Q Biometric Service</Title>
-    <Company>High-Q Solid Academy</Company>
-    <Product>High-Q Solid Academy Biometric Attendance System</Product>
-    <Version>1.0.0.0</Version>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>HighQBiometricService</AssemblyName>
+    <RootNamespace>HighQBiometricService</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
-  <!-- Reference DigitalPersona SDK DLLs from Digital-Persona-U.are.U-SDK-master directory if available -->
+  <ItemGroup>
+    <None Include="biometric_service desktop icon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <ItemGroup>
     <Reference Include="DPUruNet">
-      <HintPath>..\Digital-Persona-U.are.U-SDK-master\Windows\Lib\DPUruNet.dll</HintPath>
+      <HintPath>C:\Program Files\DigitalPersona\U.are.U RTE\Windows\Lib\.NET\DPUruNet.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="DPCtlUruNet">
+      <HintPath>C:\Program Files\DigitalPersona\U.are.U RTE\Windows\Lib\.NET\DPCtlUruNet.dll</HintPath>
+      <Private>True</Private>
     </Reference>
   </ItemGroup>
 

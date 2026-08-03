@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/db.php';
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>High-Q Solid Academy | Biometric Attendance Terminal</title>
+    <link rel="shortcut icon" href="icon.png" type="image/png"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Hanken+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -74,8 +75,8 @@ require_once __DIR__ . '/includes/db.php';
 <!-- Header -->
 <header class="flex items-center justify-between z-20">
     <div class="flex items-center gap-4">
-        <div class="w-16 h-16 rounded-2xl bg-black text-white font-bold text-2xl flex items-center justify-center shadow-lg border-2 border-white">
-            HQ
+        <div class="w-16 h-16 rounded-2xl bg-white p-1 shadow-md border border-border-subtle flex items-center justify-center overflow-hidden">
+            <img src="logo.png" alt="High-Q Solid Academy Logo" class="w-full h-full object-contain"/>
         </div>
         <div>
             <h1 class="font-title-md text-2xl font-bold text-on-surface">High-Q Solid Academy</h1>
