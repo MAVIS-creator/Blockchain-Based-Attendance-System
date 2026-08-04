@@ -157,9 +157,10 @@ require_once __DIR__ . '/includes/header.php';
                     tbody.innerHTML = data.data.map(s => `
                         <tr class="hover:bg-surface-container-low/40">
                             <td class="py-3 px-4 font-semibold text-on-surface flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
-                                    ${s.firstname.charAt(0)}${s.surname.charAt(0)}
-                                </div>
+                                ${s.photo ? 
+                                    `<img src="../${s.photo}" class="w-9 h-9 rounded-full object-cover border border-border-subtle shadow-sm">` :
+                                    `<div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shadow-sm">${s.firstname.charAt(0)}${s.surname.charAt(0)}</div>`
+                                }
                                 <div>
                                     <p class="font-bold">${s.surname} ${s.firstname} ${s.middlename || ''}</p>
                                     <p class="text-[11px] text-on-surface-variant">${s.parent_name || 'No Parent Listed'}</p>

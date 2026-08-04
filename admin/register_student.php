@@ -12,7 +12,7 @@ $studentId = (int)($_GET['id'] ?? 0);
         <p class="font-body-md text-on-surface-variant text-sm">Enter complete student details for High-Q Solid Academy records</p>
     </div>
     <div class="flex items-center gap-3">
-        <a href="print_sample_registration_form.php" target="_blank" class="px-4 py-2 bg-surface-container border border-border-subtle text-primary font-semibold rounded-lg text-sm flex items-center gap-2 hover:bg-surface-container-high transition-colors">
+        <a href="print_sample_registration_form.php<?= $studentId > 0 ? '?id='.$studentId : '' ?>" target="_blank" class="px-4 py-2 bg-surface-container border border-border-subtle text-primary font-semibold rounded-lg text-sm flex items-center gap-2 hover:bg-surface-container-high transition-colors">
             <span class="material-symbols-outlined text-sm">print</span> Export Sample PDF Form
         </a>
         <a href="students.php" class="px-4 py-2 border border-border-subtle text-primary font-semibold rounded-lg text-sm flex items-center gap-2 hover:bg-surface-container transition-colors">
@@ -25,38 +25,61 @@ $studentId = (int)($_GET['id'] ?? 0);
     <form id="studentForm" class="space-y-6" enctype="multipart/form-data">
         <input type="hidden" name="id" id="studentId" value="<?= $studentId ?>">
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Admission Number -->
-            <div class="space-y-2">
-                <div class="flex justify-between items-center">
-                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">Admission Number *</label>
-                    <?php if ($studentId <= 0): ?>
-                        <button type="button" onclick="generateNextAdmissionNumber()" class="text-[11px] text-primary font-bold hover:underline flex items-center gap-0.5" title="Generate next sequential admission number">
-                            ⚡ Auto-Generate
-                        </button>
-                    <?php endif; ?>
+        <!-- Top Section: Photo & Basic Details -->
+        <div class="flex flex-col md:flex-row gap-6 items-start border-b border-border-subtle pb-6">
+            <!-- Passport Photo Upload Box -->
+            <div class="flex flex-col items-center gap-2 w-full md:w-44 flex-shrink-0">
+                <label class="block text-xs font-semibold uppercase text-on-surface-variant text-center">Passport Photo</label>
+                <div class="relative w-36 h-44 rounded-xl border-2 border-dashed border-border-subtle bg-surface-gray overflow-hidden flex flex-col items-center justify-center text-center p-2 group hover:border-primary transition-all">
+                    <img id="photoPreview" src="" class="absolute inset-0 w-full h-full object-cover hidden" alt="Student Photo">
+                    <div id="photoPlaceholder" class="flex flex-col items-center gap-1 text-on-surface-variant">
+                        <span class="material-symbols-outlined text-4xl">account_box</span>
+                        <span class="text-[11px] font-semibold">Upload Photo</span>
+                        <span class="text-[9px] text-outline">JPG, PNG (Max 2MB)</span>
+                    </div>
+                    <input type="file" name="photo" id="photoInput" accept="image/*" onchange="previewPhoto(this)" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
                 </div>
-                <input type="text" name="admission_number" id="admission_number" required placeholder="e.g. HQ/2026/001" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
+                <button type="button" onclick="document.getElementById('photoInput').click()" class="px-3 py-1 bg-surface-container text-primary text-xs font-semibold rounded-lg hover:bg-surface-container-high transition-colors flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs">add_a_photo</span> Select Photo
+                </button>
             </div>
 
-            <!-- Surname -->
-            <div class="space-y-2">
-                <label class="block text-xs font-semibold uppercase text-on-surface-variant">Surname *</label>
-                <input type="text" name="surname" id="surname" required placeholder="Surname" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
-            </div>
+            <!-- Basic Student Info -->
+            <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <!-- Admission Number -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-xs font-semibold uppercase text-on-surface-variant">Admission Number *</label>
+                        <?php if ($studentId <= 0): ?>
+                            <button type="button" onclick="generateNextAdmissionNumber()" class="text-[11px] text-primary font-bold hover:underline flex items-center gap-0.5" title="Generate next sequential admission number">
+                                ⚡ Auto-Generate
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                    <input type="text" name="admission_number" id="admission_number" required placeholder="e.g. HQ/2026/001" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
+                </div>
 
-            <!-- First Name -->
-            <div class="space-y-2">
-                <label class="block text-xs font-semibold uppercase text-on-surface-variant">First Name *</label>
-                <input type="text" name="firstname" id="firstname" required placeholder="First Name" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
-            </div>
+                <!-- Surname -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">Surname *</label>
+                    <input type="text" name="surname" id="surname" required placeholder="Surname" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
+                </div>
 
-            <!-- Middle Name -->
-            <div class="space-y-2">
-                <label class="block text-xs font-semibold uppercase text-on-surface-variant">Middle Name</label>
-                <input type="text" name="middlename" id="middlename" placeholder="Middle Name" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
-            </div>
+                <!-- First Name -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">First Name *</label>
+                    <input type="text" name="firstname" id="firstname" required placeholder="First Name" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
+                </div>
 
+                <!-- Middle Name -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">Middle Name</label>
+                    <input type="text" name="middlename" id="middlename" placeholder="Middle Name" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Gender -->
             <div class="space-y-2">
                 <label class="block text-xs font-semibold uppercase text-on-surface-variant">Gender *</label>
@@ -85,16 +108,16 @@ $studentId = (int)($_GET['id'] ?? 0);
             </div>
 
             <!-- Status -->
-            <div class="space-y-2">
+            <div class="space-y-2 md:col-span-3">
                 <label class="block text-xs font-semibold uppercase text-on-surface-variant">Status</label>
                 <?php if ($studentId <= 0): ?>
                     <!-- Hidden field to submit Awaiting Fingerprint -->
                     <input type="hidden" name="status" value="Awaiting Fingerprint">
                     <div class="w-full px-4 py-2.5 bg-surface-container-low border border-border-subtle rounded-lg text-sm font-semibold text-primary flex items-center justify-between">
                         <span>Awaiting Fingerprint</span>
-                        <span class="text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-bold">Auto</span>
+                        <span class="text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-bold">Auto-Assigned</span>
                     </div>
-                    <p class="text-[11px] text-on-surface-variant italic">Default status for new registration</p>
+                    <p class="text-[11px] text-on-surface-variant italic">Default status for new student registration</p>
                 <?php else: ?>
                     <select name="status" id="status" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
                         <option value="Awaiting Fingerprint">Awaiting Fingerprint</option>
@@ -144,6 +167,20 @@ $studentId = (int)($_GET['id'] ?? 0);
 <script>
     const studentId = <?= $studentId ?>;
 
+    function previewPhoto(input) {
+        const preview = document.getElementById('photoPreview');
+        const placeholder = document.getElementById('photoPlaceholder');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
     async function loadClasses(selectedClass = '') {
         const classSelect = document.getElementById('class');
         try {
@@ -155,7 +192,6 @@ $studentId = (int)($_GET['id'] ?? 0);
                     <option value="${c.name}" ${c.name === selectedClass ? 'selected' : ''}>${c.name}</option>
                 `).join('');
             } else {
-                // Default fallback options if database has no classes yet
                 const fallback = ['Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'];
                 classSelect.innerHTML = fallback.map(c => `
                     <option value="${c}" ${c === selectedClass ? 'selected' : ''}>${c}</option>
@@ -184,7 +220,6 @@ $studentId = (int)($_GET['id'] ?? 0);
         await loadClasses();
 
         if (studentId <= 0) {
-            // Auto generate admission number for new registration
             await generateNextAdmissionNumber();
             return;
         }
@@ -208,6 +243,14 @@ $studentId = (int)($_GET['id'] ?? 0);
                 document.getElementById('parent_phone').value = s.parent_phone || '';
                 document.getElementById('parent_email').value = s.parent_email || '';
                 document.getElementById('address').value = s.address || '';
+
+                if (s.photo) {
+                    const preview = document.getElementById('photoPreview');
+                    const placeholder = document.getElementById('photoPlaceholder');
+                    preview.src = '../' + s.photo;
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                }
             }
         } catch (e) {
             console.error(e);

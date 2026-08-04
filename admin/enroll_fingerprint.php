@@ -137,7 +137,12 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
     function selectStudent(student) {
         selectedStudent = student;
         document.getElementById('selectedStudentCard').classList.remove('hidden');
-        document.getElementById('selectedStudentAvatar').innerText = `${student.firstname.charAt(0)}${student.surname.charAt(0)}`;
+        const avatarBox = document.getElementById('selectedStudentAvatar');
+        if (student.photo) {
+            avatarBox.innerHTML = `<img src="../${student.photo}" class="w-full h-full object-cover rounded-full">`;
+        } else {
+            avatarBox.innerText = `${student.firstname.charAt(0)}${student.surname.charAt(0)}`;
+        }
         document.getElementById('selectedStudentName').innerText = `${student.surname} ${student.firstname}`;
         document.getElementById('selectedStudentSub').innerText = `${student.class} \u2022 ${student.admission_number}`;
         document.getElementById('selectedStudentStatus').innerText = student.status || 'Awaiting Fingerprint';
