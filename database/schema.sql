@@ -80,3 +80,19 @@ INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
 ('attendance_closing_time', '15:30:00'),
 ('late_threshold_time', '08:00:00')
 ON DUPLICATE KEY UPDATE `setting_key`=`setting_key`;
+
+-- Classes Table
+CREATE TABLE IF NOT EXISTS `classes` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(50) NOT NULL UNIQUE,
+    `sort_order` INT DEFAULT 0,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Default Classes
+INSERT INTO `classes` (`name`, `sort_order`) VALUES
+('Basic 1', 1), ('Basic 2', 2), ('Basic 3', 3), ('Basic 4', 4), ('Basic 5', 5),
+('JSS 1', 6), ('JSS 2', 7), ('JSS 3', 8),
+('SSS 1', 9), ('SSS 2', 10), ('SSS 3', 11)
+ON DUPLICATE KEY UPDATE `name`=`name`;
+

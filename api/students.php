@@ -105,6 +105,29 @@ try {
             echo json_encode(['success' => true, 'student' => $student]);
             break;
 
+        case 'get_next_admission_number':
+            $year = date('Y');
+            $prefix = "HQ/$year/";
+            $stmt = $pdo->prepare("SELECT admission_number FROM students WHERE admission_number LIKE ? ORDER BY id DESC LIMIT 1");
+            $stmt->execute(["$prefix%"]);
+            $lastAdm = $stmt->fetchColumn();
+
+            $nextNum = 1;
+            if ($lastAdm) {
+                $parts = explode('/', $lastAdm);
+                $lastNumStr = end($parts);
+                if (is_numeric($lastNumStr)) {
+                    $nextNum = (int)$lastNumStr + 1;
+                }
+            } else {
+                $maxId = (int)$pdo->query("SELECT MAX(id) FROM students")->fetchColumn();
+                $nextNum = $maxId + 1;
+            }
+
+            $formattedAdm = sprintf("HQ/%s/%03d", $year, $nextNum);
+            echo json_encode(['success' => true, 'admission_number' => $formattedAdm]);
+            break;
+
         case 'save':
             $id = (int)($_POST['id'] ?? 0);
             $admission_number = trim($_POST['admission_number'] ?? '');

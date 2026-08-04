@@ -19,6 +19,20 @@ $activePage = $activePage ?? 'dashboard';
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hanken+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Custom SweetAlert2 theme helper for High-Q System
+        const HighQSwal = Swal.mixin({
+            customClass: {
+                confirmButton: 'px-5 py-2.5 bg-primary text-white font-semibold rounded-lg text-sm mx-1 shadow hover:bg-navy-muted transition-colors',
+                cancelButton: 'px-5 py-2.5 border border-border-subtle text-on-surface font-semibold rounded-lg text-sm mx-1 hover:bg-surface-container transition-colors',
+                popup: 'rounded-2xl border border-border-subtle font-body-md shadow-2xl p-6',
+                title: 'font-headline-lg font-bold text-on-surface text-xl',
+                htmlContainer: 'text-on-surface-variant text-sm'
+            },
+            buttonsStyling: false
+        });
+    </script>
     <script>
         tailwind.config = {
             darkMode: "class",

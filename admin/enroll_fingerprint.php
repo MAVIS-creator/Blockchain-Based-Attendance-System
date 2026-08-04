@@ -61,7 +61,7 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
 
         <div class="space-y-1">
             <h4 class="font-bold text-lg text-on-surface" id="scanTitle">Ready to Scan</h4>
-            <p class="text-xs text-on-surface-variant max-w-sm" id="scanSub">Select a student on the left and click "Start Capture" to initiate the DigitalPersona scanner.</p>
+            <p class="text-xs text-on-surface-variant max-w-sm" id="scanSub">Select a student on the left and click "Start Enrollment" to initiate the DigitalPersona scanner.</p>
         </div>
 
         <!-- Quality Indicator -->
@@ -86,15 +86,11 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
     let biometricServiceUrl = 'http://localhost:8080';
 
     async function checkServiceStatus() {
-        const badge = document.getElementById('serviceStatusBadge');
         const dot = document.getElementById('serviceDot');
         const text = document.getElementById('serviceText');
 
         try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2000);
-            const resp = await fetch(`${biometricServiceUrl}/status`, { signal: controller.signal });
-            clearTimeout(timeoutId);
+            const resp = await fetch(`${biometricServiceUrl}/status`, { cache: 'no-store' });
             const data = await resp.json();
 
             if (data.status === 'ok' || data.connected) {
@@ -161,12 +157,11 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
 
     async function startEnrollment() {
         if (!selectedStudent) {
-            alert('Please select a student first.');
+            HighQSwal.fire('Select Student', 'Please select a student first.', 'info');
             return;
         }
 
         const circle = document.getElementById('scannerCircle');
-        const icon = document.getElementById('scannerIcon');
         const spinner = document.getElementById('scannerSpinner');
         const title = document.getElementById('scanTitle');
         const sub = document.getElementById('scanSub');
@@ -174,7 +169,7 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
 
         btn.disabled = true;
         title.innerText = 'Waiting for Finger...';
-        sub.innerText = 'Ask student to place their finger firmly on the scanner glass (4 touch verification).';
+        sub.innerText = 'Ask student to place their finger firmly on the scanner glass.';
         circle.className = 'relative w-40 h-40 rounded-full bg-secondary-container/20 border-4 border-secondary flex items-center justify-center transition-all animate-pulse';
         spinner.classList.remove('hidden');
 
@@ -194,7 +189,17 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
             } else {
                 title.innerText = 'Capture Failed or Simulated Mode';
                 sub.innerText = data.message || 'If hardware is absent, you can use simulated template generation.';
-                if (confirm('Scanner hardware not active. Would you like to generate a simulated demo fingerprint template for testing?')) {
+                
+                const simRes = await HighQSwal.fire({
+                    title: 'Scanner Simulated Mode',
+                    text: 'DigitalPersona hardware not active. Would you like to generate a simulated fingerprint template for testing?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Generate Simulated Template',
+                    cancelButtonText: 'Cancel'
+                });
+
+                if (simRes.isConfirmed) {
                     const mockTemplate = 'DP_DEMO_TEMPLATE_' + Math.random().toString(36).substring(2) + '_' + Date.now();
                     await saveFingerprintToBackend(selectedStudent.id, mockTemplate, 'Good (Simulated)');
                 }
@@ -203,7 +208,16 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
             spinner.classList.add('hidden');
             circle.className = 'relative w-40 h-40 rounded-full bg-surface-container-low border-4 border-border-subtle flex items-center justify-center transition-all';
             
-            if (confirm('Biometric Desktop Service not reachable on localhost:8080. Would you like to register a simulated fingerprint template for this student for testing?')) {
+            const simRes = await HighQSwal.fire({
+                title: 'Biometric Service Offline',
+                text: 'Biometric Desktop Service not reachable on localhost:8080. Would you like to register a simulated fingerprint template for this student for testing?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Use Demo Template',
+                cancelButtonText: 'Cancel'
+            });
+
+            if (simRes.isConfirmed) {
                 const mockTemplate = 'DP_SIMULATED_TEMPLATE_' + Math.random().toString(36).substring(2) + '_' + Date.now();
                 await saveFingerprintToBackend(selectedStudent.id, mockTemplate, 'Good (Simulated)');
             } else {
@@ -237,16 +251,29 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
                 selectedStudent.fingerprint_count = 1;
                 selectedStudent.status = 'Fingerprint Linked';
                 selectStudent(selectedStudent);
+
+                HighQSwal.fire('Enrollment Complete!', `Fingerprint template linked with ${selectedStudent.surname} ${selectedStudent.firstname}.`, 'success');
             } else {
-                alert(result.message || 'Failed to save template to database.');
+                HighQSwal.fire('Error', result.message || 'Failed to save template to database.', 'error');
             }
         } catch (e) {
-            alert('Database connection error.');
+            HighQSwal.fire('Connection Error', 'Database connection error.', 'error');
         }
     }
 
     async function deleteFingerprint() {
-        if (!selectedStudent || !confirm('Are you sure you want to unlink the fingerprint template for this student?')) return;
+        if (!selectedStudent) return;
+
+        const confirmRes = await HighQSwal.fire({
+            title: 'Unlink Fingerprint?',
+            text: `Are you sure you want to unlink the fingerprint template for ${selectedStudent.surname} ${selectedStudent.firstname}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Unlink',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (!confirmRes.isConfirmed) return;
 
         const formData = new FormData();
         formData.append('student_id', selectedStudent.id);
@@ -258,13 +285,13 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
             });
             const data = await resp.json();
             if (data.success) {
-                alert('Fingerprint unlinked successfully.');
+                HighQSwal.fire('Unlinked!', 'Fingerprint template unlinked successfully.', 'success');
                 selectedStudent.fingerprint_count = 0;
                 selectedStudent.status = 'Awaiting Fingerprint';
                 selectStudent(selectedStudent);
             }
         } catch (e) {
-            alert('Server error.');
+            HighQSwal.fire('Error', 'Server error occurred.', 'error');
         }
     }
 
@@ -275,7 +302,7 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
     }
 
     checkServiceStatus();
-    setInterval(checkServiceStatus, 5000);
+    setInterval(checkServiceStatus, 3000);
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

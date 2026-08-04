@@ -6,14 +6,19 @@ require_once __DIR__ . '/includes/header.php';
 $studentId = (int)($_GET['id'] ?? 0);
 ?>
 
-<div class="mb-6 flex items-center justify-between">
+<div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
         <h2 class="font-headline-lg text-2xl font-bold text-on-surface"><?= $studentId > 0 ? 'Edit Student Profile' : 'Register New Student' ?></h2>
         <p class="font-body-md text-on-surface-variant text-sm">Enter complete student details for High-Q Solid Academy records</p>
     </div>
-    <a href="students.php" class="px-4 py-2 border border-border-subtle text-primary font-semibold rounded-lg text-sm flex items-center gap-2 hover:bg-surface-container transition-colors">
-        <span class="material-symbols-outlined text-sm">arrow_back</span> Back to Directory
-    </a>
+    <div class="flex items-center gap-3">
+        <a href="print_sample_registration_form.php" target="_blank" class="px-4 py-2 bg-surface-container border border-border-subtle text-primary font-semibold rounded-lg text-sm flex items-center gap-2 hover:bg-surface-container-high transition-colors">
+            <span class="material-symbols-outlined text-sm">print</span> Export Sample PDF Form
+        </a>
+        <a href="students.php" class="px-4 py-2 border border-border-subtle text-primary font-semibold rounded-lg text-sm flex items-center gap-2 hover:bg-surface-container transition-colors">
+            <span class="material-symbols-outlined text-sm">arrow_back</span> Back to Directory
+        </a>
+    </div>
 </div>
 
 <div class="bg-surface-container-lowest p-6 md:p-8 rounded-xl border border-border-subtle shadow-sm max-w-4xl mx-auto">
@@ -23,7 +28,14 @@ $studentId = (int)($_GET['id'] ?? 0);
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Admission Number -->
             <div class="space-y-2">
-                <label class="block text-xs font-semibold uppercase text-on-surface-variant">Admission Number *</label>
+                <div class="flex justify-between items-center">
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">Admission Number *</label>
+                    <?php if ($studentId <= 0): ?>
+                        <button type="button" onclick="generateNextAdmissionNumber()" class="text-[11px] text-primary font-bold hover:underline flex items-center gap-0.5" title="Generate next sequential admission number">
+                            ⚡ Auto-Generate
+                        </button>
+                    <?php endif; ?>
+                </div>
                 <input type="text" name="admission_number" id="admission_number" required placeholder="e.g. HQ/2026/001" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
             </div>
 
@@ -55,21 +67,14 @@ $studentId = (int)($_GET['id'] ?? 0);
                 </select>
             </div>
 
-            <!-- Class -->
+            <!-- Class (Dynamic) -->
             <div class="space-y-2">
-                <label class="block text-xs font-semibold uppercase text-on-surface-variant">Class *</label>
+                <div class="flex justify-between items-center">
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">Class *</label>
+                    <a href="settings.php" target="_blank" class="text-[11px] text-primary font-bold hover:underline" title="Manage classes in settings">+ Manage Classes</a>
+                </div>
                 <select name="class" id="class" required class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
-                    <option value="Basic 1">Basic 1</option>
-                    <option value="Basic 2">Basic 2</option>
-                    <option value="Basic 3">Basic 3</option>
-                    <option value="Basic 4">Basic 4</option>
-                    <option value="Basic 5">Basic 5</option>
-                    <option value="JSS 1">JSS 1</option>
-                    <option value="JSS 2">JSS 2</option>
-                    <option value="JSS 3">JSS 3</option>
-                    <option value="SSS 1">SSS 1</option>
-                    <option value="SSS 2">SSS 2</option>
-                    <option value="SSS 3">SSS 3</option>
+                    <option value="">Loading classes...</option>
                 </select>
             </div>
 
@@ -82,12 +87,22 @@ $studentId = (int)($_GET['id'] ?? 0);
             <!-- Status -->
             <div class="space-y-2">
                 <label class="block text-xs font-semibold uppercase text-on-surface-variant">Status</label>
-                <select name="status" id="status" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
-                    <option value="Awaiting Fingerprint">Awaiting Fingerprint</option>
-                    <option value="Fingerprint Linked">Fingerprint Linked</option>
-                    <option value="Registered">Registered</option>
-                    <option value="Inactive">Inactive</option>
-                </select>
+                <?php if ($studentId <= 0): ?>
+                    <!-- Hidden field to submit Awaiting Fingerprint -->
+                    <input type="hidden" name="status" value="Awaiting Fingerprint">
+                    <div class="w-full px-4 py-2.5 bg-surface-container-low border border-border-subtle rounded-lg text-sm font-semibold text-primary flex items-center justify-between">
+                        <span>Awaiting Fingerprint</span>
+                        <span class="text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-bold">Auto</span>
+                    </div>
+                    <p class="text-[11px] text-on-surface-variant italic">Default status for new registration</p>
+                <?php else: ?>
+                    <select name="status" id="status" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
+                        <option value="Awaiting Fingerprint">Awaiting Fingerprint</option>
+                        <option value="Fingerprint Linked">Fingerprint Linked</option>
+                        <option value="Registered">Registered</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -129,8 +144,51 @@ $studentId = (int)($_GET['id'] ?? 0);
 <script>
     const studentId = <?= $studentId ?>;
 
+    async function loadClasses(selectedClass = '') {
+        const classSelect = document.getElementById('class');
+        try {
+            const resp = await fetch('../api/classes.php?action=list');
+            const data = await resp.json();
+
+            if (data.success && data.classes && data.classes.length > 0) {
+                classSelect.innerHTML = data.classes.map(c => `
+                    <option value="${c.name}" ${c.name === selectedClass ? 'selected' : ''}>${c.name}</option>
+                `).join('');
+            } else {
+                // Default fallback options if database has no classes yet
+                const fallback = ['Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'];
+                classSelect.innerHTML = fallback.map(c => `
+                    <option value="${c}" ${c === selectedClass ? 'selected' : ''}>${c}</option>
+                `).join('');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function generateNextAdmissionNumber() {
+        if (studentId > 0) return;
+        const admInput = document.getElementById('admission_number');
+        try {
+            const resp = await fetch('../api/students.php?action=get_next_admission_number');
+            const data = await resp.json();
+            if (data.success && data.admission_number) {
+                admInput.value = data.admission_number;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     async function loadStudentData() {
-        if (studentId <= 0) return;
+        await loadClasses();
+
+        if (studentId <= 0) {
+            // Auto generate admission number for new registration
+            await generateNextAdmissionNumber();
+            return;
+        }
+
         try {
             const resp = await fetch(`../api/students.php?action=get&id=${studentId}`);
             const data = await resp.json();
@@ -141,9 +199,11 @@ $studentId = (int)($_GET['id'] ?? 0);
                 document.getElementById('firstname').value = s.firstname || '';
                 document.getElementById('middlename').value = s.middlename || '';
                 document.getElementById('gender').value = s.gender || 'Male';
-                document.getElementById('class').value = s.class || 'Basic 1';
+                await loadClasses(s.class);
                 document.getElementById('dob').value = s.dob || '';
-                document.getElementById('status').value = s.status || 'Awaiting Fingerprint';
+                if (document.getElementById('status')) {
+                    document.getElementById('status').value = s.status || 'Awaiting Fingerprint';
+                }
                 document.getElementById('parent_name').value = s.parent_name || '';
                 document.getElementById('parent_phone').value = s.parent_phone || '';
                 document.getElementById('parent_email').value = s.parent_email || '';
@@ -173,19 +233,32 @@ $studentId = (int)($_GET['id'] ?? 0);
             btn.innerHTML = '<span class="material-symbols-outlined text-sm">save</span> Save Student Profile';
 
             if (data.success) {
-                alert(data.message);
-                if (studentId <= 0 && confirm('Would you like to enroll a fingerprint for this student now?')) {
-                    window.location.href = `enroll_fingerprint.php?student_id=${data.id}`;
+                if (studentId <= 0) {
+                    const enrollRes = await HighQSwal.fire({
+                        title: 'Student Saved!',
+                        text: 'Student profile registered successfully. Would you like to enroll a fingerprint for this student now?',
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonText: 'Enroll Fingerprint Now',
+                        cancelButtonText: 'Go to Directory'
+                    });
+
+                    if (enrollRes.isConfirmed) {
+                        window.location.href = `enroll_fingerprint.php?student_id=${data.id}`;
+                    } else {
+                        window.location.href = 'students.php';
+                    }
                 } else {
+                    await HighQSwal.fire('Saved!', data.message || 'Student profile updated successfully.', 'success');
                     window.location.href = 'students.php';
                 }
             } else {
-                alert(data.message || 'Error saving student');
+                HighQSwal.fire('Error', data.message || 'Error saving student', 'error');
             }
         } catch (err) {
             btn.disabled = false;
             btn.innerHTML = '<span class="material-symbols-outlined text-sm">save</span> Save Student Profile';
-            alert('Server error saving student.');
+            HighQSwal.fire('Error', 'Server error saving student.', 'error');
         }
     });
 

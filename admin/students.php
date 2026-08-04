@@ -10,6 +10,9 @@ require_once __DIR__ . '/includes/header.php';
         <p class="font-body-md text-on-surface-variant text-sm">Manage student profiles, bulk imports, and fingerprint links</p>
     </div>
     <div class="flex flex-wrap gap-2">
+        <a href="download_sample_csv.php" class="px-4 py-2 bg-surface-container-lowest border border-border-subtle text-primary font-semibold rounded-lg text-sm flex items-center gap-2 hover:bg-surface-container transition-colors shadow-sm">
+            <span class="material-symbols-outlined text-sm">download</span> Download Sample CSV
+        </a>
         <button onclick="openImportModal()" class="px-4 py-2 bg-surface-container-lowest border border-border-subtle text-primary font-semibold rounded-lg text-sm flex items-center gap-2 hover:bg-surface-container transition-colors shadow-sm">
             <span class="material-symbols-outlined text-sm">upload_file</span> Import CSV / Excel
         </button>
@@ -102,8 +105,8 @@ require_once __DIR__ . '/includes/header.php';
             <div class="p-4 bg-surface-container-low rounded-lg text-xs space-y-2">
                 <p class="font-bold text-primary">Instructions:</p>
                 <p>Ensure your CSV file contains headers matching: <strong>AdmissionNumber, Surname, FirstName, MiddleName, Gender, Class, ParentName, ParentPhone, ParentEmail</strong>.</p>
-                <a href="data:text/csv;charset=utf-8,AdmissionNumber,Surname,FirstName,MiddleName,Gender,Class,ParentName,ParentPhone,ParentEmail%0AHQ/2026/001,Doe,John,Alexander,Male,Basic 1,Mr. Doe,08012345678,parent@example.com" download="students_template.csv" class="text-secondary font-bold hover:underline inline-flex items-center gap-1">
-                    <span class="material-symbols-outlined text-xs">download</span> Download Template CSV
+                <a href="download_sample_csv.php" class="text-primary font-bold hover:underline inline-flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs">download</span> Download Sample Import Template (CSV/Excel)
                 </a>
             </div>
 
@@ -198,7 +201,16 @@ require_once __DIR__ . '/includes/header.php';
     }
 
     async function deleteStudent(id, name) {
-        if (!confirm(`Are you sure you want to delete ${name}? This will also delete their attendance and fingerprint records.`)) return;
+        const confirmRes = await HighQSwal.fire({
+            title: 'Delete Student?',
+            text: `Are you sure you want to delete ${name}? This will also delete their attendance and fingerprint records.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (!confirmRes.isConfirmed) return;
 
         const formData = new FormData();
         formData.append('id', id);
@@ -210,12 +222,13 @@ require_once __DIR__ . '/includes/header.php';
             });
             const data = await resp.json();
             if (data.success) {
+                HighQSwal.fire('Deleted!', 'Student record deleted successfully.', 'success');
                 loadStudents(currentPage);
             } else {
-                alert(data.message || 'Error deleting student');
+                HighQSwal.fire('Error', data.message || 'Error deleting student', 'error');
             }
         } catch (e) {
-            alert('Server error occurred.');
+            HighQSwal.fire('Error', 'Server error occurred.', 'error');
         }
     }
 
@@ -231,7 +244,7 @@ require_once __DIR__ . '/includes/header.php';
     async function validateImport() {
         const fileInput = document.getElementById('csvFile');
         if (!fileInput.files || !fileInput.files[0]) {
-            alert('Please select a CSV file first.');
+            HighQSwal.fire('Select File', 'Please select a CSV file first.', 'warning');
             return;
         }
 
@@ -273,12 +286,12 @@ require_once __DIR__ . '/includes/header.php';
                     document.getElementById('commitImportBtn').classList.remove('hidden');
                 }
             } else {
-                alert(data.message || 'Validation failed');
+                HighQSwal.fire('Validation Failed', data.message || 'Validation failed', 'error');
             }
         } catch (e) {
             validateBtn.disabled = false;
             validateBtn.innerText = 'Validate File';
-            alert('Error validating CSV.');
+            HighQSwal.fire('Error', 'Error validating CSV.', 'error');
         }
     }
 
@@ -303,23 +316,35 @@ require_once __DIR__ . '/includes/header.php';
             commitBtn.innerText = 'Commit Import';
 
             if (data.success) {
-                alert(data.message);
+                HighQSwal.fire('Import Complete', data.message, 'success');
                 closeImportModal();
                 loadStudents(1);
             } else {
-                alert(data.message || 'Import failed.');
+                HighQSwal.fire('Import Failed', data.message || 'Import failed.', 'error');
             }
         } catch (e) {
             commitBtn.disabled = false;
             commitBtn.innerText = 'Commit Import';
-            alert('Server error importing file.');
+            HighQSwal.fire('Error', 'Server error importing file.', 'error');
         }
     });
+
+    async function loadFilterClasses() {
+        const select = document.getElementById('filterClass');
+        try {
+            const resp = await fetch('../api/classes.php?action=list');
+            const data = await resp.json();
+            if (data.success && data.classes) {
+                select.innerHTML = '<option value="">All Classes</option>' + data.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            }
+        } catch (e) { }
+    }
 
     if (new URLSearchParams(window.location.search).get('open_import') === '1') {
         openImportModal();
     }
 
+    loadFilterClasses();
     loadStudents(1);
 </script>
 
