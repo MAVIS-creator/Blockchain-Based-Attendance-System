@@ -104,7 +104,7 @@ require_once __DIR__ . '/includes/header.php';
         <div class="space-y-4">
             <div class="p-4 bg-surface-container-low rounded-lg text-xs space-y-2">
                 <p class="font-bold text-primary">Instructions:</p>
-                <p>Ensure your CSV file contains headers matching: <strong>AdmissionNumber, Surname, FirstName, MiddleName, Gender, Class, ParentName, ParentPhone, ParentEmail</strong>.</p>
+                <p>Ensure your CSV file contains headers matching: <strong>AdmissionNumber, Surname, FirstName, MiddleName, Gender, Class, ParentName, ParentPhone, ParentEmail, Photo</strong> (e.g. <code>hq_2026_001.jpg</code>).</p>
                 <a href="download_sample_csv.php" class="text-primary font-bold hover:underline inline-flex items-center gap-1">
                     <span class="material-symbols-outlined text-xs">download</span> Download Sample Import Template (CSV/Excel)
                 </a>

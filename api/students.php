@@ -269,6 +269,16 @@ try {
                 $parentName = trim($data[$headersMap['parentname'] ?? $headersMap['parent'] ?? 6] ?? '');
                 $parentPhone = trim($data[$headersMap['parentphone'] ?? $headersMap['phone'] ?? 7] ?? '');
                 $parentEmail = trim($data[$headersMap['parentemail'] ?? $headersMap['email'] ?? 8] ?? '');
+                $photoVal = trim($data[$headersMap['photo'] ?? $headersMap['photofilename'] ?? $headersMap['image'] ?? $headersMap['picture'] ?? 9] ?? '');
+
+                $photoPath = null;
+                if (!empty($photoVal)) {
+                    if (strpos($photoVal, 'storage/photos/') === 0) {
+                        $photoPath = $photoVal;
+                    } else {
+                        $photoPath = 'storage/photos/' . basename($photoVal);
+                    }
+                }
 
                 $rowErrors = [];
                 if ($adm === '') $rowErrors[] = 'Missing Admission Number';
@@ -297,6 +307,7 @@ try {
                     'parent_name' => $parentName,
                     'parent_phone' => $parentPhone,
                     'parent_email' => $parentEmail,
+                    'photo' => $photoPath,
                     'status' => $isValid ? 'Valid' : 'Invalid',
                     'errors' => implode(', ', $rowErrors)
                 ];
@@ -319,8 +330,8 @@ try {
             // Commit valid rows to DB
             $inserted = 0;
             $insertStmt = $pdo->prepare("
-                INSERT INTO students (admission_number, surname, firstname, middlename, gender, class, parent_name, parent_phone, parent_email, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Awaiting Fingerprint')
+                INSERT INTO students (admission_number, surname, firstname, middlename, gender, class, parent_name, parent_phone, parent_email, photo, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Awaiting Fingerprint')
             ");
 
             foreach ($rows as $r) {
@@ -334,7 +345,8 @@ try {
                         $r['class'],
                         $r['parent_name'],
                         $r['parent_phone'],
-                        $r['parent_email']
+                        $r['parent_email'],
+                        $r['photo']
                     ]);
                     $inserted++;
                 }

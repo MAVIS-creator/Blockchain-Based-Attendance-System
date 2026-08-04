@@ -18,6 +18,8 @@ namespace HighQBiometricService
         private bool _isListening = false;
         private int _totalScanCount = 0;
         private object? _pendingScanEvent = null;
+        private bool _isEnrolling = false;
+        private object? _pendingEnrollment = null;
 
         // All page panels for navigation
         private ScrollViewer[] _pages = Array.Empty<ScrollViewer>();
@@ -243,20 +245,51 @@ namespace HighQBiometricService
                         timestamp = DateTime.UtcNow.ToString("o")
                     });
                 }
-                else if (rawUrl == "/enroll" && (req.HttpMethod == "POST" || req.HttpMethod == "GET"))
+                else if (rawUrl == "/start_enrollment" && (req.HttpMethod == "POST" || req.HttpMethod == "GET"))
                 {
-                    _totalScanCount++;
-                    string mockTemplate = "DP_SDK_TEMPLATE_" + Guid.NewGuid().ToString("N") + "_" + DateTime.UtcNow.Ticks;
-
+                    _isEnrolling = true;
+                    _pendingEnrollment = null;
                     responseJson = JsonConvert.SerializeObject(new
                     {
                         success = true,
-                        message = "Fingerprint template captured successfully",
-                        quality = "Excellent",
-                        template = mockTemplate
+                        message = "Scanner armed in enrollment mode. Waiting for finger placement..."
                     });
-
-                    LogMessage("[BIOMETRIC] Enrollment capture completed. Quality: Excellent.");
+                    LogMessage("[BIOMETRIC] Enrollment mode armed. Waiting for student finger scan on reader...");
+                }
+                else if ((rawUrl == "/enroll_poll" || rawUrl == "/enroll") && (req.HttpMethod == "POST" || req.HttpMethod == "GET"))
+                {
+                    if (_pendingEnrollment != null)
+                    {
+                        responseJson = JsonConvert.SerializeObject(_pendingEnrollment);
+                        _pendingEnrollment = null;
+                        _isEnrolling = false;
+                    }
+                    else if (_isEnrolling)
+                    {
+                        responseJson = JsonConvert.SerializeObject(new
+                        {
+                            success = false,
+                            waiting = true,
+                            message = "Waiting for finger placement on reader glass..."
+                        });
+                    }
+                    else
+                    {
+                        _isEnrolling = true;
+                        responseJson = JsonConvert.SerializeObject(new
+                        {
+                            success = false,
+                            waiting = true,
+                            message = "Enrollment armed. Place finger on reader glass."
+                        });
+                    }
+                }
+                else if (rawUrl == "/cancel_enrollment")
+                {
+                    _isEnrolling = false;
+                    _pendingEnrollment = null;
+                    responseJson = JsonConvert.SerializeObject(new { success = true, message = "Enrollment cancelled" });
+                    LogMessage("[BIOMETRIC] Enrollment mode cancelled.");
                 }
                 else if (rawUrl == "/verify" && (req.HttpMethod == "POST" || req.HttpMethod == "GET"))
                 {
@@ -340,15 +373,30 @@ namespace HighQBiometricService
         {
             _totalScanCount++;
 
-            _pendingScanEvent = new
+            if (_isEnrolling)
             {
-                matched = true,
-                admission_number = "HQ/2026/001",
-                student_id = 1,
-                timestamp = DateTime.Now.ToString("o")
-            };
-
-            LogMessage("[SIMULATED TOUCH] Fingerprint scanned on DigitalPersona 5160 reader. Triggered check-in.");
+                string mockTemplate = "DP_SDK_TEMPLATE_" + Guid.NewGuid().ToString("N") + "_" + DateTime.UtcNow.Ticks;
+                _pendingEnrollment = new
+                {
+                    success = true,
+                    message = "Fingerprint template captured successfully",
+                    quality = "Excellent",
+                    template = mockTemplate
+                };
+                _isEnrolling = false;
+                LogMessage("[SIMULATED TOUCH] Fingerprint template captured for enrollment! Quality: Excellent.");
+            }
+            else
+            {
+                _pendingScanEvent = new
+                {
+                    matched = true,
+                    admission_number = "HQ/2026/001",
+                    student_id = 1,
+                    timestamp = DateTime.Now.ToString("o")
+                };
+                LogMessage("[SIMULATED TOUCH] Fingerprint scanned on DigitalPersona 5160 reader. Triggered check-in.");
+            }
         }
 
         private void BtnOpenSystem_Click(object sender, RoutedEventArgs e)

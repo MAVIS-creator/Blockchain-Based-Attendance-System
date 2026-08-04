@@ -70,11 +70,17 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
             <span id="qualityVal" class="text-green-600 font-bold">Excellent</span>
         </div>
 
-        <div class="flex gap-3 pt-4 w-full max-w-xs">
+        <div class="flex flex-col sm:flex-row gap-3 pt-4 w-full max-w-md justify-center">
             <button id="enrollBtn" onclick="startEnrollment()" disabled class="w-full py-3 bg-primary text-white rounded-lg font-semibold hover:bg-navy-muted disabled:opacity-50 transition-all shadow flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined">fingerprint</span> Start Enrollment
             </button>
-            <button id="deleteFpBtn" onclick="deleteFingerprint()" class="hidden px-4 py-3 border border-error text-error rounded-lg font-semibold hover:bg-error-container/20 transition-all">
+            <button id="simulateTouchBtn" onclick="simulateFingerTouch()" class="hidden w-full py-3 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition-all shadow flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined">touch_app</span> Simulate Finger Touch
+            </button>
+            <button id="cancelScanBtn" onclick="cancelEnrollment()" class="hidden px-4 py-3 border border-border-subtle text-on-surface-variant rounded-lg font-semibold hover:bg-surface-container transition-all flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined">close</span> Cancel
+            </button>
+            <button id="deleteFpBtn" onclick="deleteFingerprint()" class="hidden px-4 py-3 border border-error text-error rounded-lg font-semibold hover:bg-error-container/20 transition-all flex items-center justify-center">
                 <span class="material-symbols-outlined">delete</span>
             </button>
         </div>
@@ -160,81 +166,110 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
         }
     }
 
+    let pollInterval = null;
+    let scanTimeoutTimer = null;
+    let isScanningActive = false;
+
     async function startEnrollment() {
         if (!selectedStudent) {
             HighQSwal.fire('Select Student', 'Please select a student first.', 'info');
             return;
         }
 
+        isScanningActive = true;
         const circle = document.getElementById('scannerCircle');
         const spinner = document.getElementById('scannerSpinner');
         const title = document.getElementById('scanTitle');
         const sub = document.getElementById('scanSub');
-        const btn = document.getElementById('enrollBtn');
+        const enrollBtn = document.getElementById('enrollBtn');
+        const simulateBtn = document.getElementById('simulateTouchBtn');
+        const cancelBtn = document.getElementById('cancelScanBtn');
+        const qualityBox = document.getElementById('qualityBox');
 
-        btn.disabled = true;
-        title.innerText = 'Waiting for Finger...';
-        sub.innerText = 'Ask student to place their finger firmly on the scanner glass.';
+        qualityBox.classList.add('hidden');
+        enrollBtn.classList.add('hidden');
+        simulateBtn.classList.remove('hidden');
+        cancelBtn.classList.remove('hidden');
+
+        title.innerText = 'Waiting for Fingerprint Scan...';
+        sub.innerText = 'Ask student to place their right index finger firmly on the reader glass.';
         circle.className = 'relative w-40 h-40 rounded-full bg-secondary-container/20 border-4 border-secondary flex items-center justify-center transition-all animate-pulse';
         spinner.classList.remove('hidden');
 
+        // Arm biometric service for enrollment
         try {
-            const res = await fetch(`${biometricServiceUrl}/enroll`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ student_id: selectedStudent.id, admission_number: selectedStudent.admission_number })
-            });
-            const data = await res.json();
-
-            spinner.classList.add('hidden');
-            circle.className = 'relative w-40 h-40 rounded-full bg-surface-container-low border-4 border-border-subtle flex items-center justify-center transition-all';
-
-            if (data.success && data.template) {
-                await saveFingerprintToBackend(selectedStudent.id, data.template, data.quality || 'Good');
-            } else {
-                title.innerText = 'Capture Failed or Simulated Mode';
-                sub.innerText = data.message || 'If hardware is absent, you can use simulated template generation.';
-                
-                const simRes = await HighQSwal.fire({
-                    title: 'Scanner Simulated Mode',
-                    text: 'DigitalPersona hardware not active. Would you like to generate a simulated fingerprint template for testing?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Generate Simulated Template',
-                    cancelButtonText: 'Cancel'
-                });
-
-                if (simRes.isConfirmed) {
-                    const mockTemplate = 'DP_DEMO_TEMPLATE_' + Math.random().toString(36).substring(2) + '_' + Date.now();
-                    await saveFingerprintToBackend(selectedStudent.id, mockTemplate, 'Good (Simulated)');
-                }
-            }
-        } catch (err) {
-            spinner.classList.add('hidden');
-            circle.className = 'relative w-40 h-40 rounded-full bg-surface-container-low border-4 border-border-subtle flex items-center justify-center transition-all';
-            
-            const simRes = await HighQSwal.fire({
-                title: 'Biometric Service Offline',
-                text: 'Biometric Desktop Service not reachable on localhost:8080. Would you like to register a simulated fingerprint template for this student for testing?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Use Demo Template',
-                cancelButtonText: 'Cancel'
-            });
-
-            if (simRes.isConfirmed) {
-                const mockTemplate = 'DP_SIMULATED_TEMPLATE_' + Math.random().toString(36).substring(2) + '_' + Date.now();
-                await saveFingerprintToBackend(selectedStudent.id, mockTemplate, 'Good (Simulated)');
-            } else {
-                title.innerText = 'Service Unreachable';
-                sub.innerText = 'Make sure High-Q Biometric Service is running on the computer.';
-            }
-        } finally {
-            btn.disabled = false;
+            await fetch(`${biometricServiceUrl}/start_enrollment`, { method: 'POST' });
+        } catch (e) {
+            console.log('Biometric service offline, waiting for user finger touch event.');
         }
+
+        stopScanning();
+
+        isScanningActive = true;
+        pollInterval = setInterval(async () => {
+            if (!isScanningActive) return;
+            try {
+                const resp = await fetch(`${biometricServiceUrl}/enroll_poll`, { cache: 'no-store' });
+                const data = await resp.json();
+                if (data.success && data.template) {
+                    stopScanning();
+                    await saveFingerprintToBackend(selectedStudent.id, data.template, data.quality || 'Excellent');
+                }
+            } catch (e) {
+                // Service offline; user can touch physical reader or use "Simulate Finger Touch"
+            }
+        }, 1000);
+
+        scanTimeoutTimer = setTimeout(() => {
+            if (isScanningActive) {
+                cancelEnrollment('Scan Timed Out', 'No finger scan was detected within 45 seconds.');
+            }
+        }, 45000);
+    }
+
+    async function simulateFingerTouch() {
+        if (!selectedStudent || !isScanningActive) return;
+        stopScanning();
+
+        const mockTemplate = 'DP_SDK_TEMPLATE_' + Math.random().toString(36).substring(2) + '_' + Date.now();
+        await saveFingerprintToBackend(selectedStudent.id, mockTemplate, 'Good (Simulated)');
+    }
+
+    async function cancelEnrollment(titleText = 'Enrollment Cancelled', subText = '') {
+        stopScanning();
+        try {
+            await fetch(`${biometricServiceUrl}/cancel_enrollment`, { method: 'POST' });
+        } catch (e) {}
+
+        resetScannerUI();
+        document.getElementById('scanTitle').innerText = titleText;
+        document.getElementById('scanSub').innerText = subText || 'Click "Start Enrollment" to scan student finger.';
+    }
+
+    function stopScanning() {
+        isScanningActive = false;
+        if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+        if (scanTimeoutTimer) { clearTimeout(scanTimeoutTimer); scanTimeoutTimer = null; }
+    }
+
+    function resetScannerUI() {
+        const circle = document.getElementById('scannerCircle');
+        const spinner = document.getElementById('scannerSpinner');
+        const enrollBtn = document.getElementById('enrollBtn');
+        const simulateBtn = document.getElementById('simulateTouchBtn');
+        const cancelBtn = document.getElementById('cancelScanBtn');
+
+        spinner.classList.add('hidden');
+        circle.className = 'relative w-40 h-40 rounded-full bg-surface-container-low border-4 border-border-subtle flex items-center justify-center transition-all';
+
+        enrollBtn.classList.remove('hidden');
+        enrollBtn.disabled = !selectedStudent;
+        simulateBtn.classList.add('hidden');
+        cancelBtn.classList.add('hidden');
     }
 
     async function saveFingerprintToBackend(studentId, template, quality) {
+        resetScannerUI();
         const formData = new FormData();
         formData.append('student_id', studentId);
         formData.append('template', template);

@@ -1,7 +1,12 @@
+# Disable directory browsing
 Options -Indexes
-<IfModule mod_authz_core.c>
-Require all denied
-</IfModule>
-<IfModule !mod_authz_core.c>
-Deny from all
-</IfModule>
+
+# Deny direct access to sensitive data and log files
+<FilesMatch "\.(json|jsonl|log|dat|bak|sql|db)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</FilesMatch>
