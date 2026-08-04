@@ -1,13 +1,10 @@
 <?php
 /**
- * Admin Login Page
+ * Admin Registration / Signup Page
  * High-Q Solid Academy Biometric Attendance System
  */
 
 require_once __DIR__ . '/../includes/auth.php';
-
-// Auto seed admin account if missing or invalid
-ensure_default_admin_exists();
 
 if (is_authenticated()) {
     header('Location: index.php');
@@ -17,25 +14,30 @@ if (is_authenticated()) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? $_POST['email'] ?? '');
+    $fullname = trim($_POST['fullname'] ?? '');
+    $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    $res = login_user($username, $password);
-    if ($res['success']) {
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-            header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'redirect' => 'index.php']);
-            exit;
-        }
-        header('Location: index.php');
-        exit;
+    if (empty($fullname) || empty($username) || empty($password)) {
+        $error = 'Please fill in all fields.';
     } else {
-        $error = $res['message'];
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-            header('Content-Type: application/json');
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => $error]);
+        $res = register_admin_user($fullname, $username, $password);
+        if ($res['success']) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'redirect' => 'index.php']);
+                exit;
+            }
+            header('Location: index.php');
             exit;
+        } else {
+            $error = $res['message'];
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => $error]);
+                exit;
+            }
         }
     }
 }
@@ -45,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Admin Login | High-Q Solid Academy</title>
+    <title>Create Admin Account | High-Q Solid Academy</title>
     <link rel="shortcut icon" href="../icon.png" type="image/png"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Hanken+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -69,8 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             },
             fontFamily: {
               "headline-lg": ["Hanken Grotesk"],
-              "body-md": ["Inter"],
-              "label-caps": ["JetBrains Mono"]
+              "body-md": ["Inter"]
             }
           }
         }
@@ -101,67 +102,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <img src="../logo.png" alt="High-Q Logo" class="w-full h-full object-contain"/>
             </div>
         </div>
-        <h1 class="font-headline-lg text-2xl font-bold text-primary mb-1">High-Q Solid Academy</h1>
-        <p class="font-body-md text-on-surface-variant text-sm">Admin Management Portal</p>
+        <h1 class="font-headline-lg text-2xl font-bold text-primary mb-1">Create Admin Account</h1>
+        <p class="font-body-md text-on-surface-variant text-sm">Register a new administrator for High-Q Solid Academy</p>
     </div>
 
-    <!-- Login Card -->
+    <!-- Signup Card -->
     <div class="glass-panel w-full p-8 rounded-xl shadow-2xl space-y-6">
         <div id="errorAlert" class="<?= $error ? '' : 'hidden' ?> p-4 bg-error-container text-error rounded-lg text-sm font-semibold flex items-center gap-2">
             <span class="material-symbols-outlined">error</span>
             <span id="errorMsg"><?= htmlspecialchars($error) ?></span>
         </div>
 
-        <form class="space-y-6" id="loginForm" method="POST">
-            <div class="space-y-2">
+        <form class="space-y-4" id="registerForm" method="POST">
+            <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider" for="fullname">Full Name</label>
+                <div class="relative group">
+                    <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">badge</span>
+                    <input class="w-full pl-12 pr-4 py-3 bg-white border border-border-subtle rounded-lg text-on-surface input-focus-ring text-sm" id="fullname" name="fullname" placeholder="e.g. Administrator Name" required type="text"/>
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
                 <label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider" for="username">Username / Email</label>
                 <div class="relative group">
                     <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">person</span>
-                    <input class="w-full pl-12 pr-4 py-3 bg-white border border-border-subtle rounded-lg text-on-surface input-focus-ring text-sm" id="username" name="username" placeholder="admin" required type="text" value="admin"/>
+                    <input class="w-full pl-12 pr-4 py-3 bg-white border border-border-subtle rounded-lg text-on-surface input-focus-ring text-sm" id="username" name="username" placeholder="Choose a username" required type="text"/>
                 </div>
             </div>
 
-            <div class="space-y-2">
+            <div class="space-y-1.5">
                 <label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider" for="password">Password</label>
                 <div class="relative group">
                     <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">lock</span>
-                    <input class="w-full pl-12 pr-12 py-3 bg-white border border-border-subtle rounded-lg text-on-surface input-focus-ring text-sm" id="password" name="password" placeholder="••••••••••••" required type="password" value="admin123"/>
-                    <button class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary" onclick="togglePassword()" type="button">
-                        <span class="material-symbols-outlined" id="passwordToggleIcon">visibility</span>
-                    </button>
+                    <input class="w-full pl-12 pr-4 py-3 bg-white border border-border-subtle rounded-lg text-on-surface input-focus-ring text-sm" id="password" name="password" placeholder="Create a strong password" required type="password"/>
                 </div>
             </div>
 
-            <button class="w-full py-3.5 bg-primary text-white rounded-lg font-semibold hover:bg-navy-muted active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2" type="submit" id="submitBtn">
-                <span class="material-symbols-outlined">login</span> Sign In
+            <button class="w-full py-3.5 bg-primary text-white rounded-lg font-semibold hover:bg-navy-muted active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2 mt-2" type="submit" id="submitBtn">
+                <span class="material-symbols-outlined">person_add</span> Create Account
             </button>
         </form>
 
-        <div class="text-center pt-4 border-t border-border-subtle flex justify-between items-center text-xs font-semibold">
-            <a href="register.php" class="text-secondary hover:underline flex items-center gap-1">
-                <span class="material-symbols-outlined text-sm">person_add</span> Create New Admin Account
+        <div class="text-center pt-2 border-t border-border-subtle flex justify-between text-xs">
+            <a href="login.php" class="text-secondary font-bold hover:underline flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm">arrow_back</span> Already have an account? Sign In
             </a>
             <a href="../index.php" class="text-on-surface-variant hover:underline flex items-center gap-1">
-                <span class="material-symbols-outlined text-sm">desktop_windows</span> Kiosk Mode
+                Kiosk Mode
             </a>
         </div>
     </div>
 </div>
 
 <script>
-    function togglePassword() {
-        const input = document.getElementById('password');
-        const icon = document.getElementById('passwordToggleIcon');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.innerText = 'visibility_off';
-        } else {
-            input.type = 'password';
-            icon.innerText = 'visibility';
-        }
-    }
-
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
         const errAlert = document.getElementById('errorAlert');
@@ -169,12 +163,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         errAlert.classList.add('hidden');
         btn.disabled = true;
-        btn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Authenticating...';
+        btn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Creating Account...';
 
         const formData = new FormData(this);
 
         try {
-            const resp = await fetch('login.php', {
+            const resp = await fetch('register.php', {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 body: formData
@@ -182,19 +176,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const data = await resp.json();
 
             if (data.success) {
-                btn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Success!';
+                btn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Registered!';
                 window.location.href = data.redirect || 'index.php';
             } else {
-                errMsg.innerText = data.message || 'Login failed';
+                errMsg.innerText = data.message || 'Registration failed';
                 errAlert.classList.remove('hidden');
                 btn.disabled = false;
-                btn.innerHTML = '<span class="material-symbols-outlined">login</span> Sign In';
+                btn.innerHTML = '<span class="material-symbols-outlined">person_add</span> Create Account';
             }
         } catch (err) {
             errMsg.innerText = 'Server error occurred.';
             errAlert.classList.remove('hidden');
             btn.disabled = false;
-            btn.innerHTML = '<span class="material-symbols-outlined">login</span> Sign In';
+            btn.innerHTML = '<span class="material-symbols-outlined">person_add</span> Create Account';
         }
     });
 </script>

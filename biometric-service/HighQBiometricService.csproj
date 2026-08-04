@@ -5,6 +5,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <AssemblyName>HighQBiometricService</AssemblyName>
     <RootNamespace>HighQBiometricService</RootNamespace>
   </PropertyGroup>
@@ -14,17 +15,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="app.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="biometric_service desktop icon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="DPUruNet">
+    <Reference Include="DPUruNet" Condition="Exists('C:\Program Files\DigitalPersona\U.are.U RTE\Windows\Lib\.NET\DPUruNet.dll')">
       <HintPath>C:\Program Files\DigitalPersona\U.are.U RTE\Windows\Lib\.NET\DPUruNet.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="DPCtlUruNet">
+    <Reference Include="DPCtlUruNet" Condition="Exists('C:\Program Files\DigitalPersona\U.are.U RTE\Windows\Lib\.NET\DPCtlUruNet.dll')">
       <HintPath>C:\Program Files\DigitalPersona\U.are.U RTE\Windows\Lib\.NET\DPCtlUruNet.dll</HintPath>
       <Private>True</Private>
     </Reference>

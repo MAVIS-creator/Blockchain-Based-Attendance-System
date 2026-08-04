@@ -1,4 +1,4 @@
-; High-Q Solid Academy Biometric Service - Custom Stitch UI Inno Setup Script
+; High-Q Solid Academy Biometric Service - Custom Inno Setup Script
 
 #define MyAppName "High-Q Biometric Service"
 #define MyAppVersion "1.0.0"
@@ -23,12 +23,8 @@ OutputBaseFilename=HighQ_Biometric_Service_Setup_v1.0
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
-UninstallDisplayIcon={app}\{#MyAppExeName}
-
-; Stitch UI Color & Font Styling
-WizardResizable=no
-WizardSizePercent=100
-ShowComponentSizes=no
+SetupIconFile=app.ico
+UninstallDisplayIcon={app}\app.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -47,12 +43,13 @@ Name: "autostart"; Description: "Automatically launch High-Q Biometric Service o
 [Files]
 Source: "bin\Release\net8.0-windows\win-x64\publish\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "app.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "biometric_service desktop icon.png"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\app.ico"
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"; IconFilename: "{app}\app.ico"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\app.ico"; Tasks: desktopicon
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "HighQBiometricService"; ValueData: """{app}\{#MyAppExeName}"""; Tasks: autostart
@@ -63,8 +60,7 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 [Code]
 procedure InitializeWizard();
 begin
-  // Stitch UI Navy & Slate Custom Colors for Wizard Controls
-  WizardForm.Color := $FBF9F8; // #f8f9fb
+  WizardForm.Color := $FBF9F8;
   WizardForm.WelcomePage.Color := $FFFFFF;
   WizardForm.FinishedPage.Color := $FFFFFF;
   WizardForm.Font.Name := 'Segoe UI';

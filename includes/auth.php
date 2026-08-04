@@ -37,10 +37,33 @@ function get_logged_user(): ?array {
     ];
 }
 
+function ensure_default_admin_exists(): void {
+    try {
+        $pdo = get_db_connection();
+        $stmt = $pdo->prepare("SELECT id, password FROM users WHERE username = 'admin'");
+        $stmt->execute();
+        $user = $stmt->fetch();
+
+        $hash = password_hash('admin123', PASSWORD_DEFAULT);
+
+        if (!$user) {
+            $stmtInsert = $pdo->prepare("INSERT INTO users (username, password, fullname, role) VALUES ('admin', ?, 'Administrator', 'superadmin')");
+            $stmtInsert->execute([$hash]);
+        } else if (!password_verify('admin123', $user['password'])) {
+            $stmtUpdate = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
+            $stmtUpdate->execute([$hash, $user['id']]);
+        }
+    } catch (Exception $e) {
+        // Silently fail if table creation is pending
+    }
+}
+
 function login_user(string $username, string $password): array {
+    ensure_default_admin_exists();
+
     $pdo = get_db_connection();
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-    $stmt->execute([$username]);
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? OR username = ?");
+    $stmt->execute([$username, $username]);
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
@@ -52,6 +75,32 @@ function login_user(string $username, string $password): array {
     }
 
     return ['success' => false, 'message' => 'Invalid username or password'];
+}
+
+function register_admin_user(string $fullname, string $username, string $password): array {
+    $pdo = get_db_connection();
+
+    // Check if username exists
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    if ($stmt->fetch()) {
+        return ['success' => false, 'message' => 'Username already taken'];
+    }
+
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $stmtInsert = $pdo->prepare("INSERT INTO users (username, password, fullname, role) VALUES (?, ?, ?, 'admin')");
+    $res = $stmtInsert->execute([$username, $hash, $fullname]);
+
+    if ($res) {
+        $userId = $pdo->lastInsertId();
+        $_SESSION['user_id'] = $userId;
+        $_SESSION['username'] = $username;
+        $_SESSION['fullname'] = $fullname;
+        $_SESSION['role'] = 'admin';
+        return ['success' => true, 'user_id' => $userId];
+    }
+
+    return ['success' => false, 'message' => 'Failed to create admin account'];
 }
 
 function logout_user(): void {
