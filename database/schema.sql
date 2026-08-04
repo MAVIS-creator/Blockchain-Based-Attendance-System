@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- Initial Admin Account (Password: admin123)
 INSERT INTO `users` (`username`, `password`, `fullname`, `role`)
-VALUES ('admin', '$2y$10$4yvJvQpS4h/d.90Yh/OQ/O4jP5lQ.0Jg6jM7q5N1L5R9R4q8R4q8e', 'Administrator', 'superadmin')
+VALUES ('admin', '$2y$10$a1j8y.VvowGitS1EgZpy4u/tRI7JaTUbc3ELkfYiBeANq2lhjihF.', 'Administrator', 'superadmin')
 ON DUPLICATE KEY UPDATE `id`=`id`;
 
 -- Students Table

@@ -19,9 +19,9 @@ namespace HighQBiometricService
         public MainWindow()
         {
             InitializeComponent();
-            StartHttpServer();
             LogMessage("High-Q Biometric Service initialized successfully.");
-            LogMessage("Listening for PHP Web Application requests on http://localhost:8080/");
+            LogMessage("Starting HTTP server on http://localhost:8080/ ...");
+            StartHttpServer();
         }
 
         private async void StartHttpServer()
@@ -32,16 +32,36 @@ namespace HighQBiometricService
                 _httpListener.Prefixes.Add("http://localhost:8080/");
                 _httpListener.Start();
                 _isListening = true;
+                LogMessage("[OK] HTTP server listening on http://localhost:8080/");
 
                 while (_isListening)
                 {
-                    var context = await _httpListener.GetContextAsync();
-                    _ = ProcessRequestAsync(context);
+                    try
+                    {
+                        var context = await _httpListener.GetContextAsync();
+                        _ = ProcessRequestAsync(context);
+                    }
+                    catch (HttpListenerException)
+                    {
+                        // Listener was stopped
+                        break;
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        break;
+                    }
                 }
+            }
+            catch (HttpListenerException ex)
+            {
+                LogMessage($"[WARN] Port 8080 unavailable: {ex.Message}");
+                LogMessage("[INFO] Run as Administrator or use: netsh http add urlacl url=http://localhost:8080/ user=Everyone");
+                LogMessage("[INFO] Service running in UI-only mode. Scanner simulation available.");
             }
             catch (Exception ex)
             {
                 LogMessage($"[ERROR] HttpListener Error: {ex.Message}");
+                LogMessage("[INFO] Service running in UI-only mode. Scanner simulation available.");
             }
         }
 
@@ -179,7 +199,7 @@ namespace HighQBiometricService
         protected override void OnClosed(EventArgs e)
         {
             _isListening = false;
-            _httpListener?.Stop();
+            try { _httpListener?.Stop(); } catch { }
             base.OnClosed(e);
         }
     }
