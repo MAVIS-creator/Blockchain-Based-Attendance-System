@@ -178,7 +178,7 @@ require_once __DIR__ . '/includes/db.php';
             if (data.success) {
                 showResultModal(data);
             } else {
-                alert(data.message || 'Student attendance match failed.');
+                HighQSwal.fire('Attendance Notice', data.message || 'Student attendance match failed.', 'warning');
             }
         } catch (e) {
             console.error(e);
@@ -210,7 +210,7 @@ require_once __DIR__ . '/includes/db.php';
     function simulateScanFromInput() {
         const val = document.getElementById('simAdmInput').value.trim();
         if (!val) {
-            alert('Please enter an admission number to simulate.');
+            HighQSwal.fire('Input Required', 'Please enter an admission number to simulate.', 'warning');
             return;
         }
         triggerBiometricAttendance(null, val);

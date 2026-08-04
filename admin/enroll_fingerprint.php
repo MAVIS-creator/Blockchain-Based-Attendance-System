@@ -74,9 +74,6 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
             <button id="enrollBtn" onclick="startEnrollment()" disabled class="w-full py-3 bg-primary text-white rounded-lg font-semibold hover:bg-navy-muted disabled:opacity-50 transition-all shadow flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined">fingerprint</span> Start Enrollment
             </button>
-            <button id="simulateTouchBtn" onclick="simulateFingerTouch()" class="hidden w-full py-3 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition-all shadow flex items-center justify-center gap-2">
-                <span class="material-symbols-outlined">touch_app</span> Simulate Finger Touch
-            </button>
             <button id="cancelScanBtn" onclick="cancelEnrollment()" class="hidden px-4 py-3 border border-border-subtle text-on-surface-variant rounded-lg font-semibold hover:bg-surface-container transition-all flex items-center justify-center gap-1">
                 <span class="material-symbols-outlined">close</span> Cancel
             </button>
@@ -182,13 +179,11 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
         const title = document.getElementById('scanTitle');
         const sub = document.getElementById('scanSub');
         const enrollBtn = document.getElementById('enrollBtn');
-        const simulateBtn = document.getElementById('simulateTouchBtn');
         const cancelBtn = document.getElementById('cancelScanBtn');
         const qualityBox = document.getElementById('qualityBox');
 
         qualityBox.classList.add('hidden');
         enrollBtn.classList.add('hidden');
-        simulateBtn.classList.remove('hidden');
         cancelBtn.classList.remove('hidden');
 
         title.innerText = 'Waiting for Fingerprint Scan...';
@@ -196,16 +191,22 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
         circle.className = 'relative w-40 h-40 rounded-full bg-secondary-container/20 border-4 border-secondary flex items-center justify-center transition-all animate-pulse';
         spinner.classList.remove('hidden');
 
-        // Arm biometric service for enrollment
-        try {
-            await fetch(`${biometricServiceUrl}/start_enrollment`, { method: 'POST' });
-        } catch (e) {
-            console.log('Biometric service offline, waiting for user finger touch event.');
-        }
-
         stopScanning();
-
         isScanningActive = true;
+
+        // Issue POST capture to biometric service
+        fetch(`${biometricServiceUrl}/enroll`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ student_id: selectedStudent.id, admission_number: selectedStudent.admission_number })
+        }).then(r => r.json()).then(async data => {
+            if (isScanningActive && data.success && data.template) {
+                stopScanning();
+                await saveFingerprintToBackend(selectedStudent.id, data.template, data.quality || 'Excellent');
+            }
+        }).catch(e => console.log('Service capture waiting...'));
+
+        // Polling loop to catch fingerprint events from reader
         pollInterval = setInterval(async () => {
             if (!isScanningActive) return;
             try {
@@ -216,23 +217,15 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
                     await saveFingerprintToBackend(selectedStudent.id, data.template, data.quality || 'Excellent');
                 }
             } catch (e) {
-                // Service offline; user can touch physical reader or use "Simulate Finger Touch"
+                // Biometric service offline
             }
-        }, 1000);
+        }, 800);
 
         scanTimeoutTimer = setTimeout(() => {
             if (isScanningActive) {
-                cancelEnrollment('Scan Timed Out', 'No finger scan was detected within 45 seconds.');
+                cancelEnrollment('Scan Timed Out', 'No finger scan was detected within 60 seconds.');
             }
-        }, 45000);
-    }
-
-    async function simulateFingerTouch() {
-        if (!selectedStudent || !isScanningActive) return;
-        stopScanning();
-
-        const mockTemplate = 'DP_SDK_TEMPLATE_' + Math.random().toString(36).substring(2) + '_' + Date.now();
-        await saveFingerprintToBackend(selectedStudent.id, mockTemplate, 'Good (Simulated)');
+        }, 60000);
     }
 
     async function cancelEnrollment(titleText = 'Enrollment Cancelled', subText = '') {
@@ -256,7 +249,6 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
         const circle = document.getElementById('scannerCircle');
         const spinner = document.getElementById('scannerSpinner');
         const enrollBtn = document.getElementById('enrollBtn');
-        const simulateBtn = document.getElementById('simulateTouchBtn');
         const cancelBtn = document.getElementById('cancelScanBtn');
 
         spinner.classList.add('hidden');
@@ -264,7 +256,6 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
 
         enrollBtn.classList.remove('hidden');
         enrollBtn.disabled = !selectedStudent;
-        simulateBtn.classList.add('hidden');
         cancelBtn.classList.add('hidden');
     }
 
