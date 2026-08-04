@@ -4,8 +4,7 @@
         Title="High-Q Biometric Service" Height="380" Width="320"
         WindowStartupLocation="Manual" WindowStyle="None"
         AllowsTransparency="True" Background="Transparent"
-        Topmost="True" Deactivated="Window_Deactivated"
-        Icon="biometric_service desktop icon.png">
+        Topmost="True" Deactivated="Window_Deactivated">
     <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#C3C6D7" BorderThickness="1">
         <Border.Effect>
             <DropShadowEffect BlurRadius="16" Color="#000000" Opacity="0.12" Direction="270" ShadowDepth="4"/>

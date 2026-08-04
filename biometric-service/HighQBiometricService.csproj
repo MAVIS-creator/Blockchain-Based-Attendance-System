@@ -15,12 +15,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="app.ico">
+    <Content Include="app.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="biometric_service desktop icon.png">
+    </Content>
+    <Content Include="biometric_service desktop icon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

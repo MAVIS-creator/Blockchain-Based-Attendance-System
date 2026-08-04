@@ -1,7 +1,7 @@
 <Application x:Class="HighQBiometricService.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             StartupUri="MainWindow.xaml">
+             Startup="Application_Startup">
     <Application.Resources>
         <ResourceDictionary>
             <Color x:Key="PrimaryNavy">#0B1C30</Color>

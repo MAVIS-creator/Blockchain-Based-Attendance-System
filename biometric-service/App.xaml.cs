@@ -6,15 +6,15 @@ namespace HighQBiometricService
 {
     public partial class App : Application
     {
-        protected override void OnStartup(StartupEventArgs e)
+        private void Application_Startup(object sender, StartupEventArgs e)
         {
-            base.OnStartup(e);
-
             // Catch unhandled UI thread exceptions
             this.DispatcherUnhandledException += App_DispatcherUnhandledException;
-
-            // Catch unhandled background thread exceptions
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
+            // Show Splash Screen first
+            var splash = new SplashWindow();
+            splash.Show();
         }
 
         private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
