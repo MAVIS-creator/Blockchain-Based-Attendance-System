@@ -18,6 +18,22 @@ try {
         exit;
     }
 
+    if ($action === 'verify_pin') {
+        $pin = trim($_POST['pin'] ?? $_GET['pin'] ?? '');
+        $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'terminal_pin'");
+        $stmt->execute();
+        $storedPin = trim((string)$stmt->fetchColumn());
+
+        if (empty($storedPin) || $pin === $storedPin) {
+            $_SESSION['terminal_unlocked'] = true;
+            echo json_encode(['success' => true, 'message' => 'Terminal PIN verified']);
+        } else {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Incorrect Terminal PIN. Access denied.']);
+        }
+        exit;
+    }
+
     if ($action === 'save') {
         if (!is_authenticated()) {
             http_response_code(401);
@@ -25,7 +41,7 @@ try {
             exit;
         }
 
-        $fields = ['school_name', 'attendance_start_time', 'attendance_closing_time', 'late_threshold_time'];
+        $fields = ['school_name', 'attendance_start_time', 'attendance_closing_time', 'late_threshold_time', 'terminal_pin'];
         $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
 
         foreach ($fields as $field) {

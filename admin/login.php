@@ -15,6 +15,9 @@ if (is_authenticated()) {
 }
 
 $error = '';
+if (isset($_GET['pending'])) {
+    $error = 'Your registration was submitted successfully and is pending approval by the High-Q Main Site Super Administrator (admin.highqsolidacademy.com).';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? $_POST['email'] ?? '');

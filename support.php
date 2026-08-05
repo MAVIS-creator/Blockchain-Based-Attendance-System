@@ -67,7 +67,7 @@ $main_site_url = (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 
                     </p>
                 </div>
                 <div class="pt-4 border-t border-outline-variant/10">
-                    <a href="biometric-service/Output/HighQ_Biometric_Service_Setup_v1.0.exe" class="text-sm font-bold text-green-700 hover:underline flex items-center gap-1">
+                    <a href="HighQ_Biometric_Service_Setup_v1.0.exe" download class="text-sm font-bold text-green-700 hover:underline flex items-center gap-1">
                         Download Windows Setup (.exe) &rarr;
                     </a>
                 </div>

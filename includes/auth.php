@@ -62,45 +62,105 @@ function login_user(string $username, string $password): array {
     ensure_default_admin_exists();
 
     $pdo = get_db_connection();
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? OR username = ?");
-    $stmt->execute([$username, $username]);
-    $user = $stmt->fetch();
+    
+    // Support querying by email, username, or name across main site and local users table schema
+    $stmt = $pdo->prepare("SELECT u.*, r.slug AS role_slug, r.name AS role_name 
+                           FROM users u 
+                           LEFT JOIN roles r ON (u.role_id = r.id) 
+                           WHERE u.email = ? OR u.username = ? OR u.name = ? 
+                           LIMIT 1");
+    try {
+        $stmt->execute([$username, $username, $username]);
+        $user = $stmt->fetch();
+    } catch (PDOException $e) {
+        // Fallback for simple local users schema without roles table join
+        $stmtSimple = $pdo->prepare("SELECT * FROM users WHERE username = ? OR username = ? LIMIT 1");
+        $stmtSimple->execute([$username, $username]);
+        $user = $stmtSimple->fetch();
+    }
 
     if ($user && password_verify($password, $user['password'])) {
+        // Check approval status (is_active: 0 = pending, 1 = active, 2 = banned)
+        if (isset($user['is_active'])) {
+            if ((int)$user['is_active'] === 0) {
+                return [
+                    'success' => false, 
+                    'message' => 'Your account is pending approval by the High-Q Main Site Super Administrator (admin.highqsolidacademy.com).'
+                ];
+            }
+            if ((int)$user['is_active'] === 2) {
+                return [
+                    'success' => false, 
+                    'message' => 'Your account has been suspended or banned.'
+                ];
+            }
+        }
+
         $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['fullname'] = $user['fullname'];
-        $_SESSION['role'] = $user['role'];
+        $_SESSION['username'] = $user['username'] ?? $user['email'] ?? $username;
+        $_SESSION['fullname'] = $user['name'] ?? $user['fullname'] ?? 'Administrator';
+        $_SESSION['role'] = $user['role_slug'] ?? $user['role'] ?? 'admin';
         return ['success' => true, 'user' => $user];
     }
 
-    return ['success' => false, 'message' => 'Invalid username or password'];
+    return ['success' => false, 'message' => 'Invalid email/username or password.'];
 }
 
 function register_admin_user(string $fullname, string $username, string $password): array {
     $pdo = get_db_connection();
+    $email = strpos($username, '@') !== false ? strtolower($username) : strtolower($username) . '@highqsolidacademy.com';
 
-    // Check if username exists
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
-    $stmt->execute([$username]);
-    if ($stmt->fetch()) {
-        return ['success' => false, 'message' => 'Username already taken'];
+    // Check if username/email already exists
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
+        $stmt->execute([$username, $email]);
+    } catch (PDOException $e) {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute([$username]);
     }
 
-    $hash = password_hash($password, PASSWORD_DEFAULT);
-    $stmtInsert = $pdo->prepare("INSERT INTO users (username, password, fullname, role) VALUES (?, ?, ?, 'admin')");
-    $res = $stmtInsert->execute([$username, $hash, $fullname]);
+    if ($stmt->fetch()) {
+        return ['success' => false, 'message' => 'An account with this username or email already exists.'];
+    }
+
+    $hash = password_hash($password, PASSWORD_BCRYPT);
+    $is_active = 0; // Requires approval from main site admin
+
+    try {
+        // Try inserting into unified users table with role_id and is_active = 0
+        $stmtInsert = $pdo->prepare("INSERT INTO users (role_id, name, phone, email, username, password, is_active, created_at) VALUES (2, ?, '', ?, ?, ?, ?, NOW())");
+        $res = $stmtInsert->execute([$fullname, $email, $username, $hash, $is_active]);
+    } catch (PDOException $e) {
+        // Fallback for simple local users schema
+        try {
+            $stmtInsert = $pdo->prepare("INSERT INTO users (username, password, fullname, role, is_active) VALUES (?, ?, ?, 'admin', ?)");
+            $res = $stmtInsert->execute([$username, $hash, $fullname, $is_active]);
+        } catch (PDOException $e2) {
+            $stmtInsert = $pdo->prepare("INSERT INTO users (username, password, fullname, role) VALUES (?, ?, ?, 'admin')");
+            $res = $stmtInsert->execute([$username, $hash, $fullname]);
+            $is_active = 1;
+        }
+    }
 
     if ($res) {
         $userId = $pdo->lastInsertId();
+        if ($is_active === 0) {
+            return [
+                'success' => true, 
+                'pending' => true, 
+                'user_id' => $userId,
+                'message' => 'Registration successful! Your account is pending approval by the High-Q Main Site Super Administrator (admin.highqsolidacademy.com). You will be able to log in once approved.'
+            ];
+        }
+        
         $_SESSION['user_id'] = $userId;
         $_SESSION['username'] = $username;
         $_SESSION['fullname'] = $fullname;
         $_SESSION['role'] = 'admin';
-        return ['success' => true, 'user_id' => $userId];
+        return ['success' => true, 'pending' => false, 'user_id' => $userId];
     }
 
-    return ['success' => false, 'message' => 'Failed to create admin account'];
+    return ['success' => false, 'message' => 'Failed to create admin account. Please try again.'];
 }
 
 function logout_user(): void {

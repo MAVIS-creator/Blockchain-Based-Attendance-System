@@ -37,6 +37,16 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-border-subtle">
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm text-primary">lock</span> Public Terminal Access PIN
+                    </label>
+                    <input type="password" name="terminal_pin" id="terminal_pin" placeholder="Enter 4-digit PIN (e.g. 1234)" maxlength="8" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary font-mono tracking-widest">
+                    <p class="text-[11px] text-on-surface-variant">Require a PIN to unlock the kiosk attendance terminal. Leave empty to disable.</p>
+                </div>
+            </div>
+
             <div class="flex justify-end pt-4 border-t border-border-subtle">
                 <button type="submit" id="saveSetBtn" class="px-6 py-2.5 bg-primary text-white font-semibold rounded-lg text-sm hover:bg-navy-muted shadow flex items-center gap-2">
                     <span class="material-symbols-outlined text-sm">save</span> Save Settings
@@ -85,6 +95,9 @@ require_once __DIR__ . '/includes/header.php';
                 document.getElementById('attendance_start_time').value = s.attendance_start_time || '07:30';
                 document.getElementById('late_threshold_time').value = s.late_threshold_time || '08:00';
                 document.getElementById('attendance_closing_time').value = s.attendance_closing_time || '15:30';
+                if (document.getElementById('terminal_pin')) {
+                    document.getElementById('terminal_pin').value = s.terminal_pin || '';
+                }
             }
         } catch (e) {
             console.error(e);

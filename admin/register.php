@@ -25,10 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($res['success']) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                 header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'redirect' => 'index.php']);
+                echo json_encode([
+                    'success' => true, 
+                    'pending' => !empty($res['pending']),
+                    'message' => $res['message'] ?? 'Account created successfully.',
+                    'redirect' => !empty($res['pending']) ? 'login.php?pending=1' : 'index.php'
+                ]);
                 exit;
             }
-            header('Location: index.php');
+            header('Location: ' . (!empty($res['pending']) ? 'login.php?pending=1' : 'index.php'));
             exit;
         } else {
             $error = $res['message'];
@@ -177,6 +182,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (data.success) {
                 btn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Registered!';
+                if (data.pending) {
+                    alert(data.message || 'Registration submitted! Your account is pending approval by the High-Q Main Site Super Administrator.');
+                }
                 window.location.href = data.redirect || 'index.php';
             } else {
                 errMsg.innerText = data.message || 'Registration failed';
