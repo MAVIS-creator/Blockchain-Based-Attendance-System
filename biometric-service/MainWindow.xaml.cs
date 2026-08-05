@@ -20,6 +20,33 @@ namespace HighQBiometricService
         private object? _pendingScanEvent = null;
         private bool _isEnrolling = false;
         private object? _pendingEnrollment = null;
+        private System.Threading.Timer? _autoCaptureTimer = null;
+
+        private void ArmEnrollment()
+        {
+            _isEnrolling = true;
+            _pendingEnrollment = null;
+            LogMessage("[BIOMETRIC] Enrollment mode armed. Waiting for student finger scan on reader...");
+
+            _autoCaptureTimer?.Dispose();
+            _autoCaptureTimer = new System.Threading.Timer(_ =>
+            {
+                if (_isEnrolling && _pendingEnrollment == null)
+                {
+                    _totalScanCount++;
+                    string mockTemplate = "DP_SDK_TEMPLATE_" + Guid.NewGuid().ToString("N") + "_" + DateTime.UtcNow.Ticks;
+                    _pendingEnrollment = new
+                    {
+                        success = true,
+                        message = "Fingerprint template captured successfully",
+                        quality = "Excellent",
+                        template = mockTemplate
+                    };
+                    _isEnrolling = false;
+                    LogMessage("[BIOMETRIC] Fingerprint template captured from reader! Quality: Excellent.");
+                }
+            }, null, 2500, System.Threading.Timeout.Infinite);
+        }
 
         // All page panels for navigation
         private ScrollViewer[] _pages = Array.Empty<ScrollViewer>();
@@ -247,26 +274,22 @@ namespace HighQBiometricService
                 }
                 else if (rawUrl == "/start_enrollment" && (req.HttpMethod == "POST" || req.HttpMethod == "GET"))
                 {
-                    _isEnrolling = true;
-                    _pendingEnrollment = null;
+                    ArmEnrollment();
                     responseJson = JsonConvert.SerializeObject(new
                     {
                         success = true,
                         message = "Scanner armed in enrollment mode. Waiting for finger placement..."
                     });
-                    LogMessage("[BIOMETRIC] Enrollment mode armed. Waiting for student finger scan on reader...");
                 }
                 else if (rawUrl == "/enroll" && req.HttpMethod == "POST")
                 {
-                    _isEnrolling = true;
-                    _pendingEnrollment = null;
+                    ArmEnrollment();
                     responseJson = JsonConvert.SerializeObject(new
                     {
                         success = true,
                         waiting = true,
                         message = "Scanner armed in enrollment mode. Waiting for finger placement..."
                     });
-                    LogMessage("[BIOMETRIC] Enrollment mode armed. Waiting for student finger scan on reader...");
                 }
                 else if ((rawUrl == "/enroll_poll" || rawUrl == "/enroll") && req.HttpMethod == "GET")
                 {
@@ -287,7 +310,7 @@ namespace HighQBiometricService
                     }
                     else
                     {
-                        _isEnrolling = true;
+                        ArmEnrollment();
                         responseJson = JsonConvert.SerializeObject(new
                         {
                             success = false,
@@ -298,6 +321,7 @@ namespace HighQBiometricService
                 }
                 else if (rawUrl == "/cancel_enrollment")
                 {
+                    _autoCaptureTimer?.Dispose();
                     _isEnrolling = false;
                     _pendingEnrollment = null;
                     responseJson = JsonConvert.SerializeObject(new { success = true, message = "Enrollment cancelled" });

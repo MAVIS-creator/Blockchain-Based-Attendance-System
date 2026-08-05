@@ -193,7 +193,13 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
             <img class="h-8 w-8 object-contain rounded" src="logo.png" alt="High-Q Logo" onerror="this.src='icon.png'">
             <span class="text-xl font-bold tracking-tighter text-[#00457b] dark:text-[#f0f4f9] uppercase hidden sm:block">High-Q Attendance</span>
         </div>
+        <?php 
+            $main_site_url = (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) 
+                ? '/HIGH-Q/public/' 
+                : 'https://highqsolidacademy.com';
+        ?>
         <nav class="hidden md:flex items-center gap-8 font-inter text-sm font-medium tracking-wide">
+            <a class="text-[#00457b] dark:text-[#cfe5ff] font-bold hover:underline transition-all flex items-center gap-1" href="<?php echo $main_site_url; ?>" target="_blank"><span class="material-symbols-outlined text-sm">open_in_new</span> Main Site</a>
             <a class="<?php echo ($currentPage == 'index.php') ? 'text-[#00457b] dark:text-[#cfe5ff] font-bold border-b-2 border-[#00457b] dark:border-[#cfe5ff] pb-1' : 'text-[#424750] dark:text-[#c2c7d1] hover:text-[#00457b] dark:hover:text-white'; ?> transition-all" href="index.php">Portal</a>
             <a class="<?php echo ($currentPage == 'rules.php') ? 'text-[#00457b] dark:text-[#cfe5ff] font-bold border-b-2 border-[#00457b] dark:border-[#cfe5ff] pb-1' : 'text-[#424750] dark:text-[#c2c7d1] hover:text-[#00457b] dark:hover:text-white'; ?> transition-all" href="rules.php">Rules</a>
             <a class="<?php echo ($currentPage == 'support.php') ? 'text-[#00457b] dark:text-[#cfe5ff] font-bold border-b-2 border-[#00457b] dark:border-[#cfe5ff] pb-1' : 'text-[#424750] dark:text-[#c2c7d1] hover:text-[#00457b] dark:hover:text-white'; ?> transition-all" href="support.php">Support</a>
@@ -210,7 +216,8 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
             </button>
         </div>
     </div>
-    <div class="flex md:hidden items-center justify-center gap-8 py-2 border-t border-outline-variant/10 font-inter text-sm font-medium">
+    <div class="flex md:hidden items-center justify-center gap-6 py-2 border-t border-outline-variant/10 font-inter text-sm font-medium">
+        <a class="text-[#00457b] font-bold flex items-center gap-0.5" href="<?php echo $main_site_url; ?>" target="_blank"><span class="material-symbols-outlined text-xs">open_in_new</span> Main Site</a>
         <a class="<?php echo ($currentPage == 'index.php') ? 'text-[#00457b] font-bold' : 'text-[#424750]'; ?>" href="index.php">Portal</a>
         <a class="<?php echo ($currentPage == 'rules.php') ? 'text-[#00457b] font-bold' : 'text-[#424750]'; ?>" href="rules.php">Rules</a>
         <a class="<?php echo ($currentPage == 'support.php') ? 'text-[#00457b] font-bold' : 'text-[#424750]'; ?>" href="support.php">Support</a>

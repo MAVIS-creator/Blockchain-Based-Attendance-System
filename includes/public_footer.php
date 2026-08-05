@@ -7,9 +7,10 @@
                 Biometric Attendance & Academic Records System.
             </p>
         </div>
-        <div class="flex gap-8 items-center">
+        <div class="flex gap-6 items-center">
             <a class="font-inter text-xs font-normal leading-relaxed text-[#424750] dark:text-[#c2c7d1] opacity-80 hover:opacity-100 hover:underline decoration-[#00457b] underline-offset-4 transition-all" href="rules.php">Rules</a>
-            <a class="font-inter text-xs font-normal leading-relaxed text-[#424750] dark:text-[#c2c7d1] opacity-80 hover:opacity-100 hover:underline decoration-[#00457b] underline-offset-4 transition-all" href="support.php">Technical Support</a>
+            <a class="font-inter text-xs font-normal leading-relaxed text-[#424750] dark:text-[#c2c7d1] opacity-80 hover:opacity-100 hover:underline decoration-[#00457b] underline-offset-4 transition-all" href="support.php">Support & Helpdesk</a>
+            <a class="font-inter text-xs font-bold leading-relaxed text-primary dark:text-[#cfe5ff] hover:underline transition-all" href="mailto:admin@highqsoldacademy.com">admin@highqsoldacademy.com</a>
         </div>
     </div>
 </footer>

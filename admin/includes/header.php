@@ -132,6 +132,15 @@ $activePage = $activePage ?? 'dashboard';
                 <span class="material-symbols-outlined">desktop_windows</span>
                 <span class="font-body-md">Public Terminal</span>
             </a>
+            <?php 
+                $main_site_url = (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) 
+                    ? '/HIGH-Q/public/' 
+                    : 'https://highqsolidacademy.com';
+            ?>
+            <a class="flex items-center gap-3 px-4 py-3 text-primary font-bold hover:bg-surface-container transition-colors rounded-lg" href="<?= $main_site_url ?>" target="_blank">
+                <span class="material-symbols-outlined">open_in_new</span>
+                <span class="font-body-md">Main Website</span>
+            </a>
             <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg <?= $activePage === 'settings' ? 'sidebar-item-active' : '' ?>" href="settings.php">
                 <span class="material-symbols-outlined">settings</span>
                 <span class="font-body-md">Settings</span>
