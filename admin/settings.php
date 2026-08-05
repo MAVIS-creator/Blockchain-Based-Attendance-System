@@ -1,49 +1,39 @@
 <?php
-$pageTitle = 'Settings';
+$pageTitle = 'System Settings';
 $activePage = 'settings';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="mb-6">
     <h2 class="font-headline-lg text-2xl font-bold text-on-surface">System Settings</h2>
-    <p class="font-body-md text-on-surface-variant text-sm">Configure school branding, attendance hours, and dynamic school classes</p>
+    <p class="font-body-md text-on-surface-variant text-sm">Configure High-Q Solid Academy operational parameters and lesson types</p>
 </div>
 
-<div class="space-y-8 max-w-4xl mx-auto">
-    <!-- School Settings & Hours -->
-    <div class="bg-surface-container-lowest p-6 md:p-8 rounded-xl border border-border-subtle shadow-sm">
-        <form id="settingsForm" class="space-y-6" enctype="multipart/form-data">
-            <div class="space-y-4">
-                <h3 class="font-bold text-base text-on-surface border-b border-border-subtle pb-2 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary">school</span> School Information
-                </h3>
+<div class="grid grid-cols-1 gap-8 max-w-4xl">
+    <!-- Main Settings Form -->
+    <div class="bg-surface-container-lowest p-6 md:p-8 rounded-xl border border-border-subtle shadow-sm space-y-6">
+        <h3 class="font-bold text-base text-on-surface border-b border-border-subtle pb-3">School & Operating Hours</h3>
 
-                <div class="space-y-2">
-                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">School Name</label>
-                    <input type="text" name="school_name" id="school_name" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
-                </div>
+        <form id="settingsForm" class="space-y-6">
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold uppercase text-on-surface-variant">Academy Name</label>
+                <input type="text" name="school_name" id="school_name" value="High-Q Solid Academy" required class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
             </div>
 
-            <div class="space-y-4 pt-2">
-                <h3 class="font-bold text-base text-on-surface border-b border-border-subtle pb-2 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary">schedule</span> Attendance Time Thresholds
-                </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">Attendance Start Time</label>
+                    <input type="time" name="attendance_start_time" id="attendance_start_time" value="07:30" required class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
+                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="space-y-2">
-                        <label class="block text-xs font-semibold uppercase text-on-surface-variant">Attendance Start Time</label>
-                        <input type="time" name="attendance_start_time" id="attendance_start_time" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
-                    </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">Late Threshold Time</label>
+                    <input type="time" name="late_threshold_time" id="late_threshold_time" value="08:00" required class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
+                </div>
 
-                    <div class="space-y-2">
-                        <label class="block text-xs font-semibold uppercase text-on-surface-variant">Late Threshold Time</label>
-                        <input type="time" name="late_threshold_time" id="late_threshold_time" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
-                    </div>
-
-                    <div class="space-y-2">
-                        <label class="block text-xs font-semibold uppercase text-on-surface-variant">Attendance Closing Time</label>
-                        <input type="time" name="attendance_closing_time" id="attendance_closing_time" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
-                    </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">Closing Time</label>
+                    <input type="time" name="attendance_closing_time" id="attendance_closing_time" value="15:30" required class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
                 </div>
             </div>
 
@@ -55,31 +45,31 @@ require_once __DIR__ . '/includes/header.php';
         </form>
     </div>
 
-    <!-- Dynamic Class Management Card -->
+    <!-- Dynamic Lesson Type Management Card -->
     <div class="bg-surface-container-lowest p-6 md:p-8 rounded-xl border border-border-subtle shadow-sm space-y-6">
         <div class="flex justify-between items-center border-b border-border-subtle pb-3">
             <div>
                 <h3 class="font-bold text-base text-on-surface flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary">groups</span> Class Management
+                    <span class="material-symbols-outlined text-primary">menu_book</span> Lesson Type Management
                 </h3>
-                <p class="text-xs text-on-surface-variant">Add, edit, or remove classes used across student registration and reports</p>
+                <p class="text-xs text-on-surface-variant">Add or remove lesson types used across student registration and reports</p>
             </div>
-            <span class="px-2.5 py-1 bg-surface-container text-xs font-bold rounded-full text-primary" id="classCountBadge">0 Classes</span>
+            <span class="px-2.5 py-1 bg-surface-container text-xs font-bold rounded-full text-primary" id="classCountBadge">0 Lesson Types</span>
         </div>
 
-        <!-- Add New Class Form -->
+        <!-- Add New Lesson Type Form -->
         <form id="addClassForm" class="flex items-center gap-3">
             <div class="flex-1">
-                <input type="text" id="newClassName" required placeholder="Enter new class name (e.g. Nursery 1, Basic 6, Grade 1)" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
+                <input type="text" id="newClassName" required placeholder="Enter new lesson type (e.g. JAMB, WAEC, NECO, GCE, Post UTME)" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
             </div>
             <button type="submit" id="addClassBtn" class="px-5 py-2.5 bg-primary text-white font-semibold rounded-lg text-sm hover:bg-navy-muted shadow flex items-center gap-1.5 whitespace-nowrap">
-                <span class="material-symbols-outlined text-sm">add</span> Add Class
+                <span class="material-symbols-outlined text-sm">add</span> Add Lesson Type
             </button>
         </form>
 
-        <!-- Current Classes Grid -->
+        <!-- Current Lesson Types Grid -->
         <div id="classesListContainer" class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-            <div class="col-span-full text-center py-6 text-xs text-on-surface-variant">Loading classes...</div>
+            <div class="col-span-full text-center py-6 text-xs text-on-surface-variant">Loading lesson types...</div>
         </div>
     </div>
 </div>
@@ -110,16 +100,16 @@ require_once __DIR__ . '/includes/header.php';
             const data = await resp.json();
 
             if (data.success && data.classes) {
-                badge.innerText = `${data.classes.length} Classes`;
+                badge.innerText = `${data.classes.length} Lesson Types`;
                 if (data.classes.length === 0) {
-                    container.innerHTML = '<div class="col-span-full text-center py-6 text-xs text-on-surface-variant">No classes configured. Add one above!</div>';
+                    container.innerHTML = '<div class="col-span-full text-center py-6 text-xs text-on-surface-variant">No lesson types configured. Add one above!</div>';
                     return;
                 }
 
                 container.innerHTML = data.classes.map(c => `
                     <div class="p-3 bg-surface-container-low border border-border-subtle rounded-xl flex items-center justify-between group hover:border-primary transition-all">
                         <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-sm text-primary">school</span>
+                            <span class="material-symbols-outlined text-sm text-primary">menu_book</span>
                             <span class="font-bold text-xs text-on-surface">${c.name}</span>
                         </div>
                         <button onclick="deleteClass(${c.id}, '${c.name}')" type="button" class="text-on-surface-variant hover:text-error transition-colors p-1 rounded hover:bg-error-container/20" title="Delete ${c.name}">
@@ -130,7 +120,7 @@ require_once __DIR__ . '/includes/header.php';
             }
         } catch (e) {
             console.error(e);
-            container.innerHTML = '<div class="col-span-full text-center py-6 text-xs text-error">Failed to load classes</div>';
+            container.innerHTML = '<div class="col-span-full text-center py-6 text-xs text-error">Failed to load lesson types</div>';
         }
     }
 
@@ -187,10 +177,10 @@ require_once __DIR__ . '/includes/header.php';
 
             if (data.success) {
                 input.value = '';
-                HighQSwal.fire('Class Added', `'${className}' has been added to available classes.`, 'success');
+                HighQSwal.fire('Lesson Type Added', `'${className}' has been added to available lesson types.`, 'success');
                 loadClasses();
             } else {
-                HighQSwal.fire('Error', data.message || 'Error adding class', 'error');
+                HighQSwal.fire('Error', data.message || 'Error adding lesson type', 'error');
             }
         } catch (err) {
             btn.disabled = false;
@@ -200,7 +190,7 @@ require_once __DIR__ . '/includes/header.php';
 
     async function deleteClass(id, className) {
         const confirmRes = await HighQSwal.fire({
-            title: 'Remove Class?',
+            title: 'Remove Lesson Type?',
             text: `Are you sure you want to remove '${className}'?`,
             icon: 'warning',
             showCancelButton: true,
@@ -224,7 +214,7 @@ require_once __DIR__ . '/includes/header.php';
                 HighQSwal.fire('Removed', `'${className}' was removed.`, 'success');
                 loadClasses();
             } else {
-                HighQSwal.fire('Error', data.message || 'Error removing class', 'error');
+                HighQSwal.fire('Error', data.message || 'Error removing lesson type', 'error');
             }
         } catch (e) {
             HighQSwal.fire('Error', 'Server error occurred.', 'error');

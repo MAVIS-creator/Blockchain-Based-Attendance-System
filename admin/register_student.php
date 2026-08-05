@@ -56,7 +56,7 @@ $studentId = (int)($_GET['id'] ?? 0);
                             </button>
                         <?php endif; ?>
                     </div>
-                    <input type="text" name="admission_number" id="admission_number" required placeholder="e.g. HQ/2026/001" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
+                    <input type="text" name="admission_number" id="admission_number" required placeholder="e.g. HQ/2026/001" class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary" readonly>
                 </div>
 
                 <!-- Surname -->
@@ -90,15 +90,16 @@ $studentId = (int)($_GET['id'] ?? 0);
                 </select>
             </div>
 
-            <!-- Class (Dynamic) -->
-            <div class="space-y-2">
+            <!-- Lesson Type (Multi-Select Checkboxes) -->
+            <div class="space-y-2 md:col-span-2">
                 <div class="flex justify-between items-center">
-                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">Class *</label>
-                    <a href="settings.php" target="_blank" class="text-[11px] text-primary font-bold hover:underline" title="Manage classes in settings">+ Manage Classes</a>
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant">Lesson Type(s) * <span class="text-[10px] text-outline font-normal lowercase">(select one or more e.g. WAEC, GCE)</span></label>
+                    <a href="settings.php" target="_blank" class="text-[11px] text-primary font-bold hover:underline" title="Manage lesson types in settings">+ Manage Lesson Types</a>
                 </div>
-                <select name="class" id="class" required class="w-full px-4 py-2.5 bg-surface-gray border border-border-subtle rounded-lg text-sm focus:outline-none focus:border-primary">
-                    <option value="">Loading classes...</option>
-                </select>
+                <div id="lessonTypesContainer" class="p-3 bg-surface-gray border border-border-subtle rounded-lg flex flex-wrap gap-2.5 min-h-[46px] items-center">
+                    <span class="text-xs text-on-surface-variant">Loading lesson types...</span>
+                </div>
+                <input type="hidden" name="class" id="class" required>
             </div>
 
             <!-- Date of Birth -->
@@ -181,25 +182,52 @@ $studentId = (int)($_GET['id'] ?? 0);
         }
     }
 
-    async function loadClasses(selectedClass = '') {
-        const classSelect = document.getElementById('class');
+    async function loadClasses(selectedClassStr = '') {
+        const selectedArray = selectedClassStr ? selectedClassStr.split(',').map(s => s.trim()) : [];
         try {
             const resp = await fetch('../api/classes.php?action=list');
             const data = await resp.json();
+            let types = [];
 
             if (data.success && data.classes && data.classes.length > 0) {
-                classSelect.innerHTML = data.classes.map(c => `
-                    <option value="${c.name}" ${c.name === selectedClass ? 'selected' : ''}>${c.name}</option>
-                `).join('');
+                types = data.classes.map(c => c.name);
             } else {
-                const fallback = ['Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5', 'JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'];
-                classSelect.innerHTML = fallback.map(c => `
-                    <option value="${c}" ${c === selectedClass ? 'selected' : ''}>${c}</option>
-                `).join('');
+                types = ['JAMB', 'WAEC', 'NECO', 'GCE', 'Post UTME', 'NABTEB', 'JUPEB', 'IJMB'];
             }
+            renderLessonTypeCheckboxes(types, selectedArray);
         } catch (e) {
             console.error(e);
+            renderLessonTypeCheckboxes(['JAMB', 'WAEC', 'NECO', 'GCE', 'Post UTME', 'NABTEB', 'JUPEB', 'IJMB'], selectedArray);
         }
+    }
+
+    function renderLessonTypeCheckboxes(types, selectedArray) {
+        const container = document.getElementById('lessonTypesContainer');
+        container.innerHTML = types.map(tName => {
+            const isChecked = selectedArray.includes(tName) || (selectedArray.length === 0 && tName === 'JAMB');
+            return `
+                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all ${isChecked ? 'bg-primary/10 border-primary text-primary' : 'bg-surface-container-low border-border-subtle text-on-surface-variant hover:border-primary/50'}">
+                    <input type="checkbox" value="${tName}" ${isChecked ? 'checked' : ''} onchange="updateLessonTypesValue()" class="accent-primary rounded text-primary focus:ring-0">
+                    <span>${tName}</span>
+                </label>
+            `;
+        }).join('');
+        updateLessonTypesValue();
+    }
+
+    function updateLessonTypesValue() {
+        const checkboxes = document.querySelectorAll('#lessonTypesContainer input[type="checkbox"]:checked');
+        const selected = Array.from(checkboxes).map(cb => cb.value);
+        document.getElementById('class').value = selected.join(', ');
+
+        document.querySelectorAll('#lessonTypesContainer label').forEach(lbl => {
+            const cb = lbl.querySelector('input[type="checkbox"]');
+            if (cb && cb.checked) {
+                lbl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all bg-primary/10 border-primary text-primary';
+            } else if (lbl) {
+                lbl.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all bg-surface-container-low border-border-subtle text-on-surface-variant hover:border-primary/50';
+            }
+        });
     }
 
     async function generateNextAdmissionNumber() {

@@ -59,7 +59,7 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "msiexec.exe"; Parameters: "/i ""{tmp}\driver_rte\setup.msi"" /qn /norestart"; StatusMsg: "Installing DigitalPersona Fingerprint Reader Drivers..."; Tasks: driverinstall; Check: IsDriverNeeded; Flags: runhidden
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent runasoriginaluser
 
 [Code]
 function IsDriverNeeded(): Boolean;

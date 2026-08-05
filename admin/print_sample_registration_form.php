@@ -126,7 +126,7 @@ if ($studentId > 0) {
             </div>
         </div>
         <div class="field-group">
-            <span class="field-label">Class Assigned *</span>
+            <span class="field-label">Lesson Type *</span>
             <div class="field-line"><?= htmlspecialchars($student['class'] ?? '____________________') ?></div>
         </div>
     </div>

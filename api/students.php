@@ -41,8 +41,8 @@ try {
             }
 
             if ($classFilter !== '') {
-                $where[] = "class = ?";
-                $params[] = $classFilter;
+                $where[] = "class LIKE ?";
+                $params[] = "%$classFilter%";
             }
 
             if ($statusFilter !== '') {
@@ -68,6 +68,16 @@ try {
             ");
             $stmt->execute($params);
             $students = $stmt->fetchAll();
+
+            foreach ($students as &$s) {
+                $fpCount = (int)($s['fingerprint_count'] ?? 0);
+                if ($fpCount === 0 && $s['status'] === 'Fingerprint Linked') {
+                    $s['status'] = 'Awaiting Fingerprint';
+                } else if ($fpCount > 0 && $s['status'] === 'Awaiting Fingerprint') {
+                    $s['status'] = 'Fingerprint Linked';
+                }
+            }
+            unset($s);
 
             echo json_encode([
                 'success' => true,
@@ -100,6 +110,13 @@ try {
             if (!$student) {
                 echo json_encode(['success' => false, 'message' => 'Student not found']);
                 exit;
+            }
+
+            $fpCount = (int)($student['fingerprint_count'] ?? 0);
+            if ($fpCount === 0 && $student['status'] === 'Fingerprint Linked') {
+                $student['status'] = 'Awaiting Fingerprint';
+            } else if ($fpCount > 0 && $student['status'] === 'Awaiting Fingerprint') {
+                $student['status'] = 'Fingerprint Linked';
             }
 
             echo json_encode(['success' => true, 'student' => $student]);
@@ -136,7 +153,13 @@ try {
             $middlename = trim($_POST['middlename'] ?? '');
             $gender = trim($_POST['gender'] ?? 'Male');
             $dob = $_POST['dob'] ?: null;
-            $class = trim($_POST['class'] ?? '');
+            
+            $classRaw = $_POST['class'] ?? '';
+            if (is_array($classRaw)) {
+                $class = implode(', ', array_filter(array_map('trim', $classRaw)));
+            } else {
+                $class = trim($classRaw);
+            }
             $address = trim($_POST['address'] ?? '');
             $parent_name = trim($_POST['parent_name'] ?? '');
             $parent_phone = trim($_POST['parent_phone'] ?? '');

@@ -1,6 +1,6 @@
 <?php
 /**
- * Classes Management API Endpoint
+ * Lesson Types Management API Endpoint
  * High-Q Solid Academy Biometric Attendance System
  */
 
@@ -20,17 +20,18 @@ $pdo->exec("
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ");
 
-// Ensure default classes exist
-$count = (int)$pdo->query("SELECT COUNT(*) FROM classes")->fetchColumn();
-if ($count === 0) {
-    $defaultClasses = [
-        'Basic 1', 'Basic 2', 'Basic 3', 'Basic 4', 'Basic 5',
-        'JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'
-    ];
+// Check if initial seeding has been executed using settings table
+$seededCheck = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'lesson_types_seeded'")->fetchColumn();
+
+if ($seededCheck === false) {
+    // Perform initial seed of default High-Q Lesson Types
+    $defaultTypes = ['JAMB', 'WAEC', 'NECO', 'GCE', 'Post UTME', 'NABTEB', 'JUPEB', 'IJMB'];
     $stmt = $pdo->prepare("INSERT IGNORE INTO classes (name, sort_order) VALUES (?, ?)");
-    foreach ($defaultClasses as $idx => $clsName) {
-        $stmt->execute([$clsName, $idx + 1]);
+    foreach ($defaultTypes as $idx => $typeName) {
+        $stmt->execute([$typeName, $idx + 1]);
     }
+    // Mark as seeded so deletions are persistent and never auto-restored
+    $pdo->exec("INSERT INTO settings (setting_key, setting_value) VALUES ('lesson_types_seeded', '1') ON DUPLICATE KEY UPDATE setting_value = '1'");
 }
 
 try {
@@ -50,7 +51,7 @@ try {
 
             $name = trim($_POST['name'] ?? '');
             if ($name === '') {
-                echo json_encode(['success' => false, 'message' => 'Class name cannot be empty']);
+                echo json_encode(['success' => false, 'message' => 'Lesson type name cannot be empty']);
                 exit;
             }
 
@@ -58,7 +59,7 @@ try {
             $check = $pdo->prepare("SELECT id FROM classes WHERE name = ?");
             $check->execute([$name]);
             if ($check->fetch()) {
-                echo json_encode(['success' => false, 'message' => 'Class already exists']);
+                echo json_encode(['success' => false, 'message' => 'Lesson type already exists']);
                 exit;
             }
 
@@ -66,7 +67,7 @@ try {
             $stmt = $pdo->prepare("INSERT INTO classes (name, sort_order) VALUES (?, ?)");
             $stmt->execute([$name, $maxOrder + 1]);
 
-            echo json_encode(['success' => true, 'message' => 'Class added successfully', 'id' => $pdo->lastInsertId(), 'name' => $name]);
+            echo json_encode(['success' => true, 'message' => 'Lesson type added successfully', 'id' => $pdo->lastInsertId(), 'name' => $name]);
             break;
 
         case 'delete':
@@ -78,14 +79,14 @@ try {
 
             $id = (int)($_POST['id'] ?? 0);
             if ($id <= 0) {
-                echo json_encode(['success' => false, 'message' => 'Invalid class ID']);
+                echo json_encode(['success' => false, 'message' => 'Invalid lesson type ID']);
                 exit;
             }
 
             $stmt = $pdo->prepare("DELETE FROM classes WHERE id = ?");
             $stmt->execute([$id]);
 
-            echo json_encode(['success' => true, 'message' => 'Class removed successfully']);
+            echo json_encode(['success' => true, 'message' => 'Lesson type removed successfully']);
             break;
 
         default:

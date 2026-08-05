@@ -147,12 +147,14 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
             avatarBox.innerText = `${student.firstname.charAt(0)}${student.surname.charAt(0)}`;
         }
         document.getElementById('selectedStudentName').innerText = `${student.surname} ${student.firstname}`;
-        document.getElementById('selectedStudentSub').innerText = `${student.class} \u2022 ${student.admission_number}`;
-        document.getElementById('selectedStudentStatus').innerText = student.status || 'Awaiting Fingerprint';
+        const hasFp = (parseInt(student.fingerprint_count) || 0) > 0;
+        const statusEl = document.getElementById('selectedStudentStatus');
+        statusEl.innerText = hasFp ? 'Fingerprint Linked' : 'Awaiting Fingerprint';
+        statusEl.className = hasFp ? 'font-bold text-green-700' : 'font-bold text-yellow-700';
 
         document.getElementById('enrollBtn').disabled = false;
 
-        if (student.fingerprint_count > 0) {
+        if (hasFp) {
             document.getElementById('deleteFpBtn').classList.remove('hidden');
             document.getElementById('scanTitle').innerText = 'Fingerprint Already Enrolled';
             document.getElementById('scanSub').innerText = 'Click "Start Enrollment" to overwrite or click delete icon to unlink.';
@@ -194,32 +196,31 @@ $presetStudentId = (int)($_GET['student_id'] ?? 0);
         stopScanning();
         isScanningActive = true;
 
-        // Issue POST capture to biometric service
-        fetch(`${biometricServiceUrl}/enroll`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ student_id: selectedStudent.id, admission_number: selectedStudent.admission_number })
-        }).then(r => r.json()).then(async data => {
-            if (isScanningActive && data.success && data.template) {
-                stopScanning();
-                await saveFingerprintToBackend(selectedStudent.id, data.template, data.quality || 'Excellent');
-            }
-        }).catch(e => console.log('Service capture waiting...'));
+        // Arm biometric service in enrollment mode
+        try {
+            await fetch(`${biometricServiceUrl}/start_enrollment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ student_id: selectedStudent.id, admission_number: selectedStudent.admission_number })
+            });
+        } catch (e) {
+            console.log('Service arming error:', e);
+        }
 
-        // Polling loop to catch fingerprint events from reader
+        // Polling loop to wait for physical finger placement on reader glass
         pollInterval = setInterval(async () => {
             if (!isScanningActive) return;
             try {
                 const resp = await fetch(`${biometricServiceUrl}/enroll_poll`, { cache: 'no-store' });
                 const data = await resp.json();
-                if (data.success && data.template) {
+                if (isScanningActive && data.success && data.template) {
                     stopScanning();
                     await saveFingerprintToBackend(selectedStudent.id, data.template, data.quality || 'Excellent');
                 }
             } catch (e) {
                 // Biometric service offline
             }
-        }, 800);
+        }, 1000);
 
         scanTimeoutTimer = setTimeout(() => {
             if (isScanningActive) {

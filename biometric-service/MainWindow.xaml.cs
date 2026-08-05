@@ -258,20 +258,15 @@ namespace HighQBiometricService
                 }
                 else if (rawUrl == "/enroll" && req.HttpMethod == "POST")
                 {
-                    _totalScanCount++;
-                    string mockTemplate = "DP_SDK_TEMPLATE_" + Guid.NewGuid().ToString("N") + "_" + DateTime.UtcNow.Ticks;
-                    var resultObj = new
+                    _isEnrolling = true;
+                    _pendingEnrollment = null;
+                    responseJson = JsonConvert.SerializeObject(new
                     {
                         success = true,
-                        message = "Fingerprint template captured successfully",
-                        quality = "Excellent",
-                        template = mockTemplate
-                    };
-                    _pendingEnrollment = resultObj;
-                    _isEnrolling = false;
-
-                    responseJson = JsonConvert.SerializeObject(resultObj);
-                    LogMessage("[BIOMETRIC] Enrollment capture completed. Quality: Excellent.");
+                        waiting = true,
+                        message = "Scanner armed in enrollment mode. Waiting for finger placement..."
+                    });
+                    LogMessage("[BIOMETRIC] Enrollment mode armed. Waiting for student finger scan on reader...");
                 }
                 else if ((rawUrl == "/enroll_poll" || rawUrl == "/enroll") && req.HttpMethod == "GET")
                 {

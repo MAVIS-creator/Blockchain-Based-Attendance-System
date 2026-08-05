@@ -31,18 +31,15 @@ require_once __DIR__ . '/includes/header.php';
 
     <div class="flex gap-3 w-full md:w-auto">
         <select id="filterClass" class="bg-surface-gray border border-border-subtle text-sm rounded-lg px-3 py-2 focus:outline-none">
-            <option value="">All Classes</option>
-            <option value="Basic 1">Basic 1</option>
-            <option value="Basic 2">Basic 2</option>
-            <option value="Basic 3">Basic 3</option>
-            <option value="Basic 4">Basic 4</option>
-            <option value="Basic 5">Basic 5</option>
-            <option value="JSS 1">JSS 1</option>
-            <option value="JSS 2">JSS 2</option>
-            <option value="JSS 3">JSS 3</option>
-            <option value="SSS 1">SSS 1</option>
-            <option value="SSS 2">SSS 2</option>
-            <option value="SSS 3">SSS 3</option>
+            <option value="">All Lesson Types</option>
+            <option value="JAMB">JAMB</option>
+            <option value="WAEC">WAEC</option>
+            <option value="NECO">NECO</option>
+            <option value="GCE">GCE</option>
+            <option value="Post UTME">Post UTME</option>
+            <option value="NABTEB">NABTEB</option>
+            <option value="JUPEB">JUPEB</option>
+            <option value="IJMB">IJMB</option>
         </select>
 
         <select id="filterStatus" class="bg-surface-gray border border-border-subtle text-sm rounded-lg px-3 py-2 focus:outline-none">
@@ -65,7 +62,7 @@ require_once __DIR__ . '/includes/header.php';
                 <tr>
                     <th class="py-3 px-4">Student</th>
                     <th class="py-3 px-4">Admission #</th>
-                    <th class="py-3 px-4">Class</th>
+                    <th class="py-3 px-4">Lesson Type</th>
                     <th class="py-3 px-4">Gender</th>
                     <th class="py-3 px-4">Parent Phone</th>
                     <th class="py-3 px-4">Fingerprint</th>
@@ -336,7 +333,7 @@ require_once __DIR__ . '/includes/header.php';
             const resp = await fetch('../api/classes.php?action=list');
             const data = await resp.json();
             if (data.success && data.classes) {
-                select.innerHTML = '<option value="">All Classes</option>' + data.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+                select.innerHTML = '<option value="">All Lesson Types</option>' + data.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
             }
         } catch (e) { }
     }
