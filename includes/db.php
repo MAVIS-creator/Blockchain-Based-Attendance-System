@@ -4,7 +4,43 @@
  * High-Q Solid Academy Biometric Attendance System
  */
 
-require_once __DIR__ . '/../env-loader.php';
+// Load environment variables via Composer Dotenv or native fallback
+function load_environment(): void {
+    static $loaded = false;
+    if ($loaded) return;
+
+    $autoload = __DIR__ . '/../vendor/autoload.php';
+    if (file_exists($autoload)) {
+        require_once $autoload;
+        if (class_exists('Dotenv\Dotenv')) {
+            $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+            $dotenv->safeLoad();
+        }
+    }
+
+    // Fallback native parser if $_ENV or getenv is empty
+    $envFile = __DIR__ . '/../.env';
+    if (file_exists($envFile)) {
+        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line) || strpos($line, '#') === 0) continue;
+            if (strpos($line, '=') !== false) {
+                list($key, $val) = explode('=', $line, 2);
+                $key = trim($key);
+                $val = trim(trim($val), '"\'');
+                if (!getenv($key)) {
+                    putenv("$key=$val");
+                    $_ENV[$key] = $val;
+                    $_SERVER[$key] = $val;
+                }
+            }
+        }
+    }
+    $loaded = true;
+}
+
+load_environment();
 
 function get_db_connection(): PDO {
     static $pdo = null;
@@ -13,11 +49,11 @@ function get_db_connection(): PDO {
         return $pdo;
     }
 
-    $host = getenv('DB_HOST') ?: '127.0.0.1';
-    $port = getenv('DB_PORT') ?: '3306';
-    $db   = getenv('DB_NAME') ?: 'highq_attendance';
-    $user = getenv('DB_USER') ?: 'root';
-    $pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : '';
+    $host = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? '127.0.0.1');
+    $port = getenv('DB_PORT') ?: ($_ENV['DB_PORT'] ?? '3306');
+    $db   = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? 'highqsol_highq');
+    $user = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? 'root');
+    $pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($_ENV['DB_PASS'] ?? '');
 
     try {
         // Try connecting directly to the database

@@ -1,6 +1,6 @@
 <?php
 /**
- * High-Q Solid Academy - Public Attendance Marking Fingerprint Page
+ * High-Q Solid Academy - Public Attendance Marking Fingerprint Page (Landing Kiosk Terminal)
  */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -21,68 +21,46 @@ if (empty($_SESSION['terminal_captcha'])) {
     $_SESSION['terminal_captcha'] = substr(str_shuffle($chars), 0, 4);
 }
 $captchaCode = $_SESSION['terminal_captcha'];
+
+require_once __DIR__ . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html class="light" lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>High-Q Solid Academy | Biometric Attendance Terminal</title>
-    <link rel="shortcut icon" href="icon.png" type="image/png"/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Hanken+Grotesk:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        const HighQSwal = Swal.mixin({
-            customClass: {
-                confirmButton: 'px-5 py-2.5 bg-primary text-white font-semibold rounded-lg text-sm mx-1 shadow hover:opacity-90 transition-colors',
-                cancelButton: 'px-5 py-2.5 border border-border-subtle text-on-surface font-semibold rounded-lg text-sm mx-1 hover:bg-surface-container transition-colors',
-                popup: 'rounded-2xl border border-border-subtle font-body-md shadow-2xl p-6',
-                title: 'font-headline-lg font-bold text-on-surface text-xl',
-                htmlContainer: 'text-on-surface-variant text-sm'
-            },
-            buttonsStyling: false
-        });
-    </script>
-    <style>
-        .scan-animation-container {
-            position: relative;
-            width: 280px;
-            height: 280px;
-        }
-        .scan-line {
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(to right, transparent, #fdc014, transparent);
-            position: absolute;
-            top: 0;
-            left: 0;
-            animation: scanMove 2.5s ease-in-out infinite alternate;
-            box-shadow: 0 0 15px #fdc014;
-        }
-        @keyframes scanMove {
-            0% { top: 10%; }
-            100% { top: 90%; }
-        }
-        .ring-pulse {
-            animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulseGlow {
-            0%, 100% { opacity: 0.2; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.05); }
-        }
-        .shake-animation {
-            animation: shakeKeypad 0.4s ease-in-out;
-        }
-        @keyframes shakeKeypad {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-10px); }
-            40%, 80% { transform: translateX(10px); }
-        }
-    </style>
-</head>
-<body class="bg-background font-body-md text-on-surface min-h-screen flex flex-col justify-between overflow-x-hidden kiosk-gradient">
+
+<style>
+    .scan-animation-container {
+        position: relative;
+        width: 260px;
+        height: 260px;
+    }
+    .scan-line {
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(to right, transparent, #fdc014, transparent);
+        position: absolute;
+        top: 0;
+        left: 0;
+        animation: scanMove 2.5s ease-in-out infinite alternate;
+        box-shadow: 0 0 15px #fdc014;
+    }
+    @keyframes scanMove {
+        0% { top: 10%; }
+        100% { top: 90%; }
+    }
+    .ring-pulse {
+        animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulseGlow {
+        0%, 100% { opacity: 0.2; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(1.05); }
+    }
+    .shake-animation {
+        animation: shakeKeypad 0.4s ease-in-out;
+    }
+    @keyframes shakeKeypad {
+        0%, 100% { transform: translateX(0); }
+        20%, 60% { transform: translateX(-10px); }
+        40%, 80% { transform: translateX(10px); }
+    }
+</style>
 
 <?php if (!$isUnlocked): ?>
 <!-- Terminal PIN Security Keypad Overlay -->
@@ -111,7 +89,7 @@ $captchaCode = $_SESSION['terminal_captcha'];
                 <span class="text-xs font-bold text-slate-700 uppercase">Bot Check:</span>
             </div>
             <div class="flex items-center gap-2">
-                <span class="px-3 py-1 bg-slate-900 text-amber-400 font-mono font-extrabold tracking-widest text-sm rounded-lg shadow-inner select-none select-none">
+                <span class="px-3 py-1 bg-slate-900 text-amber-400 font-mono font-extrabold tracking-widest text-sm rounded-lg shadow-inner select-none">
                     <?= $captchaCode ?>
                 </span>
                 <input type="text" id="captchaInput" uppercase placeholder="Code" maxlength="4" class="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-xs font-mono font-bold uppercase focus:outline-none focus:border-amber-500">
@@ -198,7 +176,7 @@ $captchaCode = $_SESSION['terminal_captcha'];
     }
 
     document.addEventListener('keydown', function(e) {
-        if (document.getElementById('pinModalOverlay').classList.contains('hidden')) return;
+        if (document.getElementById('pinModalOverlay') && document.getElementById('pinModalOverlay').classList.contains('hidden')) return;
         if (e.key >= '0' && e.key <= '9') {
             appendPin(e.key);
         } else if (e.key === 'Backspace') {
@@ -283,31 +261,8 @@ $captchaCode = $_SESSION['terminal_captcha'];
 </script>
 <?php endif; ?>
 
-<!-- Header -->
-<header class="flex items-center justify-between z-20 p-8">
-    <div class="flex items-center gap-4">
-        <div class="w-16 h-16 rounded-2xl bg-white p-1 shadow-md border border-border-subtle flex items-center justify-center overflow-hidden">
-            <img src="logo.png" alt="High-Q Solid Academy Logo" class="w-full h-full object-contain"/>
-        </div>
-        <div>
-            <h1 class="font-title-md text-2xl font-bold text-on-surface">High-Q Solid Academy</h1>
-            <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Biometric Fingerprint Attendance Marking Terminal</p>
-        </div>
-    </div>
-    <div class="flex items-center gap-6">
-        <a href="admin/login.php" class="px-4 py-2 bg-surface-container-lowest border border-border-subtle rounded-xl text-xs font-bold text-primary hover:bg-surface-container transition-colors shadow-sm flex items-center gap-2">
-            <span class="material-symbols-outlined text-sm">admin_panel_settings</span> Admin Portal
-        </a>
-        <div class="text-right">
-            <div class="font-display-lg text-4xl font-bold text-primary leading-none" id="kioskTime">00:00:00</div>
-            <div class="text-sm font-semibold text-on-surface-variant mt-1" id="kioskDate">--</div>
-        </div>
-    </div>
-</header>
-
-<!-- Main Scanner Area -->
-<main class="w-full flex-grow flex flex-col items-center justify-center p-4 md:p-8 relative my-auto">
-    <!-- Scanner Kiosk Panel -->
+<!-- Main Kiosk Terminal Content -->
+<main class="w-full flex-grow flex flex-col items-center justify-center p-4 md:p-8 my-auto">
     <div class="w-full max-w-[800px] bg-surface-container-lowest border border-border-subtle rounded-3xl p-8 md:p-12 shadow-2xl flex flex-col items-center text-center space-y-8 relative overflow-hidden">
         
         <div class="space-y-2">
@@ -322,14 +277,14 @@ $captchaCode = $_SESSION['terminal_captcha'];
 
         <!-- Animated Scanner Ring -->
         <div class="scan-animation-container flex items-center justify-center">
-            <div class="absolute inset-0 rounded-full border-4 border-secondary-container/40 ring-pulse"></div>
-            <div class="w-56 h-56 rounded-full bg-surface-container-low border-2 border-border-subtle flex items-center justify-center shadow-inner relative overflow-hidden">
-                <span class="material-symbols-outlined text-[100px] text-primary/80" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+            <div class="absolute inset-0 rounded-full border-4 border-amber-400/40 ring-pulse"></div>
+            <div class="w-52 h-52 rounded-full bg-surface-container-low border-2 border-border-subtle flex items-center justify-center shadow-inner relative overflow-hidden">
+                <span class="material-symbols-outlined text-[90px] text-primary/80" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
                 <div class="scan-line"></div>
             </div>
         </div>
 
-        <!-- Manual Kiosk Simulator Bar (For Testing without hardware) -->
+        <!-- Manual Kiosk Input Bar (Hardware Simulation) -->
         <div class="w-full max-w-md pt-4 border-t border-border-subtle space-y-3">
             <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Manual Kiosk Input / Hardware Simulation</p>
             <div class="flex gap-2">
@@ -340,62 +295,56 @@ $captchaCode = $_SESSION['terminal_captcha'];
             </div>
         </div>
 
+        <!-- Admin Portal Quick Action Button -->
+        <div class="pt-2">
+            <a href="admin/login.php" class="px-5 py-2.5 bg-surface-container-low border border-border-subtle rounded-xl text-xs font-bold text-primary hover:bg-surface-container transition-all flex items-center gap-2 inline-flex">
+                <span class="material-symbols-outlined text-sm">admin_panel_settings</span> Open Admin Portal
+            </a>
+        </div>
     </div>
 </main>
 
-<!-- Result Overlay (Matches & Verification) -->
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md transition-all duration-300 opacity-0 pointer-events-none translate-y-4" id="successOverlay">
-    <div class="bg-surface-container-lowest w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl p-8 flex flex-col items-center text-center space-y-6">
-        <div class="w-24 h-24 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-3xl" id="modalInitials">
-            --
+<!-- Success Result Overlay Modal -->
+<div id="successOverlay" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="bg-surface-container-lowest border border-border-subtle rounded-3xl p-8 md:p-10 max-w-md w-full shadow-2xl text-center space-y-6 transform transition-all duration-300">
+        
+        <div class="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center mx-auto text-3xl font-extrabold shadow-lg" id="modalInitials">
+            HQ
         </div>
 
         <div class="space-y-1">
-            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold uppercase tracking-wide" id="modalBadge">CHECK-IN SUCCESS</span>
-            <h3 class="font-headline-lg text-3xl font-bold text-primary pt-2" id="modalName">Student Name</h3>
-            <p class="text-sm font-semibold text-on-surface-variant" id="modalSub">Class &bull; Admission Number</p>
+            <span class="px-3 py-1 bg-amber-400 text-slate-900 font-bold text-xs uppercase tracking-wider rounded-full" id="modalBadge">CHECK-IN SUCCESS</span>
+            <h2 class="text-2xl font-extrabold text-on-surface pt-2" id="modalName">Student Name</h2>
+            <p class="text-xs text-on-surface-variant font-mono" id="modalSub">SS2 • HQA/2026/001</p>
         </div>
 
-        <div class="w-full bg-surface-container-low p-4 rounded-2xl flex justify-around text-center text-xs">
-            <div>
-                <p class="text-on-surface-variant uppercase font-semibold">Time Recorded</p>
-                <p class="text-base font-bold text-primary" id="modalTime">--</p>
+        <div class="bg-surface-container-low p-4 rounded-2xl space-y-2 border border-border-subtle">
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-on-surface-variant">Time Recorded:</span>
+                <span class="font-bold font-mono text-primary text-sm" id="modalTime">08:02 AM</span>
             </div>
-            <div class="h-8 w-[1px] bg-border-subtle"></div>
-            <div>
-                <p class="text-on-surface-variant uppercase font-semibold">Attendance Status</p>
-                <p class="text-base font-bold text-primary" id="modalStatus">Present</p>
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-on-surface-variant">Attendance Status:</span>
+                <span class="font-bold text-green-700" id="modalStatus">Present</span>
             </div>
         </div>
 
-        <p class="text-xs text-on-surface-variant italic" id="modalMessage">Welcome to High-Q Solid Academy! Have a great day.</p>
+        <p class="text-xs text-on-surface-variant" id="modalMessage">Welcome to High-Q Solid Academy!</p>
+
+        <button type="button" onclick="document.getElementById('successOverlay').classList.add('opacity-0', 'pointer-events-none')" class="w-full py-3 bg-primary text-white font-bold text-sm rounded-xl hover:opacity-90 transition-all">
+            Dismiss
+        </button>
     </div>
 </div>
 
-<!-- Footer / Testing Controls -->
-<footer class="flex justify-between items-center z-20 p-8 border-t border-border-subtle/40 text-xs">
-    <div class="flex items-center gap-4 text-on-surface-variant font-semibold">
-        <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">wifi</span> ONLINE</span>
-        <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">database</span> DB SYNCED</span>
-    </div>
-</footer>
-
 <script>
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('kioskTime').innerText = now.toLocaleTimeString('en-US', { hour12: false });
-        document.getElementById('kioskDate').innerText = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
     async function triggerBiometricAttendance(studentId, admissionNo = '') {
         const formData = new FormData();
         if (studentId) formData.append('student_id', studentId);
         if (admissionNo) formData.append('admission_number', admissionNo);
 
         try {
-            const resp = await fetch('api/attendance.php?action=record_biometric', {
+            const resp = await fetch('api/attendance.php?action=mark', {
                 method: 'POST',
                 body: formData
             });
@@ -426,7 +375,6 @@ $captchaCode = $_SESSION['terminal_captcha'];
         overlay.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
         overlay.classList.add('opacity-100', 'translate-y-0');
 
-        // Automatically hide after 5 seconds
         setTimeout(() => {
             overlay.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
             overlay.classList.remove('opacity-100', 'translate-y-0');
@@ -459,5 +407,5 @@ $captchaCode = $_SESSION['terminal_captcha'];
     }
     setInterval(pollBiometricService, 1500);
 </script>
-</body>
-</html>
+
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

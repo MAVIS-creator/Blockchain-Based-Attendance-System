@@ -3,11 +3,7 @@
  * Public Support & Technical Assistance Page
  * High-Q Solid Academy Biometric Attendance System
  */
-require_once __DIR__ . '/includes/public_header.php';
-
-$main_site_url = (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) 
-    ? '/HIGH-Q/public/' 
-    : 'https://highqsolidacademy.com';
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <main class="w-full min-h-[calc(100vh-80px)] bg-background text-on-background py-10 px-4 md:px-8">
@@ -140,4 +136,4 @@ $main_site_url = (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 
     </div>
 </main>
 
-<?php require_once __DIR__ . '/includes/public_footer.php'; ?>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>
