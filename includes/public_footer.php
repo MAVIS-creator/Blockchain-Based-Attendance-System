@@ -2,9 +2,9 @@
 <footer class="w-full py-12 px-8 bg-[#f0f4f9] dark:bg-[#171c20] mt-auto">
     <div class="flex flex-col md:flex-row justify-between items-center gap-6 max-w-[1440px] mx-auto">
         <div class="flex flex-col gap-2 text-center md:text-left">
-            <span class="text-lg font-semibold text-[#424750] dark:text-[#f0f4f9]">Smart Attendance</span>
+            <span class="text-lg font-semibold text-[#424750] dark:text-[#f0f4f9]">High-Q Solid Academy</span>
             <p class="font-inter text-xs font-normal leading-relaxed text-[#424750] dark:text-[#c2c7d1] opacity-80">
-                Created for Cyber Security Department.
+                Biometric Attendance & Academic Records System.
             </p>
         </div>
         <div class="flex gap-8 items-center">

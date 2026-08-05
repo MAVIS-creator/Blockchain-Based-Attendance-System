@@ -1,22 +1,34 @@
-# High-Q Solid Academy - Biometric Service & Installer
+# High-Q Solid Academy — Biometric Service & Installer
 
-This directory contains the desktop service application and installer builder for High-Q Solid Academy.
+This directory contains the source code, WPF UI application, and Inno Setup installer for the High-Q Biometric Service.
 
-## Desktop Service UI & Architecture
+---
 
-The **High-Q Biometric Service** has been updated to use the new official UI design (`stitch_high_q_biometric_attendance_system (1)`):
+## 🖥️ Desktop Service UI & Architecture
 
-- **WPF App UI:** Features the sleek Navy & Slate side navigation layout with live hardware status, DigitalPersona U.are.U 5160 reader indicator, local API server binding (`http://localhost:8080`), and real-time logs terminal.
-- **Desktop Icon:** Uses `biometric_service desktop icon.png`.
-- **Installer Wizard UI (`HighQ_Biometric_Service_Setup.iss`):** Configured with installer screens (Splash, Installer, System Check, Installing, Complete) and custom desktop shortcut icons.
+The **High-Q Biometric Service** provides hardware integration and local API endpoints for the High-Q Attendance system:
 
-## Build & Package Instructions
+- **WPF Application:** Built with C# and .NET. Features side navigation layout with live hardware status, DigitalPersona U.are.U scanner indicator, local API server binding (`http://localhost:8080`), and real-time logs.
+- **Desktop Icon:** Uses high-resolution icon assets (`app.ico` decoded in code-behind to prevent WPF BAML markup converter errors).
+- **HTTP Server (`http://localhost:8080/`):**
+  - `/status` — Reader connection & health check
+  - `/enroll` & `/start_enrollment` — 4-finger template capture for Admin (`admin/enroll_fingerprint.php`)
+  - `/terminal_scan_event` — Real-time touch scan event listener for Public Kiosk (`terminal.php` & `index.php`)
+  - `/verify` — 1:1 Biometric verification test
 
-1. Compile the C# WPF Application:
-```bash
+---
+
+## 🚀 Build & Packaging Instructions
+
+### 1. Compile C# WPF Application
+```powershell
 cd biometric-service
 dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
 ```
 
-2. Compile the `.exe` Installer:
-Open `HighQ_Biometric_Service_Setup.iss` in Inno Setup and click **Compile** (`Ctrl + F9`). The output installer will be produced in `biometric-service/Output/`.
+### 2. Compile Windows Installer
+Open `HighQ_Biometric_Service_Setup.iss` in Inno Setup Compiler and click **Compile** (`Ctrl + F9`).
+The compiled installer will be saved to:
+```text
+biometric-service/Output/HighQ_Biometric_Service_Setup_v1.0.exe
+```

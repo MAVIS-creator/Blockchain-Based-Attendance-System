@@ -29,9 +29,9 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Smart Attendance</title>
-<link rel="icon" type="image/png" href="asset/image.png">
-<link rel="apple-touch-icon" sizes="180x180" href="asset/image.png">
+<title>High-Q Solid Academy | Biometric Attendance System</title>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 <link rel="manifest" href="asset/site.webmanifest">
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -190,8 +190,8 @@ $currentPage = basename($_SERVER['SCRIPT_NAME']);
 <header id="publicTopBar" class="sticky w-full z-50 bg-[#f6faff]/95 dark:bg-[#171c20]/95 backdrop-blur-xl shadow-[0_16px_36px_rgba(24,39,75,0.06)]" style="top: var(--announcement-offset, 0px);">
     <div class="flex justify-between items-center px-4 md:px-8 py-4 max-w-[1440px] mx-auto">
         <div class="flex items-center gap-3">
-            <img class="h-8 w-8 object-contain" src="asset/image.png" alt="Smart Attendance Logo">
-            <span class="text-xl font-bold tracking-tighter text-[#00457b] dark:text-[#f0f4f9] uppercase hidden sm:block">Smart Attendance</span>
+            <img class="h-8 w-8 object-contain rounded" src="logo.png" alt="High-Q Logo" onerror="this.src='icon.png'">
+            <span class="text-xl font-bold tracking-tighter text-[#00457b] dark:text-[#f0f4f9] uppercase hidden sm:block">High-Q Attendance</span>
         </div>
         <nav class="hidden md:flex items-center gap-8 font-inter text-sm font-medium tracking-wide">
             <a class="<?php echo ($currentPage == 'index.php') ? 'text-[#00457b] dark:text-[#cfe5ff] font-bold border-b-2 border-[#00457b] dark:border-[#cfe5ff] pb-1' : 'text-[#424750] dark:text-[#c2c7d1] hover:text-[#00457b] dark:hover:text-white'; ?> transition-all" href="index.php">Portal</a>
