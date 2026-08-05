@@ -1,4 +1,4 @@
-; High-Q Solid Academy Biometric Service - Custom Inno Setup Script
+; High-Q Solid Academy Biometric Service & DigitalPersona Driver Smart All-In-One Setup
 
 #define MyAppName "High-Q Biometric Service"
 #define MyAppVersion "1.0.0"
@@ -25,18 +25,20 @@ SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=app.ico
 UninstallDisplayIcon={app}\app.ico
+PrivilegesRequired=admin
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Messages]
-WelcomeLabel1=Welcome to High-Q Biometric Service
-WelcomeLabel2=Install the biometric companion service required to connect your fingerprint scanner to the High-Q Attendance System.%n%nVersion: 1.0.0%nPublisher: High-Q Solid Academy%n%nYour biometric templates remain protected and are never displayed in this application.
-ClickNext=Click Next to proceed with the High-Q Biometric Service installation, or Cancel to exit.
+WelcomeLabel1=Welcome to High-Q Biometric Service Setup
+WelcomeLabel2=This installer will automatically detect your system drivers and install the High-Q Biometric Companion Service along with any missing DigitalPersona Fingerprint Scanner Hardware Drivers.%n%nVersion: 1.0.0%nPublisher: High-Q Solid Academy%n%nYour biometric templates remain cryptographically protected.
+ClickNext=Click Next to proceed with installing High-Q Biometric Service, or Cancel to exit.
 FinishedHeadingLabel=Installation Complete
-FinishedLabel=High-Q Biometric Service has been successfully installed on your computer.%n%nThe biometric service is now running in the background listening on http://localhost:8080/ for fingerprint scanner events.
+FinishedLabel=High-Q Biometric Service has been successfully installed on your computer.%n%nThe biometric service is now active in the background listening on http://localhost:8080/ for scanner events.
 
 [Tasks]
+Name: "driverinstall"; Description: "Install DigitalPersona Fingerprint Scanner Drivers (Skipped if already installed)"; GroupDescription: "Hardware Drivers:"; Check: IsDriverNeeded; Flags: checkedonce
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 Name: "autostart"; Description: "Automatically launch High-Q Biometric Service on Windows boot"; GroupDescription: "System Integration:"
 
@@ -45,6 +47,7 @@ Source: "bin\Release\net8.0-windows\win-x64\publish\{#MyAppExeName}"; DestDir: "
 Source: "bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "app.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "biometric_service desktop icon.png"; DestDir: "{app}"; Flags: ignoreversion
+Source: "rte_x64\x64\*"; DestDir: "{tmp}\driver_rte"; Flags: deleteafterinstall recursesubdirs createallsubdirs; Check: IsDriverNeeded
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\app.ico"
@@ -55,9 +58,26 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilen
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "HighQBiometricService"; ValueData: """{app}\{#MyAppExeName}"""; Tasks: autostart
 
 [Run]
+Filename: "msiexec.exe"; Parameters: "/i ""{tmp}\driver_rte\setup.msi"" /qn /norestart"; StatusMsg: "Installing DigitalPersona Fingerprint Reader Drivers..."; Tasks: driverinstall; Check: IsDriverNeeded; Flags: runhidden
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
+function IsDriverNeeded(): Boolean;
+begin
+  if FileExists(ExpandConstant('{commonpf}\DigitalPersona\U.are.U RTE\Windows\Lib\.NET\DPUruNet.dll')) or
+     FileExists(ExpandConstant('{commonpf64}\DigitalPersona\U.are.U RTE\Windows\Lib\.NET\DPUruNet.dll')) or
+     FileExists(ExpandConstant('{sys}\dpfpdd.dll')) or
+     RegKeyExists(HKLM, 'SOFTWARE\DigitalPersona') or
+     RegKeyExists(HKLM, 'SOFTWARE\WOW6432Node\DigitalPersona') then
+  begin
+    Result := False; // Driver already installed on PC, skip driver installation
+  end
+  else
+  begin
+    Result := True; // Driver missing, proceed with installation
+  end;
+end;
+
 procedure InitializeWizard();
 begin
   WizardForm.Color := $FBF9F8;
