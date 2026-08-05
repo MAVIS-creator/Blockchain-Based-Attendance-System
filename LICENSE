@@ -1,21 +1,28 @@
-# MIT License
+# HIGH-Q SOLID ACADEMY LIMITED
+## END-USER SOFTWARE LICENSE & HARDWARE COMPANION AGREEMENT
 
-Copyright (c) 2025 [Mavis Gaming]
+PLEASE READ THIS END-USER LICENSE AGREEMENT ("EULA" OR "AGREEMENT") CAREFULLY BEFORE INSTALLING, ACCESSING, OR USING THE HIGH-Q BIOMETRIC ATTENDANCE SERVICE, SOFTWARE, HARDWARE DRIVERS, AND ASSOCIATED DOCUMENTATION (COLLECTIVELY, THE "SOFTWARE").
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this Attendance System and associated documentation files (the "Attendance System"), to deal
-in the Attendance System without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Attendance System, and to permit persons to whom the Attendance System is
-furnished to do so, subject to the following conditions:
+BY INSTALLING, COPYING, OR USING THE SOFTWARE, YOU AGREE TO BE BOUND BY THE TERMS AND CONDITIONS OF THIS AGREEMENT. IF YOU DO NOT AGREE TO THESE TERMS, DO NOT INSTALL OR USE THE SOFTWARE.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Attendance System.
+---
 
-THE Attendance System IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE Attendance System OR THE USE OR OTHER DEALINGS IN THE
-Attendance System.
+### 1. GRANT OF LICENSE
+High-Q Solid Academy Limited ("Licensor") grants you a non-exclusive, non-transferable, limited license to install and use the High-Q Biometric Service and companion software solely for administrative attendance tracking, student record management, and academic operations at authorized High-Q Solid Academy educational facilities.
+
+### 2. OWNERSHIP & PROPRIETARY RIGHTS
+The Software, including all source code, algorithms, graphic user interfaces, biometric templates, and associated hardware integration modules, is owned exclusively by High-Q Solid Academy Limited. You may not reverse engineer, decompile, disassemble, modify, or create derivative works of the Software.
+
+### 3. FINGERPRINT & BIOMETRIC DATA PRIVACY
+All biometric data, fingerprint templates, and attendance records captured by the Software are encrypted and processed locally for student verification purposes. Licensor agrees not to transfer, sell, or disclose biometric templates to third-party entities without explicit institutional consent.
+
+### 4. HARDWARE & DRIVER COMPLIANCE
+The Software incorporates third-party runtime drivers for DigitalPersona U.are.U hardware readers. Use of the DigitalPersona drivers is subject to the hardware manufacturer's runtime agreement. Licensor makes no guarantees regarding third-party USB hardware longevity or external driver updates.
+
+### 5. DISCLAIMER OF WARRANTY & LIMITATION OF LIABILITY
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. HIGH-Q SOLID ACADEMY LIMITED DISCLAIMS ALL WARRANTIES, INCLUDING MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE SOFTWARE.
+
+---
+Copyright (c) 2026 High-Q Solid Academy Limited. All rights reserved.
+Official Web Portal: https://highqsolidacademy.com
+Contact & Support: admin@highqsoldacademy.com

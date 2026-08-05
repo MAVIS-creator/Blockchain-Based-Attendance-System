@@ -141,8 +141,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
 
         <div class="text-center pt-4 border-t border-border-subtle flex justify-between items-center text-xs font-semibold">
-            <a href="register.php" class="text-secondary hover:underline flex items-center gap-1">
-                <span class="material-symbols-outlined text-sm">person_add</span> Create New Admin Account
+            <?php 
+                $main_admin_url = getenv('MAIN_ADMIN_URL') ?: 'https://admin.highqsolidacademy.com';
+            ?>
+            <a href="<?= $main_admin_url ?>/signup" target="_blank" class="text-secondary hover:underline flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm">open_in_new</span> Register Admin (Main Site)
             </a>
             <a href="../index.php" class="text-on-surface-variant hover:underline flex items-center gap-1">
                 <span class="material-symbols-outlined text-sm">desktop_windows</span> Kiosk Mode

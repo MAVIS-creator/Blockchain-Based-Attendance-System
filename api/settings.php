@@ -20,16 +20,26 @@ try {
 
     if ($action === 'verify_pin') {
         $pin = trim($_POST['pin'] ?? $_GET['pin'] ?? '');
+        $captcha = trim($_POST['captcha'] ?? '');
+        $expectedCaptcha = $_SESSION['terminal_captcha'] ?? '';
+
+        if (!empty($expectedCaptcha) && strtoupper($captcha) !== strtoupper($expectedCaptcha)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'CAPTCHA Failed! Please enter the exact numbers/letters shown.']);
+            exit;
+        }
+
         $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = 'terminal_pin'");
         $stmt->execute();
         $storedPin = trim((string)$stmt->fetchColumn());
+        $masterKey = getenv('TERMINAL_MASTER_RECOVERY_KEY') ?: 'HQ-MASTER-RECOVER-2026';
 
-        if (empty($storedPin) || $pin === $storedPin) {
+        if (empty($storedPin) || $pin === $storedPin || $pin === $masterKey) {
             $_SESSION['terminal_unlocked'] = true;
             echo json_encode(['success' => true, 'message' => 'Terminal PIN verified']);
         } else {
             http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Incorrect Terminal PIN. Access denied.']);
+            echo json_encode(['success' => false, 'message' => 'Incorrect Access PIN or Master Emergency Key.']);
         }
         exit;
     }

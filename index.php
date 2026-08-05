@@ -14,6 +14,13 @@ $terminalPin = trim((string)$stmtPin->fetchColumn());
 
 $isPinRequired = !empty($terminalPin);
 $isUnlocked = !$isPinRequired || !empty($_SESSION['terminal_unlocked']);
+
+// Generate Alphanumeric CAPTCHA Code for Bot Verification
+if (empty($_SESSION['terminal_captcha'])) {
+    $chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    $_SESSION['terminal_captcha'] = substr(str_shuffle($chars), 0, 4);
+}
+$captchaCode = $_SESSION['terminal_captcha'];
 ?>
 <!DOCTYPE html>
 <html class="light" lang="en">
@@ -73,9 +80,6 @@ $isUnlocked = !$isPinRequired || !empty($_SESSION['terminal_unlocked']);
             20%, 60% { transform: translateX(-10px); }
             40%, 80% { transform: translateX(10px); }
         }
-        .kiosk-gradient {
-            background: radial-gradient(circle at center, #ffffff 0%, #f0f4ff 100%);
-        }
     </style>
 </head>
 <body class="bg-background font-body-md text-on-surface min-h-screen flex flex-col justify-between overflow-x-hidden kiosk-gradient">
@@ -83,46 +87,74 @@ $isUnlocked = !$isPinRequired || !empty($_SESSION['terminal_unlocked']);
 <?php if (!$isUnlocked): ?>
 <!-- Terminal PIN Security Keypad Overlay -->
 <div id="pinModalOverlay" class="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4">
-    <div id="pinModalCard" class="w-full max-w-md bg-white rounded-3xl p-8 border border-slate-200 shadow-2xl text-center space-y-6">
-        <div class="space-y-2">
-            <div class="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200/60 shadow-inner">
-                <span class="material-symbols-outlined text-3xl">lock</span>
+    <div id="pinModalCard" class="w-full max-w-md bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-2xl text-center space-y-5">
+        <div class="space-y-1.5">
+            <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200/60 shadow-inner">
+                <span class="material-symbols-outlined text-3xl">shield_lock</span>
             </div>
             <h2 class="font-headline-lg font-bold text-2xl text-slate-900">Protected Kiosk Terminal</h2>
-            <p class="text-xs text-slate-500 max-w-xs mx-auto">Please enter the 4-digit Access PIN configured by High-Q System Admin to unlock attendance marking.</p>
+            <p class="text-xs text-slate-500 max-w-xs mx-auto">Authorized Operator Verification Required</p>
+        </div>
+
+        <!-- Security Disclaimer Notice -->
+        <div class="p-3 bg-amber-50 border border-amber-200/70 rounded-xl text-left flex items-start gap-2.5">
+            <span class="material-symbols-outlined text-amber-700 text-lg flex-shrink-0 mt-0.5">warning</span>
+            <p class="text-[11px] leading-tight text-amber-900">
+                <strong>Operator Notice:</strong> Do NOT share or attempt to bypass the PIN. If lost, use the Emergency Master Recovery Key or reset in Admin Settings.
+            </p>
+        </div>
+
+        <!-- Bot Verification CAPTCHA Badge -->
+        <div class="bg-slate-100 p-3 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-slate-500 text-sm">smart_toy</span>
+                <span class="text-xs font-bold text-slate-700 uppercase">Bot Check:</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 bg-slate-900 text-amber-400 font-mono font-extrabold tracking-widest text-sm rounded-lg shadow-inner select-none select-none">
+                    <?= $captchaCode ?>
+                </span>
+                <input type="text" id="captchaInput" uppercase placeholder="Code" maxlength="4" class="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-xs font-mono font-bold uppercase focus:outline-none focus:border-amber-500">
+            </div>
         </div>
 
         <!-- PIN Dots Display -->
-        <div class="flex justify-center items-center gap-4 py-2">
+        <div class="flex justify-center items-center gap-4 py-1">
             <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
             <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
             <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
             <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
         </div>
 
-        <div id="pinErrorMsg" class="text-xs font-bold text-red-600 min-h-[20px] hidden"></div>
+        <div id="pinErrorMsg" class="text-xs font-bold text-red-600 min-h-[18px] hidden"></div>
 
         <!-- On-Screen Numeric Keypad -->
-        <div class="grid grid-cols-3 gap-3 max-w-[280px] mx-auto">
+        <div class="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto">
             <?php for ($d = 1; $d <= 9; $d++): ?>
-                <button type="button" onclick="appendPin('<?= $d ?>')" class="w-16 h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-xl font-bold text-slate-800 transition-all shadow-sm flex items-center justify-center mx-auto">
+                <button type="button" onclick="appendPin('<?= $d ?>')" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-lg font-bold text-slate-800 transition-all shadow-sm flex items-center justify-center mx-auto">
                     <?= $d ?>
                 </button>
             <?php endfor; ?>
-            <button type="button" onclick="clearPin()" class="w-16 h-16 rounded-2xl bg-slate-100 hover:bg-red-50 text-red-600 active:scale-95 text-xs font-bold transition-all shadow-sm flex items-center justify-center mx-auto">
+            <button type="button" onclick="clearPin()" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-red-50 text-red-600 active:scale-95 text-xs font-bold transition-all shadow-sm flex items-center justify-center mx-auto">
                 CLEAR
             </button>
-            <button type="button" onclick="appendPin('0')" class="w-16 h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-xl font-bold text-slate-800 transition-all shadow-sm flex items-center justify-center mx-auto">
+            <button type="button" onclick="appendPin('0')" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-lg font-bold text-slate-800 transition-all shadow-sm flex items-center justify-center mx-auto">
                 0
             </button>
-            <button type="button" onclick="backspacePin()" class="w-16 h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 transition-all shadow-sm flex items-center justify-center mx-auto">
-                <span class="material-symbols-outlined text-xl">backspace</span>
+            <button type="button" onclick="backspacePin()" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 transition-all shadow-sm flex items-center justify-center mx-auto">
+                <span class="material-symbols-outlined text-lg">backspace</span>
             </button>
         </div>
 
-        <button type="button" id="submitPinBtn" onclick="submitPin()" class="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2">
-            <span class="material-symbols-outlined">key</span> Unlock Kiosk Terminal
-        </button>
+        <!-- Emergency Master Key Entry Mode Toggle -->
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+            <button type="button" onclick="promptMasterRecovery()" class="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm">key_visual</span> Emergency Master Key
+            </button>
+            <button type="button" id="submitPinBtn" onclick="submitPin()" class="px-5 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 text-xs shadow-md flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-sm">key</span> Unlock
+            </button>
+        </div>
     </div>
 </div>
 
@@ -178,15 +210,23 @@ $isUnlocked = !$isPinRequired || !empty($_SESSION['terminal_unlocked']);
 
     async function submitPin() {
         if (!currentPinInput) return;
+        const captchaVal = document.getElementById('captchaInput').value.trim();
         const btn = document.getElementById('submitPinBtn');
         const errEl = document.getElementById('pinErrorMsg');
         const card = document.getElementById('pinModalCard');
+
+        if (!captchaVal) {
+            errEl.innerText = 'Please enter the 4-character Bot Check Code above.';
+            errEl.classList.remove('hidden');
+            return;
+        }
 
         btn.disabled = true;
         btn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Verifying...';
 
         const formData = new FormData();
         formData.append('pin', currentPinInput);
+        formData.append('captcha', captchaVal);
 
         try {
             const resp = await fetch('api/settings.php?action=verify_pin', {
@@ -204,13 +244,40 @@ $isUnlocked = !$isPinRequired || !empty($_SESSION['terminal_unlocked']);
                 setTimeout(() => card.classList.remove('shake-animation'), 450);
                 clearPin();
                 btn.disabled = false;
-                btn.innerHTML = '<span class="material-symbols-outlined">key</span> Unlock Kiosk Terminal';
+                btn.innerHTML = '<span class="material-symbols-outlined">key</span> Unlock';
             }
         } catch (e) {
             errEl.innerText = 'Network error verifying PIN';
             errEl.classList.remove('hidden');
             btn.disabled = false;
-            btn.innerHTML = '<span class="material-symbols-outlined">key</span> Unlock Kiosk Terminal';
+            btn.innerHTML = '<span class="material-symbols-outlined">key</span> Unlock';
+        }
+    }
+
+    async function promptMasterRecovery() {
+        const { value: key } = await HighQSwal.fire({
+            title: 'Master Emergency Key Recovery',
+            text: 'Enter the Master Emergency Key (set in environment config) to unlock the kiosk terminal:',
+            input: 'password',
+            inputPlaceholder: 'Enter Master Key (e.g. HQ-MASTER-RECOVER-2026)',
+            showCancelButton: true,
+            confirmButtonText: 'Unlock Kiosk'
+        });
+
+        if (key) {
+            const captchaVal = document.getElementById('captchaInput').value.trim();
+            const formData = new FormData();
+            formData.append('pin', key);
+            formData.append('captcha', captchaVal);
+
+            const resp = await fetch('api/settings.php?action=verify_pin', { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (data.success) {
+                document.getElementById('pinModalOverlay').classList.add('hidden');
+                HighQSwal.fire('Unlocked', 'Terminal unlocked via Master Emergency Key.', 'success');
+            } else {
+                HighQSwal.fire('Recovery Failed', data.message || 'Invalid Master Recovery Key.', 'error');
+            }
         }
     }
 </script>

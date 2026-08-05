@@ -1,15 +1,13 @@
 <?php
 /**
- * Admin Registration / Signup Page
+ * Admin Registration / Signup Page Redirect
  * High-Q Solid Academy Biometric Attendance System
  */
-
-require_once __DIR__ . '/../includes/auth.php';
-
-if (is_authenticated()) {
-    header('Location: index.php');
-    exit;
-}
+require_once __DIR__ . '/../env-loader.php';
+$main_admin_url = getenv('MAIN_ADMIN_URL') ?: 'https://admin.highqsolidacademy.com';
+header('Location: ' . $main_admin_url . '/signup');
+exit;
+?>
 
 $error = '';
 
