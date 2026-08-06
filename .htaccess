@@ -9,6 +9,6 @@ Options -Indexes
 </FilesMatch>
 
 # Protect sensitive files and configs
-<FilesMatch "\.(log|bak|lock|ps1|bat|md)$">
+<FilesMatch "\.(log|bak|lock|ps1|bat|md|sql)$">
     Require all denied
 </FilesMatch>

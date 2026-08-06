@@ -63,73 +63,75 @@ require_once __DIR__ . '/includes/header.php';
 </style>
 
 <?php if (!$isUnlocked): ?>
-<!-- Terminal PIN Security Keypad Overlay -->
-<div id="pinModalOverlay" class="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4">
-    <div id="pinModalCard" class="w-full max-w-md bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-2xl text-center space-y-5">
-        <div class="space-y-1.5">
-            <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200/60 shadow-inner">
-                <span class="material-symbols-outlined text-3xl">shield_lock</span>
-            </div>
-            <h2 class="font-headline-lg font-bold text-2xl text-slate-900">Protected Kiosk Terminal</h2>
-            <p class="text-xs text-slate-500 max-w-xs mx-auto">Authorized Operator Verification Required</p>
+<!-- Terminal Access Protection Modal -->
+<div id="pinModalOverlay" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 transition-all duration-300 ease-out">
+    <div id="pinModalCard" class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 max-w-[420px] w-full shadow-2xl space-y-5 text-center transform transition-all duration-300 will-change-transform max-h-[92vh] overflow-y-auto custom-scrollbar">
+        
+        <div class="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center justify-center mx-auto shadow-sm">
+            <span class="material-symbols-outlined text-3xl">lock</span>
         </div>
 
-        <!-- Security Disclaimer Notice -->
-        <div class="p-3 bg-amber-50 border border-amber-200/70 rounded-xl text-left flex items-start gap-2.5">
-            <span class="material-symbols-outlined text-amber-700 text-lg flex-shrink-0 mt-0.5">warning</span>
-            <p class="text-[11px] leading-tight text-amber-900">
+        <div class="space-y-1">
+            <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Kiosk Terminal Lock</h2>
+            <p class="text-xs text-slate-500 max-w-xs mx-auto">Enter Operator Access PIN & Bot Verification Code to unlock public kiosk scanner.</p>
+        </div>
+
+        <!-- Operator PIN Notice & Disclaimer -->
+        <div class="bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl text-left flex items-start gap-2.5">
+            <span class="material-symbols-outlined text-amber-700 text-lg shrink-0 mt-0.5">info</span>
+            <p class="text-[11px] leading-snug text-amber-900">
                 <strong>Operator Notice:</strong> Do NOT share or attempt to bypass the PIN. If lost, use the Emergency Master Recovery Key or reset in Admin Settings.
             </p>
         </div>
 
         <!-- Bot Verification CAPTCHA Badge -->
-        <div class="bg-slate-100 p-3 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
+        <div class="bg-slate-100 p-3 rounded-2xl border border-slate-200 flex items-center justify-between gap-2 sm:gap-3">
+            <div class="flex items-center gap-1.5 shrink-0">
                 <span class="material-symbols-outlined text-slate-500 text-sm">smart_toy</span>
-                <span class="text-xs font-bold text-slate-700 uppercase">Bot Check:</span>
+                <span class="text-[11px] sm:text-xs font-bold text-slate-700 uppercase">Bot Check:</span>
             </div>
             <div class="flex items-center gap-2">
-                <span class="px-3 py-1 bg-slate-900 text-amber-400 font-mono font-extrabold tracking-widest text-sm rounded-lg shadow-inner select-none">
+                <span class="px-2.5 py-1 bg-slate-900 text-amber-400 font-mono font-extrabold tracking-widest text-xs sm:text-sm rounded-lg shadow-inner select-none">
                     <?= $captchaCode ?>
                 </span>
-                <input type="text" id="captchaInput" uppercase placeholder="Code" maxlength="4" class="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-xs font-mono font-bold uppercase focus:outline-none focus:border-amber-500">
+                <input type="text" id="captchaInput" uppercase placeholder="Code" maxlength="4" oninput="this.value = this.value.toUpperCase();" class="w-16 sm:w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-xs font-mono font-bold uppercase focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all">
             </div>
         </div>
 
         <!-- PIN Dots Display -->
-        <div class="flex justify-center items-center gap-4 py-1">
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all"></div>
+        <div class="flex justify-center items-center gap-3.5 py-1">
+            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all duration-200"></div>
+            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all duration-200"></div>
+            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all duration-200"></div>
+            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 bg-transparent transition-all duration-200"></div>
         </div>
 
-        <div id="pinErrorMsg" class="text-xs font-bold text-red-600 min-h-[18px] hidden"></div>
+        <div id="pinErrorMsg" class="text-xs font-bold text-red-600 min-h-[18px] hidden transition-all"></div>
 
         <!-- On-Screen Numeric Keypad -->
-        <div class="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto">
+        <div class="grid grid-cols-3 gap-2 sm:gap-2.5 max-w-[260px] mx-auto">
             <?php for ($d = 1; $d <= 9; $d++): ?>
-                <button type="button" onclick="appendPin('<?= $d ?>')" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-lg font-bold text-slate-800 transition-all shadow-sm flex items-center justify-center mx-auto">
+                <button type="button" onclick="appendPin('<?= $d ?>')" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-lg font-bold text-slate-800 transition-all duration-150 shadow-sm flex items-center justify-center mx-auto focus:outline-none">
                     <?= $d ?>
                 </button>
             <?php endfor; ?>
-            <button type="button" onclick="clearPin()" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-red-50 text-red-600 active:scale-95 text-xs font-bold transition-all shadow-sm flex items-center justify-center mx-auto">
+            <button type="button" onclick="clearPin()" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-red-50 text-red-600 active:scale-95 text-xs font-bold transition-all duration-150 shadow-sm flex items-center justify-center mx-auto focus:outline-none">
                 CLEAR
             </button>
-            <button type="button" onclick="appendPin('0')" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-lg font-bold text-slate-800 transition-all shadow-sm flex items-center justify-center mx-auto">
+            <button type="button" onclick="appendPin('0')" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-lg font-bold text-slate-800 transition-all duration-150 shadow-sm flex items-center justify-center mx-auto focus:outline-none">
                 0
             </button>
-            <button type="button" onclick="backspacePin()" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 transition-all shadow-sm flex items-center justify-center mx-auto">
+            <button type="button" onclick="backspacePin()" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 transition-all duration-150 shadow-sm flex items-center justify-center mx-auto focus:outline-none">
                 <span class="material-symbols-outlined text-lg">backspace</span>
             </button>
         </div>
 
         <!-- Emergency Master Key Entry Mode Toggle -->
-        <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
             <button type="button" onclick="promptMasterRecovery()" class="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1">
                 <span class="material-symbols-outlined text-sm">key_visual</span> Emergency Master Key
             </button>
-            <button type="button" id="submitPinBtn" onclick="submitPin()" class="px-5 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 text-xs shadow-md flex items-center gap-1.5">
+            <button type="button" id="submitPinBtn" onclick="submitPin()" class="px-5 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 text-xs shadow-md flex items-center gap-1.5 transition-all">
                 <span class="material-symbols-outlined text-sm">key</span> Unlock
             </button>
         </div>

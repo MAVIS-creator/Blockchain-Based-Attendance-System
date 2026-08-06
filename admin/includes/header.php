@@ -133,9 +133,7 @@ $activePage = $activePage ?? 'dashboard';
                 <span class="font-body-md">Public Terminal</span>
             </a>
             <?php 
-                $main_site_url = (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) 
-                    ? '/HIGH-Q/public/' 
-                    : 'https://highqsolidacademy.com';
+                $main_site_url = getenv('MAIN_SITE_URL') ?: ((isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) ? '/HIGH-Q/public/' : 'https://highqsolidacademy.com');
             ?>
             <a class="flex items-center gap-3 px-4 py-3 text-primary font-bold hover:bg-surface-container transition-colors rounded-lg" href="<?= $main_site_url ?>" target="_blank">
                 <span class="material-symbols-outlined">open_in_new</span>
