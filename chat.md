@@ -852,9 +852,9 @@ Select the account you want to log in with. For more information on login with A
 Retrieving tenants and subscriptions for the selection...
 Authentication failed against tenant 13634941-779b-48dc-99cf-be9af88078ed 'Default Directory': SubError: basic_action V2Error: invalid_grant AADSTS50076: If you need to access subscriptions in the following tenants, please use `az login --tenant TENANT_ID`.
 13634941-779b-48dc-99cf-be9af88078ed 'Default Directory'
-No subscriptions found for akintunde.dolapo1@gmail.com.
+No subscriptions found for [REDACTED_EMAIL].
 Please run "az login" to access your accounts.
-No subscriptions found for akintunde.dolapo1@gmail.com.
+No subscriptions found for [REDACTED_EMAIL].
 Please run "az login" to access your accounts.  
 
 Please run 'az login' to setup account.
@@ -889,7 +889,7 @@ PS C:\xampp\htdocs\Blockchain-Based-Attendance-System> az account show --output 
   "state": "Enabled",
   "tenantId": "13634941-779b-48dc-99cf-be9af88078ed",
   "user": {
-    "name": "akintunde.dolapo1@gmail.com",
+    "name": "[REDACTED_EMAIL]",
     "type": "user"
   }
 }
@@ -1280,9 +1280,9 @@ Select the account you want to log in with. For more information on login with A
 Retrieving tenants and subscriptions for the selection...
 Authentication failed against tenant 13634941-779b-48dc-99cf-be9af88078ed 'Default Directory': SubError: basic_action V2Error: invalid_grant AADSTS50076: If you need to access subscriptions in the following tenants, please use `az login --tenant TENANT_ID`.
 13634941-779b-48dc-99cf-be9af88078ed 'Default Directory'
-No subscriptions found for akintunde.dolapo1@gmail.com.
+No subscriptions found for [REDACTED_EMAIL].
 Please run "az login" to access your accounts.
-No subscriptions found for akintunde.dolapo1@gmail.com.
+No subscriptions found for [REDACTED_EMAIL].
 Please run "az login" to access your accounts.  
 
 Please run 'az login' to setup account.
@@ -1317,7 +1317,7 @@ PS C:\xampp\htdocs\Blockchain-Based-Attendance-System> az account show --output 
   "state": "Enabled",
   "tenantId": "13634941-779b-48dc-99cf-be9af88078ed",
   "user": {
-    "name": "akintunde.dolapo1@gmail.com",
+    "name": "[REDACTED_EMAIL]",
     "type": "user"
   }
 }
