@@ -28,15 +28,15 @@
     "smtp": {
         "host": "smtp.gmail.com",
         "port": 465,
-        "user": "akintunde.dolapo1@gmail.com",
-        "pass": "eynr pmza rhwg pchd",
+        "user": "",
+        "pass": "",
         "secure": "ssl",
-        "from_email": "akintunde.dolapo1@gmail.com",
+        "from_email": "",
         "from_name": "Attendance System"
     },
     "auto_send": {
         "enabled": false,
-        "recipient": "akintunde.dolapo1@gmail.com",
+        "recipient": "",
         "format": "csv"
     },
     "sentinel_personality_mode": "playful",
