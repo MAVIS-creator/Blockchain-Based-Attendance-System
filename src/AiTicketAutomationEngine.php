@@ -583,6 +583,7 @@ class AiTicketAutomationEngine
       return ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'conditions_not_met'];
     }
 
+    require_once __DIR__ . '/RevocationRecoveryPolicy.php';
     $blockedLog = app_storage_file('logs/blocked_tokens.log');
     $revokedFile = admin_storage_migrate_file('revoked.json', app_storage_file('revoked.json'));
 
@@ -605,10 +606,12 @@ class AiTicketAutomationEngine
         continue;
       }
 
-      $matchFingerprint = ($fingerprint !== '' && $rowFingerprint !== '' && $rowFingerprint === $fingerprint);
-      $matchIp = ($ip !== '' && $rowIp !== '' && $rowIp === $ip);
-      if ($matchFingerprint || $matchIp) {
-        $candidateTokens[$rowToken] = true;
+      // A shared campus IP must never authorize an unlock. Track exact token
+      // and device evidence; provenance is checked below before any mutation.
+      if ($fingerprint !== '' && $rowFingerprint !== '' &&
+          hash_equals($rowFingerprint, $fingerprint) &&
+          str_ends_with($fingerprint, '_' . $rowToken)) {
+        $candidateTokens[$rowToken] = $rowFingerprint;
       }
     }
 
@@ -627,11 +630,15 @@ class AiTicketAutomationEngine
     }
 
     $cleared = 0;
-    foreach (array_keys($candidateTokens) as $token) {
-      if (array_key_exists($token, $revoked['tokens'])) {
-        unset($revoked['tokens'][$token]);
-        $cleared++;
+    foreach ($candidateTokens as $token => $blockedFingerprint) {
+      $meta = $revoked['tokens'][$token] ?? null;
+      if (!is_array($meta) || !bbas_auto_recovery_eligible(
+        $fingerprint, (string)$blockedFingerprint, (string)$token, $meta, time()
+      )) {
+        continue;
       }
+      unset($revoked['tokens'][$token]);
+      $cleared++;
     }
 
     if ($cleared <= 0) {
@@ -644,7 +651,7 @@ class AiTicketAutomationEngine
     foreach ($lines as $ln) {
       $parts = array_map('trim', explode('|', (string)$ln));
       $rowToken = (string)($parts[1] ?? '');
-      if ($rowToken !== '' && isset($candidateTokens[$rowToken])) {
+      if ($rowToken !== '' && isset($candidateTokens[$rowToken]) && !isset($revoked['tokens'][$rowToken])) {
         continue;
       }
       $kept[] = $ln;

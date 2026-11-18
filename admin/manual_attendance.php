@@ -240,30 +240,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (empty($errorMessage)) {
-                // ✅ Format log line
-                // Standardized log format:
-                // name | matric | action | fingerprint | ip | mac | timestamp | userAgent | course | reason
-                $logLine = sprintf(
-                    "%s | %s | %s | %s | %s | %s | %s | %s | %s | %s\n",
-                    strtoupper($name),
-                    $matric,
-                    $action,
-                    'MANUAL',
-                    $ipAddr,
-                    $macAddr,
-                    date('Y-m-d H:i:s'),
-                    $_SERVER['HTTP_USER_AGENT'] ?? 'Web Ticket Panel',
-                    $activeCourse,
-                    $reason
+                // All administrator corrections must use the same duplicate
+                // index and chain append as guarded Sentinel corrections.
+                require_once __DIR__ . '/includes/ticket_helpers.php';
+                $written = ticket_append_attendance_log(
+                    strtoupper($name), $matric, $action, $reason, $activeCourse,
+                    $fingerprint, $ipAddr, $macAddr, 'Admin manual'
                 );
-
-                file_put_contents($logFile, $logLine, FILE_APPEND | LOCK_EX);
-
+                if (!$written) {
+                    $errorMessage = 'Attendance was not recorded (duplicate, invalid order, or storage problem). Verify records before retrying.';
+                } else {
                 if (function_exists('admin_log_action')) {
                     admin_log_action('Attendance', 'Manual Submission', "Added manual {$action} for {$name} ({$matric}). Reason: {$reason}");
                 }
 
                 $success = true;
+                }
             }
         }
     }

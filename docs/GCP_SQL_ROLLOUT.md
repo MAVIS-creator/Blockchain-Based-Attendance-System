@@ -156,3 +156,13 @@ The end-to-end SQL-primary manual attendance path still requires migration.
   re-check authentication and per-role authorization for direct URLs;
   active-course POST actions also require a CSRF token. Direct URLs must not
   assume the enclosing `admin/index.php` router was visited first.
+
+- Automatic Sentinel unrevocation now requires an exact ticket fingerprint and
+  token match plus verified, short-lived `temporary_tab_lock` provenance.
+  Admin revocations, IP-only matches, and unknown legacy records are not
+  auto-cleared. `AI_AUTO_CLEAR_TOKENS_FROM_TICKETS` remains available for
+  explicitly issued temporary locks, but the verified lock-issuance/recovery
+  protocol is a release blocker; ordinary localStorage tab-away locks already
+  expire automatically after 15 minutes.
+- Admin manual attendance now uses the duplicate-index/hash-chain helper rather
+  than writing a bare log line; existing location/rule restrictions still apply.

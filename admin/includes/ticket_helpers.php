@@ -127,7 +127,7 @@ if (!function_exists('ticket_append_attendance_log')) {
    * An LLM never bypasses the duplicate, checkin-before-checkout or hash-chain
    * requirements. This is still the legacy file backend pending SQL cutover.
    */
-  function ticket_append_attendance_log($name, $matric, $action, $reason, $course = 'General', $fingerprint = 'AI_AUTO', $ip = '127.0.0.1', $mac = 'UNKNOWN')
+  function ticket_append_attendance_log($name, $matric, $action, $reason, $course = 'General', $fingerprint = 'AI_AUTO', $ip = '127.0.0.1', $mac = 'UNKNOWN', $source = 'Sentinel AI')
   {
     require_once __DIR__ . '/../../src/AttendanceChainStore.php';
     $clean = static fn($s) => trim(preg_replace('/[|\\r\\n]+/', ' ', (string)$s));
@@ -139,6 +139,7 @@ if (!function_exists('ticket_append_attendance_log')) {
     $fingerprint = $clean($fingerprint);
     $ip = $clean($ip);
     $mac = $clean($mac);
+    $source = $clean($source);
     if ($name === '' || $course === '' || !preg_match('/^\\d{6,20}$/', $matric) ||
         !in_array($action, ['checkin', 'checkout'], true)) {
       return false;
@@ -187,7 +188,7 @@ if (!function_exists('ticket_append_attendance_log')) {
       if (isset($index['seen_matric'][$matricKey]) || ($tokenKey !== '' && isset($index['seen_token'][$tokenKey]))) {
         return false;
       }
-      $entry = "{$name} | {$matric} | {$action} | {$fingerprint} | {$ip} | {$mac} | {$time} | Sentinel AI | {$course} | {$reason}\n";
+      $entry = "{$name} | {$matric} | {$action} | {$fingerprint} | {$ip} | {$mac} | {$time} | {$source} | {$course} | {$reason}\n";
       if (file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX) !== strlen($entry)) {
         return false;
       }
@@ -195,7 +196,7 @@ if (!function_exists('ticket_append_attendance_log')) {
         $result = attendance_chain_append_atomic(app_storage_file('secure_logs/attendance_chain.json'), [
           'timestamp' => $time, 'name' => $name, 'matric' => $matric,
           'action' => $action, 'fingerprint' => $fingerprint, 'ip' => $ip,
-          'userAgent' => 'Sentinel AI', 'course' => $course,
+          'userAgent' => $source, 'course' => $course,
         ]);
       } catch (Throwable $e) {
         error_log('Guarded AI chain append failed: ' . $e->getMessage());
@@ -216,7 +217,7 @@ if (!function_exists('ticket_append_attendance_log')) {
           bbas_post_submit_enqueue([
             'day'=>$today,'name'=>$name,'matric'=>$matric,'action'=>$action,
             'fingerprint'=>$fingerprint,'ip'=>$ip,'mac'=>$mac,
-            'user_agent'=>'Sentinel AI','course'=>$course,'reason'=>$reason,
+            'user_agent'=>$source,'course'=>$course,'reason'=>$reason,
             'chain_hash'=>(string)($result['block']['hash'] ?? ''),'auto_send'=>[]
           ]);
         } catch (Throwable $e) {

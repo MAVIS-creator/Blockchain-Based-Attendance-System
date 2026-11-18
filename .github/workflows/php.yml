@@ -90,3 +90,6 @@ jobs:
 
     - name: Persistent data disk fail-closed regression
       run: php tests/storage_path_fail_closed.php
+
+    - name: Automatic recovery privilege boundary
+      run: php tests/recovery_policy_smoke.php
