@@ -14,6 +14,10 @@ function bbas_post_submit_enqueue(array $job): bool
     $job['attempts'] = 0;
     $line = json_encode($job, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES) . PHP_EOL;
     $file = bbas_post_submit_queue_path();
+    $dir = dirname($file);
+    if (!is_dir($dir) && !@mkdir($dir, 0770, true) && !is_dir($dir)) {
+        return false;
+    }
     $result = file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
     @chmod($file, 0600);
     return $result === strlen($line);
