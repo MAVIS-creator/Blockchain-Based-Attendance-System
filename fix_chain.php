@@ -1,4 +1,10 @@
 <?php
+// Evidence-changing chain repair requires explicit CLI opt-in.
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
+if (!in_array('--apply', $argv ?? [], true)) {
+    fwrite(STDERR, "No changes made. Run php fix_chain.php --apply after verifying the existing chain.\n");
+    exit(2);
+}
 // ✅ Set timezone
 date_default_timezone_set('Africa/Lagos');
 
@@ -17,6 +23,12 @@ if (!is_array($chain) || empty($chain)) {
     die("❌ Chain file is empty or invalid.\n");
 }
 
+$backup = $chainFile . '.pre-repair-' . gmdate('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.bak';
+if (!@copy($chainFile, $backup)) {
+    fwrite(STDERR, "Original chain could not be backed up; aborting.\n");
+    exit(1);
+}
+echo "Original chain preserved in backup.\n";
 echo "🔧 Fixing chain hashes...\n";
 
 // Initialize previous hash
@@ -44,10 +56,14 @@ foreach ($chain as $i => &$block) {
 }
 
 // Save updated chain
-file_put_contents(
+$written = file_put_contents(
     $chainFile,
     json_encode($chain, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
     LOCK_EX
 );
+if ($written === false) {
+    fwrite(STDERR, "Chain write failed; original preserved in backup.\n");
+    exit(1);
+}
 
 echo "🎉 All hashes fixed and chain saved successfully!\n";

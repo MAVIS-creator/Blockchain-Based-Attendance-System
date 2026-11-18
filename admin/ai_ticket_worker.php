@@ -1,6 +1,8 @@
 <?php
-
 declare(strict_types=1);
+
+// This maintenance worker is CLI-only.
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 
 date_default_timezone_set('Africa/Lagos');
 

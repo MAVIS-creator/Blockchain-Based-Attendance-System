@@ -20,7 +20,7 @@
 <p align="center">
   <a href="https://smart-attendance-samex.me"><strong>🌐 Live Site</strong></a> ·
   <a href="QUICKSTART.md"><strong>⚡ Quickstart</strong></a> ·
-  <a href="FEATURES_IMPLEMENTED.md"><strong>📋 Full Feature Inventory</strong></a> ·
+  <a href="FULL_PROJECT_OVERVIEW.md"><strong>📋 Full Feature Inventory</strong></a> ·
   <a href="CONTRIBUTING.md"><strong>🤝 Contribute</strong></a>
 </p>
 
@@ -334,3 +334,10 @@ This project is licensed under the **MIT License** — see [LICENSE](LICENSE) fo
   <a href="https://github.com/SamexHighshow"><strong>SamexHighshow</strong></a> · Co-Author<br>
   <a href="https://github.com/bakareolamilekan365-tech"><strong>Bakare Olamilekan Abdulkarim</strong></a> · Collaborator
 </p>
+
+### Client addresses behind reverse proxies
+
+Forwarded IP headers are ignored unless the immediate peer matches
+`TRUSTED_PROXY_CIDRS` (comma-separated CIDRs). Set only the actual trusted
+proxy ranges and ensure proxies sanitize/append the real upstream address
+to `X-Forwarded-For`. Never trust `0.0.0.0/0` or `::/0`.

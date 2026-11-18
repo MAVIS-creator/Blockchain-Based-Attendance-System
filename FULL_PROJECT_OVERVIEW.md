@@ -74,7 +74,7 @@ The application is built around a **file-first architecture**.
 - `support.php`: Public support form with local file write and optional hybrid dual-write.
 - `get_announcement.php`: Public announcement fetch endpoint.
 - `status_api.php`: Public status polling endpoint used by the front end.
-- `verify_chain.php`: Validates the blockchain-style attendance chain.
+- `admin/chain.php`: Authenticated attendance chain validation UI.
 - `fix_chain.php`: Repair utility for chain issues.
 - `polygon_hash.php`: Optional Polygon hash integration.
 - `replay_outbox.php`: Replays queued hybrid writes to Supabase.

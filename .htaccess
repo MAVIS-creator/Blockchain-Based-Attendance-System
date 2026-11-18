@@ -20,9 +20,15 @@ Require all denied
 Require all denied
 </FilesMatch>
 
+# Deny operational directories even if runtime files are accidentally placed below the webroot
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^(storage|home/data|admin/home/data|tools|tests|load-test-reports|\.deploy|\.playwright-mcp)(/|$) - [F,L,NC]
+</IfModule>
+
 # Protect log files and backups
 
-<FilesMatch "\.(log|bak|lock|ps1|bat|md)$">
+<FilesMatch "\.(json|jsonl|log|bak|lock|ps1|bat|md|sql|csv|conf)$">
 Require all denied
 </FilesMatch>
 
