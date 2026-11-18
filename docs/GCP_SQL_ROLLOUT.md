@@ -166,3 +166,7 @@ The end-to-end SQL-primary manual attendance path still requires migration.
   expire automatically after 15 minutes.
 - Admin manual attendance now uses the duplicate-index/hash-chain helper rather
   than writing a bare log line; existing location/rule restrictions still apply.
+
+See `docs/BBAS_SECURITY_AND_RELAUNCH_GATES.md` for the student threat model,
+active-course request tests, staging criteria, 500-student rehearsal and
+operator go/no-go gate. Passing GitHub CI is not proof of real-class readiness.

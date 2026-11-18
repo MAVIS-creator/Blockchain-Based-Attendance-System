@@ -33,6 +33,21 @@ php -r '$j=json_decode(stream_get_contents(STDIN),true); if (!is_array($j) || ($
 response="$(curl --fail --silent --show-error --max-time 8 -X POST "$base/submit.php" --data-urlencode 'name=Test' --data-urlencode 'matric=123' --data-urlencode 'fingerprint=smoke_fingerprint' --data-urlencode 'action=checkin')"
 php -r '$j=json_decode(stream_get_contents(STDIN),true); if (!is_array($j) || ($j["ok"]??null)!==false || strpos((string)($j["message"]??""),"valid matric")===false) exit(1);' <<< "$response"
 
+# Active course is server-controlled, even if the browser changes hidden fields.
+mkdir -p "$STORAGE_PATH/admin/courses"
+printf '{"checkin":true,"checkout":false,"end_time":4102444800}\n' >"$STORAGE_PATH/admin/status.json"
+printf '{"course":"CSC TEST"}\n' >"$STORAGE_PATH/admin/courses/active_course.json"
+for forged in "FRIEND COURSE" "General"; do
+  result="$(curl -fsS --max-time 8 -X POST "$base/submit.php" \
+    --data-urlencode 'name=Staging Student' \
+    --data-urlencode 'matric=1234567890' \
+    --data-urlencode 'fingerprint=abcdef0123456789_abcdef01-2345-4567-89ab-abcdef012345' \
+    --data-urlencode 'action=checkin' \
+    --data-urlencode "course=$forged")"
+  php -r '$j=json_decode(stream_get_contents(STDIN),true); if (($j["code"]??"")!=="COURSE_MISMATCH") {fwrite(STDERR,"Client course spoof was not denied\n"); exit(1);}' <<<"$result"
+done
+test ! -s "$STORAGE_PATH/logs/$(date +%F).log" || { echo 'Forged attendance was persisted'; exit 1; }
+
 # Maintenance entrypoints must not be callable from the public web.
 for endpoint in fix_chain.php replay_outbox.php diagnostic.php admin/ai_ticket_worker.php admin/post_submit_worker.php tools/seed_sql_admin_accounts.php; do
   code="$(curl --max-time 8 -s -o /dev/null -w '%{http_code}' "$base/$endpoint")"
@@ -48,7 +63,7 @@ code="$(curl -s -o /dev/null -w '%{http_code}' "$base/admin/auto_send_logs.php")
 [[ "$code" == "404" ]] || { echo "Auto-send exposed over HTTP"; exit 1; }
 
 # Direct route URLs must enforce the same auth as admin/index.php.
-for endpoint in admin/courses/set_active.php admin/courses/add.php admin/dashboard.php admin/ai_suggestions.php admin/ai_rulebook.php; do
+for endpoint in admin/courses/set_active.php admin/courses/add.php admin/dashboard.php admin/ai_suggestions.php admin/ai_rulebook.php admin/accounts.php admin/manual_attendance.php admin/view_tickets.php admin/announcement.php admin/chain.php; do
   code="$(curl -s -o /dev/null -w '%{http_code}' "$base/$endpoint")"
   [[ "$code" == "403" ]] || { echo "Unprotected admin GET $endpoint returned $code"; exit 1; }
 done
