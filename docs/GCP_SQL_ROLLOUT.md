@@ -113,3 +113,10 @@ migration and legacy admin exports have **not yet** been switched to it.
   reconciliation before enabling any new source-of-truth mode.
 - The CI suite runs an actual MariaDB service and checks job leases/retries and
   attendance uniqueness constraints, in addition to PHP/static smoke tests.
+
+## Guarded AI corrections
+The AI/manual attendance log helper now shares the same daily duplicate-index
+lock as student submissions, rechecks the daily log, requires check-in before
+check-out, and appends a blockchain record under the atomic chain lock. Missing
+or duplicate events are rejected; provider prose never bypasses the rulebook.
+The end-to-end SQL-primary manual attendance path still requires migration.
