@@ -16,7 +16,7 @@ class AiProviderClient
 
   public static function defaultGroqModel()
   {
-    return trim((string)app_env_value('GROQ_MODEL', 'llama-3.1-8b-instant'));
+    return trim((string)app_env_value('GROQ_MODEL', 'openai/gpt-oss-20b'));
   }
 
   public static function defaultOpenRouterModel()
@@ -26,7 +26,7 @@ class AiProviderClient
 
   public static function defaultGeminiModel()
   {
-    return trim((string)app_env_value('AI_GEMINI_MODEL', 'gemini-2.0-flash'));
+    return trim((string)app_env_value('AI_GEMINI_MODEL', 'gemini-2.5-flash-lite'));
   }
 
   public static function suggestTicketResolution(array $ticket, array $diagnosis)

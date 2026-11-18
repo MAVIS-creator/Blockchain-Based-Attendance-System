@@ -51,3 +51,9 @@ jobs:
 
     - name: Isolated HTTP endpoint smoke checks
       run: bash tests/http_smoke.sh
+
+    - name: Concurrent attendance chain append regression
+      run: bash tests/chain_concurrency.sh
+
+    - name: Shared-IP request counter regression
+      run: php tests/request_guard_atomic.php

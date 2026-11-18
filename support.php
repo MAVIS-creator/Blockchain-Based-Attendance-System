@@ -347,24 +347,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
       $aiSpan = microtime(true);
       $queued = support_enqueue_ai_ticket($createdAt);
-      if ($queued) {
-        support_spawn_ai_worker();
-      }
+      // A supervised systemd/cron worker processes queued tickets.
+      // Do not launch an unbounded worker for every HTTP request.
       request_timing_span('ai_ticket_enqueue', $aiSpan, [
         'queued' => $queued,
         'ticket_ts' => $createdAt
       ]);
 
-      // Azure background process spawning is not always reliable. Try an
-      // immediate same-request fallback so the student can still receive the
-      // targeted AI response without waiting on a detached worker.
-      $aiInlineSpan = microtime(true);
-      $inlineResult = support_process_ai_ticket_now($createdAt);
-      request_timing_span('ai_ticket_inline_process', $aiInlineSpan, [
-        'ok' => !empty($inlineResult['ok']),
-        'error' => (string)($inlineResult['error'] ?? ''),
-        'processed' => (int)($inlineResult['processed'] ?? 0),
-      ]);
+      // Support requests must never wait for model inference. A dedicated
+      // queue worker resolves the ticket after the response is returned.
     }
 
     $success = $saved;

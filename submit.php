@@ -790,37 +790,30 @@ $pipelineEntry = [
 ];
 @file_put_contents($pipelineDiagFile, json_encode($pipelineEntry, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
 
-// ✅ Save as blockchain block (JSON)
+// Save the chained record under one cross-process lock; never acknowledge
+// a chain write that has not committed. Legacy daily log remains compatible.
 $chainSpan = microtime(true);
-$chainFile = app_storage_file('secure_logs/attendance_chain.json');
-$chain = file_exists($chainFile) ? json_decode(file_get_contents($chainFile), true) : [];
-if (!is_array($chain)) {
-    $chain = [];
+require_once __DIR__ . '/src/AttendanceChainStore.php';
+try {
+    $chainResult = attendance_chain_append_atomic(app_storage_file('secure_logs/attendance_chain.json'), [
+        'timestamp' => date('Y-m-d H:i:s'),
+        'name' => $name,
+        'matric' => $matric,
+        'action' => $action,
+        'fingerprint' => $fingerprint,
+        'ip' => $ip,
+        'userAgent' => $userAgent,
+        'course' => $course,
+    ]);
+} catch (Throwable $e) {
+    error_log('Attendance chain commit error: ' . $e->getMessage());
+    http_response_code(503);
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'code' => 'CHAIN_COMMIT_FAILED', 'message' => 'Attendance record needs verification. Please contact support before retrying.']);
+    exit;
 }
-
-$prevHash = count($chain) > 0 ? $chain[count($chain) - 1]['hash'] : null;
-
-$block = [
-    'timestamp' => date('Y-m-d H:i:s'),
-    'name'      => $name,
-    'matric'    => $matric,
-    'action'    => $action,
-    'fingerprint' => $fingerprint,
-    'ip'        => $ip,
-    'userAgent' => $userAgent,
-    'course'    => $course,
-    'prevHash'  => $prevHash
-];
-
-$blockDataForHash = $block;
-unset($blockDataForHash['hash']);
-ksort($blockDataForHash);
-
-$block['hash'] = hash('sha256', json_encode($blockDataForHash, JSON_UNESCAPED_SLASHES) . $prevHash);
-
-$chain[] = $block;
-file_put_contents($chainFile, json_encode($chain, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
-request_timing_span('write_chain', $chainSpan, ['chain_blocks' => count($chain)]);
+$block = $chainResult['block'];
+request_timing_span('write_chain', $chainSpan, ['chain_blocks' => $chainResult['count']]);
 
 // ✅ Send success response to the browser IMMEDIATELY.
 // The .log file and local blockchain chain are already written above — those are
