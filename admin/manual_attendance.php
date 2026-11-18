@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/access_guard.php';
+bbas_admin_require_page('manual_attendance');
 if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/session_bootstrap.php';
 }

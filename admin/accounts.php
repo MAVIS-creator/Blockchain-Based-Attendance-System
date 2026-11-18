@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/access_guard.php';
+bbas_admin_require_page('accounts');
 require_once __DIR__ . '/session_bootstrap.php';
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
   header('Location: login.php');

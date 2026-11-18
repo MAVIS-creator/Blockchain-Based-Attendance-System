@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/access_guard.php';
+bbas_admin_require_page('announcement');
 // This file can be rendered standalone or embedded inside the admin layout.
 require_once __DIR__ . '/session_bootstrap.php';
 if (empty($_SESSION['admin_logged_in'])) {
