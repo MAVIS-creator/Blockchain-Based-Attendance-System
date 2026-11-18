@@ -5,8 +5,12 @@
 
 $base = $argv[1] ?? 'http://localhost/Blockchain-Based-Attendance-System/admin';
 $cookie = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'bba_csrf_test_cookies.txt';
-$username = $argv[2] ?? 'Mavis';
-$password = $argv[3] ?? '.*123$<>Callmelater.,12';
+$username = $argv[2] ?? (getenv('BBAS_TEST_ADMIN_USER') ?: '');
+$password = $argv[3] ?? (getenv('BBAS_TEST_ADMIN_PASSWORD') ?: '');
+if ($username === '' || $password === '') {
+    fwrite(STDERR, "Supply test-only BBAS_TEST_ADMIN_USER and BBAS_TEST_ADMIN_PASSWORD.\n");
+    exit(2);
+}
 $verbose = true;
 
 function curl_request($method, $url, $opts = []) {

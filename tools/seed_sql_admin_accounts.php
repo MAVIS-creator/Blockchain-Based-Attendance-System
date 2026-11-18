@@ -1,19 +1,22 @@
 <?php
-
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once __DIR__ . '/../admin/sql_accounts.php';
 require_once __DIR__ . '/../admin/state_helpers.php';
 
 $opts = getopt('', [
   'from-json::',
   'maximus::',
-  'maximus-email::',
-  'maximus-password::',
+
 ]);
 
 $fromJson = isset($opts['from-json']) ? (string)$opts['from-json'] : admin_accounts_file();
-$includeMaximus = !isset($opts['maximus']) || strtolower((string)$opts['maximus']) !== 'false';
-$maximusEmail = isset($opts['maximus-email']) ? (string)$opts['maximus-email'] : 'isholasamuel062@gmail.com';
-$maximusPassword = isset($opts['maximus-password']) ? (string)$opts['maximus-password'] : 'Callmelater';
+$includeMaximus = isset($opts['maximus']) && strtolower((string)$opts['maximus']) !== 'false';
+$maximusEmail = trim((string)(getenv('BBAS_SEED_ADMIN_EMAIL') ?: ''));
+$maximusPassword = (string)(getenv('BBAS_SEED_ADMIN_PASSWORD') ?: '');
+if ($includeMaximus && ($maximusEmail === '' || $maximusPassword === '')) {
+  fwrite(STDERR, "Set BBAS_SEED_ADMIN_EMAIL and BBAS_SEED_ADMIN_PASSWORD when using --maximus.\n");
+  exit(2);
+}
 
 $pdo = admin_sql_accounts_connect($error);
 if (!$pdo) {

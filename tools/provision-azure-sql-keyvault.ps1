@@ -13,8 +13,9 @@ param(
   [string]$KeyVaultName,
 
   [string]$SqlAdminUsername = 'sqladminops',
+  [Parameter(Mandatory = $true)]
   [PSCredential]$BootstrapCredential,
-  [string]$MaximusEmail = 'isholasamuel062@gmail.com'
+  [string]$MaximusEmail
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,10 +39,6 @@ if ([string]::IsNullOrWhiteSpace($KeyVaultName)) {
 }
 
 $sqlAdminPassword = New-RandomSecret
-if ($null -eq $BootstrapCredential) {
-  $defaultSecure = ConvertTo-SecureString 'Callmelater' -AsPlainText -Force
-  $BootstrapCredential = New-Object System.Management.Automation.PSCredential ('bootstrap', $defaultSecure)
-}
 
 $bootstrapPasswordPlain = [System.Net.NetworkCredential]::new('', $BootstrapCredential.Password).Password
 $sqlServerFqdn = "$SqlServerName.database.windows.net"
