@@ -187,7 +187,7 @@ if (!function_exists('ticket_append_attendance_log')) {
       if (isset($index['seen_matric'][$matricKey]) || ($tokenKey !== '' && isset($index['seen_token'][$tokenKey]))) {
         return false;
       }
-      $entry = "{$name} | {$matric} | {$action} | {$fingerprint} | {$ip} | {$mac} | {$time} | Sentinel AI | {$course} | {$reason}\\n";
+      $entry = "{$name} | {$matric} | {$action} | {$fingerprint} | {$ip} | {$mac} | {$time} | Sentinel AI | {$course} | {$reason}\n";
       if (file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX) !== strlen($entry)) {
         return false;
       }
