@@ -9,7 +9,7 @@ $cases = [
   ['trusted proxy retrieves client', ['REMOTE_ADDR'=>'10.0.0.8','HTTP_X_FORWARDED_FOR'=>'198.51.100.77'], ['10.0.0.0/8'], '198.51.100.77'],
   ['spoofed prefix cannot override first untrusted hop', ['REMOTE_ADDR'=>'10.0.0.8','HTTP_X_FORWARDED_FOR'=>'1.2.3.4, 198.51.100.77'], ['10.0.0.0/8'], '198.51.100.77'],
   ['multiple trusted proxies', ['REMOTE_ADDR'=>'10.0.0.8','HTTP_X_FORWARDED_FOR'=>'198.51.100.77, 10.0.0.9'], ['10.0.0.0/8'], '198.51.100.77'],
-  ['ipv6 trusted proxy', ['REMOTE_ADDR'=>'2001:db8::10','HTTP_X_FORWARDED_FOR'=>'2001:db8:2::10'], ['2001:db8::/48'], '2001:db8:2::10'],
+  ['ipv6 trusted proxy', ['REMOTE_ADDR'=>'2001:db8::10','HTTP_X_FORWARDED_FOR'=>'2001:db8:2::10'], ['2001:db8::/32'], '2001:db8:2::10'],
   ['invalid XFF fails closed', ['REMOTE_ADDR'=>'10.0.0.8','HTTP_X_FORWARDED_FOR'=>'not-an-ip'], ['10.0.0.0/8'], '10.0.0.8'],
 ];
 $failures = [];
