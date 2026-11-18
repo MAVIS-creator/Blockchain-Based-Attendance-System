@@ -39,6 +39,14 @@ for endpoint in fix_chain.php replay_outbox.php diagnostic.php admin/ai_ticket_w
   if [[ "$code" != "404" ]]; then echo "$endpoint returned $code instead of 404"; exit 1; fi
 done
 
+# Sensitive mutation and private-report endpoints require authentication.
+for endpoint in admin/revoke_entry.php admin/clear_revocation.php admin/clear_device.php admin/clear_logs.php admin/backup_logs.php admin/restore_logs.php admin/download_backup.php admin/ai_ticket_processor.php; do
+  code="$(curl -s -o /dev/null -w '%{http_code}' "$base/$endpoint")"
+  [[ "$code" == "403" ]] || { echo "Unprotected sensitive admin endpoint $endpoint returned $code"; exit 1; }
+done
+code="$(curl -s -o /dev/null -w '%{http_code}' "$base/admin/auto_send_logs.php")"
+[[ "$code" == "404" ]] || { echo "Auto-send exposed over HTTP"; exit 1; }
+
 # Direct route URLs must enforce the same auth as admin/index.php.
 for endpoint in admin/courses/set_active.php admin/courses/add.php admin/dashboard.php admin/ai_suggestions.php admin/ai_rulebook.php; do
   code="$(curl -s -o /dev/null -w '%{http_code}' "$base/$endpoint")"
