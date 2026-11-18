@@ -150,3 +150,9 @@ The end-to-end SQL-primary manual attendance path still requires migration.
   reverse proxy MUST remove incoming untrusted verdict headers first.
 - Remaining: full verified device enrollment, account ownership attestation,
   authoritative SQL attendance cutover, and class-size live performance tests.
+
+- The included admin views `courses/set_active.php`, `courses/add.php`,
+  `dashboard.php`, `ai_suggestions.php`, and `ai_rulebook.php` now
+  re-check authentication and per-role authorization for direct URLs;
+  active-course POST actions also require a CSRF token. Direct URLs must not
+  assume the enclosing `admin/index.php` router was visited first.

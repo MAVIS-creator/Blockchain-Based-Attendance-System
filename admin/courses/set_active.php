@@ -1,6 +1,13 @@
 <?php
+require_once __DIR__ . '/../access_guard.php';
+bbas_admin_require_page('set_active');
 require_once __DIR__ . '/../runtime_storage.php';
 require_once __DIR__ . '/../cache_helpers.php';
+require_once __DIR__ . '/../includes/csrf.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && !csrf_check_request()) {
+  http_response_code(403);
+  exit('Invalid CSRF token');
+}
 $courseFile = admin_course_storage_migrate_file('course.json');
 $activeFile = admin_course_storage_migrate_file('active_course.json');
 
@@ -86,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <span class="material-symbols-outlined" style="font-size:1.1rem;">tune</span> Select Course
     </p>
     <form method="post">
+      <?php csrf_field(); ?>
       <div style="margin-bottom:16px;">
         <label style="display:block;margin-bottom:6px;font-weight:600;color:var(--on-surface-variant);font-size:0.85rem;">Course</label>
         <select name="active_course" id="active_course" required>

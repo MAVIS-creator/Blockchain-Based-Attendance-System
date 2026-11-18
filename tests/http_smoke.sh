@@ -39,6 +39,14 @@ for endpoint in fix_chain.php replay_outbox.php diagnostic.php admin/ai_ticket_w
   if [[ "$code" != "404" ]]; then echo "$endpoint returned $code instead of 404"; exit 1; fi
 done
 
+# Direct route URLs must enforce the same auth as admin/index.php.
+for endpoint in admin/courses/set_active.php admin/courses/add.php admin/dashboard.php admin/ai_suggestions.php admin/ai_rulebook.php; do
+  code="$(curl -s -o /dev/null -w '%{http_code}' "$base/$endpoint")"
+  [[ "$code" == "403" ]] || { echo "Unprotected admin GET $endpoint returned $code"; exit 1; }
+done
+code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$base/admin/courses/set_active.php" -d 'disable=1')"
+[[ "$code" == "403" ]] || { echo "Unprotected admin course POST returned $code"; exit 1; }
+
 # Security: no global revocation list or long-running public revocation SSE.
 code="$(curl -s -o /dev/null -w '%{http_code}' "$base/admin/revoked_tokens.php")"
 [[ "$code" == "405" ]] || { echo "Global revocation endpoint GET returned $code"; exit 1; }

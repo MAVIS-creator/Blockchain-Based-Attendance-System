@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/access_guard.php';
+bbas_admin_require_page('ai_rulebook');
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/../src/AiRulebook.php';
 
