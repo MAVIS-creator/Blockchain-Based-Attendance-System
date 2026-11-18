@@ -149,6 +149,20 @@ if (!isset($status[$action]) || !$status[$action]) {
     exit;
 }
 request_timing_span('load_status', $span, ['action' => $action]);
+// The client may not select a different course by modifying a hidden field.
+// A live attendance mode is only valid for the server-selected course.
+$courseFile = admin_course_storage_migrate_file('active_course.json');
+$serverActive = admin_cached_json_file('submit_active_course_authority', $courseFile, [], 3);
+$serverCourse = is_array($serverActive) ? trim((string)($serverActive['course'] ?? '')) : '';
+if ($serverCourse === '') {
+    fail('NO_ACTIVE_COURSE', 'No class has been selected for this attendance session.');
+}
+if (strcasecmp($serverCourse, $course) !== 0) {
+    fail('COURSE_MISMATCH', 'The selected class changed. Refresh the page to continue.');
+}
+$course = $serverCourse;
+$courseNormalized = strtolower($course);
+
 
 // -----------------------
 // Load admin settings (try JSON, else decrypt ENC:)
@@ -316,39 +330,27 @@ function build_attendance_duplicate_index($logFile, $today)
 
 function detect_proxy_vpn_indicators()
 {
-    $indicators = [];
-
-    $forwardedHeaders = [
-        'HTTP_FORWARDED',
-        'HTTP_X_FORWARDED_FOR',
-        'HTTP_X_FORWARDED',
-        'HTTP_X_CLUSTER_CLIENT_IP',
-        'HTTP_CLIENT_IP',
-        'HTTP_VIA',
-        'HTTP_PROXY_CONNECTION',
-        'HTTP_TRUE_CLIENT_IP',
-        'HTTP_CF_CONNECTING_IP',
-    ];
-
-    foreach ($forwardedHeaders as $hdr) {
-        $val = trim((string)($_SERVER[$hdr] ?? ''));
-        if ($val !== '') {
-            $indicators[] = $hdr;
-        }
+    // Cloudflare/Vercel forwarding headers are NORMAL reverse-proxy metadata,
+    // not proof a student is using a VPN. Flagging them blocks legitimate classes.
+    $ip = client_request_ip();
+    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+        return ['UNRESOLVED_CLIENT_IP'];
     }
-
-    $remoteAddr = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
-    if ($remoteAddr === '' || !filter_var($remoteAddr, FILTER_VALIDATE_IP)) {
-        $indicators[] = 'REMOTE_ADDR_INVALID';
+    // Optional, trusted-edge-only verdict. The edge must overwrite and strip
+    // any client-supplied X-BBAS-Verified-VPN header before forwarding.
+    if ((string)app_env_value('BBAS_USE_TRUSTED_EDGE_VPN_VERDICT', '0') !== '1') {
+        return [];
     }
-
-    // If XFF contains multiple hops, treat as proxied path.
-    $xff = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-    if ($xff !== '' && strpos($xff, ',') !== false) {
-        $indicators[] = 'HTTP_X_FORWARDED_FOR_MULTI_HOP';
+    $peer = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+    $cidrs = array_filter(array_map('trim', explode(',', (string)app_env_value('TRUSTED_PROXY_CIDRS', ''))));
+    $trusted = false;
+    foreach ($cidrs as $cidr) {
+        if (attendance_ip_in_cidr($peer, $cidr)) { $trusted = true; break; }
     }
-
-    return array_values(array_unique($indicators));
+    if ($trusted && strtolower((string)($_SERVER['HTTP_X_BBAS_VERIFIED_VPN'] ?? '')) === 'block') {
+        return ['TRUSTED_EDGE_VPN_VERDICT'];
+    }
+    return [];
 }
 
 function geo_distance_m($lat1, $lng1, $lat2, $lng2)

@@ -135,3 +135,18 @@ The end-to-end SQL-primary manual attendance path still requires migration.
 - MariaDB on localhost must be backed up off-instance. Store credentials in
   GCP secrets or root-owned environment files, not in the frontend/Git repo.
 - The templates are examples, not an automatically installed GCP deployment.
+
+## Security follow-up: 2026-11-18
+- Student revocation checks now use `POST /admin/revoked_tokens.php` with their
+  own random token and return only a boolean. The former public all-token
+  response and long-running SSE stream are retired. Never automatically delete
+  a revoked browser token in the client; a fresh UUID is not verified recovery.
+- The public `index-backup.php` is disabled.
+- The check-in API rejects a client-supplied course that differs from the
+  active course selected on the server. Rehearse course switching and any
+  delayed cache invalidation.
+- Cloudflare/Vercel forwarding headers alone no longer count as VPN evidence.
+  A VPN block requires a trusted and explicitly configured edge verdict; the
+  reverse proxy MUST remove incoming untrusted verdict headers first.
+- Remaining: full verified device enrollment, account ownership attestation,
+  authoritative SQL attendance cutover, and class-size live performance tests.

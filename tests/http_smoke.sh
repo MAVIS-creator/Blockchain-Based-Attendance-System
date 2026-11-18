@@ -39,6 +39,16 @@ for endpoint in fix_chain.php replay_outbox.php diagnostic.php admin/ai_ticket_w
   if [[ "$code" != "404" ]]; then echo "$endpoint returned $code instead of 404"; exit 1; fi
 done
 
+# Security: no global revocation list or long-running public revocation SSE.
+code="$(curl -s -o /dev/null -w '%{http_code}' "$base/admin/revoked_tokens.php")"
+[[ "$code" == "405" ]] || { echo "Global revocation endpoint GET returned $code"; exit 1; }
+code="$(curl -s -o /dev/null -w '%{http_code}' "$base/admin/revoke_sse.php")"
+[[ "$code" == "410" ]] || { echo "Legacy SSE returned $code"; exit 1; }
+code="$(curl -s -o /dev/null -w '%{http_code}' "$base/index-backup.php")"
+[[ "$code" == "404" ]] || { echo "Public backup entrypoint returned $code"; exit 1; }
+revoke="$(curl -fsS --max-time 8 -X POST "$base/admin/revoked_tokens.php" --data-urlencode 'token=00000000-0000-4000-a000-000000000000')"
+php -r '$j=json_decode(stream_get_contents(STDIN),true); if (!is_array($j) || !array_key_exists("revoked",$j) || is_array($j["revoked"]) || array_key_exists("tokens",$j)) exit(1);' <<< "$revoke"
+
 # A static frontend needs a small, unprivileged context response.
 context="$(curl --silent --show-error --max-time 8 "$base/public_context_api.php")"
 php -r '$j=json_decode(stream_get_contents(STDIN),true); if(!is_array($j)||!array_key_exists("active",$j)||!array_key_exists("course",$j))exit(1);' <<< "$context"
