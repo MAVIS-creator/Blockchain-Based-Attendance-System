@@ -12,6 +12,21 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: bbas_ci
+          MARIADB_USER: bbas_ci
+          MARIADB_PASSWORD: ci_test_only
+          MARIADB_ROOT_PASSWORD: ci_root_test_only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
 
     steps:
     - name: Checkout repository
@@ -66,3 +81,6 @@ jobs:
 
     - name: Post-submit durable enqueue regression
       run: php tests/post_submit_queue_smoke.php
+
+    - name: MariaDB transaction and job queue integration
+      run: php tests/mysql_queue_smoke.php

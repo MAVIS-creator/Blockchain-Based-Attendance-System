@@ -8,6 +8,29 @@ require_once __DIR__ . '/../request_timing.php';
 
 function bbas_process_post_submit(array $job): void
 {
+    // Shadow mirror only; legacy files remain the attendance source of truth.
+    // This must never be enabled without a configured MariaDB service.
+    if ((string)getenv('BBAS_SQL_ATTENDANCE_SHADOW') === '1') {
+        require_once __DIR__ . '/AiSqlJobQueue.php';
+        $day = (string)($job['day'] ?? '');
+        if (!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $day)) {
+            throw new RuntimeException('invalid_sql_shadow_day');
+        }
+        $stmt = bbas_ai_db()->prepare("INSERT INTO bbas_attendance_events
+            (event_day,course,matric,action,name,fingerprint_hash,client_ip,source)
+            VALUES (:day,:course,:matric,:action,:name,:fingerprint_hash,:client_ip,'submit_shadow')
+            ON DUPLICATE KEY UPDATE id=id");
+        $rawFingerprint = (string)($job['fingerprint'] ?? '');
+        $stmt->execute([
+            'day' => $day,
+            'course' => (string)($job['course'] ?? ''),
+            'matric' => (string)($job['matric'] ?? ''),
+            'action' => (string)($job['action'] ?? ''),
+            'name' => (string)($job['name'] ?? ''),
+            'fingerprint_hash' => $rawFingerprint !== '' ? hash('sha256', $rawFingerprint) : null,
+            'client_ip' => (string)($job['ip'] ?? ''),
+        ]);
+    }
     $today = (string)($job['day'] ?? '');
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $today)) {
         throw new RuntimeException('invalid_background_day');

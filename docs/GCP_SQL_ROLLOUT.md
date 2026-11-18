@@ -101,3 +101,15 @@ migration and legacy admin exports have **not yet** been switched to it.
 - Keep `BBAS_ASYNC_POST_SUBMIT` disabled until a live worker, backups and
   recovery checks are verified. An unstarted worker would leave queued tasks
   pending indefinitely.
+
+## SQL shadow verification
+- To prepare a migration, import old logs with the dry-run/apply tools first.
+- Only after the MariaDB worker is proven, optionally set
+  `BBAS_SQL_ATTENDANCE_SHADOW=1` with `BBAS_ASYNC_POST_SUBMIT=1`.
+  The post-submit worker then mirrors each committed attendance into SQL with a
+  unique (day,course,matric,action) constraint. This does NOT yet route admin
+  reports or duplicate checks through SQL.
+- Compare file/SQL totals after each test class. Discrepancies require manual
+  reconciliation before enabling any new source-of-truth mode.
+- The CI suite runs an actual MariaDB service and checks job leases/retries and
+  attendance uniqueness constraints, in addition to PHP/static smoke tests.
