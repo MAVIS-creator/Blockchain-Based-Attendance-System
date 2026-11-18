@@ -48,3 +48,6 @@ jobs:
 
     - name: Security regression checks
       run: php tests/security_smoke.php
+
+    - name: Isolated HTTP endpoint smoke checks
+      run: bash tests/http_smoke.sh
