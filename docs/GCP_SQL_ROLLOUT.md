@@ -120,3 +120,18 @@ lock as student submissions, rechecks the daily log, requires check-in before
 check-out, and appends a blockchain record under the atomic chain lock. Missing
 or duplicate events are rejected; provider prose never bypasses the rulebook.
 The end-to-end SQL-primary manual attendance path still requires migration.
+
+## Nginx, PHP-FPM and data disk
+- Example templates: `deploy/gcp/nginx-bbas.conf` and
+  `deploy/gcp/php-fpm-bbas-pool.conf`. Adjust server name, socket path and
+  TLS before enabling. Nginx should use the custom `php8.2-fpm-bbas.sock`
+  socket if you install that pool. Do not copy either file unchanged.
+- Keep `/srv/bbas/data` on a persistent, writable private volume. BBAS now
+  fails closed when explicitly configured `STORAGE_PATH` is not writable;
+  it never silently writes attendance to the checkout or ephemeral /tmp.
+- Activate PHP OPcache and use measured PHP-FPM concurrency. Avoid per-IP
+  Nginx hard limits that could exclude an entire campus NAT; protect login
+  separately. Static Vercel assets can use cacheable versioned URLs.
+- MariaDB on localhost must be backed up off-instance. Store credentials in
+  GCP secrets or root-owned environment files, not in the frontend/Git repo.
+- The templates are examples, not an automatically installed GCP deployment.

@@ -87,3 +87,6 @@ jobs:
 
     - name: Guarded AI attendance write regression
       run: php tests/ai_attendance_atomic.php
+
+    - name: Persistent data disk fail-closed regression
+      run: php tests/storage_path_fail_closed.php
