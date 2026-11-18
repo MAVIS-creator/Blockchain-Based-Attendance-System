@@ -7,6 +7,7 @@ require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/request_timing.php';
 require_once __DIR__ . '/request_guard.php';
 require_once __DIR__ . '/src/AiTicketAutomationEngine.php';
+require_once __DIR__ . '/src/AiSqlJobQueue.php';
 app_storage_init();
 app_request_guard('support.php', 'public');
 request_timing_start('support.php');
@@ -111,46 +112,18 @@ function support_ai_queue_file()
 
 function support_enqueue_ai_ticket($ticketTimestamp)
 {
-  $ticketTimestamp = trim((string)$ticketTimestamp);
-  if ($ticketTimestamp === '') {
-    return false;
-  }
-
-  $entry = [
-    'ticket_timestamp' => $ticketTimestamp,
-    'enqueued_at' => date('c')
-  ];
-  $line = json_encode($entry, JSON_UNESCAPED_SLASHES) . "\n";
-  return (bool)file_put_contents(support_ai_queue_file(), $line, FILE_APPEND | LOCK_EX);
-}
-
-function support_spawn_ai_worker()
-{
-  $script = escapeshellarg(__DIR__ . '/admin/ai_ticket_worker.php');
-  $phpBin = defined('PHP_BINARY') ? escapeshellarg(PHP_BINARY) : 'php';
-  $cmd = $phpBin . ' ' . $script . ' --drain=15';
-
-  if (stripos(PHP_OS, 'WIN') === 0) {
-    @pclose(@popen('start /B "" ' . $cmd, 'r'));
-    return;
-  }
-
-  @exec($cmd . ' > /dev/null 2>&1 &');
-}
-
-function support_process_ai_ticket_now($ticketTimestamp)
-{
-  $ticketTimestamp = trim((string)$ticketTimestamp);
-  if ($ticketTimestamp === '') {
-    return ['ok' => false, 'error' => 'missing_ticket_timestamp'];
-  }
-
-  try {
-    $engine = new AiTicketAutomationEngine();
-    return $engine->processTicketByTimestamp($ticketTimestamp);
-  } catch (Throwable $e) {
-    return ['ok' => false, 'error' => 'inline_ai_processing_failed', 'message' => $e->getMessage()];
-  }
+    $ticketTimestamp = trim((string)$ticketTimestamp);
+    if ($ticketTimestamp === '') return false;
+    if (bbas_ai_queue_driver() === 'mysql') {
+        try {
+            return bbas_ai_enqueue_mysql($ticketTimestamp);
+        } catch (Throwable $e) {
+            error_log('BBAS support enqueue failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+    $entry = ['ticket_timestamp' => $ticketTimestamp, 'enqueued_at' => date('c'), 'attempts' => 0];
+    return (bool)file_put_contents(support_ai_queue_file(), json_encode($entry, JSON_UNESCAPED_SLASHES) . "\n", FILE_APPEND | LOCK_EX);
 }
 
 function support_assess_message_quality($message, $requestedAction)
@@ -347,24 +320,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
       $aiSpan = microtime(true);
       $queued = support_enqueue_ai_ticket($createdAt);
-      if ($queued) {
-        support_spawn_ai_worker();
-      }
+      // A supervised systemd/cron worker processes queued tickets.
+      // Do not launch an unbounded worker for every HTTP request.
       request_timing_span('ai_ticket_enqueue', $aiSpan, [
         'queued' => $queued,
         'ticket_ts' => $createdAt
       ]);
 
-      // Azure background process spawning is not always reliable. Try an
-      // immediate same-request fallback so the student can still receive the
-      // targeted AI response without waiting on a detached worker.
-      $aiInlineSpan = microtime(true);
-      $inlineResult = support_process_ai_ticket_now($createdAt);
-      request_timing_span('ai_ticket_inline_process', $aiInlineSpan, [
-        'ok' => !empty($inlineResult['ok']),
-        'error' => (string)($inlineResult['error'] ?? ''),
-        'processed' => (int)($inlineResult['processed'] ?? 0),
-      ]);
+      // Support requests must never wait for model inference. A dedicated
+      // queue worker resolves the ticket after the response is returned.
     }
 
     $success = $saved;

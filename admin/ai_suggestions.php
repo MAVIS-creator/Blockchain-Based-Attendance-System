@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/access_guard.php';
+bbas_admin_require_page('ai_suggestions');
 require_once __DIR__ . '/runtime_storage.php';
 require_once __DIR__ . '/cache_helpers.php';
 require_once __DIR__ . '/state_helpers.php';

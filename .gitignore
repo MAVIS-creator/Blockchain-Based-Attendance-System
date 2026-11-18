@@ -1,49 +1,58 @@
-# Logs and system files
-*.log
-.DS_Store
-Thumbs.db
-
-# Environment files
+# Environment and secrets (never commit live credentials)
 .env
 .env.local
 .env.*.local
-
-# Local secret keys
 admin/.settings_key
+*.pem
+*.key
 
-# Mutable runtime data (do not version)
-admin/sessions.json
-admin/revoked.json
-admin/support_tickets.json
-admin/chat.json
-admin/backups/*.zip
-secure_logs/attendance_chain.json
-admin/logs/*.log
-admin/logs/*_failed_attempts.log
-admin/logs/device_cooldowns_*.json
-admin/logs/fp_devices_*.json
-admin/logs/fp_useragent_*.json
-admin/logs/hybrid_outbox.jsonl
+# Mutable runtime state: preserve server-side during deployments
+/storage/**
+!/storage/
+!/storage/.htaccess
+!/storage/index.html
+/admin/accounts.json
+/admin/announcement.json
+/admin/course.json
+/admin/courses/active_course.json
+/admin/courses/course.json
+/admin/settings.json
+/admin/settings_templates.json
+/admin/status.json
+/admin/sessions.json
+/admin/permissions.json
+/admin/revoked.json
+/admin/support_tickets.json
+/admin/chat.json
+/admin/fingerprint_audit.log
+/admin/home/data/
+/home/data/
+admin/backups/
+admin/logs/
 
-# Composer dependencies
+# Temporary diagnostics, generated reports and local snapshots
+/admin_auth_debug_remote.jsonl
+/chat.md
+/browser-console.txt
+/browser-errors.txt
+/timing-sweep.txt
+/.playwright-mcp/
+/load-test-reports/
+/tools/backups/
+/.deploy/*.json
+*.log
+*.jsonl
+*.bak
+*.lock
+*.zip
+*.pyc
+__pycache__/
+
+# Dependencies, IDE and temporary files
 /vendor/
-vendor/
-vendor/**
-
-# Cloud sync / cloud repo folders (if present)
-cloud/
-Cloud/
-cloud-repo/
-cloud_repo/
-onedrive/
-OneDrive/
-drive/
-Drive/
-
-# Node (if you ever use npm/yarn later)
-/node_modules/
-
-# Cache and temp
+node_modules/
 .cache/
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db

@@ -12,6 +12,21 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: bbas_ci
+          MARIADB_USER: bbas_ci
+          MARIADB_PASSWORD: ci_test_only
+          MARIADB_ROOT_PASSWORD: ci_root_test_only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
 
     steps:
     - name: Checkout repository
@@ -43,3 +58,38 @@ jobs:
 
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress --no-interaction
+    - name: PHP syntax lint (all project sources)
+      run: find . -path './vendor' -prune -o -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+
+    - name: Security regression checks
+      run: php tests/security_smoke.php
+
+    - name: Isolated HTTP endpoint smoke checks
+      run: bash tests/http_smoke.sh
+
+    - name: Concurrent attendance chain append regression
+      run: bash tests/chain_concurrency.sh
+
+    - name: Shared-IP request counter regression
+      run: php tests/request_guard_atomic.php
+
+    - name: AI rules fallback regression
+      run: php tests/ai_rules_smoke.php
+
+    - name: Vercel frontend JS syntax
+      run: node --check web/app.js && node -e "JSON.parse(require('fs').readFileSync('web/vercel.json','utf8'))"
+
+    - name: Post-submit durable enqueue regression
+      run: php tests/post_submit_queue_smoke.php
+
+    - name: MariaDB transaction and job queue integration
+      run: php tests/mysql_queue_smoke.php
+
+    - name: Guarded AI attendance write regression
+      run: php tests/ai_attendance_atomic.php
+
+    - name: Persistent data disk fail-closed regression
+      run: php tests/storage_path_fail_closed.php
+
+    - name: Automatic recovery privilege boundary
+      run: php tests/recovery_policy_smoke.php

@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '/storage_helpers.php';
+require_once __DIR__ . '/client_ip.php';
+require_once __DIR__ . '/src/AtomicWindowLimiter.php';
 
 if (!function_exists('request_guard_env_int')) {
   function request_guard_env_int($key, $default, $min, $max)
@@ -17,20 +19,7 @@ if (!function_exists('request_guard_env_int')) {
 }
 
 if (!function_exists('request_guard_client_ip')) {
-  function request_guard_client_ip()
-  {
-    $cfIp = trim((string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
-    if ($cfIp !== '') return $cfIp;
-
-    $xff = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-    if ($xff !== '') {
-      $parts = explode(',', $xff);
-      $first = trim((string)($parts[0] ?? ''));
-      if ($first !== '') return $first;
-    }
-
-    return trim((string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
-  }
+  function request_guard_client_ip() { return attendance_client_ip(); }
 }
 
 if (!function_exists('request_guard_is_json_request')) {
@@ -105,23 +94,35 @@ if (!function_exists('app_request_guard')) {
     $windowSec = request_guard_env_int('REQUEST_GUARD_WINDOW_SECONDS', 60, 10, 3600);
     $blockSec = request_guard_env_int('REQUEST_GUARD_BLOCK_SECONDS', 180, 5, 86400);
 
-    $publicLimit = request_guard_env_int('REQUEST_GUARD_PUBLIC_PER_WINDOW', 100, 5, 5000);
+    $publicLimit = request_guard_env_int('REQUEST_GUARD_PUBLIC_PER_WINDOW', 2400, 5, 20000);
     $adminLimit = request_guard_env_int('REQUEST_GUARD_ADMIN_PER_WINDOW', 300, 5, 10000);
     $loginLimit = request_guard_env_int('REQUEST_GUARD_LOGIN_PER_WINDOW', 25, 3, 500);
 
     $publicTimeout = request_guard_env_int('REQUEST_GUARD_PUBLIC_TIMEOUT_SECONDS', 25, 5, 300);
     $adminTimeout = request_guard_env_int('REQUEST_GUARD_ADMIN_TIMEOUT_SECONDS', 45, 5, 600);
     $burstWindowSec = request_guard_env_int('REQUEST_GUARD_BURST_WINDOW_SECONDS', 10, 2, 300);
-    $burstLimit = request_guard_env_int('REQUEST_GUARD_BURST_PER_WINDOW', 40, 5, 10000);
+    $burstLimit = request_guard_env_int('REQUEST_GUARD_BURST_PER_WINDOW', 900, 5, 20000);
     $burstBlockSec = request_guard_env_int('REQUEST_GUARD_BURST_BLOCK_SECONDS', 600, 10, 86400);
     $monitorSampleEvery = request_guard_env_int('REQUEST_GUARD_MONITOR_SAMPLE_EVERY', 10, 1, 1000);
 
     $route = strtolower(trim((string)$route));
     $isLoginRoute = strpos($route, 'admin/login.php') !== false;
 
+    // Campus Wi-Fi can put hundreds of students behind one public IP.
+    // High-volume read endpoints are protected separately; admin/login
+    // retains strict limits. The origin must also be protected upstream.
+    $isSharedRead = $scope === 'public' && in_array($route, [
+      'index.php', 'status_api.php', 'get_announcement.php',
+      'attendance_closed.php', 'closed.php'
+    ], true);
     $limit = $scope === 'admin' ? $adminLimit : $publicLimit;
+    if ($isSharedRead) {
+      $limit = request_guard_env_int('REQUEST_GUARD_SHARED_READ_PER_WINDOW', 12000, 50, 100000);
+      $burstLimit = request_guard_env_int('REQUEST_GUARD_SHARED_READ_BURST_PER_WINDOW', 3000, 20, 50000);
+    }
     if ($isLoginRoute) {
       $limit = min($limit, $loginLimit);
+      $burstLimit = min($burstLimit, request_guard_env_int('REQUEST_GUARD_LOGIN_BURST_PER_WINDOW', 12, 2, 100));
     }
 
     $timeout = $scope === 'admin' ? $adminTimeout : $publicTimeout;
@@ -141,78 +142,33 @@ if (!function_exists('app_request_guard')) {
       @mkdir($bucketDir, 0775, true);
     }
 
-    $state = [
-      'window_started' => $now,
-      'count' => 0,
-      'blocked_until' => 0,
-      'ip' => $ip,
-      'route' => $route,
-      'scope' => $scope,
-    ];
-
-    if (file_exists($bucketFile)) {
-      $raw = @file_get_contents($bucketFile);
-      $decoded = json_decode((string)$raw, true);
-      if (is_array($decoded)) {
-        $state = array_merge($state, $decoded);
-      }
+    try {
+      $state = request_guard_tick($bucketFile, [
+        'window_started' => $now, 'count' => 0, 'blocked_until' => 0,
+        'ip' => $ip, 'route' => $route, 'scope' => $scope,
+      ], $now, $windowSec);
+      $burstFile = app_storage_file('security/request_guard_burst/' . sha1($scope . '|' . $route . '|' . $ip) . '.json');
+      $burstState = request_guard_tick($burstFile, [
+        'window_started' => $now, 'count' => 0, 'last_route' => $route, 'ip' => $ip,
+      ], $now, $burstWindowSec);
+    } catch (Throwable $e) {
+      error_log('Request guard storage failure: ' . $e->getMessage());
+      http_response_code(503);
+      exit('Service temporarily unavailable.');
     }
-
     $blockedUntil = (int)($state['blocked_until'] ?? 0);
     if ($blockedUntil > $now) {
-      $retryAfter = $blockedUntil - $now;
-      request_guard_reject($retryAfter, [
-        'ok' => false,
-        'error' => 'rate_limited',
+      request_guard_reject($blockedUntil - $now, [
+        'ok' => false, 'error' => 'rate_limited',
         'message' => 'Too many requests. Try again shortly.',
-        'retry_after' => $retryAfter,
+        'retry_after' => $blockedUntil - $now,
       ]);
     }
-
-    $windowStarted = (int)($state['window_started'] ?? $now);
-    if (($now - $windowStarted) >= $windowSec) {
-      $state['window_started'] = $now;
-      $state['count'] = 0;
-      $state['blocked_until'] = 0;
-    }
-
-    $state['count'] = (int)($state['count'] ?? 0) + 1;
-
-    $burstTriggered = false;
-    $burstCount = 0;
-    $burstFile = app_storage_file('security/request_guard_burst/' . sha1($ip) . '.json');
-    $burstDir = dirname($burstFile);
-    if (!is_dir($burstDir)) {
-      @mkdir($burstDir, 0775, true);
-    }
-
-    $burstState = [
-      'window_started' => $now,
-      'count' => 0,
-      'last_route' => $route,
-      'ip' => $ip,
-    ];
-    if (file_exists($burstFile)) {
-      $burstRaw = @file_get_contents($burstFile);
-      $burstDecoded = json_decode((string)$burstRaw, true);
-      if (is_array($burstDecoded)) {
-        $burstState = array_merge($burstState, $burstDecoded);
-      }
-    }
-
-    $burstWindowStarted = (int)($burstState['window_started'] ?? $now);
-    if (($now - $burstWindowStarted) >= $burstWindowSec) {
-      $burstState['window_started'] = $now;
-      $burstState['count'] = 0;
-    }
-    $burstState['count'] = (int)($burstState['count'] ?? 0) + 1;
-    $burstState['last_route'] = $route;
     $burstCount = (int)$burstState['count'];
-    @file_put_contents($burstFile, json_encode($burstState, JSON_UNESCAPED_SLASHES), LOCK_EX);
-
-    if ($burstCount >= $burstLimit) {
-      $burstTriggered = true;
-      $state['blocked_until'] = max((int)($state['blocked_until'] ?? 0), $now + $burstBlockSec);
+    $burstTriggered = $burstCount > $burstLimit;
+    if ($burstTriggered) {
+      request_guard_block($bucketFile, $now + $burstBlockSec);
+      $state['blocked_until'] = $now + $burstBlockSec;
     }
 
     $nearLimit = $state['count'] >= (int)ceil($limit * 0.8);
@@ -234,7 +190,7 @@ if (!function_exists('app_request_guard')) {
     }
 
     if ($burstTriggered) {
-      @file_put_contents($bucketFile, json_encode($state, JSON_UNESCAPED_SLASHES), LOCK_EX);
+      
       request_guard_log(json_encode([
         'time' => gmdate('c'),
         'event' => 'burst_blocked',
@@ -260,7 +216,7 @@ if (!function_exists('app_request_guard')) {
 
     if ($state['count'] > $limit) {
       $state['blocked_until'] = $now + $blockSec;
-      @file_put_contents($bucketFile, json_encode($state, JSON_UNESCAPED_SLASHES), LOCK_EX);
+      request_guard_block($bucketFile, $state['blocked_until']);
 
       request_guard_log(json_encode([
         'time' => gmdate('c'),
@@ -282,6 +238,6 @@ if (!function_exists('app_request_guard')) {
       ]);
     }
 
-    @file_put_contents($bucketFile, json_encode($state, JSON_UNESCAPED_SLASHES), LOCK_EX);
+    
   }
 }

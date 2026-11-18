@@ -100,22 +100,22 @@ include __DIR__ . '/includes/public_header.php';
         const token = localStorage.getItem('attendance_token') || '';
         if (token) {
           try {
-            const revokedRes = await fetch('admin/revoked_tokens.php', { cache: 'no-store' });
-            if (revokedRes.ok) {
-              const revokedData = await revokedRes.json();
-              const revokedTokens = (revokedData && revokedData.revoked && revokedData.revoked.tokens) ? revokedData.revoked.tokens : {};
-              tokenRevoked = !!(revokedTokens && revokedTokens[token]);
-            }
-          } catch (e) {}
+            const revokedRes = await fetch('admin/revoked_tokens.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({ token }),
+              cache: 'no-store'
+            });
+            if (!revokedRes.ok) return; // Do not assume unrestricted when check fails.
+            const status = await revokedRes.json();
+            tokenRevoked = status && status.revoked === true;
+          } catch (e) { return; }
         }
-
+        if (tokenRevoked) return; // Revoked tokens require verified recovery.
         localStorage.removeItem('attendanceBlocked');
         localStorage.removeItem('attendanceTabAwayStrikes');
         localStorage.removeItem('attendanceTabAwayLockUntil');
 
-        if (tokenRevoked) {
-          localStorage.removeItem('attendance_token');
-        }
 
         window.location.href = 'index.php';
       } catch (e) {}

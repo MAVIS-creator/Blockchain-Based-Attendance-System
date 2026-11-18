@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/src/StaticFrontendCors.php';
+bbas_public_frontend_cors(['POST', 'OPTIONS']);
 require_once __DIR__ . '/admin/session_bootstrap.php';
 admin_configure_session();
 require_once __DIR__ . '/storage_helpers.php';

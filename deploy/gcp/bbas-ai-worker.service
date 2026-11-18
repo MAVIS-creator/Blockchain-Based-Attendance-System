@@ -1,0 +1,21 @@
+[Unit]
+Description=BBAS support AI queue supervisor
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bbas
+Group=bbas
+WorkingDirectory=/srv/bbas/app
+# PHP script is CLI-only. This loop polls briefly, without spawning from web requests.
+ExecStart=/usr/bin/bash -c 'while true; do /usr/bin/php admin/ai_ticket_worker.php --drain=15; sleep 2; done'
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/srv/bbas/data
+
+[Install]
+WantedBy=multi-user.target

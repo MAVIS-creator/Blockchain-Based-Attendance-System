@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/access_guard.php';
+bbas_admin_require_page('clear_logs_ui');
 require_once __DIR__ . '/session_bootstrap.php';
 require_once __DIR__ . '/state_helpers.php';
 

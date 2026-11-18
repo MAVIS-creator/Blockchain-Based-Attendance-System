@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/src/StaticFrontendCors.php';
+bbas_public_frontend_cors(['GET', 'OPTIONS']);
+header('Cache-Control: private, no-store');
 require_once __DIR__ . '/request_guard.php';
 require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/state_helpers.php';

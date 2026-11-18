@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../access_guard.php';
+bbas_admin_require_page('add_course');
 require_once __DIR__ . '/../runtime_storage.php';
 require_once __DIR__ . '/../cache_helpers.php';
 $courseFile = admin_course_storage_migrate_file('course.json');

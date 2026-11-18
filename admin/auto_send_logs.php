@@ -1,4 +1,6 @@
 <?php
+// Scheduled report delivery is a private CLI job, never a web endpoint.
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 // auto_send_logs.php
 // Helper script to be scheduled (cron / Task Scheduler) to send logs automatically.
 

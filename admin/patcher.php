@@ -1,4 +1,10 @@
 <?php
+require_once __DIR__ . '/../env_helpers.php';
+// Direct code/command editing is too sensitive for an always-on classroom site.
+if (!app_is_local_environment() && (string)app_env_value('BBAS_PATCHER_ENABLED', '0') !== '1') {
+  http_response_code(403); exit('Developer patcher disabled in production');
+}
+
 require_once __DIR__ . '/session_bootstrap.php';
 if (empty($_SESSION['admin_logged_in'])) {
   header('Location: login.php');
