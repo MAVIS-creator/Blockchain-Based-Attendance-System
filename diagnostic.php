@@ -1,4 +1,6 @@
 <?php
+// Internal diagnostic output is CLI-only.
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 // Diagnostic test
 header('Content-Type: text/plain');
 
