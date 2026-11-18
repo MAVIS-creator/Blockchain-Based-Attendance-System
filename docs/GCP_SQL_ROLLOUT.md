@@ -75,3 +75,15 @@ migration and legacy admin exports have **not yet** been switched to it.
 - Do not switch DNS until an operator checks every anti-fraud policy and
   mobile browser in the full regression suite. The legacy PHP page stays
   available as a rollback.
+
+## SQL attendance data migration staging
+- SQL table exists, but the PHP attendance writer and admin readers remain on
+  legacy files until an end-to-end checked transaction/read migration is built.
+- `php tools/import_attendance_mysql.php --dry-run` enumerates valid legacy
+  records and refuses duplicates/anomalies. `--apply` uses one DB transaction
+  with rollback on error. Run only after a verified backup and schema install.
+- Important: avoid automatic seven-day deletion. BBAS no longer sweeps old
+  attendance logs during each student request. Archive only through an explicit
+  independently backed-up retention process.
+- The ticket AI worker now requests admin+student explanations together in one
+  provider call, with rule-based fallback when the provider is unavailable.

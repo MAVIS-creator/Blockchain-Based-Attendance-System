@@ -637,24 +637,9 @@ if (!is_dir($logDir)) {
     mkdir($logDir, 0755, true);
 }
 
-// ✅ SAFEGUARD: Clean up old log files older than 7 days
-$cleanupSpan = microtime(true);
-$sevenDaysAgo = time() - (7 * 86400);
-if (is_dir($logDir)) {
-    $files = @scandir($logDir);
-    if (is_array($files)) {
-        foreach ($files as $file) {
-            if (in_array($file, ['.', '..'])) continue;
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}.*\.log$/', $file)) continue;
-            $filePath = $logDir . '/' . $file;
-            if (is_file($filePath) && filemtime($filePath) < $sevenDaysAgo) {
-                @unlink($filePath);
-            }
-        }
-    }
-}
-request_timing_span('log_cleanup', $cleanupSpan);
-
+// Never run a directory-wide log deletion sweep for each student submission.
+// Attendance evidence must be retained until an approved archival process
+// verifies independent backups and the explicit retention policy.
 $logFile = $logDir . "/" . $today . ".log";
 $failedLog = $logDir . "/" . $today . "_failed_attempts.log";
 

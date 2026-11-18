@@ -284,8 +284,11 @@ class AiTicketAutomationEngine
     $attendanceAdded = false;
     $autoTokenClear = ['performed' => false, 'tokens_cleared' => 0, 'reason' => 'not_attempted'];
     $adminSuggestion = (string)($diag['suggested_admin_action'] ?? 'Review if needed.');
-    $aiSuggestion = AiProviderClient::suggestTicketResolution($ticket, $diag);
-    $aiFingerprintResponse = AiProviderClient::suggestFingerprintResponse($ticket, $diag);
+    // Generate both messages in one provider call; deterministic diagnosis
+    // and authorization checks remain the source of truth.
+    $bundle = AiProviderClient::suggestTicketBundle($ticket, $diag);
+    $aiSuggestion = $bundle['admin'];
+    $aiFingerprintResponse = $bundle['student'];
     if (!empty($aiSuggestion['ok']) && trim((string)($aiSuggestion['suggestion'] ?? '')) !== '') {
       $adminSuggestion = trim((string)$aiSuggestion['suggestion']);
     }

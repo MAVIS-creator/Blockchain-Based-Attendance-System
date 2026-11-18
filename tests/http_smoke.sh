@@ -39,4 +39,8 @@ for endpoint in fix_chain.php replay_outbox.php diagnostic.php admin/ai_ticket_w
   if [[ "$code" != "404" ]]; then echo "$endpoint returned $code instead of 404"; exit 1; fi
 done
 
+# A static frontend needs a small, unprivileged context response.
+context="$(curl --silent --show-error --max-time 8 "$base/public_context_api.php")"
+php -r '$j=json_decode(stream_get_contents(STDIN),true); if(!is_array($j)||!array_key_exists("active",$j)||!array_key_exists("course",$j))exit(1);' <<< "$context"
+
 echo "HTTP endpoint security and attendance validation smoke checks passed."

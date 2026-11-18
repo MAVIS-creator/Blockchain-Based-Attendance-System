@@ -29,6 +29,50 @@ class AiProviderClient
     return trim((string)app_env_value('AI_GEMINI_MODEL', 'gemini-2.5-flash-lite'));
   }
 
+  /**
+   * One hosted model request returns both student and admin messages, with
+   * deterministic, policy-safe fallbacks. Only the rule engine may authorize
+   * attendance changes; model prose never authorizes an action.
+   */
+  public static function suggestTicketBundle(array $ticket, array $diagnosis)
+  {
+    $fallbackAdmin = self::ruleBasedSuggestion($ticket, $diagnosis);
+    $fallbackStudent = self::ruleBasedFingerprintResponse($ticket, $diagnosis);
+    if (self::providerMode() === 'rules') {
+      return ['admin' => $fallbackAdmin, 'student' => $fallbackStudent];
+    }
+    $site = self::getSiteContextBundle('admin');
+    $prompt = self::buildPrompt($ticket, $diagnosis, 'admin', (string)($site['context'] ?? ''));
+    $systemPrompt = 'You are an attendance support assistant. Diagnosis and policy are fixed constraints. '
+      . 'Return a JSON object ONLY with two plain-text string keys: admin and student. '
+      . 'Admin: concise policy-safe action guidance. Student: one short factual status update. '
+      . 'Do not claim attendance was fixed or granted unless the supplied diagnosis confirms that. '
+      . 'Never suggest bypassing fingerprint, network, course or attendance rules.';
+    $result = self::queryWithFallback($prompt, $systemPrompt, $ticket, 'ticket_bundle');
+    if (empty($result['ok'])) {
+      return ['admin' => $fallbackAdmin, 'student' => $fallbackStudent];
+    }
+    $raw = (string)($result['suggestion'] ?? '');
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+      $candidate = self::extractJsonObjectFromText($raw);
+      if ($candidate !== '') $decoded = json_decode($candidate, true);
+    }
+    if (!is_array($decoded)) {
+      return ['admin' => $fallbackAdmin, 'student' => $fallbackStudent];
+    }
+    $admin = trim((string)($decoded['admin'] ?? ''));
+    $student = self::sanitizeStudentFingerprintSuggestion((string)($decoded['student'] ?? ''), $ticket, $diagnosis);
+    // Keep rulebook-backed guidance if either generated field is unsafe/missing.
+    $adminResponse = $admin !== '' && mb_strlen($admin) <= 800
+      ? array_merge($result, ['suggestion' => $admin])
+      : $fallbackAdmin;
+    $studentResponse = $student !== ''
+      ? array_merge($result, ['suggestion' => $student])
+      : $fallbackStudent;
+    return ['admin' => $adminResponse, 'student' => $studentResponse];
+  }
+
   public static function suggestTicketResolution(array $ticket, array $diagnosis)
   {
     $site = self::getSiteContextBundle('admin');
@@ -450,7 +494,7 @@ class AiProviderClient
   private static function groqModels()
   {
     $model = self::defaultGroqModel();
-    $fastModelsRaw = trim((string)app_env_value('GROQ_FAST_MODELS', 'llama-3.1-8b-instant,llama-3.3-70b-versatile'));
+    $fastModelsRaw = trim((string)app_env_value('GROQ_FAST_MODELS', 'openai/gpt-oss-20b'));
     $fastModels = array_values(array_filter(array_map('trim', explode(',', $fastModelsRaw)), function ($v) {
       return $v !== '';
     }));
