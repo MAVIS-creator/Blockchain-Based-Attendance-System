@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/src/StaticFrontendCors.php';
+bbas_public_frontend_cors(['GET', 'OPTIONS']);
 require_once __DIR__ . '/storage_helpers.php';
 require_once __DIR__ . '/request_guard.php';
 require_once __DIR__ . '/admin/runtime_storage.php';

@@ -61,3 +61,17 @@ migration and legacy admin exports have **not yet** been switched to it.
   readers. Existing critical attendance records are still file-backed.
 - Prove full offline fallback, restore, and failover during live traffic.
 - Confirm actual GCP runtime, DNS, HTTPS, network latency and Cloudflare settings.
+
+## Static student interface (staged preview)
+- Vercel project root directory: `web`.
+- Before deployment, set `web/config.js` to the HTTPS GCP API origin,
+  or replace it in Vercel's build pipeline. No secrets belong in it.
+- Set `BBAS_STATIC_FRONTEND_ORIGIN=https://<exact-vercel-domain>`
+  on GCP. Frontend-to-backend calls use CORS without cookies.
+- The static interface preserves the legacy device hash, browser local token,
+  6-second tab-away grace, three strikes, geolocation submission fields and
+  server-controlled action/course. It never decides attendance locally.
+- Support and rules currently navigate to their unchanged GCP PHP pages.
+- Do not switch DNS until an operator checks every anti-fraud policy and
+  mobile browser in the full regression suite. The legacy PHP page stays
+  available as a rollback.

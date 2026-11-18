@@ -123,7 +123,7 @@ function support_enqueue_ai_ticket($ticketTimestamp)
         }
     }
     $entry = ['ticket_timestamp' => $ticketTimestamp, 'enqueued_at' => date('c'), 'attempts' => 0];
-    return (bool)file_put_contents(support_ai_queue_file(), json_encode($entry, JSON_UNESCAPED_SLASHES) . "\\n", FILE_APPEND | LOCK_EX);
+    return (bool)file_put_contents(support_ai_queue_file(), json_encode($entry, JSON_UNESCAPED_SLASHES) . "\n", FILE_APPEND | LOCK_EX);
 }
 
 function support_assess_message_quality($message, $requestedAction)
