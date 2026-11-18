@@ -87,3 +87,17 @@ migration and legacy admin exports have **not yet** been switched to it.
   independently backed-up retention process.
 - The ticket AI worker now requests admin+student explanations together in one
   provider call, with rule-based fallback when the provider is unavailable.
+
+## Optional post-submit background queue
+- After verifying the worker, install
+  `deploy/gcp/bbas-post-submit-worker.service`; start with
+  `systemctl enable --now bbas-post-submit-worker`.
+- Only then set `BBAS_ASYNC_POST_SUBMIT=1`. When enabled, each successful
+  chain commit durably enqueues Supabase dual-write, log anchoring and legacy
+  email auto-send work before returning success, freeing PHP-FPM promptly.
+- The queue is at-least-once: review `post_submit_deadletter.jsonl` and ensure
+  external writes are idempotent. If enqueue fails, the original synchronous
+  post-response processing remains the fallback.
+- Keep `BBAS_ASYNC_POST_SUBMIT` disabled until a live worker, backups and
+  recovery checks are verified. An unstarted worker would leave queued tasks
+  pending indefinitely.

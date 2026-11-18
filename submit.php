@@ -802,6 +802,37 @@ try {
 $block = $chainResult['block'];
 request_timing_span('write_chain', $chainSpan, ['chain_blocks' => $chainResult['count']]);
 
+// Optional asynchronous side effects: commit the durable job before
+// acknowledging success. If the queue cannot be written, preserve the legacy
+// in-worker fallback instead of silently dropping audit/notification work.
+if ((string)getenv('BBAS_ASYNC_POST_SUBMIT') === '1') {
+    require_once __DIR__ . '/src/PostSubmitQueue.php';
+    try {
+        $queued = bbas_post_submit_enqueue([
+            'day' => $today,
+            'name' => $name,
+            'matric' => $matric,
+            'action' => $action,
+            'fingerprint' => $fingerprint,
+            'ip' => $ip,
+            'mac' => $mac,
+            'user_agent' => $userAgent,
+            'course' => $course,
+            'reason' => $logReason,
+            'chain_hash' => $block['hash'],
+            'auto_send' => (array)($settings['auto_send'] ?? []),
+        ]);
+        if ($queued) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => true, 'message' => "Your $action was recorded successfully!"]);
+            exit;
+        }
+        error_log('Post-submit queue did not persist; processing legacy fallback');
+    } catch (Throwable $e) {
+        error_log('Post-submit queue unavailable: ' . $e->getMessage());
+    }
+}
+
 // ✅ Send success response to the browser IMMEDIATELY.
 // The .log file and local blockchain chain are already written above — those are
 // the tamper-proof records. Supabase dual-write + Polygon anchoring run AFTER

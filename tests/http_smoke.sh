@@ -34,7 +34,7 @@ response="$(curl --fail --silent --show-error --max-time 8 -X POST "$base/submit
 php -r '$j=json_decode(stream_get_contents(STDIN),true); if (!is_array($j) || ($j["ok"]??null)!==false || strpos((string)($j["message"]??""),"valid matric")===false) exit(1);' <<< "$response"
 
 # Maintenance entrypoints must not be callable from the public web.
-for endpoint in fix_chain.php replay_outbox.php diagnostic.php admin/ai_ticket_worker.php tools/seed_sql_admin_accounts.php; do
+for endpoint in fix_chain.php replay_outbox.php diagnostic.php admin/ai_ticket_worker.php admin/post_submit_worker.php tools/seed_sql_admin_accounts.php; do
   code="$(curl --max-time 8 -s -o /dev/null -w '%{http_code}' "$base/$endpoint")"
   if [[ "$code" != "404" ]]; then echo "$endpoint returned $code instead of 404"; exit 1; fi
 done

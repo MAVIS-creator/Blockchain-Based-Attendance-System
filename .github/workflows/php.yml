@@ -63,3 +63,6 @@ jobs:
 
     - name: Vercel frontend JS syntax
       run: node --check web/app.js && node -e "JSON.parse(require('fs').readFileSync('web/vercel.json','utf8'))"
+
+    - name: Post-submit durable enqueue regression
+      run: php tests/post_submit_queue_smoke.php
