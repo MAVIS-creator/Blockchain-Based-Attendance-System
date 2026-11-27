@@ -1,4 +1,5 @@
-/* Set this to the externally reachable HTTPS GCP API origin before publishing.
- * Do not put credentials here. Example: https://api.attendance.example.com
+/* Enable only for a verified HTTPS student API after the release gate passes.
+ * This file is public. Keep all credentials server-side.
  */
+window.BBAS_STUDENT_ATTENDANCE_ENABLED = false;
 window.BBAS_API_ORIGIN = "";

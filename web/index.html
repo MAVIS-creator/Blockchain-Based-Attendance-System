@@ -8,21 +8,21 @@
   <link rel="stylesheet" href="/style.css?v=20261118">
   <script defer src="/config.js"></script>
   <script defer src="/js/fp.min.js"></script>
-  <script defer src="/app.js?v=20261127"></script>
+  <script defer src="/app.js?v=20261127-launch"></script>
 </head>
 <body>
-<header><div class="container head"><div class="brand"><img src="/asset/image.png" alt="" width="40" height="40"> Smart Attendance</div><span id="topStatus" class="chip">Checking status…</span></div></header>
+<header><div class="container head"><div class="brand"><img src="/asset/image.png" alt="" width="40" height="40"> Smart Attendance</div><span id="topStatus" class="chip">Attendance closed</span></div></header>
 <main class="container">
   <section id="announcement" class="announcement hidden" role="status"></section>
   <section class="shell">
     <div class="banner">
-      <span id="modeBadge" class="mode">Checking session…</span>
+      <span id="modeBadge" class="mode">Launch preview</span>
       <h1 id="courseTitle">Student Attendance</h1>
-      <p id="sessionDescription">Connecting to the attendance server</p>
+      <p id="sessionDescription">Classroom attendance has yet to open.</p>
     </div>
     <div class="body">
-      <div id="serviceMessage" class="notice" role="status">Loading the current class status…</div>
-      <form id="attendanceForm" novalidate>
+      <div id="serviceMessage" class="notice" role="status">Attendance is unavailable during launch preparation.</div>
+      <form id="attendanceForm" hidden novalidate>
         <label for="name">Full name</label>
         <input id="name" name="name" type="text" autocomplete="name" maxlength="255" required placeholder="Enter your official name">
         <label for="matric">Matric number</label>
@@ -32,10 +32,10 @@
         <input id="course" name="course" type="hidden">
         <button id="submitBtn" type="submit" disabled>Submit attendance</button>
       </form>
-      <div class="links"><a id="supportLink" href="#" rel="noopener">Get support</a><a id="rulesLink" href="#" rel="noopener">Attendance rules</a></div>
+      <div id="studentLinks" class="links" hidden><a id="supportLink" href="#" rel="noopener">Get support</a><a id="rulesLink" href="#" rel="noopener">Attendance rules</a></div>
     </div>
   </section>
-  <p class="footnote">Your attendance is confirmed only after the server accepts and records it. If a request times out, verify its status before retrying.</p>
+  <p id="studentFootnote" class="footnote" hidden>Your attendance is confirmed only after the server accepts and records it. If a request times out, verify its status before retrying.</p>
 </main>
 </body>
 </html>
