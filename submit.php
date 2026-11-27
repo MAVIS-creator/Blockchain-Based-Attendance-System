@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/src/StaticFrontendCors.php';
+bbas_public_frontend_cors(['POST', 'OPTIONS']);
 
 require_once __DIR__ . '/hybrid_dual_write.php';
 require_once __DIR__ . '/storage_helpers.php';
@@ -147,6 +149,20 @@ if (!isset($status[$action]) || !$status[$action]) {
     exit;
 }
 request_timing_span('load_status', $span, ['action' => $action]);
+// The client may not select a different course by modifying a hidden field.
+// A live attendance mode is only valid for the server-selected course.
+$courseFile = admin_course_storage_migrate_file('active_course.json');
+$serverActive = admin_cached_json_file('submit_active_course_authority', $courseFile, [], 3);
+$serverCourse = is_array($serverActive) ? trim((string)($serverActive['course'] ?? '')) : '';
+if ($serverCourse === '') {
+    fail('NO_ACTIVE_COURSE', 'No class has been selected for this attendance session.');
+}
+if (strcasecmp($serverCourse, $course) !== 0) {
+    fail('COURSE_MISMATCH', 'The selected class changed. Refresh the page to continue.');
+}
+$course = $serverCourse;
+$courseNormalized = strtolower($course);
+
 
 // -----------------------
 // Load admin settings (try JSON, else decrypt ENC:)
@@ -314,49 +330,27 @@ function build_attendance_duplicate_index($logFile, $today)
 
 function detect_proxy_vpn_indicators()
 {
-    $indicators = [];
-
-    $forwardedHeaders = [
-        'HTTP_FORWARDED',
-        'HTTP_X_FORWARDED_FOR',
-        'HTTP_X_FORWARDED',
-        'HTTP_X_CLUSTER_CLIENT_IP',
-        'HTTP_CLIENT_IP',
-        'HTTP_VIA',
-        'HTTP_PROXY_CONNECTION',
-        'HTTP_TRUE_CLIENT_IP',
-        'HTTP_CF_CONNECTING_IP',
-    ];
-
-    foreach ($forwardedHeaders as $hdr) {
-        $val = trim((string)($_SERVER[$hdr] ?? ''));
-        if ($val !== '') {
-            $indicators[] = $hdr;
-        }
+    // Cloudflare/Vercel forwarding headers are NORMAL reverse-proxy metadata,
+    // not proof a student is using a VPN. Flagging them blocks legitimate classes.
+    $ip = client_request_ip();
+    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+        return ['UNRESOLVED_CLIENT_IP'];
     }
-
-    $remoteAddr = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
-    if ($remoteAddr === '' || !filter_var($remoteAddr, FILTER_VALIDATE_IP)) {
-        $indicators[] = 'REMOTE_ADDR_INVALID';
+    // Optional, trusted-edge-only verdict. The edge must overwrite and strip
+    // any client-supplied X-BBAS-Verified-VPN header before forwarding.
+    if ((string)app_env_value('BBAS_USE_TRUSTED_EDGE_VPN_VERDICT', '0') !== '1') {
+        return [];
     }
-
-    // If XFF contains multiple hops, treat as proxied path.
-    $xff = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-    if ($xff !== '' && strpos($xff, ',') !== false) {
-        $indicators[] = 'HTTP_X_FORWARDED_FOR_MULTI_HOP';
+    $peer = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+    $cidrs = array_filter(array_map('trim', explode(',', (string)app_env_value('TRUSTED_PROXY_CIDRS', ''))));
+    $trusted = false;
+    foreach ($cidrs as $cidr) {
+        if (attendance_ip_in_cidr($peer, $cidr)) { $trusted = true; break; }
     }
-
-    return array_values(array_unique($indicators));
-}
-
-function geo_distance_m($lat1, $lng1, $lat2, $lng2)
-{
-    $earthRadius = 6371000.0;
-    $dLat = deg2rad($lat2 - $lat1);
-    $dLon = deg2rad($lng2 - $lng1);
-    $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) * sin($dLon / 2);
-    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-    return $earthRadius * $c;
+    if ($trusted && strtolower((string)($_SERVER['HTTP_X_BBAS_VERIFIED_VPN'] ?? '')) === 'block') {
+        return ['TRUSTED_EDGE_VPN_VERDICT'];
+    }
+    return [];
 }
 
 // -----------------------
@@ -503,45 +497,25 @@ if (file_exists($revokedFile)) {
 // -----------------------
 // Geo-fence enforcement (if configured)
 // -----------------------
-if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && is_array($settings['geo_fence'])) {
-    $geoSpan = microtime(true);
-    $gf = $settings['geo_fence'];
-    $gfLat = isset($gf['lat']) ? floatval($gf['lat']) : null;
-    $gfLng = isset($gf['lng']) ? floatval($gf['lng']) : null;
-    $gfRadius = isset($gf['radius_m']) ? intval($gf['radius_m']) : 0;
-    if ($gfLat !== null && $gfLng !== null && $gfRadius > 0) {
-        // Require numeric client location payload.
-        $rawLat = post_string('lat');
-        $rawLng = post_string('lng');
-        if ($rawLat === '' || $rawLng === '') {
-            request_timing_note('geo_fence_result', 'missing_client_location');
-            fail('GEOFENCE_MISSING', 'Location required for attendance at this time. Enable device location (high accuracy) and disable VPN/proxy if active.');
-        }
-        if (!is_numeric($rawLat) || !is_numeric($rawLng)) {
-            request_timing_note('geo_fence_result', 'invalid_client_location');
-            fail('GEOFENCE_INVALID_COORDS', 'Invalid location payload. Please retry with location services enabled.');
-        }
-
-        $postLat = floatval($rawLat);
-        $postLng = floatval($rawLng);
-        if ($postLat < -90 || $postLat > 90 || $postLng < -180 || $postLng > 180) {
-            request_timing_note('geo_fence_result', 'out_of_range_client_location');
-            fail('GEOFENCE_INVALID_COORDS', 'Location coordinates are out of range. Please retry attendance.');
-        }
-
-        $dist = geo_distance_m($gfLat, $gfLng, $postLat, $postLng);
-        if ($dist > $gfRadius) {
-            request_timing_note('geo_fence_result', 'outside');
-            request_timing_note('geo_fence_distance_m', round($dist, 2));
-            fail('GEOFENCE_OUTSIDE', 'You are outside the allowed attendance area. If this is unexpected, disable VPN/proxy and retry with accurate GPS location.');
-        }
-
-        request_timing_note('geo_fence_result', 'inside');
-        request_timing_note('geo_fence_distance_m', round($dist, 2));
-    }
+require_once __DIR__ . '/src/GeofenceEvidence.php';
+$geoSpan = microtime(true);
+$geofence = bbas_geofence_evaluate($settings, $_POST, (int)round($geoSpan * 1000));
+request_timing_note('geo_fence_result', $geofence['reason'] ?? 'disabled');
+if ($geofence['enabled']) {
     request_timing_span('geo_fence_check', $geoSpan, ['enabled' => true]);
-} else {
-    request_timing_note('geo_fence_result', 'disabled');
+    if ($geofence['inside'] !== true) {
+        $errors = [
+            'config_invalid' => ['GEOFENCE_CONFIG_INVALID', 'The attendance area is unavailable. Contact class support.'],
+            'client_location_missing' => ['GEOFENCE_MISSING', 'Allow precise location access and try again.'],
+            'invalid_coordinates' => ['GEOFENCE_INVALID_COORDS', 'Your browser sent an invalid location. Refresh and try again.'],
+            'location_stale' => ['GEOFENCE_STALE', 'Check your device clock and try again to get a fresh location.'],
+            'location_inaccurate' => ['GEOFENCE_INACCURATE', 'Your location is too uncertain. Try again where your phone can obtain a clearer signal.'],
+            'location_uncertain' => ['GEOFENCE_UNCERTAIN', 'Move further inside the attendance area and try again. Contact class support if precise location remains unavailable.'],
+            'outside_geofence' => ['GEOFENCE_OUTSIDE', 'Your reported location is outside the attendance area.'],
+        ];
+        [$code, $message] = $errors[$geofence['reason']];
+        fail($code, $message);
+    }
 }
 
 // -----------------------
@@ -635,24 +609,9 @@ if (!is_dir($logDir)) {
     mkdir($logDir, 0755, true);
 }
 
-// ✅ SAFEGUARD: Clean up old log files older than 7 days
-$cleanupSpan = microtime(true);
-$sevenDaysAgo = time() - (7 * 86400);
-if (is_dir($logDir)) {
-    $files = @scandir($logDir);
-    if (is_array($files)) {
-        foreach ($files as $file) {
-            if (in_array($file, ['.', '..'])) continue;
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}.*\.log$/', $file)) continue;
-            $filePath = $logDir . '/' . $file;
-            if (is_file($filePath) && filemtime($filePath) < $sevenDaysAgo) {
-                @unlink($filePath);
-            }
-        }
-    }
-}
-request_timing_span('log_cleanup', $cleanupSpan);
-
+// Never run a directory-wide log deletion sweep for each student submission.
+// Attendance evidence must be retained until an approved archival process
+// verifies independent backups and the explicit retention policy.
 $logFile = $logDir . "/" . $today . ".log";
 $failedLog = $logDir . "/" . $today . "_failed_attempts.log";
 
@@ -790,37 +749,61 @@ $pipelineEntry = [
 ];
 @file_put_contents($pipelineDiagFile, json_encode($pipelineEntry, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
 
-// ✅ Save as blockchain block (JSON)
+// Save the chained record under one cross-process lock; never acknowledge
+// a chain write that has not committed. Legacy daily log remains compatible.
 $chainSpan = microtime(true);
-$chainFile = app_storage_file('secure_logs/attendance_chain.json');
-$chain = file_exists($chainFile) ? json_decode(file_get_contents($chainFile), true) : [];
-if (!is_array($chain)) {
-    $chain = [];
+require_once __DIR__ . '/src/AttendanceChainStore.php';
+try {
+    $chainResult = attendance_chain_append_atomic(app_storage_file('secure_logs/attendance_chain.json'), [
+        'timestamp' => date('Y-m-d H:i:s'),
+        'name' => $name,
+        'matric' => $matric,
+        'action' => $action,
+        'fingerprint' => $fingerprint,
+        'ip' => $ip,
+        'userAgent' => $userAgent,
+        'course' => $course,
+    ]);
+} catch (Throwable $e) {
+    error_log('Attendance chain commit error: ' . $e->getMessage());
+    http_response_code(503);
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => false, 'code' => 'CHAIN_COMMIT_FAILED', 'message' => 'Attendance record needs verification. Please contact support before retrying.']);
+    exit;
 }
+$block = $chainResult['block'];
+request_timing_span('write_chain', $chainSpan, ['chain_blocks' => $chainResult['count']]);
 
-$prevHash = count($chain) > 0 ? $chain[count($chain) - 1]['hash'] : null;
-
-$block = [
-    'timestamp' => date('Y-m-d H:i:s'),
-    'name'      => $name,
-    'matric'    => $matric,
-    'action'    => $action,
-    'fingerprint' => $fingerprint,
-    'ip'        => $ip,
-    'userAgent' => $userAgent,
-    'course'    => $course,
-    'prevHash'  => $prevHash
-];
-
-$blockDataForHash = $block;
-unset($blockDataForHash['hash']);
-ksort($blockDataForHash);
-
-$block['hash'] = hash('sha256', json_encode($blockDataForHash, JSON_UNESCAPED_SLASHES) . $prevHash);
-
-$chain[] = $block;
-file_put_contents($chainFile, json_encode($chain, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
-request_timing_span('write_chain', $chainSpan, ['chain_blocks' => count($chain)]);
+// Optional asynchronous side effects: commit the durable job before
+// acknowledging success. If the queue cannot be written, preserve the legacy
+// in-worker fallback instead of silently dropping audit/notification work.
+if ((string)getenv('BBAS_ASYNC_POST_SUBMIT') === '1') {
+    require_once __DIR__ . '/src/PostSubmitQueue.php';
+    try {
+        $queued = bbas_post_submit_enqueue([
+            'day' => $today,
+            'name' => $name,
+            'matric' => $matric,
+            'action' => $action,
+            'fingerprint' => $fingerprint,
+            'ip' => $ip,
+            'mac' => $mac,
+            'user_agent' => $userAgent,
+            'course' => $course,
+            'reason' => $logReason,
+            'chain_hash' => $block['hash'],
+            'auto_send' => (array)($settings['auto_send'] ?? []),
+        ]);
+        if ($queued) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => true, 'message' => "Your $action was recorded successfully!"]);
+            exit;
+        }
+        error_log('Post-submit queue did not persist; processing legacy fallback');
+    } catch (Throwable $e) {
+        error_log('Post-submit queue unavailable: ' . $e->getMessage());
+    }
+}
 
 // ✅ Send success response to the browser IMMEDIATELY.
 // The .log file and local blockchain chain are already written above — those are

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#00457b">
+  <title>Smart Attendance — Student Portal</title>
+  <link rel="icon" type="image/png" href="/asset/image.png">
+  <link rel="stylesheet" href="/style.css?v=20261118">
+  <script defer src="/config.js"></script>
+  <script defer src="/js/fp.min.js"></script>
+  <script defer src="/app.js?v=20261127"></script>
+</head>
+<body>
+<header><div class="container head"><div class="brand"><img src="/asset/image.png" alt="" width="40" height="40"> Smart Attendance</div><span id="topStatus" class="chip">Checking status…</span></div></header>
+<main class="container">
+  <section id="announcement" class="announcement hidden" role="status"></section>
+  <section class="shell">
+    <div class="banner">
+      <span id="modeBadge" class="mode">Checking session…</span>
+      <h1 id="courseTitle">Student Attendance</h1>
+      <p id="sessionDescription">Connecting to the attendance server</p>
+    </div>
+    <div class="body">
+      <div id="serviceMessage" class="notice" role="status">Loading the current class status…</div>
+      <form id="attendanceForm" novalidate>
+        <label for="name">Full name</label>
+        <input id="name" name="name" type="text" autocomplete="name" maxlength="255" required placeholder="Enter your official name">
+        <label for="matric">Matric number</label>
+        <input id="matric" name="matric" type="text" inputmode="numeric" pattern="[0-9]{6,20}" maxlength="20" required placeholder="e.g. 1234567890">
+        <input id="fingerprint" name="fingerprint" type="hidden">
+        <input id="action" name="action" type="hidden">
+        <input id="course" name="course" type="hidden">
+        <button id="submitBtn" type="submit" disabled>Submit attendance</button>
+      </form>
+      <div class="links"><a id="supportLink" href="#" rel="noopener">Get support</a><a id="rulesLink" href="#" rel="noopener">Attendance rules</a></div>
+    </div>
+  </section>
+  <p class="footnote">Your attendance is confirmed only after the server accepts and records it. If a request times out, verify its status before retrying.</p>
+</main>
+</body>
+</html>

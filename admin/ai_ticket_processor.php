@@ -1,4 +1,9 @@
 <?php
+// Cron/worker invokes this through CLI; web requests require explicit RBAC.
+if (PHP_SAPI !== 'cli') {
+  require_once __DIR__ . '/access_guard.php';
+  bbas_admin_require_page('ai_suggestions');
+}
 require_once __DIR__ . '/session_bootstrap.php';
 admin_configure_session();
 require_once __DIR__ . '/../storage_helpers.php';

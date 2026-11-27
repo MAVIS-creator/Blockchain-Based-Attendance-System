@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/access_guard.php';
+bbas_admin_require_page('unlink_fingerprint');
 // Make this page friendly whether embedded or standalone.
 require_once __DIR__ . '/session_bootstrap.php';
 if (empty($_SESSION['admin_logged_in'])) {

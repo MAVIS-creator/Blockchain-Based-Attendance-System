@@ -193,23 +193,27 @@ include __DIR__ . '/includes/public_header.php';
           function checkRevocationOnce() {
             if (revocationCheckInFlight) return;
             revocationCheckInFlight = true;
-            fetch('admin/revoked_tokens.php', { cache: 'no-store' })
+            fetch('admin/revoked_tokens.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({ token: stored }),
+              cache: 'no-store'
+            })
               .then(r => r.ok ? r.json() : null)
               .then(data => {
-                if (!data || !data.revoked) return;
-                var tokensObj = data.revoked.tokens || {};
-                if (tokensObj[stored] || (Array.isArray(tokensObj) && tokensObj.indexOf(stored) !== -1)) {
-                  localStorage.removeItem('attendance_token');
-                  localStorage.removeItem('attendanceBlocked');
-                  try {
-                    Swal.fire({
-                      icon: 'info',
-                      title: 'Token Revoked',
-                      text: 'Your attendance token was revoked. Reloading...',
-                      confirmButtonColor: '#00457b'
-                    }).then(function() { location.reload(); });
-                  } catch (e) { location.reload(); }
-                }
+                if (!data || data.revoked !== true) return;
+                // Never rotate the revoked token in the browser. That could
+                // silently bypass a token-only administrative revocation.
+                const submit = document.getElementById('submitBtn');
+                if (submit) submit.disabled = true;
+                try {
+                  Swal.fire({
+                    icon: 'warning',
+                    title: 'Device access restricted',
+                    text: 'This session is revoked. Contact support for verified recovery.',
+                    confirmButtonColor: '#00457b'
+                  });
+                } catch (e) { alert('This session is revoked. Contact support.'); }
               })
               .catch(() => {})
               .finally(() => {
@@ -327,7 +331,7 @@ include __DIR__ . '/includes/public_header.php';
               lat: pos.coords.latitude,
               lng: pos.coords.longitude,
               accuracyM: pos && pos.coords && typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : null,
-              clientTs: Date.now(),
+              clientTs: pos.timestamp,
               highAccuracyRequested: true,
               source: 'browser-geolocation'
             });

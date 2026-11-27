@@ -13,6 +13,7 @@ if (!function_exists('app_storage_path')) {
   function app_storage_path()
   {
     $configured = trim((string)app_storage_env_value('STORAGE_PATH', ''));
+    $explicitStoragePath = $configured !== '';
     if ($configured === '') {
       $configured = __DIR__ . '/storage';
     }
@@ -61,6 +62,11 @@ if (!function_exists('app_storage_path')) {
       @mkdir($normalized, 0775, true);
     }
     if (!is_dir($normalized) || !is_writable($normalized)) {
+      // Explicit persistent storage must never silently fall back to the
+      // source checkout or /tmp. That would split/loss attendance on restart.
+      if ($explicitStoragePath) {
+        throw new RuntimeException('Configured STORAGE_PATH is not writable: ' . $normalized);
+      }
       $isAzureAppService = getenv('WEBSITE_SITE_NAME') !== false || getenv('WEBSITE_INSTANCE_ID') !== false;
       if ($isAzureAppService) {
         $azureHome = trim((string)getenv('HOME'));

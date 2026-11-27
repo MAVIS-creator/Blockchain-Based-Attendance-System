@@ -7,6 +7,9 @@ require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/request_timing.php';
 require_once __DIR__ . '/request_guard.php';
 require_once __DIR__ . '/src/AiTicketAutomationEngine.php';
+require_once __DIR__ . '/src/AiSqlJobQueue.php';
+require_once __DIR__ . '/src/GeofenceEvidence.php';
+header('Cache-Control: private, no-store');
 app_storage_init();
 app_request_guard('support.php', 'public');
 request_timing_start('support.php');
@@ -111,46 +114,18 @@ function support_ai_queue_file()
 
 function support_enqueue_ai_ticket($ticketTimestamp)
 {
-  $ticketTimestamp = trim((string)$ticketTimestamp);
-  if ($ticketTimestamp === '') {
-    return false;
-  }
-
-  $entry = [
-    'ticket_timestamp' => $ticketTimestamp,
-    'enqueued_at' => date('c')
-  ];
-  $line = json_encode($entry, JSON_UNESCAPED_SLASHES) . "\n";
-  return (bool)file_put_contents(support_ai_queue_file(), $line, FILE_APPEND | LOCK_EX);
-}
-
-function support_spawn_ai_worker()
-{
-  $script = escapeshellarg(__DIR__ . '/admin/ai_ticket_worker.php');
-  $phpBin = defined('PHP_BINARY') ? escapeshellarg(PHP_BINARY) : 'php';
-  $cmd = $phpBin . ' ' . $script . ' --drain=15';
-
-  if (stripos(PHP_OS, 'WIN') === 0) {
-    @pclose(@popen('start /B "" ' . $cmd, 'r'));
-    return;
-  }
-
-  @exec($cmd . ' > /dev/null 2>&1 &');
-}
-
-function support_process_ai_ticket_now($ticketTimestamp)
-{
-  $ticketTimestamp = trim((string)$ticketTimestamp);
-  if ($ticketTimestamp === '') {
-    return ['ok' => false, 'error' => 'missing_ticket_timestamp'];
-  }
-
-  try {
-    $engine = new AiTicketAutomationEngine();
-    return $engine->processTicketByTimestamp($ticketTimestamp);
-  } catch (Throwable $e) {
-    return ['ok' => false, 'error' => 'inline_ai_processing_failed', 'message' => $e->getMessage()];
-  }
+    $ticketTimestamp = trim((string)$ticketTimestamp);
+    if ($ticketTimestamp === '') return false;
+    if (bbas_ai_queue_driver() === 'mysql') {
+        try {
+            return bbas_ai_enqueue_mysql($ticketTimestamp);
+        } catch (Throwable $e) {
+            error_log('BBAS support enqueue failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+    $entry = ['ticket_timestamp' => $ticketTimestamp, 'enqueued_at' => date('c'), 'attempts' => 0];
+    return (bool)file_put_contents(support_ai_queue_file(), json_encode($entry, JSON_UNESCAPED_SLASHES) . "\n", FILE_APPEND | LOCK_EX);
 }
 
 function support_assess_message_quality($message, $requestedAction)
@@ -169,66 +144,12 @@ function support_assess_message_quality($message, $requestedAction)
 if (!function_exists('support_geofence_snapshot')) {
   function support_geofence_snapshot(array $settings)
   {
-    $enabled = !empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && is_array($settings['geo_fence']);
-    if (!$enabled) {
-      return ['enabled' => false];
-    }
-
-    $gf = $settings['geo_fence'];
-    $centerLat = isset($gf['lat']) ? floatval($gf['lat']) : null;
-    $centerLng = isset($gf['lng']) ? floatval($gf['lng']) : null;
-    $radiusM = isset($gf['radius_m']) ? intval($gf['radius_m']) : 0;
-    if ($centerLat === null || $centerLng === null || $radiusM <= 0) {
-      return [
-        'enabled' => true,
-        'inside' => null,
-        'reason' => 'config_invalid',
-      ];
-    }
-
-    $rawLat = trim((string)($_POST['geo_lat'] ?? ''));
-    $rawLng = trim((string)($_POST['geo_lng'] ?? ''));
-    $rawAcc = trim((string)($_POST['geo_accuracy_m'] ?? ''));
-    $rawTs = trim((string)($_POST['geo_client_ts'] ?? ''));
-    $rawSource = trim((string)($_POST['geo_source'] ?? ''));
-    $rawHighAccuracy = trim((string)($_POST['geo_high_accuracy'] ?? ''));
-
-    if ($rawLat === '' || $rawLng === '') {
-      return [
-        'enabled' => true,
-        'inside' => null,
-        'reason' => 'client_location_missing',
-        'radius_m' => $radiusM,
-      ];
-    }
-
-    $clientLat = floatval($rawLat);
-    $clientLng = floatval($rawLng);
-    $accuracyM = is_numeric($rawAcc) ? max(0.0, floatval($rawAcc)) : null;
-    $clientTs = is_numeric($rawTs) ? (int)$rawTs : null;
-
-    $earthRadius = 6371000.0;
-    $dLat = deg2rad($clientLat - $centerLat);
-    $dLon = deg2rad($clientLng - $centerLng);
-    $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($centerLat)) * cos(deg2rad($clientLat)) * sin($dLon / 2) * sin($dLon / 2);
-    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-    $distanceM = $earthRadius * $c;
-    $inside = ($distanceM <= $radiusM);
-
-    return [
-      'enabled' => true,
-      'inside' => $inside,
-      'reason' => $inside ? 'inside_geofence' : 'outside_geofence',
-      'radius_m' => $radiusM,
-      'distance_m' => round($distanceM, 2),
-      'configured_center' => ['lat' => round($centerLat, 7), 'lng' => round($centerLng, 7)],
-      'client_location' => ['lat' => round($clientLat, 7), 'lng' => round($clientLng, 7)],
-      'client_accuracy_m' => $accuracyM,
-      'client_source' => $rawSource !== '' ? $rawSource : 'unknown',
-      'client_high_accuracy' => ($rawHighAccuracy === '1'),
-      'client_ts' => $clientTs,
-      'server_ts' => time(),
-    ];
+    return bbas_geofence_evaluate($settings, [
+      'lat' => $_POST['geo_lat'] ?? '',
+      'lng' => $_POST['geo_lng'] ?? '',
+      'geo_accuracy_m' => $_POST['geo_accuracy_m'] ?? '',
+      'geo_client_ts' => $_POST['geo_client_ts'] ?? '',
+    ], (int)round(microtime(true) * 1000));
   }
 }
 
@@ -236,7 +157,7 @@ $success = false;
 $formError = '';
 $messageGuidance = '';
 $settings = admin_load_settings_cached(15);
-$supportGeofenceEnabled = !empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && is_array($settings['geo_fence']);
+$supportGeofenceEnabled = !empty($settings['geo_fence_enabled']);
 
 $courseFile = admin_course_storage_migrate_file('course.json');
 $courseRows = [];
@@ -315,6 +236,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
   if ($name && $matric && $message && $formError === '') {
     $createdAt = date('Y-m-d H:i:s');
+    $ticketCapability = bin2hex(random_bytes(32));
     $saved = append_support_ticket_atomic($ticketsFile, [
       'name' => $name,
       'matric' => $matric,
@@ -325,6 +247,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
       'ip' => $ip,
       'geofence' => $geofenceSnapshot,
       'timestamp' => $createdAt,
+      'status_capability_hash' => hash('sha256', $ticketCapability),
       'resolved' => false
     ]);
 
@@ -347,24 +270,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
       $aiSpan = microtime(true);
       $queued = support_enqueue_ai_ticket($createdAt);
-      if ($queued) {
-        support_spawn_ai_worker();
-      }
+      // A supervised systemd/cron worker processes queued tickets.
+      // Do not launch an unbounded worker for every HTTP request.
       request_timing_span('ai_ticket_enqueue', $aiSpan, [
         'queued' => $queued,
         'ticket_ts' => $createdAt
       ]);
 
-      // Azure background process spawning is not always reliable. Try an
-      // immediate same-request fallback so the student can still receive the
-      // targeted AI response without waiting on a detached worker.
-      $aiInlineSpan = microtime(true);
-      $inlineResult = support_process_ai_ticket_now($createdAt);
-      request_timing_span('ai_ticket_inline_process', $aiInlineSpan, [
-        'ok' => !empty($inlineResult['ok']),
-        'error' => (string)($inlineResult['error'] ?? ''),
-        'processed' => (int)($inlineResult['processed'] ?? 0),
-      ]);
+      // Support requests must never wait for model inference. A dedicated
+      // queue worker resolves the ticket after the response is returned.
     }
 
     $success = $saved;
@@ -431,9 +345,18 @@ include __DIR__ . '/includes/public_header.php';
                         <div>
                             <h4 class="text-sm font-bold text-[#065f46]">Ticket Submitted Successfully</h4>
                             <p class="text-xs text-[#064e3b] mt-1">Your support ticket has been recorded. Our team will review it shortly.</p>
+                            <p class="text-xs mt-2">Save this private code to check your ticket status later.</p>
+                            <code class="break-all"><?= htmlspecialchars($ticketCapability, ENT_QUOTES, 'UTF-8') ?></code>
                         </div>
                     </div>
                 <?php endif; ?>
+                <form id="ticketStatusForm" method="post" action="ticket_status_api.php" class="mb-8">
+                    <label for="ticketCapability" class="block font-semibold">Check ticket status</label>
+                    <input id="ticketCapability" name="capability" required maxlength="64" pattern="[0-9a-f]{64}"
+                           class="border rounded p-2" autocomplete="off" spellcheck="false">
+                    <button type="submit" class="px-4 py-2 font-semibold">Check status</button>
+                    <p id="ticketStatusResult" role="status"></p>
+                </form>
                 <?php if ($formError): ?>
                     <div class="bg-[#fef2f2] border border-[#fecaca] rounded-xl p-6 mb-8 flex gap-4 items-start">
                         <span class="material-symbols-outlined text-[#dc2626]">error</span>
@@ -542,6 +465,25 @@ include __DIR__ . '/includes/public_header.php';
 
 <script src="./js/fp.min.js"></script>
 <script>
+    document.getElementById('ticketStatusForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = document.getElementById('ticketStatusResult');
+      const button = form.querySelector('button');
+      const data = new FormData(form);
+      button.disabled = true;
+      result.textContent = 'Checking ticket status…';
+      try {
+        const response = await fetch(form.action, { method: 'POST', body: data, cache: 'no-store' });
+        const status = await response.json();
+        result.textContent = status.message || 'Ticket status is unavailable.';
+      } catch {
+        result.textContent = 'Cannot reach support. Check your connection and try again.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+
     (function () {
       const messageEl = document.getElementById('supportMessage');
       const submitBtn = document.getElementById('supportSubmitBtn');
@@ -576,10 +518,10 @@ include __DIR__ . '/includes/public_header.php';
 
       navigator.geolocation.getCurrentPosition(function (pos) {
         if (!pos || !pos.coords) return;
-        latEl.value = String(pos.coords.latitude || '');
-        lngEl.value = String(pos.coords.longitude || '');
-        accEl.value = String(pos.coords.accuracy || '');
-        tsEl.value = String(Date.now());
+        latEl.value = String(pos.coords.latitude);
+        lngEl.value = String(pos.coords.longitude);
+        accEl.value = String(pos.coords.accuracy);
+        tsEl.value = String(pos.timestamp);
       }, function () {
         // Non-blocking: server will still mark geofence evidence as missing.
       }, {

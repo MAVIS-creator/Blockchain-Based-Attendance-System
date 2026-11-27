@@ -18,8 +18,8 @@
 // Header Countdown Timer Logic
 const countdownEl = document.getElementById('headerCountdown');
 let currentEndTime = 0;
-const STATUS_POLL_INTERVAL_MS = 15000;
-const ANNOUNCEMENT_POLL_INTERVAL_MS = 20000;
+const STATUS_POLL_INTERVAL_MS = 15000 + Math.floor(Math.random() * 5000);
+const ANNOUNCEMENT_POLL_INTERVAL_MS = 20000 + Math.floor(Math.random() * 10000);
 
 function showTimeAdjustmentNotice(minutesStr, isReduced) {
     const toast = document.createElement('div');
