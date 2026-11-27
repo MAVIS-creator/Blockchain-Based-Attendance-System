@@ -99,3 +99,6 @@ jobs:
 
     - name: Ticket capability and public context HTTP regression
       run: python3 tests/ticket_status_http.py
+
+    - name: Unified admin dashboard credentials
+      run: php tests/unified_admin_dashboard_smoke.php
