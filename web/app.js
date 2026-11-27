@@ -2,7 +2,15 @@
 // Static frontend maintains the existing server-side identity and tab-away
 // evidence conventions. PHP remains authoritative for every attendance rule.
 const $ = id => document.getElementById(id);
-const API = String(window.BBAS_API_ORIGIN || location.origin).replace(/\/$/, "");
+const API = (() => {
+  if (window.BBAS_STUDENT_ATTENDANCE_ENABLED !== true) return null;
+  try {
+    const url = new URL(window.BBAS_API_ORIGIN);
+    if (url.protocol !== "https:" || url.username || url.password ||
+        url.pathname !== "/" || url.search || url.hash) return null;
+    return url.origin;
+  } catch { return null; }
+})();
 const route = path => API + "/" + path;
 const form = $("attendanceForm"), button = $("submitBtn");
 const keys = {token:"attendance_token", strikes:"attendanceTabAwayStrikes",
@@ -11,8 +19,7 @@ const GRACE_MS = 6000, LOCK_MS = 15*60000, MAX_STRIKES = 3;
 let context = null, ready = false, submitted = false, hiddenTimer = null;
 let submitting = false, uncertain = false;
 let statusTimer = null, refreshing = false, failedRefreshes = 0;
-$("supportLink").href = route("support.php");
-$("rulesLink").href = route("rules.php");
+
 function message(text, type="") {
   const el = $("serviceMessage"); el.textContent = text;
   el.className = "notice" + (type ? " " + type : "");
@@ -169,7 +176,7 @@ document.addEventListener("visibilitychange",()=>{
   }else clearTimeout(hiddenTimer);
 });
 async function pollContext(){
-  if (document.hidden) return;
+  if (!API || document.hidden) return;
   await refreshContext();
   if (!document.hidden && !statusTimer) {
     const delay=Math.min(120000, 15000*2**failedRefreshes);
@@ -181,6 +188,17 @@ document.addEventListener("visibilitychange", () => {
   statusTimer=null;
   if (!document.hidden) pollContext();
 });
-fingerprint();
-pollContext();
-setInterval(() => {if (!document.hidden) renderCountdown();}, 1000);
+if (API) {
+  $("topStatus").textContent = "Checking status…";
+  $("modeBadge").textContent = "Checking session…";
+  $("sessionDescription").textContent = "Connecting to the attendance server";
+  message("Loading the current class status…");
+  $("supportLink").href = route("support.php");
+  $("rulesLink").href = route("rules.php");
+  form.hidden = false;
+  $("studentLinks").hidden = false;
+  $("studentFootnote").hidden = false;
+  fingerprint();
+  pollContext();
+  setInterval(() => {if (!document.hidden) renderCountdown();}, 1000);
+}
