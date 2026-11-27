@@ -27,37 +27,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   $duration = isset($_POST['duration']) && is_numeric($_POST['duration']) ? (int)$_POST['duration'] * 60 : 600; // default 10 minutes
 
-  // try to load admin settings to enforce check windows
-  $settings = admin_load_settings_cached(15);
-
-  // helper: check time window
-  $nowHM = date('H:i');
-  $withinCheckinWindow = true;
-  if (!empty($settings['checkin_time_start']) && !empty($settings['checkin_time_end'])) {
-    $start = $settings['checkin_time_start'];
-    $end = $settings['checkin_time_end'];
-    if ($start <= $end) {
-      $withinCheckinWindow = ($nowHM >= $start && $nowHM <= $end);
-    } else {
-      // overnight window
-      $withinCheckinWindow = ($nowHM >= $start || $nowHM <= $end);
+  if ($errorMessage === null) {
+    require_once __DIR__ . '/../src/AttendanceSessionStatus.php';
+    $mode = isset($_POST['enable_checkin']) ? 'checkin' :
+      (isset($_POST['enable_checkout']) ? 'checkout' : (isset($_POST['disable']) ? 'closed' : null));
+    if ($mode !== null) {
+      try {
+        $status = bbas_set_attendance_status($statusFile, $mode, $duration, admin_load_settings_cached(15));
+      } catch (DomainException $e) {
+        $errorMessage = $e->getMessage();
+      } catch (RuntimeException $e) {
+        $errorMessage = 'Attendance status could not be saved.';
+      }
     }
   }
 
-  if (empty($errorMessage) && isset($_POST['enable_checkin'])) {
-    if (!$withinCheckinWindow) {
-      $errorMessage = 'Cannot enable Check-In: current time is outside the configured check-in window.';
-    } else {
-      $status = ['checkin' => true, 'checkout' => false, 'end_time' => time() + $duration];
-    }
-  } elseif (empty($errorMessage) && isset($_POST['enable_checkout'])) {
-    $status = ['checkin' => false, 'checkout' => true, 'end_time' => time() + $duration];
-  } elseif (empty($errorMessage) && isset($_POST['disable'])) {
-    $status = ['checkin' => false, 'checkout' => false, 'end_time' => null];
-  }
-
-  if (empty($errorMessage)) {
-    file_put_contents($statusFile, json_encode($status, JSON_PRETTY_PRINT), LOCK_EX);
+  if ($errorMessage === null) {
     header("Location: index.php?page=status");
     exit;
   }
