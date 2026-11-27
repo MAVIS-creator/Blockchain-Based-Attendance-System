@@ -20,6 +20,11 @@ if (file_exists($activeFile)) {
         $course = $active['course'];
     }
 }
+$notice = admin_cached_json_file('public_announcement', admin_storage_migrate_file('announcement.json'), [], 3);
+$announcement = [
+    'enabled' => !empty($notice['enabled']),
+    'message' => (string)($notice['message'] ?? ''),
+];
 date_default_timezone_set('Africa/Lagos');
 echo json_encode([
     'active' => $mode !== null,
@@ -27,5 +32,6 @@ echo json_encode([
     'course' => $course,
     'end_time' => isset($status['end_time']) && is_numeric($status['end_time']) ? (int)$status['end_time'] : null,
     'day' => date('Y-m-d'),
-    'server_time' => time()
+    'server_time' => time(),
+    'announcement' => $announcement
 ], JSON_UNESCAPED_SLASHES);

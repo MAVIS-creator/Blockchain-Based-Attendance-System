@@ -93,3 +93,9 @@ jobs:
 
     - name: Automatic recovery privilege boundary
       run: php tests/recovery_policy_smoke.php
+
+    - name: Geofence evidence regression
+      run: php tests/geofence_evidence_smoke.php
+
+    - name: Ticket capability and public context HTTP regression
+      run: python3 tests/ticket_status_http.py

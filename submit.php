@@ -353,16 +353,6 @@ function detect_proxy_vpn_indicators()
     return [];
 }
 
-function geo_distance_m($lat1, $lng1, $lat2, $lng2)
-{
-    $earthRadius = 6371000.0;
-    $dLat = deg2rad($lat2 - $lat1);
-    $dLon = deg2rad($lng2 - $lng1);
-    $a = sin($dLat / 2) * sin($dLat / 2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) * sin($dLon / 2);
-    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-    return $earthRadius * $c;
-}
-
 // -----------------------
 // VPN / Proxy tunneling enforcement (optional)
 // -----------------------
@@ -507,45 +497,25 @@ if (file_exists($revokedFile)) {
 // -----------------------
 // Geo-fence enforcement (if configured)
 // -----------------------
-if (!empty($settings['geo_fence_enabled']) && !empty($settings['geo_fence']) && is_array($settings['geo_fence'])) {
-    $geoSpan = microtime(true);
-    $gf = $settings['geo_fence'];
-    $gfLat = isset($gf['lat']) ? floatval($gf['lat']) : null;
-    $gfLng = isset($gf['lng']) ? floatval($gf['lng']) : null;
-    $gfRadius = isset($gf['radius_m']) ? intval($gf['radius_m']) : 0;
-    if ($gfLat !== null && $gfLng !== null && $gfRadius > 0) {
-        // Require numeric client location payload.
-        $rawLat = post_string('lat');
-        $rawLng = post_string('lng');
-        if ($rawLat === '' || $rawLng === '') {
-            request_timing_note('geo_fence_result', 'missing_client_location');
-            fail('GEOFENCE_MISSING', 'Location required for attendance at this time. Enable device location (high accuracy) and disable VPN/proxy if active.');
-        }
-        if (!is_numeric($rawLat) || !is_numeric($rawLng)) {
-            request_timing_note('geo_fence_result', 'invalid_client_location');
-            fail('GEOFENCE_INVALID_COORDS', 'Invalid location payload. Please retry with location services enabled.');
-        }
-
-        $postLat = floatval($rawLat);
-        $postLng = floatval($rawLng);
-        if ($postLat < -90 || $postLat > 90 || $postLng < -180 || $postLng > 180) {
-            request_timing_note('geo_fence_result', 'out_of_range_client_location');
-            fail('GEOFENCE_INVALID_COORDS', 'Location coordinates are out of range. Please retry attendance.');
-        }
-
-        $dist = geo_distance_m($gfLat, $gfLng, $postLat, $postLng);
-        if ($dist > $gfRadius) {
-            request_timing_note('geo_fence_result', 'outside');
-            request_timing_note('geo_fence_distance_m', round($dist, 2));
-            fail('GEOFENCE_OUTSIDE', 'You are outside the allowed attendance area. If this is unexpected, disable VPN/proxy and retry with accurate GPS location.');
-        }
-
-        request_timing_note('geo_fence_result', 'inside');
-        request_timing_note('geo_fence_distance_m', round($dist, 2));
-    }
+require_once __DIR__ . '/src/GeofenceEvidence.php';
+$geoSpan = microtime(true);
+$geofence = bbas_geofence_evaluate($settings, $_POST, (int)round($geoSpan * 1000));
+request_timing_note('geo_fence_result', $geofence['reason'] ?? 'disabled');
+if ($geofence['enabled']) {
     request_timing_span('geo_fence_check', $geoSpan, ['enabled' => true]);
-} else {
-    request_timing_note('geo_fence_result', 'disabled');
+    if ($geofence['inside'] !== true) {
+        $errors = [
+            'config_invalid' => ['GEOFENCE_CONFIG_INVALID', 'The attendance area is unavailable. Contact class support.'],
+            'client_location_missing' => ['GEOFENCE_MISSING', 'Allow precise location access and try again.'],
+            'invalid_coordinates' => ['GEOFENCE_INVALID_COORDS', 'Your browser sent an invalid location. Refresh and try again.'],
+            'location_stale' => ['GEOFENCE_STALE', 'Check your device clock and try again to get a fresh location.'],
+            'location_inaccurate' => ['GEOFENCE_INACCURATE', 'Your location is too uncertain. Try again where your phone can obtain a clearer signal.'],
+            'location_uncertain' => ['GEOFENCE_UNCERTAIN', 'Move further inside the attendance area and try again. Contact class support if precise location remains unavailable.'],
+            'outside_geofence' => ['GEOFENCE_OUTSIDE', 'Your reported location is outside the attendance area.'],
+        ];
+        [$code, $message] = $errors[$geofence['reason']];
+        fail($code, $message);
+    }
 }
 
 // -----------------------

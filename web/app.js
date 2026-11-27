@@ -9,7 +9,8 @@ const keys = {token:"attendance_token", strikes:"attendanceTabAwayStrikes",
   lock:"attendanceTabAwayLockUntil", bypass:"attendanceSubmissionBypass"};
 const GRACE_MS = 6000, LOCK_MS = 15*60000, MAX_STRIKES = 3;
 let context = null, ready = false, submitted = false, hiddenTimer = null;
-let statusTimer = null, announcementsTimer = null;
+let submitting = false, uncertain = false;
+let statusTimer = null, refreshing = false, failedRefreshes = 0;
 $("supportLink").href = route("support.php");
 $("rulesLink").href = route("rules.php");
 function message(text, type="") {
@@ -36,27 +37,59 @@ function lockCheck() {
   if(until){localRemove(keys.lock);localSet(keys.strikes,"0")}
   return false;
 }
-function setReady(ok) {ready=ok;button.disabled=!ok || submitted || lockCheck();}
+function setReady(ok) {
+  ready=ok;
+  button.disabled=!ready || submitting || submitted || uncertain || lockCheck();
+}
+function contextMessage(text, type) {
+  if (!submitting && !submitted && !uncertain) message(text, type);
+}
 async function getJSON(path){
-  const response=await fetch(route(path),{cache:"no-store",mode:"cors",credentials:"omit"});
-  if(!response.ok)throw Error("The attendance server is unavailable ("+response.status+").");
-  return response.json();
+  const controller=new AbortController();
+  const timeout=setTimeout(() => controller.abort(), 8000);
+  try {
+    const response=await fetch(route(path),{cache:"no-store",mode:"cors",credentials:"omit",signal:controller.signal});
+    if(!response.ok)throw Error("The attendance server is unavailable ("+response.status+").");
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 async function refreshContext(){
+  if (refreshing || document.hidden) return;
+  refreshing=true;
   try{
     const next=await getJSON("public_context_api.php");
-    context=next;
+    failedRefreshes=0;
+    context={...next, clockOffset:Number(next.server_time)*1000-Date.now()};
+    const announcement=next.announcement;
+    const el=$("announcement");
+    const text=announcement && announcement.enabled ? String(announcement.message||"").trim() : "";
+    el.textContent=text;
+    el.classList.toggle("hidden", !text);
     $("courseTitle").textContent=next.course||"Student Attendance";
     $("action").value=next.action||"";
     $("course").value=next.course||"General";
     $("modeBadge").textContent=next.action ? next.action.toUpperCase()+" MODE" : "SESSION CLOSED";
     $("topStatus").textContent=next.active ? "Attendance active" : "Attendance closed";
-    if(next.active && next.end_time && Number(next.end_time)<=Number(next.server_time)){setReady(false);message("This attendance session has ended.","error");return;}
-    if(!next.active) {setReady(false); message("Attendance is closed. Check again when your class starts.");return;}
+    if(next.active && next.end_time && Number(next.end_time)<=Number(next.server_time)){setReady(false);contextMessage("This attendance session has ended.","error");return;}
+    if(!next.active) {$("sessionDescription").textContent="No active session";setReady(false); contextMessage("Attendance is closed. Check again when your class starts.");return;}
     $("sessionDescription").textContent="Session date: "+next.day+" · Ends at "+new Date(next.end_time*1000).toLocaleTimeString();
     setReady(Boolean($("fingerprint").value)&&!submitted);
-    if(!submitted)message("Check your details, then submit attendance once. Server validation rules still apply.");
-  }catch(e){setReady(false);message("Cannot reach the attendance backend. Please check your internet connection and try again.", "error");}
+    if (!lockCheck()) contextMessage("Check your details, then submit attendance once.");
+  }catch(e){
+    failedRefreshes++;
+    setReady(false);
+    contextMessage("Cannot reach the attendance server. Check your connection or try again when class starts.", "error");
+  }finally{refreshing=false;}
+}
+function renderCountdown(){
+  if (!context || !context.active || !context.end_time) return;
+  const remaining=Math.max(0, Math.ceil((context.end_time*1000-Date.now()-context.clockOffset)/1000));
+  $("sessionDescription").textContent=remaining ?
+    "Time remaining " + Math.floor(remaining/60) + ":" + String(remaining%60).padStart(2,"0") :
+    "This attendance session has ended.";
+  if (!remaining) setReady(false);
 }
 async function fingerprint(){
   try{
@@ -85,35 +118,36 @@ function getLocation(){
     const timer=setTimeout(()=>{if(!done){done=true;resolve(null)}},5000);
     navigator.geolocation.getCurrentPosition(p=>{
       if(done)return;done=true;clearTimeout(timer);
-      resolve({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy});
+      resolve({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,timestamp:p.timestamp});
     },()=>{if(done)return;done=true;clearTimeout(timer);resolve(null)},
-    {enableHighAccuracy:true,maximumAge:60000,timeout:5000});
+    {enableHighAccuracy:true,maximumAge:0,timeout:5000});
   });
 }
 form.addEventListener("submit",async e=>{
   e.preventDefault();
-  if(!ready||submitted||lockCheck()||!form.reportValidity())return;
-  setReady(false);message("Submitting your attendance. Please keep this page open.");
+  if(!ready||submitting||submitted||uncertain||lockCheck()||!form.reportValidity())return;
+  submitting=true;setReady(ready);message("Submitting your attendance. Please keep this page open.");
+  const submissionContext=context;
   const data=new FormData(form);
   const loc=await getLocation();
   if(loc){data.append("lat",loc.lat);data.append("lng",loc.lng);
-    data.append("geo_accuracy_m",loc.accuracy);data.append("geo_client_ts",Date.now());
+    data.append("geo_accuracy_m",loc.accuracy);data.append("geo_client_ts",loc.timestamp);
     data.append("geo_high_accuracy","1");data.append("geo_source","browser-geolocation");}
   const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),25000);
   try{
     const res=await fetch(route("submit.php"),{method:"POST",body:data,signal:abort.signal,
       mode:"cors",credentials:"omit",cache:"no-store"});
     const json=await res.json();
-    if(!json || !json.ok){message((json&&json.message)||"Attendance was not accepted.","error");setReady(true);return;}
+    if(!json || !json.ok){message((json&&json.message)||"Attendance was not accepted.","error");return;}
     submitted=true;clearFence();
-    localSet(keys.bypass,JSON.stringify({token:localGet(keys.token),course:context.course,
-      day:context.day,action:context.action,at:Date.now()}));
+    localSet(keys.bypass,JSON.stringify({token:localGet(keys.token),course:submissionContext.course,
+      day:submissionContext.day,action:submissionContext.action,at:Date.now()}));
     message(json.message||"Attendance was recorded successfully.","success");button.disabled=true;
   }catch(e){
     // A timeout is ambiguous: the server may have committed the attendance.
     message("The response was interrupted. Your attendance may have been saved. Contact support or check your record before submitting again.","error");
-    setReady(false);
-  }finally{clearTimeout(timer)}
+    uncertain=true;
+  }finally{clearTimeout(timer);submitting=false;setReady(ready);}
 });
 document.addEventListener("visibilitychange",()=>{
   if(!context||!context.active||submitted||allowedBypass())return;
@@ -130,23 +164,23 @@ document.addEventListener("visibilitychange",()=>{
       fetch(route("log_inactivity.php"),{method:"POST",body:data,mode:"cors",credentials:"omit",
         keepalive:true}).catch(()=>{});
       if(locked){setReady(false);message("Session locked after three tab-away violations.","error")}
-      else message("Tab-away warning: "+strikes+" of 3 grace periods used.","error");
+      else contextMessage("Tab-away warning: "+strikes+" of 3 grace periods used.","error");
     },GRACE_MS);
   }else clearTimeout(hiddenTimer);
 });
-async function refreshAnnouncements(){
-  try{
-    const fp=encodeURIComponent($("fingerprint").value||"");
-    const response=await getJSON("get_announcement.php"+(fp?"?fingerprint="+fp:""));
-    const el=$("announcement");const txt=String(response.message||"").trim();
-    if(response.enabled&&txt){el.textContent=txt;el.classList.remove("hidden");}
-    else el.classList.add("hidden");
-  }catch{}
+async function pollContext(){
+  if (document.hidden) return;
+  await refreshContext();
+  if (!document.hidden && !statusTimer) {
+    const delay=Math.min(120000, 15000*2**failedRefreshes);
+    statusTimer=setTimeout(() => {statusTimer=null;pollContext();}, delay+Math.random()*5000);
+  }
 }
-(async()=>{
-  await Promise.all([fingerprint(),refreshContext()]);
-  await refreshAnnouncements();
-  // Per-client jitter staggers requests from large classes sharing one NAT.
-  statusTimer=setInterval(refreshContext,15000+Math.floor(Math.random()*5000));
-  announcementsTimer=setInterval(refreshAnnouncements,20000+Math.floor(Math.random()*10000));
-})();
+document.addEventListener("visibilitychange", () => {
+  clearTimeout(statusTimer);
+  statusTimer=null;
+  if (!document.hidden) pollContext();
+});
+fingerprint();
+pollContext();
+setInterval(() => {if (!document.hidden) renderCountdown();}, 1000);

@@ -331,7 +331,7 @@ include __DIR__ . '/includes/public_header.php';
               lat: pos.coords.latitude,
               lng: pos.coords.longitude,
               accuracyM: pos && pos.coords && typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : null,
-              clientTs: Date.now(),
+              clientTs: pos.timestamp,
               highAccuracyRequested: true,
               source: 'browser-geolocation'
             });
