@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/cache_helpers.php';
+require_once __DIR__ . '/../client_ip.php';
 
 if (!function_exists('admin_accounts_file')) {
   function admin_accounts_file()
@@ -553,25 +554,7 @@ if (!function_exists('admin_register_session')) {
 }
 
 if (!function_exists('admin_request_client_ip')) {
-  function admin_request_client_ip()
-  {
-    $cfIp = trim((string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
-    if ($cfIp !== '') {
-      return $cfIp;
-    }
-
-    $xff = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-    if ($xff !== '') {
-      $parts = array_map('trim', explode(',', $xff));
-      foreach ($parts as $part) {
-        if ($part !== '') {
-          return $part;
-        }
-      }
-    }
-
-    return trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
-  }
+  function admin_request_client_ip() { return attendance_client_ip(); }
 }
 
 if (!function_exists('admin_session_recovery_window_seconds')) {

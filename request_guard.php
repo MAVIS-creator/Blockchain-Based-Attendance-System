@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/storage_helpers.php';
+require_once __DIR__ . '/client_ip.php';
 
 if (!function_exists('request_guard_env_int')) {
   function request_guard_env_int($key, $default, $min, $max)
@@ -17,20 +18,7 @@ if (!function_exists('request_guard_env_int')) {
 }
 
 if (!function_exists('request_guard_client_ip')) {
-  function request_guard_client_ip()
-  {
-    $cfIp = trim((string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
-    if ($cfIp !== '') return $cfIp;
-
-    $xff = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-    if ($xff !== '') {
-      $parts = explode(',', $xff);
-      $first = trim((string)($parts[0] ?? ''));
-      if ($first !== '') return $first;
-    }
-
-    return trim((string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
-  }
+  function request_guard_client_ip() { return attendance_client_ip(); }
 }
 
 if (!function_exists('request_guard_is_json_request')) {

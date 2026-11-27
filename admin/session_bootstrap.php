@@ -12,15 +12,11 @@ if (!defined('ADMIN_SESSION_TRACKER_COOKIE')) {
 }
 
 if (!function_exists('admin_auth_debug_enabled')) {
-  function admin_auth_debug_enabled()
-  {
-    $queryFlag = strtolower(trim((string)($_GET['auth_debug'] ?? $_POST['auth_debug'] ?? '')));
-    if (in_array($queryFlag, ['1', 'true', 'yes', 'on'], true)) {
-      return true;
-    }
-
-    $envFlag = strtolower(trim((string)app_env_value('AUTH_DEBUG_PANEL', '0')));
-    return in_array($envFlag, ['1', 'true', 'yes', 'on'], true);
+  function admin_auth_debug_enabled() {
+    // Never expose session diagnostic data to unauthenticated production visitors.
+    if (!app_is_local_environment()) return false;
+    $flag = strtolower(trim((string)app_env_value('AUTH_DEBUG_PANEL', '0')));
+    return in_array($flag, ['1', 'true', 'yes', 'on'], true);
   }
 }
 

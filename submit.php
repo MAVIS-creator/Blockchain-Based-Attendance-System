@@ -6,6 +6,7 @@ require_once __DIR__ . '/admin/runtime_storage.php';
 require_once __DIR__ . '/admin/cache_helpers.php';
 require_once __DIR__ . '/request_timing.php';
 require_once __DIR__ . '/request_guard.php';
+require_once __DIR__ . '/client_ip.php';
 app_storage_init();
 app_request_guard('submit.php', 'public');
 request_timing_start('submit.php');
@@ -27,24 +28,8 @@ function post_string($key, $default = '')
     return trim((string)$value);
 }
 
-function client_request_ip()
-{
-    $cfIp = trim((string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
-    if ($cfIp !== '' && filter_var($cfIp, FILTER_VALIDATE_IP)) {
-        return $cfIp;
-    }
-
-    $xff = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-    if ($xff !== '') {
-        $parts = array_map('trim', explode(',', $xff));
-        foreach ($parts as $part) {
-            if ($part !== '' && filter_var($part, FILTER_VALIDATE_IP)) {
-                return $part;
-            }
-        }
-    }
-
-    return trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+function client_request_ip() {
+    return attendance_client_ip();
 }
 
 function ip_is_lan_or_loopback($ip)
