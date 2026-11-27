@@ -23,7 +23,8 @@ if ($key === '' || $subjects === '') {
     exit;
 }
 
-if (!bbas_unified_dashboard_authorized((string)($_SERVER['HTTP_AUTHORIZATION'] ?? ''), $key, $subjects, time())) {
+$claims = bbas_unified_admin_claims((string)($_SERVER['HTTP_AUTHORIZATION'] ?? ''), $key, $subjects, time());
+if ($claims === null) {
     http_response_code(403);
     echo json_encode(['error' => 'Access denied']);
     exit;
@@ -41,8 +42,18 @@ $activeCourse = admin_cached_json_file(
     [],
     5
 );
-echo json_encode([
+$response = [
     'course' => is_string($activeCourse['course'] ?? null) ? $activeCourse['course'] : null,
     'action' => $action,
     'endsAt' => isset($status['end_time']) && is_numeric($status['end_time']) ? (int)$status['end_time'] : null,
-]);
+];
+
+$sessionSubjects = (string)app_env_value('BBAS_UNIFIED_SESSION_SUBJECTS', '');
+$courseSubjects = (string)app_env_value('BBAS_UNIFIED_COURSE_SUBJECTS', '');
+$response['canManageSession'] = in_array($claims['sub'], array_map('trim', explode(',', $sessionSubjects)), true);
+$response['canManageCourse'] = in_array($claims['sub'], array_map('trim', explode(',', $courseSubjects)), true);
+if ($response['canManageCourse']) {
+    require_once dirname(__DIR__) . '/src/UnifiedAdminCourses.php';
+    $response['courses'] = bbas_unified_course_names();
+}
+echo json_encode($response);
