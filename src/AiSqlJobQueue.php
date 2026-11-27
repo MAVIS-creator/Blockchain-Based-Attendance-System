@@ -21,12 +21,14 @@ function bbas_ai_db(): PDO
     }
     $user = (string)app_env_value('BBAS_SQL_USER', '');
     $pass = (string)app_env_value('BBAS_SQL_PASSWORD', '');
-    $pdo = new PDO($dsn, $user, $pass, [
+    $connection = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
         PDO::ATTR_TIMEOUT => 4,
     ]);
+    $connection->exec("SET time_zone = '+00:00'");
+    $pdo = $connection;
     return $pdo;
 }
 
@@ -42,12 +44,19 @@ function bbas_ai_enqueue_mysql(string $timestamp): bool
     return true; // duplicate ticket already queued/handled is not an error
 }
 
+const BBAS_AI_MAX_ATTEMPTS = 5;
+
 /** Transactional lease claim. The next worker can reclaim expired leases. */
 function bbas_ai_claim_mysql(): ?array
 {
     $db = bbas_ai_db();
     $db->beginTransaction();
     try {
+        $expire = $db->prepare("UPDATE bbas_ai_jobs
+            SET status='dead', lease_token=NULL, lease_until=NULL, last_error='Worker lease expired'
+            WHERE status='processing' AND lease_until<UTC_TIMESTAMP(6) AND attempts>=:max_attempts");
+        $expire->execute(['max_attempts' => BBAS_AI_MAX_ATTEMPTS]);
+
         $row = $db->query("SELECT id, ticket_timestamp, attempts FROM bbas_ai_jobs
             WHERE (status='pending' AND available_at<=UTC_TIMESTAMP(6))
                OR (status='processing' AND lease_until<UTC_TIMESTAMP(6))
@@ -76,7 +85,7 @@ function bbas_ai_claim_mysql(): ?array
 function bbas_ai_finish_mysql(array $job, bool $ok, string $error = ''): void
 {
     $tries = (int)$job['attempts'];
-    $status = $ok ? 'done' : ($tries >= 5 ? 'dead' : 'pending');
+    $status = $ok ? 'done' : ($tries >= BBAS_AI_MAX_ATTEMPTS ? 'dead' : 'pending');
     $delay = min(300, 5 * (2 ** min($tries, 6)));
     $stmt = bbas_ai_db()->prepare("UPDATE bbas_ai_jobs
         SET status=:state, lease_token=NULL, lease_until=NULL, last_error=:error,

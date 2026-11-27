@@ -103,5 +103,3 @@ finally:
     shutil.rmtree(directory)
 
 print("Ticket capability and public context HTTP checks passed")
-
-

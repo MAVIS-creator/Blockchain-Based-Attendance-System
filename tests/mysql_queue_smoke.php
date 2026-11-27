@@ -33,6 +33,34 @@ $check->execute([$ticket]);
 $row = $check->fetch();
 if (!$row || $row['status'] !== 'done') throw new RuntimeException('SQL ticket acknowledgement missing');
 
+if ($db->query('SELECT @@session.time_zone')->fetchColumn() !== '+00:00') {
+    throw new RuntimeException('AI queue connection must use UTC');
+}
+$crashedTicket = $ticket . '-crash';
+bbas_ai_enqueue_mysql($crashedTicket);
+$firstWorker = bbas_ai_claim_mysql();
+$expire = $db->prepare('UPDATE bbas_ai_jobs
+    SET lease_until=DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 1 SECOND), attempts=? WHERE ticket_timestamp=?');
+$expire->execute([BBAS_AI_MAX_ATTEMPTS - 1, $crashedTicket]);
+$secondWorker = bbas_ai_claim_mysql();
+if (!$secondWorker || $secondWorker['attempts'] !== BBAS_AI_MAX_ATTEMPTS ||
+    $firstWorker['token'] === $secondWorker['token']) {
+    throw new RuntimeException('Expired worker lease was not reclaimed');
+}
+bbas_ai_finish_mysql($firstWorker, true);
+$check->execute([$crashedTicket]);
+if ($check->fetch()['status'] !== 'processing') {
+    throw new RuntimeException('Stale worker acknowledged a reclaimed job');
+}
+$expire->execute([BBAS_AI_MAX_ATTEMPTS, $crashedTicket]);
+if (bbas_ai_claim_mysql() !== null) {
+    throw new RuntimeException('Exhausted worker lease was reclaimed');
+}
+$check->execute([$crashedTicket]);
+if ($check->fetch()['status'] !== 'dead') {
+    throw new RuntimeException('Exhausted worker lease did not reach the dead-letter state');
+}
+
 $day='2026-11-18';$course='CI Testing';$matric='1234567890';
 $insert=$db->prepare("INSERT INTO bbas_attendance_events
 (event_day,course,matric,action,name,source) VALUES (?,?,?,?,?,'ci_test')");
