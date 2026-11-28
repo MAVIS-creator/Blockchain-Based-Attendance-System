@@ -60,6 +60,4 @@ if ($response['canManageCourse']) {
         $response['canManageCourse'] = false;
     }
 }
-require_once dirname(__DIR__) . '/src/UnifiedAdminOverview.php';
-$response['overview'] = bbas_unified_overview($claims['sub']);
-echo json_encode($response, JSON_INVALID_UTF8_SUBSTITUTE);
+echo json_encode($response);
