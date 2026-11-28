@@ -54,6 +54,10 @@ $response['canManageSession'] = in_array($claims['sub'], array_map('trim', explo
 $response['canManageCourse'] = in_array($claims['sub'], array_map('trim', explode(',', $courseSubjects)), true);
 if ($response['canManageCourse']) {
     require_once dirname(__DIR__) . '/src/UnifiedAdminCourses.php';
-    $response['courses'] = bbas_unified_course_names();
+    try {
+        $response['courses'] = bbas_unified_course_names();
+    } catch (RuntimeException $e) {
+        $response['canManageCourse'] = false;
+    }
 }
 echo json_encode($response);
