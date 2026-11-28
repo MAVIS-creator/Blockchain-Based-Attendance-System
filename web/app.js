@@ -3,9 +3,10 @@
 // evidence conventions. PHP remains authoritative for every attendance rule.
 const $ = id => document.getElementById(id);
 const attendanceEnabled = window.BBAS_STUDENT_ATTENDANCE_ENABLED === true;
+const ticketTrackingEnabled = window.BBAS_STUDENT_TICKET_TRACKING_ENABLED === true;
 const contextEnabled = window.BBAS_STUDENT_CONTEXT_ENABLED === true;
 const API = (() => {
-  if (!attendanceEnabled && !contextEnabled) return null;
+  if (!attendanceEnabled && !contextEnabled && !ticketTrackingEnabled) return null;
   try {
     const url = new URL(window.BBAS_API_ORIGIN);
     if (url.protocol !== "https:" || url.username || url.password ||
@@ -179,7 +180,7 @@ document.addEventListener("visibilitychange",()=>{
   }else clearTimeout(hiddenTimer);
 });
 async function pollContext(){
-  if (!API || document.hidden) return;
+  if (!API || (!attendanceEnabled && !contextEnabled) || document.hidden) return;
   await refreshContext();
   if (!document.hidden && !statusTimer) {
     const delay=Math.min(120000, 15000*2**failedRefreshes);
@@ -206,3 +207,49 @@ if (API && attendanceEnabled) {
   setInterval(() => {if (!document.hidden) renderCountdown();}, 1000);
 }
 if (API && !attendanceEnabled) pollContext();
+
+if (API && ticketTrackingEnabled) {
+  $("ticketTracking").hidden = false;
+  const ticketForm = $("ticketStatusForm");
+  const input = $("ticketCode");
+  const submit = $("ticketStatusSubmit");
+  const result = $("ticketStatusMessage");
+  ticketForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (submit.disabled) return;
+    const capability = input.value.trim().toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(capability)) {
+      result.textContent = "Enter the tracking code from your support ticket.";
+      return;
+    }
+    submit.disabled = true;
+    result.textContent = "Checking your ticket�";
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(route("ticket_status_api.php"), {
+        method: "POST",
+        body: new URLSearchParams({capability}),
+        mode: "cors",
+        credentials: "omit",
+        cache: "no-store",
+        signal: controller.signal
+      });
+      if (response.status === 404) {
+        result.textContent = "No support ticket was found for that tracking code.";
+      } else {
+        if (!response.ok) throw new Error("Ticket lookup unavailable");
+        const ticket = await response.json();
+        if (ticket.ticket_found !== true) throw new Error("Invalid ticket response");
+        result.textContent = ticket.status === "resolved"
+          ? "Support has reviewed this ticket."
+          : "Support is reviewing this ticket.";
+      }
+    } catch {
+      result.textContent = "Ticket status is temporarily unavailable. Try again later.";
+    } finally {
+      clearTimeout(timeout);
+      submit.disabled = false;
+    }
+  });
+}

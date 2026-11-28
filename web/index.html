@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/style.css?v=20261118">
   <script defer src="/config.js"></script>
   <script defer src="/js/fp.min.js"></script>
-  <script defer src="/app.js?v=20261128-context"></script>
+  <script defer src="/app.js?v=20261128-support"></script>
 </head>
 <body>
 <header><div class="container head"><div class="brand"><img src="/asset/image.png" alt="" width="40" height="40"> Smart Attendance</div><span id="topStatus" class="chip">Attendance closed</span></div></header>
@@ -32,6 +32,15 @@
         <input id="course" name="course" type="hidden">
         <button id="submitBtn" type="submit" disabled>Submit attendance</button>
       </form>
+      <details id="ticketTracking" hidden>
+        <summary>Check a support ticket</summary>
+        <form id="ticketStatusForm">
+          <label for="ticketCode">Ticket tracking code</label>
+          <input id="ticketCode" type="password" maxlength="64" pattern="[0-9A-Fa-f]{64}" autocomplete="off" spellcheck="false" required>
+          <button id="ticketStatusSubmit" type="submit">Check status</button>
+          <p id="ticketStatusMessage" role="status"></p>
+        </form>
+      </details>
       <div id="studentLinks" class="links" hidden><a id="supportLink" href="#" rel="noopener">Get support</a><a id="rulesLink" href="#" rel="noopener">Attendance rules</a></div>
     </div>
   </section>
