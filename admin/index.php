@@ -67,7 +67,8 @@ $currentRole = $_SESSION['admin_role'] ?? 'admin';
 if ($currentRole !== 'superadmin' && $page !== 'unauthorized') {
   $permissions = admin_load_permissions_cached();
   $allowedPages = $permissions[$currentRole] ?? [];
-  if (!in_array($page, $allowedPages, true)) {
+  $route = admin_route_catalog()[$page] ?? null;
+  if (!$route || !empty($route['superadmin_only']) || !in_array($page, $allowedPages, true)) {
     header('Location: index.php?page=unauthorized');
     exit;
   }

@@ -158,7 +158,7 @@ if (!function_exists('admin_route_catalog')) {
       'ai_rulebook' => ['file' => 'ai_rulebook.php', 'label' => 'AI Rulebook Trainer', 'superadmin_only' => false],
       'unlink_fingerprint' => ['file' => 'unlink_fingerprint.php', 'label' => 'Unlink Fingerprints', 'superadmin_only' => false],
       'announcement' => ['file' => 'announcement.php', 'label' => 'Broadcast Announcements', 'superadmin_only' => false],
-      'patcher' => ['file' => 'patcher.php', 'label' => 'Patcher Studio', 'superadmin_only' => false],
+      'patcher' => ['file' => 'patcher.php', 'label' => 'Patcher Studio', 'superadmin_only' => true],
       'send_logs_email' => ['file' => 'send_logs_email.php', 'label' => 'Email Reports', 'superadmin_only' => false],
       'profile_settings' => ['file' => 'profile_settings.php', 'label' => 'Profile Settings', 'superadmin_only' => false],
     ];
