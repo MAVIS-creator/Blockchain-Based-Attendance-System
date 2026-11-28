@@ -88,6 +88,13 @@ jobs:
     - name: MariaDB transaction and job queue integration
       run: php tests/mysql_queue_smoke.php
 
+    - name: MariaDB attendance transaction, receipts and outbox
+      env:
+        BBAS_SQL_DSN: mysql:host=127.0.0.1;port=3306;dbname=bbas_ci;charset=utf8mb4
+        BBAS_SQL_USER: bbas_ci
+        BBAS_SQL_PASSWORD: ci_test_only
+      run: php tests/attendance_sql_authority.php
+
     - name: Guarded AI attendance write regression
       run: php tests/ai_attendance_atomic.php
 
