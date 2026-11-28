@@ -4,6 +4,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once __DIR__ . '/../storage_helpers.php';
 require_once __DIR__ . '/../src/AiSqlJobQueue.php';
+require_once __DIR__ . '/../admin/log_helpers.php';
 app_storage_init();
 $apply = in_array('--apply', $argv, true);
 $dryRun = in_array('--dry-run', $argv, true);
@@ -15,31 +16,37 @@ $dir = app_storage_file('logs');
 $rows = []; $invalid = []; $duplicate = []; $found = [];
 foreach (glob($dir . '/????-??-??.log') ?: [] as $file) {
     $date = basename($file, '.log');
-    if (!DateTimeImmutable::createFromFormat('!Y-m-d', $date)) continue;
+    $parsedDate = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+    if (!$parsedDate || $parsedDate->format('Y-m-d') !== $date) {
+        $invalid[] = basename($file);
+        continue;
+    }
     foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $lineNumber => $line) {
-        $fields = array_map('trim', explode('|', $line));
-        $matric = (string)($fields[1] ?? '');
-        $action = strtolower((string)($fields[2] ?? ''));
-        $course = (string)($fields[8] ?? 'General');
-        $name = (string)($fields[0] ?? '');
-        if (!preg_match('/^\d{6,20}$/', $matric) ||
+        $entry = admin_parse_attendance_line($line);
+        $matric = (string)($entry['matric'] ?? '');
+        $action = strtolower((string)($entry['action'] ?? ''));
+        $course = (string)($entry['course'] ?? '');
+        $name = (string)($entry['name'] ?? '');
+        $ip = (string)($entry['ip'] ?? '');
+        if (!preg_match('/^\d{6,20}$/D', $matric) ||
             !in_array($action, ['checkin','checkout'], true) ||
-            $name === '' || $course === '') {
+            $name === '' || $course === '' || mb_strlen($course) > 191 ||
+            mb_strlen($name) > 255 || strlen($ip) > 45) {
             $invalid[] = basename($file) . ':' . ($lineNumber + 1);
             continue;
         }
-        $key = $date . '|' . strtolower($course) . '|' . $matric . '|' . $action;
+        $key = $date . '|' . mb_strtolower($course) . '|' . $matric . '|' . $action;
         if (isset($found[$key])) {
             $duplicate[] = basename($file) . ':' . ($lineNumber + 1);
             continue;
         }
         $found[$key] = true;
-        $fingerprint = (string)($fields[3] ?? '');
+        $fingerprint = (string)($entry['fingerprint'] ?? '');
         $rows[] = [
-            'day'=>$date,'course'=>mb_substr($course,0,191),
-            'matric'=>$matric,'action'=>$action,'name'=>mb_substr($name,0,255),
+            'day'=>$date,'course'=>$course,
+            'matric'=>$matric,'action'=>$action,'name'=>$name,
             'fp'=>$fingerprint !== '' ? hash('sha256',$fingerprint) : null,
-            'ip'=>substr((string)($fields[4] ?? ''),0,45)
+            'ip'=>$ip
         ];
     }
 }
