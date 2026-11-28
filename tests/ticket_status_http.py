@@ -13,17 +13,19 @@ import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from http.cookiejar import CookieJar
-from urllib.request import build_opener, HTTPCookieProcessor, urlopen
+from urllib.request import build_opener, HTTPCookieProcessor, Request, urlopen
 
 
-def request(base, route, fields=None):
+def request(base, route, fields=None, method=None, origin=None):
     body = None if fields is None else urlencode(fields).encode()
     try:
-        response = urlopen(base + route, body, timeout=3)
+        headers = {} if origin is None else {"Origin": origin}
+        response = urlopen(Request(base + route, body, headers, method=method), timeout=3)
     except HTTPError as error:
         response = error
     with response:
-        return response.status, response.headers, json.load(response)
+        body = response.read()
+        return response.status, response.headers, json.loads(body) if body else None
 
 
 directory = Path(tempfile.gettempdir()) / ("bbas-http-" + secrets.token_hex(8))
@@ -41,7 +43,9 @@ try:
         {"resolved": False, "fingerprint": "legacy-synthetic", "ip": "127.0.0.1"},
     ]
     (storage / "support_tickets.json").write_text(json.dumps(tickets))
-    env = os.environ | {"STORAGE_PATH": str(directory), "APP_ENV": "testing", "APP_DEBUG": "false"}
+    origin = "https://smart-attendance-samex.me"
+    env = os.environ | {"STORAGE_PATH": str(directory), "APP_ENV": "testing", "APP_DEBUG": "false",
+                        "BBAS_STATIC_FRONTEND_ORIGIN": origin}
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
@@ -62,7 +66,12 @@ try:
         else:
             raise AssertionError("Local PHP server did not start")
         assert code == 405
-        code, headers, result = request(base, route, {"capability": capability})
+        code, headers, _ = request(base, route, method="OPTIONS", origin=origin)
+        assert code == 204 and headers["Access-Control-Allow-Origin"] == origin
+        code, headers, _ = request(base, route, method="OPTIONS", origin="https://unapproved.example")
+        assert code == 403 and headers["Access-Control-Allow-Origin"] is None
+        code, headers, result = request(base, route, {"capability": capability}, origin=origin)
+        assert headers["Access-Control-Allow-Origin"] == origin
         assert code == 200 and "no-store" in headers["Cache-Control"]
         assert result == {
             "ticket_found": True, "status": "resolved",

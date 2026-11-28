@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/src/StaticFrontendCors.php';
+bbas_public_frontend_cors(['POST', 'OPTIONS']);
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: private, no-store');
 
