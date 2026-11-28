@@ -1,5 +1,4 @@
-/* Enable only for a verified HTTPS student API after the release gate passes.
- * This file is public. Keep all credentials server-side.
- */
+// This configuration is public. Attendance requires a separate server release.
 window.BBAS_STUDENT_ATTENDANCE_ENABLED = false;
-window.BBAS_API_ORIGIN = "";
+window.BBAS_STUDENT_CONTEXT_ENABLED = true;
+window.BBAS_API_ORIGIN = "https://api.smart-attendance-samex.me";

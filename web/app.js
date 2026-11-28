@@ -2,8 +2,10 @@
 // Static frontend maintains the existing server-side identity and tab-away
 // evidence conventions. PHP remains authoritative for every attendance rule.
 const $ = id => document.getElementById(id);
+const attendanceEnabled = window.BBAS_STUDENT_ATTENDANCE_ENABLED === true;
+const contextEnabled = window.BBAS_STUDENT_CONTEXT_ENABLED === true;
 const API = (() => {
-  if (window.BBAS_STUDENT_ATTENDANCE_ENABLED !== true) return null;
+  if (!attendanceEnabled && !contextEnabled) return null;
   try {
     const url = new URL(window.BBAS_API_ORIGIN);
     if (url.protocol !== "https:" || url.username || url.password ||
@@ -68,12 +70,13 @@ async function refreshContext(){
   try{
     const next=await getJSON("public_context_api.php");
     failedRefreshes=0;
-    context={...next, clockOffset:Number(next.server_time)*1000-Date.now()};
     const announcement=next.announcement;
     const el=$("announcement");
     const text=announcement && announcement.enabled ? String(announcement.message||"").trim() : "";
     el.textContent=text;
     el.classList.toggle("hidden", !text);
+    if (!attendanceEnabled) return;
+    context={...next, clockOffset:Number(next.server_time)*1000-Date.now()};
     $("courseTitle").textContent=next.course||"Student Attendance";
     $("action").value=next.action||"";
     $("course").value=next.course||"General";
@@ -87,7 +90,7 @@ async function refreshContext(){
   }catch(e){
     failedRefreshes++;
     setReady(false);
-    contextMessage("Cannot reach the attendance server. Check your connection or try again when class starts.", "error");
+    if (attendanceEnabled) contextMessage("Cannot reach the attendance server. Check your connection or try again when class starts.", "error");
   }finally{refreshing=false;}
 }
 function renderCountdown(){
@@ -132,7 +135,7 @@ function getLocation(){
 }
 form.addEventListener("submit",async e=>{
   e.preventDefault();
-  if(!ready||submitting||submitted||uncertain||lockCheck()||!form.reportValidity())return;
+  if(!attendanceEnabled||!ready||submitting||submitted||uncertain||lockCheck()||!form.reportValidity())return;
   submitting=true;setReady(ready);message("Submitting your attendance. Please keep this page open.");
   const submissionContext=context;
   const data=new FormData(form);
@@ -157,7 +160,7 @@ form.addEventListener("submit",async e=>{
   }finally{clearTimeout(timer);submitting=false;setReady(ready);}
 });
 document.addEventListener("visibilitychange",()=>{
-  if(!context||!context.active||submitted||allowedBypass())return;
+  if(!attendanceEnabled||!context||!context.active||submitted||allowedBypass())return;
   if(document.hidden){
     clearTimeout(hiddenTimer);
     hiddenTimer=setTimeout(()=>{
@@ -188,7 +191,7 @@ document.addEventListener("visibilitychange", () => {
   statusTimer=null;
   if (!document.hidden) pollContext();
 });
-if (API) {
+if (API && attendanceEnabled) {
   $("topStatus").textContent = "Checking status…";
   $("modeBadge").textContent = "Checking session…";
   $("sessionDescription").textContent = "Connecting to the attendance server";
@@ -202,3 +205,4 @@ if (API) {
   pollContext();
   setInterval(() => {if (!document.hidden) renderCountdown();}, 1000);
 }
+if (API && !attendanceEnabled) pollContext();
