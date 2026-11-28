@@ -144,6 +144,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'avatar' => $authAccount['avatar'] ?? null,
             'needs_tour' => !empty($authAccount['needs_tour']),
         ], $trackerSid);
+        if (!$registered) {
+            $_SESSION = [];
+            session_write_close();
+            http_response_code(503);
+            exit('Administrator session could not be established. Please retry.');
+        }
         admin_auth_debug_log('login_success', [
             'user' => $usernameToUse,
             'registered_tracker' => (bool)$registered,
