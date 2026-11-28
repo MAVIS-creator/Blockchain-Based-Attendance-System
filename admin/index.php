@@ -37,27 +37,10 @@ if (!$isAdminLoggedIn) {
 
 require_once __DIR__ . '/runtime_storage.php';
 
-// Session Tracking & Validity Check
-$currentSessionId = trim((string)session_id());
-if ($currentSessionId === '') {
-  $currentSessionId = trim((string)($_COOKIE[ADMIN_SESSION_TRACKER_COOKIE] ?? ''));
-}
-$activeSessions = admin_sessions_read_fresh();
-if (!isset($activeSessions[$currentSessionId]) || !is_array($activeSessions[$currentSessionId])) {
-  $registerOk = admin_register_session((string)($_SESSION['admin_user'] ?? 'admin'), [], $currentSessionId);
-  admin_auth_debug_log('index_session_tracker_repair', [
-    'session_id' => $currentSessionId,
-    'register_ok' => (bool)$registerOk,
-  ]);
-  $activeSessions = admin_sessions_read_fresh();
-}
-
-if (isset($activeSessions[$currentSessionId]) && !admin_touch_session_activity($currentSessionId)) {
-  // Avoid logging the user out just because the tracker file could not be refreshed.
-  $activeSessions[$currentSessionId]['last_activity'] = time();
-  admin_auth_debug_log('index_session_touch_failed', [
-    'session_id' => $currentSessionId,
-  ]);
+if (!admin_touch_session_activity()) {
+  $_SESSION = [];
+  header('Location: login.php');
+  exit;
 }
 
 $page = $_GET['page'] ?? 'dashboard';

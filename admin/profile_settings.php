@@ -145,18 +145,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (isset($_POST['terminate_sessions'])) {
-        $sessionsFile = admin_sessions_file();
-        if (file_exists($sessionsFile)) {
-            $activeSessions = admin_load_sessions_cached(10);
-            if (is_array($activeSessions)) {
-                $currentSessionId = session_id();
-                foreach ($activeSessions as $sid => $sessData) {
-                    if ($sid !== $currentSessionId && $sessData['user'] === $user) {
-                        unset($activeSessions[$sid]);
-                    }
-                }
-                admin_write_json_atomic($sessionsFile, $activeSessions);
-            }
+        if (!admin_terminate_other_sessions($user, session_id())) {
+            http_response_code(503);
+            echo json_encode(['status' => 'error', 'message' => 'Session termination could not be confirmed.']);
+            exit;
         }
         echo json_encode(['status' => 'success', 'message' => 'Other sessions terminated.']);
         exit;

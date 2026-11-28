@@ -305,3 +305,17 @@ if (!function_exists('admin_configure_session')) {
 }
 
 admin_configure_session();
+
+// The PHP session cookie alone cannot resurrect a revoked tracker entry.
+if (!empty($_SESSION['admin_logged_in'])) {
+  require_once __DIR__ . '/state_helpers.php';
+  $user = (string)($_SESSION['admin_user'] ?? '');
+  $tracked = admin_sessions_read_fresh()[session_id()] ?? null;
+  $role = is_array($tracked) && admin_tracked_session_is_current($tracked, $user, time())
+    ? admin_current_account_role($user) : null;
+  if ($role === null) {
+    $_SESSION = [];
+  } else {
+    $_SESSION['admin_role'] = $role;
+  }
+}

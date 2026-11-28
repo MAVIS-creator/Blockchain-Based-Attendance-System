@@ -518,11 +518,70 @@ if (!function_exists('admin_write_json_atomic')) {
   }
 }
 
+/**
+ * Serialize tracker changes so an in-flight activity update cannot undo a
+ * concurrent logout or administrator session termination.
+ */
+function admin_mutate_session_tracker(callable $change): bool
+{
+  $file = admin_sessions_file();
+  $lock = @fopen($file . '.lock', 'c');
+  if ($lock === false) return false;
+  try {
+    if (!flock($lock, LOCK_EX)) return false;
+    $sessions = admin_sessions_read_fresh();
+    if (!$change($sessions)) return false;
+    return admin_write_json_atomic($file, $sessions);
+  } finally {
+    fclose($lock);
+  }
+}
+
+function admin_tracked_session_is_current(array $tracked, string $user, int $now): bool
+{
+  $lastActivity = (int)($tracked['last_activity'] ?? 0);
+  return $user !== '' && ($tracked['user'] ?? null) === $user &&
+    $lastActivity > 0 && $lastActivity <= $now &&
+    $now - $lastActivity <= admin_session_recovery_window_seconds();
+}
+
+function admin_current_account_role(string $user): ?string
+{
+  if ($user === '') return null;
+  require_once __DIR__ . '/sql_accounts.php';
+  if (admin_should_use_sql_accounts()) {
+    $db = admin_sql_accounts_connect($error);
+    if (!$db) return null;
+    try {
+      $table = admin_sql_accounts_table();
+      $query = $db->prepare("SELECT role FROM [dbo].[{$table}] WHERE username = :username AND is_active = 1");
+      $query->execute(['username' => $user]);
+      $role = $query->fetchColumn();
+    } catch (Throwable $e) {
+      return null;
+    }
+  } else {
+    $account = admin_load_accounts_cached(0)[$user] ?? null;
+    if (!is_array($account) || !in_array($account['is_active'] ?? true, [true, 1, '1'], true)) return null;
+    $role = $account['role'] ?? 'admin';
+  }
+  return is_string($role) && $role !== '' ? $role : null;
+}
+
+function admin_terminate_other_sessions(string $user, string $current): bool
+{
+  if ($user === '' || $current === '') return false;
+  return admin_mutate_session_tracker(static function (array &$sessions) use ($user, $current): bool {
+    foreach ($sessions as $id => $entry) {
+      if ($id !== $current && ($entry['user'] ?? null) === $user) unset($sessions[$id]);
+    }
+    return true;
+  });
+}
+
 if (!function_exists('admin_register_session')) {
   function admin_register_session($username, array $meta = [], $sid = null)
   {
-    $file = admin_sessions_file();
-    $activeSessions = admin_sessions_read_fresh();
     $sessionKey = trim((string)($sid ?: session_id()));
     if ($sessionKey === '') {
       return false;
@@ -548,8 +607,10 @@ if (!function_exists('admin_register_session')) {
       $entry['needs_tour'] = !empty($meta['needs_tour']);
     }
 
-    $activeSessions[$sessionKey] = $entry;
-    return admin_write_json_atomic($file, $activeSessions);
+    return admin_mutate_session_tracker(static function (array &$sessions) use ($sessionKey, $entry): bool {
+      $sessions[$sessionKey] = $entry;
+      return true;
+    });
   }
 }
 
@@ -603,9 +664,7 @@ if (!function_exists('admin_restore_session_from_tracker')) {
     }
 
     $now = time();
-    $lastActivity = isset($entry['last_activity']) ? (int)$entry['last_activity'] : 0;
-    $allowedWindow = admin_session_recovery_window_seconds();
-    if ($lastActivity > 0 && ($now - $lastActivity) > $allowedWindow) {
+    if (!admin_tracked_session_is_current($entry, $username, $now)) {
       $reason = 'tracked_session_expired';
       return false;
     }
@@ -627,36 +686,38 @@ if (!function_exists('admin_restore_session_from_tracker')) {
       }
     }
 
+    $role = admin_current_account_role($username);
+    if ($role === null || !admin_touch_session_activity($sid, $username)) {
+      $reason = 'tracked_session_no_longer_available';
+      return false;
+    }
+
     $_SESSION['admin_logged_in'] = true;
     $_SESSION['admin_user'] = $username;
     $_SESSION['admin_name'] = (string)($entry['name'] ?? $username);
     $_SESSION['admin_avatar'] = array_key_exists('avatar', $entry) ? $entry['avatar'] : null;
-    $_SESSION['admin_role'] = (string)($entry['role'] ?? 'admin');
+    $_SESSION['admin_role'] = $role;
     $_SESSION['needs_tour'] = !empty($entry['needs_tour']);
 
-    $activeSessions[$sid]['last_activity'] = $now;
-    admin_write_json_atomic(admin_sessions_file(), $activeSessions);
     $reason = 'restored';
     return true;
   }
 }
 
 if (!function_exists('admin_touch_session_activity')) {
-  function admin_touch_session_activity($sid = null)
+  function admin_touch_session_activity($sid = null, ?string $user = null)
   {
     $sid = $sid ?: session_id();
-    if ($sid === '') {
-      return false;
-    }
+    $user = $user ?? (string)($_SESSION['admin_user'] ?? '');
+    if ($sid === '') return false;
 
-    $file = admin_sessions_file();
-    $activeSessions = admin_sessions_read_fresh();
-    if (!isset($activeSessions[$sid]) || !is_array($activeSessions[$sid])) {
-      return false;
-    }
-
-    $activeSessions[$sid]['last_activity'] = time();
-    return admin_write_json_atomic($file, $activeSessions);
+    return admin_mutate_session_tracker(static function (array &$sessions) use ($sid, $user): bool {
+      $now = time();
+      $entry = $sessions[$sid] ?? null;
+      if (!is_array($entry) || !admin_tracked_session_is_current($entry, $user, $now)) return false;
+      $sessions[$sid]['last_activity'] = $now;
+      return true;
+    });
   }
 }
 
@@ -664,18 +725,11 @@ if (!function_exists('admin_unregister_session')) {
   function admin_unregister_session($sid = null)
   {
     $sid = $sid ?: session_id();
-    if ($sid === '') {
-      return false;
-    }
-
-    $file = admin_sessions_file();
-    $activeSessions = admin_sessions_read_fresh();
-    if (!isset($activeSessions[$sid])) {
+    if ($sid === '') return false;
+    return admin_mutate_session_tracker(static function (array &$sessions) use ($sid): bool {
+      unset($sessions[$sid]);
       return true;
-    }
-
-    unset($activeSessions[$sid]);
-    return admin_write_json_atomic($file, $activeSessions);
+    });
   }
 }
 
